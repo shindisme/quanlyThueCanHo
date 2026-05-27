@@ -5,11 +5,11 @@
   "license": "ISC",
   "author": "Nguyễn Tiến Dũng - Trần Anh Kiệt",
   "type": "module",
-  "main": "index.js",
+  "main": "./dist/server.js",
   "scripts": {
-    "dev": "tsnd --respawn -r tsconfig-paths/register --pretty --transpile-only ./src/index.ts",
+    "dev": "tsx watch src/server.ts",
     "build": "tsc && tsc-alias",
-    "start": "node ./dist",
+    "start": "node dist/server.js",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -28,8 +28,7 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.9.1",
-    "prisma": "^6.19.3",
-    "ts-node-dev": "^2.0.0",
+    "prisma": "^7.8.0",
     "tsc-alias": "^1.8.17",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.22.3",
