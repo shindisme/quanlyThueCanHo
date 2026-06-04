@@ -1,10 +1,14 @@
 {
   "compilerOptions": {
-    "module": "CommonJS",
-    "target": "ES2022", 
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
     "noImplicitAny": true,
     "removeComments": true,
     "strict": true,
+    "types": [
+      "node"
+    ],
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
