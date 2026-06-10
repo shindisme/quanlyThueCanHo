@@ -3,17 +3,23 @@ import * as buildingService from "../services/building.service.js";
 
 export const create = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { name, address, description, status, totalFloors, branchName } = req.body;
-        if (!name || !address || !totalFloors || !branchName) {
-            res.status(400).json({ message: "Vui lòng nhập đủ các trường!" });
+        const { name, address_old, address_new, description, status, total_floors, branch_name } = req.body;
+
+        if (!name || !address_old || !address_new || !total_floors || !branch_name) {
+            res.status(400).json({ message: "Vui lòng nhập đầy đủ thông tin!" });
             return;
         }
+
         const data = await buildingService.createBuildingService({
-            name, address, description,
-            status: status ? Number(status) : 1,
-            totalFloors: Number(totalFloors),
-            branchName
+            name,
+            address_old,
+            address_new,
+            description,
+            status: status ? status : "ACTIVE",
+            total_floors: Number(total_floors),
+            branch_name
         });
+
         res.status(201).json(data);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -21,13 +27,15 @@ export const create = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const getAll = async (req: Request, res: Response): Promise<void> => {
-    const { search, branchName, page, limit } = req.query;
+    const { search, branch_name, page, limit } = req.query;
+
     const result = await buildingService.getAllBuildingsService({
         search: search as string,
-        branchName: branchName as string,
+        branch_name: branch_name as string,
         page: page ? Number(page) : 1,
         limit: limit ? Number(limit) : 10
     });
+
     res.json(result);
 };
 

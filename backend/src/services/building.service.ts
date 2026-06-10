@@ -3,11 +3,14 @@ import { Prisma } from "@prisma/client";
 
 export const createBuildingService = async (data: {
     name: string;
-    address: string;
+    address_old: string;
+    address_new: string;
     description?: string;
-    status?: number;
-    totalFloors: number;
-    branchName: string;
+    status?: any;
+    total_floors: number;
+    total_apartments?: number;
+    thumbnail_url?: string;
+    branch_name: string;
 }) => {
     return await prisma.building.create({
         data,
@@ -16,7 +19,7 @@ export const createBuildingService = async (data: {
 
 export const getAllBuildingsService = async (filters: {
     search?: string;
-    branchName?: string;
+    branch_name?: string;
     page?: number;
     limit?: number;
 }) => {
@@ -29,12 +32,13 @@ export const getAllBuildingsService = async (filters: {
     if (filters.search) {
         whereClause.OR = [
             { name: { contains: filters.search } },
-            { address: { contains: filters.search } },
+            { address_old: { contains: filters.search } },
+            { address_new: { contains: filters.search } },
         ];
     }
 
-    if (filters.branchName) {
-        whereClause.branchName = filters.branchName;
+    if (filters.branch_name) {
+        whereClause.branch_name = filters.branch_name;
     }
 
     const [buildings, total] = await prisma.$transaction([
@@ -42,7 +46,7 @@ export const getAllBuildingsService = async (filters: {
             where: whereClause,
             skip,
             take: limit,
-            orderBy: { createdAt: "desc" },
+            orderBy: { created_at: "desc" },
             include: {
                 _count: {
                     select: { apartments: true },
@@ -74,11 +78,14 @@ export const updateBuildingService = async (
     id: number,
     data: {
         name?: string;
-        address?: string;
+        address_old?: string;
+        address_new?: string;
         description?: string;
-        status?: number;
-        totalFloors?: number;
-        branchName?: string;
+        status?: any;
+        total_floors?: number;
+        total_apartments?: number;
+        thumbnail_url?: string;
+        branch_name?: string;
     }
 ) => {
     return await prisma.building.update({
