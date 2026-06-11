@@ -232,6 +232,7 @@ model ViewingSchedule {
   created_at    DateTime       @default(now())
 
   apartment     Apartment      @relation(fields: [apartment_id], references: [id])
+  temp_locked_until DateTime?
   @@map("viewing_schedules")
 }
 
