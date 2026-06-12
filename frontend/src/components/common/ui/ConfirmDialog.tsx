@@ -1,0 +1,52 @@
+import Modal from "./Modal";
+import Button from "./Button";
+
+// Dialog xac nhan truoc khi thuc hien hanh dong nguy hiem (xoa, huy...)
+interface ConfirmDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  variant?: "danger" | "primary";
+  isLoading?: boolean;
+}
+
+export default function ConfirmDialog({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  confirmText = "Xac nhan",
+  cancelText = "Huy",
+  variant = "danger",
+  isLoading = false,
+}: ConfirmDialogProps) {
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={title}
+      size="sm"
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose}>
+            {cancelText}
+          </Button>
+          <Button
+            variant={variant}
+            onClick={onConfirm}
+            isLoading={isLoading}
+          >
+            {confirmText}
+          </Button>
+        </>
+      }
+    >
+      <p className="text-sm text-gray-600">{message}</p>
+    </Modal>
+  );
+}
