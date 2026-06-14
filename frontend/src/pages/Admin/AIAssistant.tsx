@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Bot, User, Sparkles } from "lucide-react";
-import Card from "../../components/common/ui/Card";
+import Card from "../../components/ui/Card";
+import PageHeader from "../../components/ui/PageHeader";
 
 // Tin nhan gia lap
 interface Message {
@@ -33,7 +34,7 @@ export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      text: "Xin chao! Toi la tro ly AI cua DuKiHome. Toi co the giup ban tra cuu thong tin ve toa nha, can ho, hop dong, hoa don va nhieu hon nua. Hay hoi toi bat cu dieu gi!",
+      text: "Xin chao! Toi la tro ly AI cua YuKi House. Toi co the giup ban tra cuu thong tin ve toa nha, can ho, hop dong, hoa don va nhieu hon nua. Hay hoi toi bat cu dieu gi!",
       sender: "bot",
       time: "Vua xong",
     },
@@ -88,10 +89,12 @@ export default function AIAssistant() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">Tro ly AI</h1>
-        <p className="text-sm text-gray-500">Hoi dap thong minh ve he thong</p>
-      </div>
+      <PageHeader
+        icon={Bot}
+        title="Trợ lý AI"
+        subtitle="Hỏi đáp thông minh về hệ thống"
+        iconColor="linear-gradient(135deg, #8B5CF6, #EC4899)"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-200px)]">
         {/* Sidebar goi y */}
@@ -122,20 +125,18 @@ export default function AIAssistant() {
                 key={msg.id}
                 className={`flex gap-3 ${msg.sender === "user" ? "flex-row-reverse" : ""}`}
               >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  msg.sender === "bot" ? "bg-primary-100" : "bg-gray-200"
-                }`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.sender === "bot" ? "bg-primary-100" : "bg-gray-200"
+                  }`}>
                   {msg.sender === "bot" ? (
                     <Bot size={16} className="text-primary-600" />
                   ) : (
                     <User size={16} className="text-gray-600" />
                   )}
                 </div>
-                <div className={`max-w-[70%] px-4 py-3 rounded-2xl text-sm ${
-                  msg.sender === "bot"
-                    ? "bg-gray-50 text-gray-700"
-                    : "bg-primary-600 text-white"
-                }`}>
+                <div className={`max-w-[70%] px-4 py-3 rounded-2xl text-sm ${msg.sender === "bot"
+                  ? "bg-gray-50 text-gray-700"
+                  : "bg-primary-600 text-white"
+                  }`}>
                   {msg.text}
                 </div>
               </div>
@@ -168,7 +169,7 @@ export default function AIAssistant() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder="Nhap cau hoi cua ban..."
-                className="flex-1 px-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
+                className="premium-input flex-1 px-4 py-3 rounded-xl"
               />
               <button
                 onClick={handleSend}

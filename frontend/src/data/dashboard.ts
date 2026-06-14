@@ -1,7 +1,6 @@
 import type { DashboardKPI, MonthlyRevenue } from "../types";
 import { mockBuildings } from "./buildings";
 import { mockApartments } from "./apartments";
-import { mockTenants } from "./tenants";
 import { mockContracts } from "./contracts";
 import { mockMaintenanceRequests } from "./maintenance";
 

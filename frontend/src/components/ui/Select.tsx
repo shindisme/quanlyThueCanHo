@@ -1,4 +1,4 @@
-import { cn } from "../../../lib/utils";
+import { cn } from "../../lib/utils";
 import type { SelectHTMLAttributes } from "react";
 import { forwardRef } from "react";
 
@@ -32,11 +32,8 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           id={selectId}
           className={cn(
-            "w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm",
-            "bg-white text-gray-800",
-            "focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500",
-            "transition-colors duration-150 cursor-pointer",
-            error && "border-danger-500",
+            "flex h-10 w-full items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
+            error && "border-danger-500 focus:ring-danger-500",
             className
           )}
           {...props}

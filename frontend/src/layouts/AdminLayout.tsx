@@ -1,10 +1,7 @@
 import { Outlet } from "react-router-dom";
-import Sidebar from "../components/common/layout/Sidebar";
-import Header from "../components/common/layout/Header";
+import Sidebar from "../components/layout/Sidebar";
+import Header from "../components/layout/Header";
 
-// Layout chinh cho Admin va Manager
-// Cau truc: Sidebar ben trai | Header + Content ben phai
-// Outlet se render trang con (Dashboard, Buildings, v.v.)
 export default function AdminLayout() {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -17,8 +14,10 @@ export default function AdminLayout() {
         <Header />
 
         {/* Noi dung trang - co the cuon */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto bg-gray-50/30">
+          <div className="mx-auto px-4 sm:px-8 md:px-8 lg:px-8 xl:px-8 py-8 max-w-[1800px]">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

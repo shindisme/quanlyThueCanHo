@@ -1,188 +1,114 @@
 import { useState } from "react";
-import Card from "../../components/common/ui/Card";
-import Button from "../../components/common/ui/Button";
-import Avatar from "../../components/common/ui/Avatar";
+import { User, Mail, Save } from "lucide-react";
+import Button from "../../components/ui/Button";
+import PageHeader from "../../components/ui/PageHeader";
 import { useAuthStore } from "../../stores/auth.store";
-import { mockTenants } from "../../data/tenants";
-import { User, Mail, Phone, MapPin, CreditCard, Shield, Save } from "lucide-react";
+import { changePassword } from "../../services/auth.service";
 import { toast } from "sonner";
 
-// Trang ho so ca nhan cua nguoi thue
+// ============================================================
+// HỒ SƠ CÁ NHÂN - Xem và đổi mật khẩu
+// ============================================================
+
 export default function ProfilePage() {
-  const { user } = useAuthStore();
-  const tenantId = user?.id ? user.id - 3 : 1;
-  const tenant = mockTenants.find((t) => t.id === tenantId);
+  const { email, role } = useAuthStore();
+  const [oldPass, setOldPass] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const [isEditing, setIsEditing] = useState(false);
+  const displayName = email?.split("@")[0] || "User";
+  const roleLabel =
+    role === "ADMIN" ? "Quản trị viên" :
+      role === "MANAGER" ? "Quản lý" : "Người thuê";
 
-  // Map role sang tieng Viet
-  const roleLabel = user?.role === "ADMIN" ? "Quan tri vien"
-    : user?.role === "MANAGER" ? "Quan ly"
-    : "Nguoi thue";
+  async function handleChangePassword() {
+    if (!oldPass || !newPass) {
+      toast.error("Vui lòng nhập đầy đủ mật khẩu");
+      return;
+    }
+    if (newPass !== confirmPass) {
+      toast.error("Mật khẩu mới không khớp");
+      return;
+    }
+    if (newPass.length < 6) {
+      toast.error("Mật khẩu mới phải ít nhất 6 ký tự");
+      return;
+    }
+    setSaving(true);
+    try {
+      await changePassword(oldPass, newPass);
+      toast.success("Đổi mật khẩu thành công!");
+      setOldPass(""); setNewPass(""); setConfirmPass("");
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Đổi mật khẩu thất bại");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">Ho so ca nhan</h1>
-        <p className="text-sm text-gray-500">Xem va cap nhat thong tin ca nhan</p>
+    <div className="space-y-6 max-w-2xl">
+      <PageHeader
+        icon={User}
+        title="Hồ sơ cá nhân"
+        subtitle="Xem thông tin tài khoản và đổi mật khẩu bảo mật"
+        iconColor="linear-gradient(135deg, #7C3AED, #A78BFA)"
+      />
+
+      {/* Thông tin cá nhân */}
+      <div className="premium-card p-6">
+        <h3 className="font-semibold text-gray-800 mb-4">Thông tin tài khoản</h3>
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center shadow-md text-white text-2xl font-bold" style={{ background: "linear-gradient(135deg, #7C3AED, #A78BFA)" }}>
+            {displayName.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <p className="text-lg font-semibold text-gray-800">{displayName}</p>
+            <p className="text-sm text-gray-500">{roleLabel}</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Mail size={18} className="text-gray-400" />
+            <div>
+              <p className="text-xs text-gray-400">Email</p>
+              <p className="text-sm font-medium text-gray-800">{email}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <User size={18} className="text-gray-400" />
+            <div>
+              <p className="text-xs text-gray-400">Vai trò</p>
+              <p className="text-sm font-medium text-gray-800">{roleLabel}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Thong tin tom tat */}
-        <Card className="text-center">
-          <div className="py-4">
-            <Avatar
-              name={tenant?.full_name || user?.email || "User"}
-              size="lg"
-              className="mx-auto mb-4 !w-20 !h-20 !text-2xl"
-            />
-            <h3 className="text-lg font-bold text-gray-800">
-              {tenant?.full_name || user?.email?.split("@")[0]}
-            </h3>
-            <p className="text-sm text-gray-500">{user?.email}</p>
-            <div className="mt-2 inline-flex px-3 py-1 bg-primary-50 text-primary-600 rounded-lg text-xs font-medium">
-              {roleLabel}
-            </div>
+      {/* Đổi mật khẩu - kết nối API thật */}
+      <div className="premium-card p-6">
+        <h3 className="font-semibold text-gray-800 mb-4">Đổi mật khẩu</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Mật khẩu hiện tại</label>
+            <input type="password" value={oldPass} onChange={(e) => setOldPass(e.target.value)}
+              className="premium-input rounded-xl" />
           </div>
-
-          <div className="border-t border-gray-100 pt-4 space-y-3">
-            <div className="flex items-center gap-3 text-sm">
-              <Mail size={16} className="text-gray-400" />
-              <span className="text-gray-600">{user?.email}</span>
-            </div>
-            <div className="flex items-center gap-3 text-sm">
-              <Phone size={16} className="text-gray-400" />
-              <span className="text-gray-600">{user?.phone || "-"}</span>
-            </div>
-            {tenant?.address && (
-              <div className="flex items-center gap-3 text-sm">
-                <MapPin size={16} className="text-gray-400" />
-                <span className="text-gray-600">{tenant.address}</span>
-              </div>
-            )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Mật khẩu mới</label>
+            <input type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)}
+              className="premium-input rounded-xl" />
           </div>
-        </Card>
-
-        {/* Chi tiet */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Thong tin ca nhan */}
-          <Card>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <User size={18} className="text-primary-600" />
-                <h3 className="font-semibold text-gray-800">Thong tin ca nhan</h3>
-              </div>
-              <Button
-                variant={isEditing ? "primary" : "outline"}
-                size="sm"
-                onClick={() => {
-                  if (isEditing) {
-                    toast.success("Da cap nhat thong tin");
-                  }
-                  setIsEditing(!isEditing);
-                }}
-              >
-                {isEditing ? <><Save size={14} /> Luu</> : "Chinh sua"}
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Ho ten</label>
-                <input
-                  type="text"
-                  defaultValue={tenant?.full_name || ""}
-                  disabled={!isEditing}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-                <input
-                  type="email"
-                  defaultValue={user?.email || ""}
-                  disabled
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-gray-50 text-gray-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">So dien thoai</label>
-                <input
-                  type="tel"
-                  defaultValue={user?.phone || ""}
-                  disabled={!isEditing}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngay sinh</label>
-                <input
-                  type="date"
-                  defaultValue={tenant?.date_of_birth || ""}
-                  disabled={!isEditing}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Dia chi</label>
-                <input
-                  type="text"
-                  defaultValue={tenant?.address || ""}
-                  disabled={!isEditing}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 disabled:bg-gray-50 disabled:text-gray-500"
-                />
-              </div>
-              {tenant && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">CCCD</label>
-                  <input
-                    type="text"
-                    defaultValue={tenant.citizen_id}
-                    disabled
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-gray-50 text-gray-500"
-                  />
-                </div>
-              )}
-            </div>
-          </Card>
-
-          {/* Doi mat khau */}
-          <Card>
-            <div className="flex items-center gap-2 mb-4">
-              <Shield size={18} className="text-danger-500" />
-              <h3 className="font-semibold text-gray-800">Bao mat</h3>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Mat khau hien tai</label>
-                <input
-                  type="password"
-                  placeholder="Nhap mat khau hien tai"
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-                />
-              </div>
-              <div></div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Mat khau moi</label>
-                <input
-                  type="password"
-                  placeholder="Nhap mat khau moi"
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Xac nhan mat khau moi</label>
-                <input
-                  type="password"
-                  placeholder="Nhap lai mat khau moi"
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-                />
-              </div>
-            </div>
-            <Button variant="outline" className="mt-4" onClick={() => toast.success("Da doi mat khau")}>
-              Doi mat khau
-            </Button>
-          </Card>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Xác nhận mật khẩu mới</label>
+            <input type="password" value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)}
+              className="premium-input rounded-xl" />
+          </div>
+          <Button onClick={handleChangePassword} isLoading={saving}>
+            <Save size={16} /> Đổi mật khẩu
+          </Button>
         </div>
       </div>
     </div>

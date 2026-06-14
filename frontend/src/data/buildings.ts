@@ -4,7 +4,7 @@ import type { Building } from "../types";
 export const mockBuildings: Building[] = [
   {
     id: 1,
-    name: "DuKi Tower A",
+    name: "YuKi Tower A",
     address: "123 Nguyen Hue, Quan 1, TP.HCM",
     description: "Toa nha cao cap voi day du tien nghi hien dai, vi tri trung tam thanh pho.",
     status: 1,
@@ -16,7 +16,7 @@ export const mockBuildings: Building[] = [
   },
   {
     id: 2,
-    name: "DuKi Tower B",
+    name: "YuKi Tower B",
     address: "456 Le Loi, Quan 1, TP.HCM",
     description: "Toa nha phong cach hien dai, gan trung tam thuong mai.",
     status: 1,
@@ -28,7 +28,7 @@ export const mockBuildings: Building[] = [
   },
   {
     id: 3,
-    name: "DuKi Residence",
+    name: "YuKi Residence",
     address: "789 Pham Van Dong, Thu Duc, TP.HCM",
     description: "Khu can ho xanh, yeu tinh, gan cac truong dai hoc.",
     status: 1,
@@ -40,7 +40,7 @@ export const mockBuildings: Building[] = [
   },
   {
     id: 4,
-    name: "DuKi Garden",
+    name: "YuKi Garden",
     address: "321 Vo Van Ngan, Thu Duc, TP.HCM",
     description: "Can ho san vuon, khong gian song xanh mat.",
     status: 1,
@@ -52,7 +52,7 @@ export const mockBuildings: Building[] = [
   },
   {
     id: 5,
-    name: "DuKi Plaza",
+    name: "YuKi Plaza",
     address: "555 Nguyen Van Linh, Quan 7, TP.HCM",
     description: "Toa nha thuong mai - cu tru, co trung tam mua sam ben duoi.",
     status: 1,

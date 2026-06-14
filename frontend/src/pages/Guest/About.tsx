@@ -7,9 +7,9 @@ export default function GuestAbout() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Tieu de */}
         <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Ve DuKiHome</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Ve YuKi House</h1>
           <p className="text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
-            DuKiHome la he thong quan ly va cho thue can ho chuyen nghiep hang dau tai TP. Ho Chi Minh, 
+            YuKi House la he thong quan ly va cho thue can ho chuyen nghiep hang dau tai TP. Ho Chi Minh, 
             mang den trai nghiem song tien nghi va dich vu cham soc cu dan tot nhat.
           </p>
         </div>
@@ -39,7 +39,7 @@ export default function GuestAbout() {
             <p className="text-gray-600 leading-relaxed">
               Chung toi mong muon mang den cho moi nguoi mot noi song ly tuong, 
               noi ma su tien nghi, an toan va chat luong dich vu luon duoc dat len hang dau. 
-              Voi DuKiHome, viec tim kiem va quan ly can ho chua bao gio de dang va chuyen nghiep den the.
+              Voi YuKi House, viec tim kiem va quan ly can ho chua bao gio de dang va chuyen nghiep den the.
             </p>
           </div>
         </div>

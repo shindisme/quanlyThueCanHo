@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
-import Card from "../../components/common/ui/Card";
-import Button from "../../components/common/ui/Button";
-import SearchInput from "../../components/common/ui/SearchInput";
-import Badge from "../../components/common/ui/Badge";
-import DataTable, { type Column } from "../../components/common/ui/DataTable";
-import Pagination from "../../components/common/ui/Pagination";
-import Modal from "../../components/common/ui/Modal";
-import ConfirmDialog from "../../components/common/ui/ConfirmDialog";
+import { Plus, Users } from "lucide-react";
+import PageHeader from "../../components/ui/PageHeader";
+import Button from "../../components/ui/Button";
+import SearchInput from "../../components/ui/SearchInput";
+import Badge from "../../components/ui/Badge";
+import DataTable, { type Column } from "../../components/ui/DataTable";
+import Pagination from "../../components/ui/Pagination";
+import Modal from "../../components/ui/Modal";
+import Input from "../../components/ui/Input";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { mockTenants } from "../../data/tenants";
 import { mockUsers } from "../../data/users";
 import type { Tenant } from "../../types";
@@ -61,16 +62,18 @@ export default function TenantList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Nguoi thue</h1>
-          <p className="text-sm text-gray-500">Quan ly thong tin nguoi thue</p>
-        </div>
-        <Button onClick={() => { setEditItem(null); setShowForm(true); }}>
-          <Plus size={18} />
-          Them nguoi thue
-        </Button>
-      </div>
+      <PageHeader
+        icon={Users}
+        title="Người thuê"
+        subtitle="Quản lý thông tin người thuê"
+        count={filtered.length}
+        iconColor="linear-gradient(135deg, #8B5CF6, #A78BFA)"
+        actions={
+          <Button onClick={() => { setEditItem(null); setShowForm(true); }}>
+            <Plus size={18} /> Thêm người thuê
+          </Button>
+        }
+      />
 
       <SearchInput
         value={search}
@@ -79,9 +82,7 @@ export default function TenantList() {
         className="max-w-md"
       />
 
-      <Card padding={false}>
-        <DataTable columns={columns} data={paginated} />
-      </Card>
+      <DataTable columns={columns} data={paginated} />
 
       <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
 
@@ -100,24 +101,20 @@ export default function TenantList() {
           </>
         }
       >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Ho ten *</label>
-            <input type="text" defaultValue={editItem?.full_name || ""} placeholder="Nguyen Van A" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">CCCD *</label>
-              <input type="text" defaultValue={editItem?.citizen_id || ""} placeholder="079200001234" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
+        <div className="space-y-6">
+          <div className="grid grid-cols-12 gap-6">
+            <div className="col-span-12">
+              <Input label="Ho ten *" defaultValue={editItem?.full_name || ""} placeholder="Nguyen Van A" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngay sinh</label>
-              <input type="date" defaultValue={editItem?.date_of_birth || ""} className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
+            <div className="col-span-12 sm:col-span-6">
+              <Input label="CCCD *" defaultValue={editItem?.citizen_id || ""} placeholder="079200001234" />
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Dia chi</label>
-            <input type="text" defaultValue={editItem?.address || ""} placeholder="Dia chi thuong tru" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
+            <div className="col-span-12 sm:col-span-6">
+              <Input label="Ngay sinh" type="date" defaultValue={editItem?.date_of_birth || ""} />
+            </div>
+            <div className="col-span-12">
+              <Input label="Dia chi" defaultValue={editItem?.address || ""} placeholder="Dia chi thuong tru" />
+            </div>
           </div>
         </div>
       </Modal>

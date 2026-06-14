@@ -1,6 +1,6 @@
 import { Mail, Phone, MapPin, Send } from "lucide-react";
-import Card from "../../components/common/ui/Card";
-import Button from "../../components/common/ui/Button";
+import Card from "../../components/ui/Card";
+import Button from "../../components/ui/Button";
 import { toast } from "sonner";
 
 // Trang lien he cho khach vang lai
@@ -48,29 +48,34 @@ export default function GuestContact() {
           {/* Form lien he */}
           <Card className="lg:col-span-2">
             <h3 className="font-semibold text-gray-800 mb-4">Gui tin nhan cho chung toi</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
+            <div className="space-y-6">
+              <div className="grid grid-cols-12 gap-6">
+                <div className="col-span-12 sm:col-span-6">
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Ho ten *</label>
-                  <input type="text" placeholder="Nguyen Van A" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
+                  <input type="text" placeholder="Nguyen Van A" className="premium-input rounded-xl" />
                 </div>
-                <div>
+                <div className="col-span-12 sm:col-span-6">
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Email *</label>
-                  <input type="email" placeholder="email@example.com" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
+                  <input type="email" placeholder="email@example.com" className="premium-input rounded-xl" />
+                </div>
+
+                <div className="col-span-12">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Chu de</label>
+                  <input type="text" placeholder="Chu de tin nhan" className="premium-input rounded-xl" />
+                </div>
+
+                <div className="col-span-12">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Noi dung *</label>
+                  <textarea rows={5} placeholder="Noi dung tin nhan..." className="premium-input rounded-xl resize-none" />
+                </div>
+
+                <div className="col-span-12">
+                  <Button onClick={() => toast.success("Da gui tin nhan! Chung toi se phan hoi som.")}>
+                    <Send size={16} />
+                    Gui tin nhan
+                  </Button>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Chu de</label>
-                <input type="text" placeholder="Chu de tin nhan" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Noi dung *</label>
-                <textarea rows={5} placeholder="Noi dung tin nhan..." className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 resize-none" />
-              </div>
-              <Button onClick={() => toast.success("Da gui tin nhan! Chung toi se phan hoi som.")}>
-                <Send size={16} />
-                Gui tin nhan
-              </Button>
             </div>
           </Card>
         </div>

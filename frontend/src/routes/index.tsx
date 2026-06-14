@@ -4,6 +4,7 @@ import AdminLayout from "../layouts/AdminLayout";
 import TenantLayout from "../layouts/TenantLayout";
 import GuestLayout from "../layouts/GuestLayout";
 import RoleRoute from "./RoleRoute";
+import RootRedirect from "./RootRedirect";
 
 // Admin pages
 import AdminDashboard from "../pages/Admin/Dashboard";
@@ -48,12 +49,18 @@ const router = createBrowserRouter([
     element: <Login />,
   },
 
-  // Guest
+  // Điều hướng gốc /
   {
     path: "/",
+    element: <RootRedirect />,
+  },
+
+  // Tạm thời chuyển trang Guest sang /guest
+  {
+    path: "/guest",
     element: <GuestLayout />,
     children: [
-      { index: true, element: <GuestHomePage /> },
+      { index: true, element: <Navigate to="/login" replace /> },
       { path: "apartments", element: <GuestApartmentListing /> },
       { path: "apartments/:id", element: <GuestApartmentDetail /> },
       { path: "buildings", element: <GuestApartmentListing /> },

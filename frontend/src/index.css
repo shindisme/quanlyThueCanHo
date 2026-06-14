@@ -1,13 +1,7 @@
 @import "tailwindcss";
 
-/* ========================================
-   DuKiHome Design System
-   Mau nen: tim nhat (gan trang), accent tim
-   Font: Inter, bo goc lon, shadow mem
-   ======================================== */
-
 @theme {
-  /* Mau chinh - tim */
+  /* PRIMARY - Tím  */
   --color-primary-50: #F5F3FF;
   --color-primary-100: #EDE9FE;
   --color-primary-200: #DDD6FE;
@@ -19,7 +13,7 @@
   --color-primary-800: #5B21B6;
   --color-primary-900: #4C1D95;
 
-  /* Mau xam trung tinh */
+  /* GRAY  */
   --color-gray-50: #F9FAFB;
   --color-gray-100: #F3F4F6;
   --color-gray-200: #E5E7EB;
@@ -31,51 +25,52 @@
   --color-gray-800: #1F2937;
   --color-gray-900: #111827;
 
-  /* Mau trang thai */
+  /* STATUS COLORS */
   --color-success-50: #ECFDF5;
+  --color-success-100: #D1FAE5;
   --color-success-500: #10B981;
   --color-success-600: #059669;
+
   --color-warning-50: #FFFBEB;
+  --color-warning-100: #FEF3C7;
   --color-warning-500: #F59E0B;
   --color-warning-600: #D97706;
+
   --color-danger-50: #FEF2F2;
+  --color-danger-100: #FEE2E2;
   --color-danger-500: #EF4444;
   --color-danger-600: #DC2626;
+
   --color-info-50: #EFF6FF;
+  --color-info-100: #DBEAFE;
   --color-info-500: #3B82F6;
   --color-info-600: #2563EB;
 
-  /* Mau nen he thong */
+  /* LAYOUT COLORS */
   --color-surface: #FFFFFF;
-  --color-background: #FAFAFC;
+  --color-background: #F8F9FA;
   --color-sidebar: #FFFFFF;
   --color-border: #E5E7EB;
 
-  /* Font */
+  /* FONT */
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
 
-  /* Bo goc */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  /* BORDER RADIUS */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
 
-  /* Shadow */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  /* SHADOWS */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
   --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-dropdown: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --shadow-dropdown: 0 10px 40px rgba(0, 0, 0, 0.12);
+  --shadow-inner: inset 0 20px 60px rgba(0, 0, 0, 0.12);
   --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.15);
-  --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-sidebar: 2px 0 8px rgba(0, 0, 0, 0.04);
 }
 
-/* Reset co ban */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+/* BASE RESET */
 
 html {
   font-family: var(--font-sans);
@@ -89,16 +84,20 @@ body {
   background-color: var(--color-background);
   color: var(--color-gray-800);
   min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+
 }
 
 #root {
   min-height: 100vh;
 }
 
-/* Scrollbar */
+/* SCROLLBAR */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -114,7 +113,7 @@ body {
   background: var(--color-gray-400);
 }
 
-/* Animation chung */
+/* ANIMATIONS */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -125,9 +124,9 @@ body {
   }
 }
 
-@keyframes slideInRight {
+@keyframes slideInLeft {
   from {
-    transform: translateX(100%);
+    transform: translateX(-100%);
   }
 
   to {
@@ -159,12 +158,24 @@ body {
   }
 }
 
+@keyframes pulse-dot {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
 .animate-fade-in {
   animation: fadeIn 0.2s ease-out;
 }
 
-.animate-slide-in-right {
-  animation: slideInRight 0.3s ease-out;
+.animate-slide-in-left {
+  animation: slideInLeft 0.3s ease-out;
 }
 
 .animate-slide-in-up {
@@ -173,4 +184,110 @@ body {
 
 .animate-scale-in {
   animation: scaleIn 0.2s ease-out;
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+
+/* Card Styles */
+.premium-card {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  box-shadow: var(--shadow-card);
+  transition: all 200ms ease;
+}
+
+.premium-card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Table Styles */
+.premium-table-container {
+  background-color: var(--color-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.premium-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.premium-table th {
+  text-align: left;
+  padding: 20px 32px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background-color: rgba(249, 250, 251, 0.9);
+  border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+  user-select: none;
+}
+
+.premium-table td {
+  padding: 24px 32px;
+  font-size: 15px;
+  color: var(--color-gray-700);
+  font-weight: 500;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(243, 244, 246, 0.8);
+}
+
+.premium-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.premium-table tbody tr {
+  transition: all 150ms ease;
+}
+
+.premium-table tbody tr:hover {
+  background-color: var(--color-primary-50);
+  cursor: pointer;
+}
+
+/* Global Form Utilities (Shadcn-like) */
+.premium-input,
+.premium-select,
+select {
+  display: flex;
+  height: 2.5rem;
+  width: 100%;
+  border-radius: 0.375rem;
+  border: 1px solid var(--color-gray-200);
+  background-color: #ffffff;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--color-gray-800);
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.premium-input:focus,
+.premium-select:focus,
+select:focus {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  border-color: var(--color-primary-500);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(124, 58, 237, 0.5);
+}
+
+.premium-input:disabled,
+.premium-select:disabled,
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+textarea.premium-input {
+  min-height: 80px;
 }

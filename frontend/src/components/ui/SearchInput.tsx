@@ -1,4 +1,4 @@
-import { cn } from "../../../lib/utils";
+import { cn } from "../../lib/utils";
 import { Search } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -42,7 +42,7 @@ export default function SearchInput({
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}
         placeholder={placeholder}
-        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors"
+        className="premium-input pl-10 pr-4 py-2.5 rounded-xl text-sm bg-white text-gray-800 placeholder:text-gray-400"
       />
     </div>
   );

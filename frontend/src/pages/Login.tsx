@@ -2,14 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { loginSchema } from "../schemas/auth.schema";
 import { useAuthStore } from "../stores/auth.store";
-import { findUserByCredentials } from "../data/users";
-import Button from "../components/common/ui/Button";
-
-// Du lieu form login
+import { login } from "../services/auth.service";
+import Button from "../components/ui/Button";
 interface LoginForm {
   email: string;
   password: string;
@@ -20,7 +18,6 @@ export default function Login() {
   const { setAuth } = useAuthStore();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
 
   const {
     register,
@@ -32,92 +29,64 @@ export default function Login() {
 
   async function onSubmit(data: LoginForm) {
     setIsLoading(true);
+    try {
+      const result = await login(data.email, data.password);
+      setAuth(result.token, result.role, data.email);
+      toast.success("Đăng nhập thành công!");
 
-    // Gia lap thoi gian goi API
-    await new Promise((r) => setTimeout(r, 800));
-
-    // Tim user trong mock data
-    const user = findUserByCredentials(data.email, data.password);
-
-    if (!user) {
-      toast.error("Email hoac mat khau khong chinh xac!");
+      switch (result.role) {
+        case "ADMIN":
+          navigate("/admin/dashboard");
+          break;
+        case "MANAGER":
+          navigate("/manager/dashboard");
+          break;
+        case "TENANT":
+          navigate("/tenant/home");
+          break;
+        default:
+          navigate("/");
+      }
+    } catch (error: any) {
+      const msg = error.response?.data?.error || "Đăng nhập thất bại!";
+      toast.error(msg);
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    // Luu thong tin dang nhap
-    const mockToken = "mock-jwt-token-" + user.id;
-    setAuth(mockToken, user);
-
-    toast.success("Dang nhap thanh cong!");
-
-    // Chuyen huong theo role
-    switch (user.role) {
-      case "ADMIN":
-        navigate("/admin/dashboard");
-        break;
-      case "MANAGER":
-        navigate("/manager/dashboard");
-        break;
-      case "TENANT":
-        navigate("/tenant/home");
-        break;
-      default:
-        navigate("/");
-    }
-
-    setIsLoading(false);
   }
 
   return (
-    <div className="min-h-screen flex bg-background">
-
-
-      {/* Left side */}
-      <div className="hidden lg:flex flex-1 items-center justify-center bg-primary-600 relative overflow-hidden">
-        {/* Image */}
-        <div className="absolute inset-0">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-primary-500 rounded-full opacity-30" />
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-primary-700 rounded-full opacity-20" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary-400 rounded-3xl rotate-45 opacity-20" />
-        </div>
-
-        {/* Content */}
-        <div className="relative z-10 text-center text-white px-12 max-w-lg">
-          <h2 className="text-3xl font-bold mb-4">
-            Hệ thống quản lý cho thuê căn hộ YuKi Home
-          </h2>
-        </div>
-      </div>
-
-      {/* Right side - Login Form */}
-      <div className="flex-1/6 flex items-center justify-center px-6 py-12">
+    <div className="min-h-screen flex">
+      {/*Left side - form đăng nhập*/}
+      <div className="flex-1 flex items-center justify-center px-6 py-12 bg-white">
         <div className="w-full max-w-md">
           {/* Logo */}
-          <div className="flex items-center gap-3 mb-8">
-
+          <div className="flex items-center gap-3 mb-10">
+            <div className="w-12 h-12 rounded-t-xl flex items-center justify-center"
+              style={{ background: "linear-gradient(135deg, #7C3AED, #A78BFA)" }}>
+              <Building2 size={24} className="text-white" />
+            </div>
             <div>
-              <h1 className="text-2xl font-bold text-primary-600">YuKi Home</h1>
-              <p className="text-xs font-bold text-black">
-                Quản lý cho thuê căn hộ
-              </p>
+              <h1 className="text-xl font-bold text-gray-800">YuKi House</h1>
+              <p className="text-xs text-gray-400">Quản lý cho thuê căn hộ</p>
             </div>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {/* Email */}
+            {/* Username */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Email
+              <label className="flex items-center text-sm font-medium text-gray-700 mb-1.5">
+                <Mail size={18} className="inline-block text-gray-400 mr-2" />
+                Tên tài khoản
               </label>
               <div className="relative">
-                <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="email"
+                  placeholder="Nhập tên tài khoản"
                   {...register("email")}
-                  className={`w-full pl-10 pr-4 py-3 rounded-xl border text-sm bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors ${errors.email ? "border-danger-500" : "border-gray-300"
-                    }`}
+                  className={`premium-input rounded-xl pl-11
+                    ${errors.email ? "border-danger-500 focus:border-danger-500 focus:ring-danger-500/20" : ""}`}
                 />
               </div>
               {errors.email && (
@@ -125,24 +94,25 @@ export default function Login() {
               )}
             </div>
 
-            {/* Mat khau */}
+            {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Mat khau
+              <label className="flex items-center text-sm font-medium text-gray-700 mb-1.5">
+                <Lock size={18} className="inline-block text-gray-400 mr-2" />
+                Mật khẩu
               </label>
               <div className="relative">
-                <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+
                 <input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Nhap mat khau"
+                  placeholder="Nhập mật khẩu"
                   {...register("password")}
-                  className={`w-full pl-10 pr-12 py-3 rounded-xl border text-sm bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-colors ${errors.password ? "border-danger-500" : "border-gray-300"
-                    }`}
+                  className={`premium-input rounded-xl pl-11 pr-12
+                    ${errors.password ? "border-danger-500 focus:border-danger-500 focus:ring-danger-500/20" : ""}`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -152,43 +122,47 @@ export default function Login() {
               )}
             </div>
 
-            {/* Ghi nho & Quen mat khau */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                />
-                <span className="text-sm text-gray-600">Ghi nho dang nhap</span>
-              </label>
-              <button type="button" className="text-sm text-primary-600 hover:underline cursor-pointer">
-                Quen mat khau?
-              </button>
-            </div>
-
-            {/* Nut dang nhap */}
+            {/* Nút đăng nhập */}
             <Button
               type="submit"
               isLoading={isLoading}
-              className="w-full py-3"
+              className="w-full py-3 text-base"
               size="lg"
             >
-              Dang nhap
+              Đăng nhập
             </Button>
           </form>
 
-          {/* Tai khoan demo */}
-          <div className="mt-8 p-4 bg-primary-50 rounded-xl">
-            <p className="text-xs font-medium text-primary-700 mb-2">Tai khoan demo:</p>
+          {/* Demo info */}
+          <div className="mt-4 p-4 bg-primary-50 rounded-lg border border-primary-100">            <p className="text-xs font-semibold text-primary-700 mb-2">Tài khoản demo:</p>
             <div className="space-y-1 text-xs text-primary-600">
-              <p>Admin: admin@dukihome.vn</p>
-              <p>Manager: manager.a@dukihome.vn</p>
-              <p>Tenant: an.nguyen@gmail.com</p>
-              <p className="text-gray-400 mt-1">Mat khau: bat ky</p>
+              <p>Tên đăng nhập: admin@gmail.com</p>
+              <p>Mật khẩu: admin123</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/*Righjt side*/}
+      <div className="hidden lg:flex flex-1 items-center justify-center relative overflow-hidden"
+        style={{ background: "linear-gradient(135deg, #7C3AED 0%, #6D28D9 40%, #4C1D95 100%)" }}>
+        <div className="absolute top-20 left-20 w-72 h-72 rounded-full opacity-20"
+          style={{ background: "radial-gradient(circle, #A78BFA, transparent)" }} />
+        <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full opacity-15"
+          style={{ background: "radial-gradient(circle, #C4B5FD, transparent)" }} />
+        <div className="absolute top-1/3 right-1/4 w-48 h-48 rounded-3xl rotate-45 opacity-10 bg-white" />
+
+        {/* Content */}
+        <div className="relative z-10 text-center text-white px-12 max-w-lg">
+          <div className="w-20 h-20 bg-white/15 rounded-2xl flex items-center justify-center mx-auto mb-8 backdrop-blur-sm border border-white/20">
+            <Building2 size={40} className="text-white" />
+          </div>
+          <h2 className="text-3xl font-bold mb-4 capitalize">
+            Hệ thống quản lý căn hộ thông minh
+          </h2>
+          <p className="text-lg text-purple-200 leading-relaxed">
+
+          </p>
         </div>
       </div>
     </div>

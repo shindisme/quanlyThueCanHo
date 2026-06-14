@@ -1,4 +1,4 @@
-import { cn } from "../../../lib/utils";
+import { cn } from "../../lib/utils";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { X } from "lucide-react";
@@ -66,30 +66,30 @@ export default function Modal({
       {/* Noi dung modal */}
       <div
         className={cn(
-          "relative w-full bg-white rounded-[20px] shadow-modal animate-scale-in",
+          "relative w-full bg-white rounded-xl shadow-2xl animate-scale-in",
           "max-h-[90vh] flex flex-col",
           sizeStyles[size]
         )}
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+          <div className="flex items-center justify-between border-b border-gray-200 px-8 py-6">
+            <h3 className="text-xl font-bold text-gray-900">{title}</h3>
             <button
               onClick={onClose}
-              className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+              className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
             >
-              <X size={20} />
+              <X size={24} />
             </button>
           </div>
         )}
 
         {/* Body - co the cuon khi noi dung dai */}
-        <div className="px-6 py-4 overflow-y-auto flex-1">{children}</div>
+        <div className="overflow-y-auto flex-1 p-8 md:p-10">{children}</div>
 
         {/* Footer */}
         {footer && (
-          <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+          <div className="border-t border-gray-200 bg-gray-50/50 px-8 py-6 flex justify-end gap-3 rounded-b-xl">
             {footer}
           </div>
         )}

@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { Plus } from "lucide-react";
-import Card from "../../components/common/ui/Card";
-import Button from "../../components/common/ui/Button";
-import SearchInput from "../../components/common/ui/SearchInput";
-import Badge from "../../components/common/ui/Badge";
-import DataTable, { type Column } from "../../components/common/ui/DataTable";
-import Pagination from "../../components/common/ui/Pagination";
-import Modal from "../../components/common/ui/Modal";
+import { Plus, FileText } from "lucide-react";
+import PageHeader from "../../components/ui/PageHeader";
+import Button from "../../components/ui/Button";
+import SearchInput from "../../components/ui/SearchInput";
+import Badge from "../../components/ui/Badge";
+import DataTable, { type Column } from "../../components/ui/DataTable";
+import Pagination from "../../components/ui/Pagination";
+import Modal from "../../components/ui/Modal";
 import { mockContracts } from "../../data/contracts";
 import { mockTenants } from "../../data/tenants";
 import { mockApartments } from "../../data/apartments";
@@ -57,16 +57,18 @@ export default function ContractList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Hop dong</h1>
-          <p className="text-sm text-gray-500">Quan ly hop dong thue can ho</p>
-        </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus size={18} />
-          Tao hop dong
-        </Button>
-      </div>
+      <PageHeader
+        icon={FileText}
+        title="Hợp đồng"
+        subtitle="Quản lý hợp đồng thuê căn hộ"
+        count={filtered.length}
+        iconColor="linear-gradient(135deg, #10B981, #34D399)"
+        actions={
+          <Button onClick={() => setShowForm(true)}>
+            <Plus size={18} /> Tạo hợp đồng
+          </Button>
+        }
+      />
 
       <div className="flex flex-col sm:flex-row gap-3">
         <SearchInput
@@ -87,9 +89,7 @@ export default function ContractList() {
         </select>
       </div>
 
-      <Card padding={false}>
-        <DataTable columns={columns} data={paginated} />
-      </Card>
+      <DataTable columns={columns} data={paginated} />
 
       <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
 
@@ -106,46 +106,45 @@ export default function ContractList() {
           </>
         }
       >
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+        <div className="space-y-6">
+          <div className="grid grid-cols-12 gap-6">
+            <div className="col-span-12 sm:col-span-6">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Nguoi thue *</label>
-              <select className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500">
+              <select className="premium-select w-full rounded-xl">
                 <option value="">Chon nguoi thue</option>
                 {mockTenants.map((t) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
               </select>
             </div>
-            <div>
+            <div className="col-span-12 sm:col-span-6">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Can ho *</label>
-              <select className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500">
+              <select className="premium-select w-full rounded-xl">
                 <option value="">Chon can ho</option>
                 {mockApartments.filter((a) => a.status === "AVAILABLE").map((a) => <option key={a.id} value={a.id}>{a.apartment_code} - {a.title}</option>)}
               </select>
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+
+            <div className="col-span-12 sm:col-span-6">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngay bat dau *</label>
-              <input type="date" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
+              <input type="date" className="premium-input rounded-xl" />
             </div>
-            <div>
+            <div className="col-span-12 sm:col-span-6">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngay ket thuc *</label>
-              <input type="date" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
+              <input type="date" className="premium-input rounded-xl" />
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
+
+            <div className="col-span-12 sm:col-span-6">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Tien thue/thang (VND) *</label>
-              <input type="number" placeholder="0" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
+              <input type="number" placeholder="0" className="premium-input rounded-xl" />
             </div>
-            <div>
+            <div className="col-span-12 sm:col-span-6">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Tien coc (VND) *</label>
-              <input type="number" placeholder="0" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
+              <input type="number" placeholder="0" className="premium-input rounded-xl" />
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">File hop dong (PDF)</label>
-            <input type="file" accept=".pdf" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm" />
+
+            <div className="col-span-12">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">File hop dong (PDF)</label>
+              <input type="file" accept=".pdf" className="premium-input rounded-xl border-dashed" />
+            </div>
           </div>
         </div>
       </Modal>

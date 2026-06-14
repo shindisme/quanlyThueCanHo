@@ -1,4 +1,6 @@
-import Card from "../../components/common/ui/Card";
+import { TrendingUp } from "lucide-react";
+import PageHeader from "../../components/ui/PageHeader";
+import Card from "../../components/ui/Card";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area,
@@ -6,7 +8,6 @@ import {
 import {
   getMonthlyRevenueData,
   getOccupancyData,
-  getInvoiceStatusData,
   getContractStatusData,
 } from "../../data/dashboard";
 import { formatCurrency } from "../../utils/format";
@@ -25,35 +26,36 @@ const tenantGrowthData = [
 export default function ReportDashboard() {
   const revenueData = getMonthlyRevenueData();
   const occupancyData = getOccupancyData();
-  const invoiceData = getInvoiceStatusData();
   const contractData = getContractStatusData();
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">Bao cao thong ke</h1>
-        <p className="text-sm text-gray-500">Phan tich du lieu toan he thong</p>
-      </div>
+      <PageHeader
+        icon={TrendingUp}
+        title="Báo cáo thống kê"
+        subtitle="Phân tích và theo dõi số liệu toàn hệ thống"
+        iconColor="linear-gradient(135deg, #3B82F6, #8B5CF6)"
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-12 gap-6">
         {/* Doanh thu theo thang */}
-        <Card>
+        <Card className="col-span-12 lg:col-span-6">
           <h3 className="font-semibold text-gray-800 mb-4">Doanh thu theo thang</h3>
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={280} debounce={150}>
             <AreaChart data={revenueData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
               <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#9CA3AF" />
               <YAxis tick={{ fontSize: 12 }} stroke="#9CA3AF" tickFormatter={(v) => `${(v / 1000000).toFixed(0)}M`} />
-              <Tooltip formatter={(value: number) => [formatCurrency(value), "Doanh thu"]} />
+              <Tooltip formatter={(value: any) => [formatCurrency(Number(value) || 0), "Doanh thu"]} />
               <Area type="monotone" dataKey="revenue" stroke="#7C3AED" fill="#EDE9FE" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
         </Card>
 
         {/* Ty le lap day */}
-        <Card>
+        <Card className="col-span-12 lg:col-span-6">
           <h3 className="font-semibold text-gray-800 mb-4">Ty le lap day theo toa nha</h3>
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={280} debounce={150}>
             <BarChart data={occupancyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
               <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="#9CA3AF" />
@@ -66,9 +68,9 @@ export default function ReportDashboard() {
         </Card>
 
         {/* Tang truong nguoi thue */}
-        <Card>
+        <Card className="col-span-12 lg:col-span-6">
           <h3 className="font-semibold text-gray-800 mb-4">Tang truong nguoi thue</h3>
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={280} debounce={150}>
             <LineChart data={tenantGrowthData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
               <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#9CA3AF" />
@@ -80,10 +82,10 @@ export default function ReportDashboard() {
         </Card>
 
         {/* Tinh trang hop dong */}
-        <Card>
+        <Card className="col-span-12 lg:col-span-6">
           <h3 className="font-semibold text-gray-800 mb-4">Trang thai hop dong</h3>
           <div className="flex items-center justify-center">
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={220} debounce={150}>
               <PieChart>
                 <Pie data={contractData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={4}>
                   {contractData.map((entry, i) => <Cell key={i} fill={entry.color} />)}

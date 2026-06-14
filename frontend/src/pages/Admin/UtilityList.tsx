@@ -1,8 +1,10 @@
-import Card from "../../components/common/ui/Card";
-import DataTable, { type Column } from "../../components/common/ui/DataTable";
+import PageHeader from "../../components/ui/PageHeader";
+import Card from "../../components/ui/Card";
+import DataTable, { type Column } from "../../components/ui/DataTable";
 import { mockUtilityReadings } from "../../data/utilities";
 import { mockApartments } from "../../data/apartments";
 import type { UtilityReading } from "../../types";
+import { Zap } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -39,30 +41,31 @@ export default function UtilityList() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">Dien nuoc</h1>
-        <p className="text-sm text-gray-500">Quan ly chi so dien nuoc theo thang</p>
-      </div>
+      <PageHeader
+        icon={Zap}
+        title="Điện nước"
+        subtitle="Quản lý và theo dõi chỉ số tiêu thụ điện nước"
+        count={mockUtilityReadings.length}
+        iconColor="linear-gradient(135deg, #F59E0B, #FBBF24)"
+      />
 
       {/* Bieu do tieu thu */}
       <Card>
-        <h3 className="font-semibold text-gray-800 mb-4">Bieu do tieu thu</h3>
-        <ResponsiveContainer width="100%" height={250}>
+        <h3 className="font-semibold text-gray-800 mb-4">Biểu đồ tiêu thụ</h3>
+        <ResponsiveContainer width="100%" height={250} debounce={150}>
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
             <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#9CA3AF" />
             <YAxis tick={{ fontSize: 12 }} stroke="#9CA3AF" />
             <Tooltip />
-            <Bar dataKey="electric" fill="#F59E0B" name="Dien (kWh)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="water" fill="#3B82F6" name="Nuoc (m3)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="electric" fill="#F59E0B" name="Điện (kWh)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="water" fill="#3B82F6" name="Nước (m3)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </Card>
 
       {/* Bang chi so */}
-      <Card padding={false}>
-        <DataTable columns={columns} data={mockUtilityReadings} />
-      </Card>
+      <DataTable columns={columns} data={mockUtilityReadings} />
     </div>
   );
 }

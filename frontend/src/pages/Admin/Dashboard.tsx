@@ -1,312 +1,303 @@
-import { useState } from "react";
 import {
-  Building2,
-  Home,
-  Users,
-  DollarSign,
-  FileText,
-  Wrench,
-  TrendingUp,
-  ChevronDown,
+  Building2, Home, Users, DollarSign, FileText, Wrench,
+  TrendingUp, ChevronDown, ArrowUpRight,
 } from "lucide-react";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area,
 } from "recharts";
-import Card from "../../components/common/ui/Card";
-import Badge from "../../components/common/ui/Badge";
-import {
-  getDashboardKPI,
-  getMonthlyRevenueData,
-  getOccupancyData,
-  getInvoiceStatusData,
-  getContractStatusData,
-} from "../../data/dashboard";
-import { getBranchNames, mockBuildings } from "../../data/buildings";
-import { mockContracts } from "../../data/contracts";
-import { mockInvoices } from "../../data/invoices";
-import { mockMaintenanceRequests } from "../../data/maintenance";
-import { mockTenants } from "../../data/tenants";
-import { mockApartments } from "../../data/apartments";
-import { formatCurrency, formatDate } from "../../utils/format";
-import {
-  CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS,
-  INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS,
-  REQUEST_STATUS_LABELS, REQUEST_STATUS_COLORS,
-  PRIORITY_LABELS,
-} from "../../constants/enums";
-import type { ContractStatus, InvoiceStatus, RequestStatus, Priority } from "../../constants/enums";
+import { useState } from "react";
+import { useAuthStore } from "../../stores/auth.store";
 
-// Admin Dashboard - hien thi KPI, bieu do, va bang du lieu
+const mockKPI = {
+  totalBuildings: 5,
+  totalApartments: 1000,
+  rentedApartments: 687,
+  availableApartments: 313,
+  totalTenants: 524,
+  monthlyRevenue: 1395000000,
+  expiringContracts: 12,
+  pendingMaintenance: 23,
+};
+
+const revenueData = [
+  { month: "T1", revenue: 975000000, lastYear: 820000000 },
+  { month: "T2", revenue: 1095000000, lastYear: 890000000 },
+  { month: "T3", revenue: 1185000000, lastYear: 950000000 },
+  { month: "T4", revenue: 1200000000, lastYear: 1020000000 },
+  { month: "T5", revenue: 1310000000, lastYear: 1100000000 },
+  { month: "T6", revenue: 1395000000, lastYear: 1180000000 },
+];
+
+const occupancyData = [
+  { name: "Tower A", occupied: 85, vacant: 15 },
+  { name: "Tower B", occupied: 72, vacant: 28 },
+  { name: "Residence", occupied: 91, vacant: 9 },
+  { name: "Garden", occupied: 65, vacant: 35 },
+  { name: "Plaza", occupied: 78, vacant: 22 },
+];
+
+const invoiceData = [
+  { name: "Đã thanh toán", value: 156, color: "#10B981" },
+  { name: "Chưa thanh toán", value: 42, color: "#F59E0B" },
+  { name: "Quá hạn", value: 8, color: "#EF4444" },
+];
+
+const recentActivities = [
+  { type: "contract", text: "Hợp đồng #HD-2026-089 đã ký", time: "5 phút trước", color: "bg-primary-500" },
+  { type: "payment", text: "Thanh toán 6.5tr từ căn A-1205", time: "12 phút trước", color: "bg-success-500" },
+  { type: "maintenance", text: "Yêu cầu sửa chữa mới từ B-807", time: "30 phút trước", color: "bg-warning-500" },
+  { type: "tenant", text: "Người thuê mới: Nguyễn Văn A", time: "1 giờ trước", color: "bg-info-500" },
+  { type: "invoice", text: "Hóa đơn tháng 6 đã phát hành", time: "2 giờ trước", color: "bg-gray-400" },
+];
+
+function StatCard({ icon: Icon, label, value, iconColor, iconBg }: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  value: string | number;
+  iconColor: string;
+  iconBg: string;
+}) {
+  return (
+    <div className="h-30 bg-white rounded-xl drop-shadow-lg p-4 md:p-8 hover:-translate-y-1 transition-all duration-300">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3">{label}</p>
+          <p className="text-2xl font-bold text-gray-900 mb-1">{value}</p>
+        </div>
+        <div className={`w-14 h-14 ${iconBg} rounded-xl flex items-center justify-center shrink-0 shadow-sm`}>
+          <Icon size={26} className={iconColor} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChartCard({ title, subtitle, children, action }: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-6 md:p-8 shadow-sm">
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+          {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+        </div>
+        {action}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+//
+// TRANG DASHBOARD CHÍNH - DashboardPack Commerce Style
+//
 export default function Dashboard() {
-  // Loc theo chi nhanh toa nha
-  const [selectedBranch, setSelectedBranch] = useState<string>("");
-  const branches = getBranchNames();
+  const { email } = useAuthStore();
+  const displayName = email?.split("@")[0] || "Admin";
+  const [selectedBranch, setSelectedBranch] = useState("");
 
-  // Loc building theo branch
-  const filteredBuildingIds = selectedBranch
-    ? mockBuildings.filter((b) => b.branchName === selectedBranch).map((b) => b.id)
-    : undefined;
+  function formatCurrency(amount: number) {
+    if (amount >= 1000000000) {
+      return (amount / 1000000000).toFixed(1) + " tỷ";
+    }
+    if (amount >= 1000000) {
+      return (amount / 1000000).toFixed(0) + " tr";
+    }
+    return new Intl.NumberFormat("vi-VN").format(amount) + " đ";
+  }
 
-  // Neu chon 1 chi nhanh, tinh KPI cho cac building trong chi nhanh do
-  // Neu chon "Tat ca", tinh KPI toan he thong
-  const kpi = selectedBranch
-    ? filteredBuildingIds?.reduce(
-        (acc, buildingId) => {
-          const buildingKpi = getDashboardKPI(buildingId);
-          return {
-            totalBuildings: acc.totalBuildings + buildingKpi.totalBuildings,
-            totalApartments: acc.totalApartments + buildingKpi.totalApartments,
-            rentedApartments: acc.rentedApartments + buildingKpi.rentedApartments,
-            availableApartments: acc.availableApartments + buildingKpi.availableApartments,
-            totalTenants: acc.totalTenants + buildingKpi.totalTenants,
-            monthlyRevenue: acc.monthlyRevenue + buildingKpi.monthlyRevenue,
-            expiringContracts: acc.expiringContracts + buildingKpi.expiringContracts,
-            pendingMaintenance: acc.pendingMaintenance + buildingKpi.pendingMaintenance,
-          };
-        },
-        {
-          totalBuildings: 0, totalApartments: 0, rentedApartments: 0,
-          availableApartments: 0, totalTenants: 0, monthlyRevenue: 0,
-          expiringContracts: 0, pendingMaintenance: 0,
-        }
-      ) || getDashboardKPI()
-    : getDashboardKPI();
+  const today = new Date().toLocaleDateString("vi-VN", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
-  const revenueData = getMonthlyRevenueData();
-  const occupancyData = getOccupancyData();
-  const invoiceStatusData = getInvoiceStatusData();
-  const contractStatusData = getContractStatusData();
-
-  // 8 the KPI
-  const kpiCards = [
-    { label: "Tong toa nha", value: kpi.totalBuildings, icon: Building2, color: "text-primary-600", bg: "bg-primary-50" },
-    { label: "Tong can ho", value: kpi.totalApartments, icon: Home, color: "text-info-600", bg: "bg-info-50" },
-    { label: "Dang cho thue", value: kpi.rentedApartments, icon: Home, color: "text-success-600", bg: "bg-success-50" },
-    { label: "Con trong", value: kpi.availableApartments, icon: Home, color: "text-warning-600", bg: "bg-warning-50" },
-    { label: "Nguoi thue", value: kpi.totalTenants, icon: Users, color: "text-primary-600", bg: "bg-primary-50" },
-    { label: "Doanh thu thang", value: formatCurrency(kpi.monthlyRevenue), icon: DollarSign, color: "text-success-600", bg: "bg-success-50", isLarge: true },
-    { label: "HD sap het han", value: kpi.expiringContracts, icon: FileText, color: "text-warning-600", bg: "bg-warning-50" },
-    { label: "Yeu cau sua chua", value: kpi.pendingMaintenance, icon: Wrench, color: "text-danger-500", bg: "bg-danger-50" },
-  ];
+  // Tỷ lệ lấp đầy
+  const occupancyRate = Math.round((mockKPI.rentedApartments / mockKPI.totalApartments) * 100);
 
   return (
     <div className="space-y-6">
-      {/* Tieu de + Dropdown loc chi nhanh */}
+      {/* WELCOME SECTION */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-          <p className="text-sm text-gray-500">Tong quan he thong quan ly can ho</p>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{today}</p>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Xin chào, <span className="text-primary-600">{displayName}</span>
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">Tổng quan hệ thống</p>
         </div>
 
         <div className="relative">
           <select
             value={selectedBranch}
             onChange={(e) => setSelectedBranch(e.target.value)}
-            className="appearance-none pl-4 pr-10 py-2.5 rounded-xl border border-gray-300 text-sm bg-white text-gray-700 focus:outline-none focus:border-primary-500 cursor-pointer"
+            className="appearance-none pl-4 pr-10 py-2 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:border-primary-500 cursor-pointer"
           >
-            <option value="">Tat ca chi nhanh</option>
-            {branches.map((branch) => (
-              <option key={branch} value={branch}>{branch}</option>
-            ))}
+            <option value="">Tất cả chi nhánh</option>
+            <option value="q1">Chi nhánh Quận 1</option>
+            <option value="q7">Chi nhánh Quận 7</option>
           </select>
-          <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <ChevronDown size={16} className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {kpiCards.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Card key={item.label} className="flex items-center gap-4">
-              <div className={`w-12 h-12 ${item.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
-                <Icon size={22} className={item.color} />
-              </div>
+      {/* KPI CARDS - 12 cột (DashboardPack style) */}
+      <div className="grid grid-cols-12 gap-6">
+        <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+          <StatCard icon={Building2} label="Tổng tòa nhà" value={mockKPI.totalBuildings}
+            iconColor="text-primary-600" iconBg="bg-primary-50" />
+        </div>
+        <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+          <StatCard icon={Home} label="Tổng căn hộ" value={mockKPI.totalApartments.toLocaleString()}
+            trend="up" trendValue="+2.5%"
+            iconColor="text-info-600" iconBg="bg-info-50" />
+        </div>
+        <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+          <StatCard icon={Users} label="Người thuê" value={mockKPI.totalTenants}
+            trend="up" trendValue="+8.2%"
+            iconColor="text-success-600" iconBg="bg-success-50" />
+        </div>
+        <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+          <StatCard icon={DollarSign} label="Doanh thu tháng" value={formatCurrency(mockKPI.monthlyRevenue)}
+            trend="up" trendValue="+6.5%"
+            iconColor="text-warning-600" iconBg="bg-warning-50" />
+        </div>
+      </div>
+
+      {/* ROW 2: Occupancy rate + KPI nhỏ - 12 cột */}
+      <div className="grid grid-cols-12 gap-6">
+        <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+          <StatCard icon={Home} label="Tỷ lệ lấp đầy" value={`${occupancyRate}%`}
+            iconColor="text-emerald-600" iconBg="bg-emerald-50" />
+        </div>
+        <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+          <StatCard icon={Home} label="Còn trống" value={mockKPI.availableApartments}
+            iconColor="text-gray-500" iconBg="bg-gray-50" />
+        </div>
+        <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+          <StatCard icon={FileText} label="HĐ sắp hết hạn" value={mockKPI.expiringContracts}
+            iconColor="text-orange-600" iconBg="bg-orange-50" />
+        </div>
+        <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+          <StatCard icon={Wrench} label="Yêu cầu sửa chữa" value={mockKPI.pendingMaintenance}
+            trend="down" trendValue="-12%"
+            iconColor="text-danger-600" iconBg="bg-danger-50" />
+        </div>
+      </div>
+
+      {/* CHARTS ROW - 12 cột */}
+      <div className="grid grid-cols-12 gap-6">
+        {/* Revenue chart - chiếm 8 cột */}
+        <div className="col-span-12 lg:col-span-8">
+          <ChartCard title="Doanh thu theo tháng" subtitle="So sánh với cùng kỳ năm ngoái"
+            action={<TrendingUp size={18} className="text-success-500" />}>
+            <ResponsiveContainer width="100%" height={280} debounce={150}>
+              <AreaChart data={revenueData}>
+                <defs>
+                  <linearGradient id="gradientRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#7C3AED" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#7C3AED" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#9CA3AF" />
+                <YAxis tick={{ fontSize: 11 }} stroke="#9CA3AF" tickFormatter={(v) => `${(v / 1000000000).toFixed(1)}tỷ`} />
+                <Tooltip formatter={(value: any) => [formatCurrency(Number(value) || 0), ""]}
+                  contentStyle={{ borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "13px" }} />
+                <Area type="monotone" dataKey="lastYear" stroke="#E5E7EB" strokeWidth={1.5} fill="transparent" name="Năm trước" />
+                <Area type="monotone" dataKey="revenue" stroke="#7C3AED" strokeWidth={2.5}
+                  fill="url(#gradientRevenue)" name="Năm nay" dot={{ fill: "#7C3AED", r: 4 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </div>
+
+        {/* Invoice pie - 4 cột */}
+        <div className="col-span-12 lg:col-span-4">
+          <ChartCard title="Trạng thái hóa đơn" subtitle="Tháng hiện tại">
+            <ResponsiveContainer width="100%" height={200} debounce={150}>
+              <PieChart>
+                <Pie data={invoiceData} dataKey="value" nameKey="name" cx="50%" cy="50%"
+                  innerRadius={55} outerRadius={80} paddingAngle={4}>
+                  {invoiceData.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            {/* Legend */}
+            <div className="space-y-2 mt-2">
+              {invoiceData.map((item) => (
+                <div key={item.name} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                    <span className="text-xs text-gray-600">{item.name}</span>
+                  </div>
+                  <span className="text-xs font-semibold text-gray-800">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </ChartCard>
+        </div>
+      </div>
+
+      {/* ROW: Bar chart + Activities - 12 cột */}
+      <div className="grid grid-cols-12 gap-6">
+        {/* Occupancy bar chart */}
+        <div className="col-span-12 lg:col-span-6">
+          <ChartCard title="Tỷ lệ lấp đầy theo tòa nhà" subtitle="Phần trăm (%)">
+            <ResponsiveContainer width="100%" height={250} debounce={150}>
+              <BarChart data={occupancyData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={false} />
+                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} stroke="#9CA3AF"
+                  tickFormatter={(v) => `${v}%`} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} stroke="#9CA3AF" width={80} />
+                <Tooltip formatter={(value: any) => [`${value}%`, ""]} />
+                <Bar dataKey="occupied" fill="#7C3AED" name="Đã thuê" radius={[0, 4, 4, 0]} barSize={20} />
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </div>
+
+        {/* Recent activities */}
+        <div className="col-span-12 lg:col-span-6">
+          <div className="bg-white rounded-lg border border-gray-200 p-5 h-full">
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <p className="text-xs text-gray-500">{item.label}</p>
-                <p className="text-xl font-bold text-gray-800">
-                  {item.value}
-                </p>
+                <h3 className="font-semibold text-gray-800">Hoạt động gần đây</h3>
+                <p className="text-xs text-gray-400 mt-0.5">Cập nhật realtime</p>
               </div>
-            </Card>
-          );
-        })}
-      </div>
+              <button className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1 cursor-pointer">
+                Xem tất cả <ArrowUpRight size={12} />
+              </button>
+            </div>
 
-      {/* Bieu do */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Doanh thu theo thang - Line chart */}
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-800">Doanh thu theo thang</h3>
-            <TrendingUp size={18} className="text-success-500" />
-          </div>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={revenueData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-              <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#9CA3AF" />
-              <YAxis tick={{ fontSize: 12 }} stroke="#9CA3AF" tickFormatter={(v) => `${(v / 1000000).toFixed(0)}M`} />
-              <Tooltip formatter={(value: number) => [formatCurrency(value), "Doanh thu"]} />
-              <Line type="monotone" dataKey="revenue" stroke="#7C3AED" strokeWidth={2.5} dot={{ fill: "#7C3AED", r: 4 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </Card>
-
-        {/* Ty le lap day - Bar chart */}
-        <Card>
-          <h3 className="font-semibold text-gray-800 mb-4">Ty le lap day theo toa nha</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={occupancyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-              <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="#9CA3AF" />
-              <YAxis tick={{ fontSize: 12 }} stroke="#9CA3AF" />
-              <Tooltip />
-              <Bar dataKey="occupied" fill="#7C3AED" name="Da thue" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="vacant" fill="#E5E7EB" name="Con trong" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-
-        {/* Trang thai hoa don - Pie chart */}
-        <Card>
-          <h3 className="font-semibold text-gray-800 mb-4">Trang thai hoa don</h3>
-          <div className="flex items-center justify-center">
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={invoiceStatusData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
-                  paddingAngle={4}
-                >
-                  {invoiceStatusData.map((entry, index) => (
-                    <Cell key={index} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="flex justify-center gap-4 mt-2">
-            {invoiceStatusData.map((item) => (
-              <div key={item.name} className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                <span className="text-xs text-gray-600">{item.name}: {item.value}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Trang thai hop dong - Pie chart */}
-        <Card>
-          <h3 className="font-semibold text-gray-800 mb-4">Trang thai hop dong</h3>
-          <div className="flex items-center justify-center">
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={contractStatusData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
-                  paddingAngle={4}
-                >
-                  {contractStatusData.map((entry, index) => (
-                    <Cell key={index} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="flex justify-center gap-4 mt-2">
-            {contractStatusData.map((item) => (
-              <div key={item.name} className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                <span className="text-xs text-gray-600">{item.name}: {item.value}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-
-      {/* Bang du lieu */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-        {/* Hop dong moi nhat */}
-        <Card>
-          <h3 className="font-semibold text-gray-800 mb-4">Hop dong moi nhat</h3>
-          <div className="space-y-3">
-            {mockContracts.slice(-5).reverse().map((contract) => {
-              const tenant = mockTenants.find((t) => t.id === contract.tenant_id);
-              const apt = mockApartments.find((a) => a.id === contract.apartment_id);
-              return (
-                <div key={contract.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{tenant?.full_name}</p>
-                    <p className="text-xs text-gray-400">{apt?.apartment_code} - {formatDate(contract.created_at)}</p>
+            <div className="space-y-4">
+              {recentActivities.map((activity, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  {/* Timeline dot */}
+                  <div className="relative mt-1.5">
+                    <div className={`w-2.5 h-2.5 rounded-full ${activity.color}`} />
+                    {i < recentActivities.length - 1 && (
+                      <div className="absolute top-3 left-1/2 -translate-x-1/2 w-px h-8 bg-gray-100" />
+                    )}
                   </div>
-                  <Badge variant={CONTRACT_STATUS_COLORS[contract.status as ContractStatus] as "success" | "gray" | "danger"}>
-                    {CONTRACT_STATUS_LABELS[contract.status as ContractStatus]}
-                  </Badge>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-
-        {/* Hoa don moi nhat */}
-        <Card>
-          <h3 className="font-semibold text-gray-800 mb-4">Hoa don moi nhat</h3>
-          <div className="space-y-3">
-            {mockInvoices.slice(0, 5).map((invoice) => {
-              const tenant = mockTenants.find((t) => t.id === invoice.tenant_id);
-              return (
-                <div key={invoice.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{invoice.invoice_code}</p>
-                    <p className="text-xs text-gray-400">{tenant?.full_name}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-gray-800">{formatCurrency(invoice.total_amount)}</p>
-                    <Badge variant={INVOICE_STATUS_COLORS[invoice.status as InvoiceStatus] as "success" | "warning" | "danger"}>
-                      {INVOICE_STATUS_LABELS[invoice.status as InvoiceStatus]}
-                    </Badge>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-700">{activity.text}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{activity.time}</p>
                   </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
-        </Card>
-
-        {/* Yeu cau sua chua gan day */}
-        <Card>
-          <h3 className="font-semibold text-gray-800 mb-4">Yeu cau sua chua gan day</h3>
-          <div className="space-y-3">
-            {mockMaintenanceRequests.slice(0, 5).map((req) => {
-              const tenant = mockTenants.find((t) => t.id === req.tenant_id);
-              return (
-                <div key={req.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">{req.title}</p>
-                    <p className="text-xs text-gray-400">
-                      {tenant?.full_name} - {PRIORITY_LABELS[req.priority as Priority]}
-                    </p>
-                  </div>
-                  <Badge variant={REQUEST_STATUS_COLORS[req.status as RequestStatus] as "warning" | "info" | "success" | "gray"}>
-                    {REQUEST_STATUS_LABELS[req.status as RequestStatus]}
-                  </Badge>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
+        </div>
       </div>
     </div>
   );

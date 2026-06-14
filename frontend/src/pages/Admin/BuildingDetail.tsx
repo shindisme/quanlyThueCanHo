@@ -1,13 +1,13 @@
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, MapPin, Layers, Building2, Home, Pencil } from "lucide-react";
-import Card from "../../components/common/ui/Card";
-import Badge from "../../components/common/ui/Badge";
-import Button from "../../components/common/ui/Button";
+import Card from "../../components/ui/Card";
+import Badge from "../../components/ui/Badge";
+import Button from "../../components/ui/Button";
 import { mockBuildings } from "../../data/buildings";
 import { mockApartments } from "../../data/apartments";
 import { mockUsers } from "../../data/users";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../constants/enums";
-import { formatCurrency, formatDate } from "../../utils/format";
+import { formatCurrency } from "../../utils/format";
 
 // Trang chi tiet toa nha - hien thi thong tin toa nha va danh sach can ho
 export default function BuildingDetail() {
@@ -78,21 +78,21 @@ export default function BuildingDetail() {
             <p className="text-sm text-gray-500 leading-relaxed">{building.description}</p>
           )}
 
-          {/* Thong ke nhanh */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
+          {/* Thong ke nhanh - 12 cột */}
+          <div className="grid grid-cols-12 gap-4 mt-6">
+            <div className="col-span-6 md:col-span-3 bg-gray-50 rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-gray-800">{apartments.length}</p>
               <p className="text-xs text-gray-400">Tong can ho</p>
             </div>
-            <div className="bg-success-50 rounded-xl p-3 text-center">
+            <div className="col-span-6 md:col-span-3 bg-success-50 rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-success-600">{rentedCount}</p>
               <p className="text-xs text-gray-400">Dang thue</p>
             </div>
-            <div className="bg-warning-50 rounded-xl p-3 text-center">
+            <div className="col-span-6 md:col-span-3 bg-warning-50 rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-warning-600">{availableCount}</p>
               <p className="text-xs text-gray-400">Con trong</p>
             </div>
-            <div className="bg-primary-50 rounded-xl p-3 text-center">
+            <div className="col-span-6 md:col-span-3 bg-primary-50 rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-primary-600">{occupancyRate}%</p>
               <p className="text-xs text-gray-400">Lap day</p>
             </div>
@@ -121,14 +121,14 @@ export default function BuildingDetail() {
         <h3 className="text-lg font-semibold text-gray-800 mb-4">
           Danh sach can ho ({apartments.length})
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-12 gap-6">
           {apartments.map((apt) => (
             <Link
               key={apt.id}
               to={`/admin/apartments/${apt.id}`}
-              className="block"
+              className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3 block"
             >
-              <Card className="hover:shadow-card-hover transition-shadow cursor-pointer">
+              <Card className="hover:shadow-card-hover transition-shadow cursor-pointer h-full">
                 <div className="w-full h-28 bg-gray-100 rounded-xl mb-3 flex items-center justify-center">
                   <Home size={24} className="text-gray-300" />
                 </div>

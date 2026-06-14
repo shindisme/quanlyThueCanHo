@@ -1,12 +1,11 @@
 import { Navigate } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.store";
-import type { Role } from "../constants/enums";
 
 // Bao ve route theo role
 // Chi cho phep truy cap neu user dang nhap va co role phu hop
 interface RoleRouteProps {
   children: React.ReactNode;
-  allowedRoles: Role[];
+  allowedRoles: string[];
 }
 
 export default function RoleRoute({ children, allowedRoles }: RoleRouteProps) {

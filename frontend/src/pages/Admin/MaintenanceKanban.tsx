@@ -1,10 +1,11 @@
-import { useState } from "react";
-import Card from "../../components/common/ui/Card";
-import Badge from "../../components/common/ui/Badge";
+import { Wrench } from "lucide-react";
+import PageHeader from "../../components/ui/PageHeader";
+import Card from "../../components/ui/Card";
+import Badge from "../../components/ui/Badge";
 import { mockMaintenanceRequests } from "../../data/maintenance";
 import { mockTenants } from "../../data/tenants";
 import { mockApartments } from "../../data/apartments";
-import { REQUEST_STATUS_LABELS, PRIORITY_LABELS, PRIORITY_COLORS } from "../../constants/enums";
+import { PRIORITY_LABELS, PRIORITY_COLORS } from "../../constants/enums";
 import { formatRelativeTime } from "../../utils/format";
 import type { MaintenanceRequest } from "../../types";
 import type { RequestStatus, Priority } from "../../constants/enums";
@@ -13,9 +14,9 @@ import type { RequestStatus, Priority } from "../../constants/enums";
 // 3 cot: Moi tao (PENDING), Dang xu ly (PROCESSING), Hoan thanh (DONE)
 export default function MaintenanceKanban() {
   const kanbanColumns: { status: RequestStatus; title: string; color: string }[] = [
-    { status: "PENDING", title: "Moi tao", color: "bg-warning-500" },
-    { status: "PROCESSING", title: "Dang xu ly", color: "bg-info-500" },
-    { status: "DONE", title: "Hoan thanh", color: "bg-success-500" },
+    { status: "PENDING", title: "Mới tạo", color: "bg-warning-500" },
+    { status: "PROCESSING", title: "Đang xử lý", color: "bg-info-500" },
+    { status: "DONE", title: "Hoàn thành", color: "bg-success-500" },
   ];
 
   function getRequests(status: RequestStatus): MaintenanceRequest[] {
@@ -24,17 +25,19 @@ export default function MaintenanceKanban() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">Yeu cau sua chua</h1>
-        <p className="text-sm text-gray-500">Theo doi va xu ly cac yeu cau bao tri</p>
-      </div>
+      <PageHeader
+        icon={Wrench}
+        title="Yêu cầu sửa chữa"
+        subtitle="Theo dõi và xử lý các yêu cầu bảo trì dạng Kanban"
+        iconColor="linear-gradient(135deg, #EF4444, #F87171)"
+      />
 
-      {/* Kanban Board */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Kanban Board - 12 cột */}
+      <div className="grid grid-cols-12 gap-6">
         {kanbanColumns.map((col) => {
           const requests = getRequests(col.status);
           return (
-            <div key={col.status} className="bg-gray-50 rounded-2xl p-4">
+            <div key={col.status} className="col-span-12 md:col-span-4 bg-gray-50 rounded-2xl p-4">
               {/* Tieu de cot */}
               <div className="flex items-center gap-2 mb-4">
                 <div className={`w-2.5 h-2.5 rounded-full ${col.color}`} />

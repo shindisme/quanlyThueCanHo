@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -22,7 +23,7 @@ enum UserStatus {
 
 enum BuildingStatus {
   ACTIVE
-  MAINTENANCE
+  INACTIVE
 }
 
 enum ApartmentStatus {
@@ -34,25 +35,16 @@ enum ApartmentStatus {
 enum ContractStatus {
   ACTIVE
   ENDED
-  LIQUIDATED
 }
 
 enum InvoiceStatus {
   PAID
   UNPAID
-  OVERDUE
-}
-
-enum PaymentMethod {
-  BANK_TRANSFER
-  MOMO
-  VNPAY
-  CASH
 }
 
 enum PaymentStatus {
-  PENDING
   SUCCESS
+  PENDING
   FAILED
 }
 
@@ -66,26 +58,12 @@ enum RequestStatus {
   PENDING
   PROCESSING
   DONE
-  CANCELLED
 }
 
 enum ScheduleStatus {
   PENDING
   CONFIRMED
-  DONE
   CANCELLED
-}
-
-enum NotificationType {
-  SYSTEM
-  INVOICE
-  MAINTENANCE
-  CHAT
-}
-
-enum SenderType {
-  USER
-  CHATBOT
 }
 
 model User {
@@ -96,45 +74,43 @@ model User {
   role          Role       @default(TENANT)
   status        UserStatus @default(ACTIVE)
   created_at    DateTime   @default(now())
-  updated_at    DateTime   @updatedAt
 
-  tenant_profile Tenant?
-  notifications  Notification[]
-  chat_sessions  ChatSession[]
+  tenant        Tenant?
+  notifications Notification[]
+  chat_sessions ChatConversation[]
 
   @@map("users")
 }
 
 model Tenant {
   id            Int       @id @default(autoincrement())
-  user_id       Int?      @unique
+  user_id       Int       @unique
   full_name     String
-  citizen_id    String    @unique
   date_of_birth DateTime?
+  citizen_id    String    @unique
   address       String?
   is_verified   Boolean   @default(false)
   created_at    DateTime  @default(now())
 
-  user User? @relation(fields: [user_id], references: [id], onDelete: SetNull)
-
-  contracts            RentalContract[]
-  invoices             Invoice[]
-  maintenance_requests MaintenanceRequest[]
+  user        User                 @relation(fields: [user_id], references: [id])
+  contracts   RentalContract[]
+  maintenance MaintenanceRequest[]
 
   @@map("tenants")
 }
 
 model Building {
-  id              Int      @id @default(autoincrement())
-  name            String
-  address         String
-  description     String?  @db.Text
-  status          Int      @default(1)
-  totalFloors     Int      @map("total_floors")
-  branchName      String   @map("branch_name")
-  totalApartments Int      @default(0) @map("total_apartments")
-  thumbnailUrl    String?  @map("thumbnail_url")
-  createdAt       DateTime @default(now()) @map("created_at")
+  id               Int            @id @default(autoincrement())
+  name             String
+  address_old      String
+  address_new      String
+  description      String?        @db.Text
+  status           BuildingStatus @default(ACTIVE)
+  total_floors     Int
+  total_apartments Int            @default(0)
+  thumbnail_url    String?
+  branch_name      String
+  created_at       DateTime       @default(now())
 
   apartments Apartment[]
 
@@ -142,37 +118,34 @@ model Building {
 }
 
 model Apartment {
-  id             Int             @id @default(autoincrement())
-  building_id    Int
-  apartment_code String
-  title          String
-  description    String?         @db.Text
-  area           Decimal         @db.Decimal(10, 2)
-  rental_price   Decimal         @db.Decimal(12, 2)
-  status         ApartmentStatus @default(AVAILABLE)
-  created_at     DateTime        @default(now())
+  id           Int             @id @default(autoincrement())
+  building_id  Int
+  description  String?         @db.Text
+  area         Decimal         @db.Decimal(10, 2)
+  bedrooms     Int
+  bathrooms    Int
+  rental_price Decimal         @db.Decimal(12, 2)
+  status       ApartmentStatus @default(AVAILABLE)
+  floor        Int
+  room_number  String
 
-  building             Building             @relation(fields: [building_id], references: [id], onDelete: Cascade)
-  images               ApartmentImage[]
-  contracts            RentalContract[]
-  utility_readings     UtilityReading[]
-  viewing_schedules    ViewingSchedule[]
-  maintenance_requests MaintenanceRequest[]
+  building    Building             @relation(fields: [building_id], references: [id])
+  images      ApartmentImage[]
+  contracts   RentalContract[]
+  maintenance MaintenanceRequest[]
+  viewings    ViewingSchedule[]
+  utilities   UtilityReading[]
 
-  @@index([building_id])
   @@map("apartments")
 }
 
 model ApartmentImage {
-  id           Int      @id @default(autoincrement())
+  id           Int       @id @default(autoincrement())
   apartment_id Int
   image_url    String
-  is_thumbnail Boolean  @default(false)
-  created_at   DateTime @default(now())
+  is_thumbnail Boolean   @default(false)
+  apartment    Apartment @relation(fields: [apartment_id], references: [id])
 
-  apartment Apartment @relation(fields: [apartment_id], references: [id], onDelete: Cascade)
-
-  @@index([apartment_id])
   @@map("apartment_images")
 }
 
@@ -185,91 +158,59 @@ model RentalContract {
   deposit_amount Decimal        @db.Decimal(12, 2)
   monthly_rent   Decimal        @db.Decimal(12, 2)
   status         ContractStatus @default(ACTIVE)
-  contractFile   String?        @map("contract_file")
-  signedAt       DateTime       @map("signed_at")
-  createdBy      Int            @map("created_by")
+  contract_file  String?
+  signed_at      DateTime
   created_at     DateTime       @default(now())
 
-  apartment Apartment @relation(fields: [apartment_id], references: [id], onDelete: Restrict)
-  tenant    Tenant    @relation(fields: [tenant_id], references: [id], onDelete: Restrict)
+  apartment Apartment @relation(fields: [apartment_id], references: [id])
+  tenant    Tenant    @relation(fields: [tenant_id], references: [id])
   invoices  Invoice[]
 
-  @@index([apartment_id])
-  @@index([tenant_id])
   @@map("rental_contracts")
 }
 
 model Invoice {
   id           Int           @id @default(autoincrement())
-  invoice_code String        @unique
   contract_id  Int
   tenant_id    Int
+  invoice_code String        @unique
   due_date     DateTime
   total_amount Decimal       @db.Decimal(12, 2)
   status       InvoiceStatus @default(UNPAID)
-  paid_at      DateTime?
   created_at   DateTime      @default(now())
+  paid_at      DateTime?
 
-  contract        RentalContract  @relation(fields: [contract_id], references: [id], onDelete: Restrict)
-  tenant          Tenant          @relation(fields: [tenant_id], references: [id], onDelete: Restrict)
-  items           InvoiceItem[]
-  payments        Payment[]
-  utility_reading UtilityReading?
+  contract RentalContract @relation(fields: [contract_id], references: [id])
+  items    InvoiceItem[]
+  payments Payment[]
 
-  @@index([contract_id])
-  @@index([tenant_id])
   @@map("invoices")
 }
 
 model InvoiceItem {
-  id          Int     @id @default(autoincrement())
-  invoice_id  Int
-  item_name   String
-  quantity    Decimal @default(1) @db.Decimal(10, 2)
-  unit_price  Decimal @db.Decimal(12, 2)
-  amount      Decimal @db.Decimal(12, 2)
-  description String?
+  id         Int     @id @default(autoincrement())
+  invoice_id Int
+  item_name  String
+  quantity   Decimal @db.Decimal(10, 2)
+  unit_price Decimal @db.Decimal(12, 2)
+  amount     Decimal @db.Decimal(12, 2)
+  invoice    Invoice @relation(fields: [invoice_id], references: [id])
 
-  invoice Invoice @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
-
-  @@index([invoice_id])
   @@map("invoice_items")
 }
 
 model Payment {
   id               Int           @id @default(autoincrement())
   invoice_id       Int
-  payment_method   PaymentMethod
+  payment_method   String
   transaction_code String?       @unique
   amount           Decimal       @db.Decimal(12, 2)
   status           PaymentStatus @default(PENDING)
   paid_at          DateTime      @default(now())
 
-  invoice Invoice @relation(fields: [invoice_id], references: [id], onDelete: Restrict)
+  invoice Invoice @relation(fields: [invoice_id], references: [id])
 
-  @@index([invoice_id])
   @@map("payments")
-}
-
-model UtilityReading {
-  id           Int      @id @default(autoincrement())
-  apartment_id Int
-  invoice_id   Int?     @unique
-  month        Int
-  year         Int
-  electric_old Decimal  @db.Decimal(10, 2)
-  electric_new Decimal  @db.Decimal(10, 2)
-  water_old    Decimal  @db.Decimal(10, 2)
-  water_new    Decimal  @db.Decimal(10, 2)
-  image_url    String?
-  recorded_by  Int
-  created_at   DateTime @default(now())
-
-  apartment Apartment @relation(fields: [apartment_id], references: [id], onDelete: Cascade)
-  invoice   Invoice?  @relation(fields: [invoice_id], references: [id], onDelete: SetNull)
-
-  @@index([apartment_id])
-  @@map("utility_readings")
 }
 
 model MaintenanceRequest {
@@ -284,11 +225,9 @@ model MaintenanceRequest {
   created_at   DateTime      @default(now())
   updated_at   DateTime      @updatedAt
 
-  tenant    Tenant    @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
-  apartment Apartment @relation(fields: [apartment_id], references: [id], onDelete: Cascade)
+  tenant    Tenant    @relation(fields: [tenant_id], references: [id])
+  apartment Apartment @relation(fields: [apartment_id], references: [id])
 
-  @@index([tenant_id])
-  @@index([apartment_id])
   @@map("maintenance_requests")
 }
 
@@ -302,48 +241,61 @@ model ViewingSchedule {
   status        ScheduleStatus @default(PENDING)
   created_at    DateTime       @default(now())
 
-  apartment Apartment @relation(fields: [apartment_id], references: [id], onDelete: Cascade)
+  apartment         Apartment @relation(fields: [apartment_id], references: [id])
+  temp_locked_until DateTime?
 
-  @@index([apartment_id])
   @@map("viewing_schedules")
 }
 
+model UtilityReading {
+  id           Int      @id @default(autoincrement())
+  apartment_id Int
+  month        Int
+  year         Int
+  electric_old Decimal  @db.Decimal(10, 2)
+  electric_new Decimal  @db.Decimal(10, 2)
+  water_old    Decimal  @db.Decimal(10, 2)
+  water_new    Decimal  @db.Decimal(10, 2)
+  created_at   DateTime @default(now())
+  recorded_by  Int
+
+  apartment Apartment @relation(fields: [apartment_id], references: [id])
+
+  @@map("utility_readings")
+}
+
 model Notification {
-  id         Int              @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   user_id    Int
   title      String
-  content    String           @db.Text
-  type       NotificationType
-  is_read    Boolean          @default(false)
-  created_at DateTime         @default(now())
+  content    String   @db.Text
+  type       String
+  is_read    Boolean  @default(false)
+  created_at DateTime @default(now())
 
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id])
 
-  @@index([user_id])
   @@map("notifications")
 }
 
-model ChatSession {
+model ChatConversation {
   id         Int      @id @default(autoincrement())
-  user_id    Int?
+  user_id    Int
   created_at DateTime @default(now())
 
-  user     User?            @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  user     User             @relation(fields: [user_id], references: [id])
   messages ChatbotMessage[]
 
-  @@index([user_id])
-  @@map("chat_sessions")
+  @@map("chat_conversations")
 }
 
 model ChatbotMessage {
-  id              Int        @id @default(autoincrement())
+  id              Int              @id @default(autoincrement())
   conversation_id Int
-  message         String     @db.Text
-  sender_type     SenderType
-  created_at      DateTime   @default(now())
+  message         String           @db.Text
+  sender_type     String
+  created_at      DateTime         @default(now())
+  conversation    ChatConversation @relation(fields: [conversation_id], references: [id])
 
-  session ChatSession @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
-
-  @@index([conversation_id])
   @@map("chatbot_messages")
 }

@@ -1,244 +1,309 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Plus, Grid3X3, List, Filter } from "lucide-react";
-import Card from "../../components/common/ui/Card";
-import Button from "../../components/common/ui/Button";
-import SearchInput from "../../components/common/ui/SearchInput";
-import Badge from "../../components/common/ui/Badge";
-import DataTable, { type Column } from "../../components/common/ui/DataTable";
-import Pagination from "../../components/common/ui/Pagination";
-import Modal from "../../components/common/ui/Modal";
-import ConfirmDialog from "../../components/common/ui/ConfirmDialog";
-import { mockApartments } from "../../data/apartments";
-import { mockBuildings } from "../../data/buildings";
-import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../constants/enums";
-import { formatCurrency } from "../../utils/format";
-import type { Apartment } from "../../types";
-import type { ApartmentStatus } from "../../constants/enums";
+import { useState, useEffect } from "react";
+import { Plus, Pencil, Trash2, Loader2, Home } from "lucide-react";
+import PageHeader from "../../components/ui/PageHeader";
+import Button from "../../components/ui/Button";
+import SearchInput from "../../components/ui/SearchInput";
+import Badge from "../../components/ui/Badge";
+import Modal from "../../components/ui/Modal";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { toast } from "sonner";
 
-// Trang danh sach can ho - ho tro xem dang bang va dang luoi
-export default function ApartmentList() {
-  const navigate = useNavigate();
-  const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [buildingFilter, setBuildingFilter] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showForm, setShowForm] = useState(false);
-  const [deleteItem, setDeleteItem] = useState<Apartment | null>(null);
-  const pageSize = 8;
+import * as apartmentService from "../../services/apartments.service";
+import * as buildingService from "../../services/buildings.service";
+import type { ApartmentData } from "../../services/apartments.service";
+import type { BuildingData } from "../../services/buildings.service";
 
-  // Loc du lieu
-  const filtered = mockApartments.filter((a) => {
-    const matchSearch =
-      a.apartment_code.toLowerCase().includes(search.toLowerCase()) ||
-      a.title.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = !statusFilter || a.status === statusFilter;
-    const matchBuilding = !buildingFilter || a.building_id === Number(buildingFilter);
-    return matchSearch && matchStatus && matchBuilding;
+// ============================================================
+// TRANG DANH SÁCH CĂN HỘ - Kết nối API thật
+// ============================================================
+
+export default function ApartmentList() {
+  const [apartments, setApartments] = useState<ApartmentData[]>([]);
+  const [buildings, setBuildings] = useState<BuildingData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [editItem, setEditItem] = useState<ApartmentData | null>(null);
+  const [deleteItem, setDeleteItem] = useState<ApartmentData | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const [formData, setFormData] = useState({
+    apartment_code: "", building_id: 0, title: "",
+    description: "", area: 0, rental_price: 0, status: "AVAILABLE",
   });
 
-  // Phan trang
-  const totalPages = Math.ceil(filtered.length / pageSize);
-  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  // Lay ten toa nha theo building_id
-  function getBuildingName(buildingId: number): string {
-    return mockBuildings.find((b) => b.id === buildingId)?.name || "";
+  async function fetchData() {
+    try {
+      setLoading(true);
+      // Gọi 2 API song song bằng Promise.all
+      const [aptData, bldData] = await Promise.all([
+        apartmentService.getAllApartments(),
+        buildingService.getAllBuildings(),
+      ]);
+      setApartments(aptData);
+      setBuildings(bldData);
+    } catch {
+      toast.error("Không thể tải dữ liệu");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  // Cot cho bang (xem dang list)
-  const columns: Column<Apartment>[] = [
-    { key: "code", label: "Ma can ho", render: (a) => <span className="font-medium">{a.apartment_code}</span> },
-    { key: "title", label: "Ten", render: (a) => a.title },
-    { key: "building", label: "Toa nha", render: (a) => getBuildingName(a.building_id) },
-    { key: "area", label: "Dien tich", render: (a) => `${a.area} m2` },
-    { key: "price", label: "Gia thue", render: (a) => formatCurrency(a.rental_price) },
-    {
-      key: "status",
-      label: "Trang thai",
-      render: (a) => (
-        <Badge variant={APARTMENT_STATUS_COLORS[a.status] as "success" | "info" | "warning"}>
-          {APARTMENT_STATUS_LABELS[a.status]}
-        </Badge>
-      ),
-    },
-  ];
+  // Lọc
+  const filtered = apartments.filter((a) => {
+    if (!a) return false;
+    const searchString = (search || "").toLowerCase();
+    const matchSearch =
+      String(a.apartment_code || "").toLowerCase().includes(searchString) ||
+      String(a.title || "").toLowerCase().includes(searchString);
+    const matchStatus = !filterStatus || a.status === filterStatus;
+    return matchSearch && matchStatus;
+  });
+
+  // Tìm tên tòa nhà
+  function getBuildingName(buildingId: number) {
+    return buildings.find((b) => b.id === buildingId)?.name || "-";
+  }
+
+  function getStatusBadge(status: string) {
+    const map: Record<string, { label: string; variant: string }> = {
+      AVAILABLE: { label: "Còn trống", variant: "success" },
+      RENTED: { label: "Đang thuê", variant: "info" },
+      MAINTENANCE: { label: "Bảo trì", variant: "warning" },
+    };
+    const s = map[status] || { label: status, variant: "gray" };
+    return <Badge variant={s.variant as any}>{s.label}</Badge>;
+  }
+
+  function openAddForm() {
+    setEditItem(null);
+    setFormData({
+      apartment_code: "", building_id: buildings[0]?.id || 0, title: "",
+      description: "", area: 0, rental_price: 0, status: "AVAILABLE",
+    });
+    setShowForm(true);
+  }
+
+  function openEditForm(apt: ApartmentData) {
+    setEditItem(apt);
+    setFormData({
+      apartment_code: apt.apartment_code, building_id: apt.building_id,
+      title: apt.title, description: apt.description || "",
+      area: apt.area, rental_price: apt.rental_price, status: apt.status,
+    });
+    setShowForm(true);
+  }
+
+  async function handleSave() {
+    if (!formData.apartment_code || !formData.title) {
+      toast.error("Vui lòng nhập mã căn hộ và tiêu đề");
+      return;
+    }
+    setSaving(true);
+    try {
+      if (editItem) {
+        await apartmentService.updateApartment(editItem.id, formData);
+        toast.success("Đã cập nhật căn hộ");
+      } else {
+        await apartmentService.createApartment(formData);
+        toast.success("Đã thêm căn hộ mới");
+      }
+      setShowForm(false);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Thao tác thất bại");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteItem) return;
+    try {
+      await apartmentService.deleteApartment(deleteItem.id);
+      toast.success("Đã xóa căn hộ");
+      setDeleteItem(null);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Xóa thất bại");
+    }
+  }
+
+  // Format tiền
+  function formatPrice(price: number) {
+    return new Intl.NumberFormat("vi-VN").format(price) + " đ";
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-primary-600" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Tieu de */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Can ho</h1>
-          <p className="text-sm text-gray-500">Quan ly danh sach can ho</p>
-        </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus size={18} />
-          Them can ho
-        </Button>
-      </div>
-
-      {/* Bo loc va tim kiem */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <SearchInput
-          value={search}
-          onChange={(v) => { setSearch(v); setCurrentPage(1); }}
-          placeholder="Tim theo ma hoac ten..."
-          className="flex-1 max-w-sm"
-        />
-
-        <select
-          value={statusFilter}
-          onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-          className="px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500"
-        >
-          <option value="">Tat ca trang thai</option>
-          <option value="AVAILABLE">Con trong</option>
-          <option value="RENTED">Dang thue</option>
-          <option value="MAINTENANCE">Bao tri</option>
-        </select>
-
-        <select
-          value={buildingFilter}
-          onChange={(e) => { setBuildingFilter(e.target.value); setCurrentPage(1); }}
-          className="px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500"
-        >
-          <option value="">Tat ca toa nha</option>
-          {mockBuildings.map((b) => (
-            <option key={b.id} value={b.id}>{b.name}</option>
-          ))}
-        </select>
-
-        {/* Chuyen doi grid/list */}
-        <div className="flex border border-gray-300 rounded-xl overflow-hidden">
-          <button
-            onClick={() => setViewMode("grid")}
-            className={`p-2.5 cursor-pointer ${viewMode === "grid" ? "bg-primary-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
-          >
-            <Grid3X3 size={18} />
-          </button>
-          <button
-            onClick={() => setViewMode("list")}
-            className={`p-2.5 cursor-pointer ${viewMode === "list" ? "bg-primary-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
-          >
-            <List size={18} />
-          </button>
-        </div>
-      </div>
-
-      {/* Hien thi dang Grid */}
-      {viewMode === "grid" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {paginated.map((apt) => (
-            <Card
-              key={apt.id}
-              className="hover:shadow-card-hover transition-shadow cursor-pointer"
-              onClick={() => navigate(`/admin/apartments/${apt.id}`)}
-            >
-              {/* Anh can ho */}
-              <div className="w-full h-36 bg-gray-100 rounded-xl mb-3 flex items-center justify-center overflow-hidden">
-                <div className="text-gray-300 text-xs">Hinh anh</div>
-              </div>
-
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <p className="font-semibold text-gray-800 text-sm">{apt.apartment_code}</p>
-                  <p className="text-xs text-gray-400">{getBuildingName(apt.building_id)}</p>
-                </div>
-                <Badge variant={APARTMENT_STATUS_COLORS[apt.status] as "success" | "info" | "warning"}>
-                  {APARTMENT_STATUS_LABELS[apt.status]}
-                </Badge>
-              </div>
-
-              <p className="text-sm text-gray-600 mb-3 line-clamp-1">{apt.title}</p>
-
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">{apt.area} m2</span>
-                <span className="font-semibold text-primary-600">{formatCurrency(apt.rental_price)}</span>
-              </div>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        /* Hien thi dang Table */
-        <Card padding={false}>
-          <DataTable
-            columns={columns}
-            data={paginated}
-            onRowClick={(apt) => navigate(`/admin/apartments/${apt.id}`)}
-          />
-        </Card>
-      )}
-
-      {/* Phan trang */}
-      <Pagination
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
+      {/* Page Header */}
+      <PageHeader
+        icon={Home}
+        title="Căn hộ"
+        subtitle="Quản lý danh sách căn hộ"
+        count={apartments.length}
+        iconColor="linear-gradient(135deg, #3B82F6, #60A5FA)"
+        actions={
+          <Button onClick={openAddForm}><Plus size={18} /> Thêm căn hộ</Button>
+        }
       />
 
-      {/* Modal them can ho */}
+      {/* Search + Filter */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <SearchInput value={search} onChange={setSearch} placeholder="Tìm theo mã, tiêu đề..." className="max-w-md" />
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:border-primary-500"
+        >
+          <option value="">Tất cả trạng thái</option>
+          <option value="AVAILABLE">Còn trống</option>
+          <option value="RENTED">Đang thuê</option>
+          <option value="MAINTENANCE">Bảo trì</option>
+        </select>
+      </div>
+
+      {/* Table */}
+      <div className="premium-table-container">
+        <div className="overflow-x-auto">
+          <table className="premium-table">
+            <thead>
+              <tr>
+                <th>Mã</th>
+                <th>Tiêu đề</th>
+                <th>Tòa nhà</th>
+                <th>Diện tích</th>
+                <th>Giá thuê</th>
+                <th>Trạng thái</th>
+                <th className="text-right">Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((apt) => (
+                <tr key={apt.id}>
+                  <td className="font-semibold text-primary-600">{apt.apartment_code}</td>
+                  <td className="text-gray-800">{apt.title}</td>
+                  <td className="text-gray-600">{getBuildingName(apt.building_id)}</td>
+                  <td className="text-gray-600">{apt.area} m²</td>
+                  <td className="font-semibold text-gray-850">{formatPrice(apt.rental_price)}</td>
+                  <td>{getStatusBadge(apt.status)}</td>
+                  <td>
+                    <div className="flex items-center justify-end gap-1">
+                      <button onClick={() => openEditForm(apt)}
+                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Sửa">
+                        <Pencil size={16} />
+                      </button>
+                      <button onClick={() => { setDeleteItem(apt); }}
+                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer" title="Xóa">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="text-center py-12 text-gray-500">
+                    <Home size={48} className="mx-auto mb-3 text-gray-300" />
+                    Không tìm thấy căn hộ nào
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Modal thêm/sửa */}
       <Modal
         isOpen={showForm}
-        onClose={() => setShowForm(false)}
-        title="Them can ho moi"
+        onClose={() => { setShowForm(false); setEditItem(null); }}
+        title={editItem ? "Chỉnh sửa căn hộ" : "Thêm căn hộ mới"}
         size="lg"
         footer={
           <>
-            <Button variant="outline" onClick={() => setShowForm(false)}>Huy</Button>
-            <Button onClick={() => { toast.success("Da them can ho moi"); setShowForm(false); }}>
-              Them moi
-            </Button>
+            <Button variant="outline" onClick={() => { setShowForm(false); setEditItem(null); }}>Hủy</Button>
+            <Button onClick={handleSave} isLoading={saving}>{editItem ? "Cập nhật" : "Thêm mới"}</Button>
           </>
         }
       >
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Ma can ho *</label>
-              <input type="text" placeholder="Vi du: A-101" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
+        <div className="space-y-6">
+          <div className="grid grid-cols-12 gap-6">
+            <div className="col-span-12 sm:col-span-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Mã căn hộ *</label>
+              <input type="text" value={formData.apartment_code}
+                onChange={(e) => setFormData({ ...formData, apartment_code: e.target.value })}
+                placeholder="VD: A-101"
+                className="premium-input rounded-xl" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Toa nha *</label>
-              <select className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500">
-                <option value="">Chon toa nha</option>
-                {mockBuildings.map((b) => (
+            <div className="col-span-12 sm:col-span-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tòa nhà *</label>
+              <select value={formData.building_id}
+                onChange={(e) => setFormData({ ...formData, building_id: Number(e.target.value) })}
+                className="premium-select w-full rounded-xl">
+                {buildings.map((b) => (
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
               </select>
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Ten can ho *</label>
-            <input type="text" placeholder="Vi du: Can ho 2 phong ngu" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Dien tich (m2) *</label>
-              <input type="number" placeholder="0" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
+
+            <div className="col-span-12">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tiêu đề *</label>
+              <input type="text" value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="premium-input rounded-xl" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Gia thue (VND/thang) *</label>
-              <input type="number" placeholder="0" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
+
+            <div className="col-span-12 sm:col-span-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Diện tích (m²)</label>
+              <input type="number" value={formData.area || ""}
+                onChange={(e) => setFormData({ ...formData, area: Number(e.target.value) })}
+                className="premium-input rounded-xl" />
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Mo ta</label>
-            <textarea placeholder="Mo ta can ho..." rows={3} className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 resize-none" />
+            <div className="col-span-12 sm:col-span-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Giá thuê (VNĐ)</label>
+              <input type="number" value={formData.rental_price || ""}
+                onChange={(e) => setFormData({ ...formData, rental_price: Number(e.target.value) })}
+                className="premium-input rounded-xl" />
+            </div>
+            <div className="col-span-12 sm:col-span-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Trạng thái</label>
+              <select value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className="premium-select w-full rounded-xl">
+                <option value="AVAILABLE">Còn trống</option>
+                <option value="RENTED">Đang thuê</option>
+                <option value="MAINTENANCE">Bảo trì</option>
+              </select>
+            </div>
+
+            <div className="col-span-12">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Mô tả</label>
+              <textarea value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                className="premium-input rounded-xl resize-none" />
+            </div>
           </div>
         </div>
       </Modal>
 
-      {/* Dialog xac nhan xoa */}
-      <ConfirmDialog
-        isOpen={!!deleteItem}
-        onClose={() => setDeleteItem(null)}
-        onConfirm={() => { toast.success("Da xoa can ho"); setDeleteItem(null); }}
-        title="Xoa can ho"
-        message={`Ban co chac muon xoa can ho "${deleteItem?.apartment_code}"?`}
-      />
+      <ConfirmDialog isOpen={!!deleteItem} onClose={() => setDeleteItem(null)}
+        onConfirm={handleDelete} title="Xóa căn hộ"
+        message={`Xóa căn hộ "${deleteItem?.apartment_code}"?`} confirmText="Xóa" />
     </div>
   );
 }

@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, MapPin, Maximize2, Calendar, Phone, Mail, User } from "lucide-react";
-import Card from "../../components/common/ui/Card";
-import Button from "../../components/common/ui/Button";
-import Badge from "../../components/common/ui/Badge";
-import Modal from "../../components/common/ui/Modal";
+import Card from "../../components/ui/Card";
+import Button from "../../components/ui/Button";
+import Badge from "../../components/ui/Badge";
+import Modal from "../../components/ui/Modal";
 import { mockApartments } from "../../data/apartments";
 import { mockBuildings } from "../../data/buildings";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../constants/enums";
 import { formatCurrency } from "../../utils/format";
 import { toast } from "sonner";
+import { bookViewing } from "../../services/schedules.service";
 
 // Trang chi tiet can ho cho khach vang lai
 // Bao gom: thong tin, hinh anh, form dat lich xem phong
@@ -18,6 +19,11 @@ export default function GuestApartmentDetail() {
   const apartment = mockApartments.find((a) => a.id === Number(id));
   const building = apartment ? mockBuildings.find((b) => b.id === apartment.building_id) : null;
   const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  // Form đặt lịch - controlled inputs
+  const [scheduleForm, setScheduleForm] = useState({
+    guest_name: "", guest_phone: "", guest_email: "", schedule_time: "", note: "",
+  });
 
   if (!apartment) {
     return (
@@ -30,9 +36,25 @@ export default function GuestApartmentDetail() {
     );
   }
 
-  function handleSubmitSchedule() {
-    toast.success("Da gui yeu cau dat lich xem phong! Chung toi se lien he ban som.");
-    setShowScheduleForm(false);
+  async function handleSubmitSchedule() {
+    if (!scheduleForm.guest_name || !scheduleForm.guest_phone || !scheduleForm.schedule_time) {
+      toast.error("Vui lòng nhập họ tên, SĐT và thời gian");
+      return;
+    }
+    setSaving(true);
+    try {
+      await bookViewing({
+        apartment_id: apartment!.id,
+        ...scheduleForm,
+      });
+      toast.success("Đã gửi yêu cầu đặt lịch xem phòng!");
+      setShowScheduleForm(false);
+      setScheduleForm({ guest_name: "", guest_phone: "", guest_email: "", schedule_time: "", note: "" });
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Gửi yêu cầu thất bại");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -126,43 +148,59 @@ export default function GuestApartmentDetail() {
         size="md"
         footer={
           <>
-            <Button variant="outline" onClick={() => setShowScheduleForm(false)}>Huy</Button>
-            <Button onClick={handleSubmitSchedule}>Gui yeu cau</Button>
+            <Button variant="outline" onClick={() => setShowScheduleForm(false)}>Hủy</Button>
+            <Button onClick={handleSubmitSchedule} isLoading={saving}>Gửi yêu cầu</Button>
           </>
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-6">
           <p className="text-sm text-gray-500 mb-2">
-            Can ho: <span className="font-medium text-gray-800">{apartment.apartment_code} - {apartment.title}</span>
+            Căn hộ: <span className="font-medium text-gray-800">{apartment.apartment_code} - {apartment.title}</span>
           </p>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Ho ten *</label>
-            <div className="relative">
-              <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="text" placeholder="Nguyen Van A" className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
+          <div className="grid grid-cols-12 gap-6">
+            <div className="col-span-12">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Họ tên *</label>
+              <div className="relative">
+                <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input type="text" value={scheduleForm.guest_name}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, guest_name: e.target.value })}
+                  placeholder="Nguyễn Văn A" className="premium-input rounded-xl pl-10" />
+              </div>
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">So dien thoai *</label>
-            <div className="relative">
-              <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="tel" placeholder="0901234567" className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
+
+            <div className="col-span-12 sm:col-span-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Số điện thoại *</label>
+              <div className="relative">
+                <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input type="tel" value={scheduleForm.guest_phone}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, guest_phone: e.target.value })}
+                  placeholder="0901234567" className="premium-input rounded-xl pl-10" />
+              </div>
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-            <div className="relative">
-              <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input type="email" placeholder="email@example.com" className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
+
+            <div className="col-span-12 sm:col-span-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+              <div className="relative">
+                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input type="email" value={scheduleForm.guest_email}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, guest_email: e.target.value })}
+                  placeholder="email@example.com" className="premium-input rounded-xl pl-10" />
+              </div>
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Thoi gian muon xem *</label>
-            <input type="datetime-local" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Ghi chu</label>
-            <textarea rows={3} placeholder="Luu y gi them..." className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 resize-none" />
+
+            <div className="col-span-12">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Thời gian muốn xem *</label>
+              <input type="datetime-local" value={scheduleForm.schedule_time}
+                onChange={(e) => setScheduleForm({ ...scheduleForm, schedule_time: e.target.value })}
+                className="premium-input rounded-xl" />
+            </div>
+
+            <div className="col-span-12">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Ghi chú</label>
+              <textarea rows={3} value={scheduleForm.note}
+                onChange={(e) => setScheduleForm({ ...scheduleForm, note: e.target.value })}
+                placeholder="Lưu ý gì thêm..." className="premium-input rounded-xl resize-none" />
+            </div>
           </div>
         </div>
       </Modal>

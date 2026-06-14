@@ -1,146 +1,256 @@
-import { useState } from "react";
-import { Plus } from "lucide-react";
-import Card from "../../components/common/ui/Card";
-import Button from "../../components/common/ui/Button";
-import SearchInput from "../../components/common/ui/SearchInput";
-import Badge from "../../components/common/ui/Badge";
-import DataTable, { type Column } from "../../components/common/ui/DataTable";
-import Pagination from "../../components/common/ui/Pagination";
-import Modal from "../../components/common/ui/Modal";
-import { mockUsers } from "../../data/users";
-import { USER_STATUS_LABELS } from "../../constants/enums";
-import { formatDate } from "../../utils/format";
-import type { User } from "../../types";
-import type { UserStatus } from "../../constants/enums";
+import { useState, useEffect } from "react";
+import { Plus, Trash2, RotateCcw, Loader2, UserCog } from "lucide-react";
+import PageHeader from "../../components/ui/PageHeader";
+import Button from "../../components/ui/Button";
+import SearchInput from "../../components/ui/SearchInput";
+import Modal from "../../components/ui/Modal";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
+import Badge from "../../components/ui/Badge";
 import { toast } from "sonner";
 
-// Map role sang tieng Viet
-const ROLE_LABELS: Record<string, string> = {
-  ADMIN: "Quan tri vien",
-  MANAGER: "Quan ly",
-  STAFF: "Nhan vien",
-  TENANT: "Nguoi thue",
-};
+import * as authService from "../../services/auth.service";
+import type { UserData } from "../../services/auth.service";
 
-// Trang quan ly tai khoan nguoi dung
+// ============================================================
+// TRANG QUẢN LÝ TÀI KHOẢN - Kết nối API thật
+// ============================================================
+
 export default function UserList() {
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
-  const pageSize = 10;
+  const [deleteItem, setDeleteItem] = useState<UserData | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const filtered = mockUsers.filter((u) => {
-    const matchSearch =
+  // Form state
+  const [formData, setFormData] = useState({ email: "", role: "TENANT", phone: "" });
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  async function fetchUsers() {
+    try {
+      setLoading(true);
+      const data = await authService.getAllUsers();
+      setUsers(data);
+    } catch {
+      toast.error("Không thể tải danh sách tài khoản");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const filtered = users.filter(
+    (u) =>
       u.email.toLowerCase().includes(search.toLowerCase()) ||
-      (u.phone && u.phone.includes(search));
-    const matchRole = !roleFilter || u.role === roleFilter;
-    return matchSearch && matchRole;
-  });
+      u.role.toLowerCase().includes(search.toLowerCase())
+  );
 
-  const totalPages = Math.ceil(filtered.length / pageSize);
-  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  // Thêm user mới
+  async function handleCreate() {
+    if (!formData.email) {
+      toast.error("Vui lòng nhập email");
+      return;
+    }
+    setSaving(true);
+    try {
+      await authService.createUser(formData);
+      toast.success("Đã tạo tài khoản mới (mật khẩu mặc định: 123456)");
+      setShowForm(false);
+      setFormData({ email: "", role: "TENANT", phone: "" });
+      fetchUsers();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Tạo tài khoản thất bại");
+    } finally {
+      setSaving(false);
+    }
+  }
 
-  const statusColorMap: Record<string, string> = {
-    ACTIVE: "success",
-    INACTIVE: "gray",
-    BANNED: "danger",
-  };
+  // Xóa user
+  async function handleDelete() {
+    if (!deleteItem) return;
+    try {
+      await authService.deleteUser(deleteItem.id);
+      toast.success("Đã xóa tài khoản");
+      setDeleteItem(null);
+      fetchUsers();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Xóa thất bại");
+    }
+  }
 
-  const columns: Column<User>[] = [
-    { key: "email", label: "Email", render: (u) => <span className="font-medium">{u.email}</span> },
-    { key: "phone", label: "So dien thoai", render: (u) => u.phone || "-" },
-    {
-      key: "role", label: "Vai tro",
-      render: (u) => (
-        <Badge variant="info">{ROLE_LABELS[u.role] || u.role}</Badge>
-      ),
-    },
-    {
-      key: "status", label: "Trang thai",
-      render: (u) => (
-        <Badge variant={statusColorMap[u.status] as "success" | "gray" | "danger"}>
-          {USER_STATUS_LABELS[u.status as UserStatus]}
-        </Badge>
-      ),
-    },
-    { key: "created", label: "Ngay tao", render: (u) => formatDate(u.created_at) },
-  ];
+  // Reset password
+  async function handleResetPassword(user: UserData) {
+    try {
+      await authService.resetPassword(user.id);
+      toast.success(`Đã reset mật khẩu cho ${user.email} về 123456`);
+    } catch {
+      toast.error("Reset mật khẩu thất bại");
+    }
+  }
+
+  // Map role → tiếng Việt + màu badge
+  function getRoleBadge(role: string) {
+    const map: Record<string, { label: string; variant: string }> = {
+      ADMIN: { label: "Admin", variant: "danger" },
+      MANAGER: { label: "Quản lý", variant: "warning" },
+      TENANT: { label: "Người thuê", variant: "info" },
+    };
+    const r = map[role] || { label: role, variant: "gray" };
+    return <Badge variant={r.variant as any}>{r.label}</Badge>;
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-primary-600" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Tai khoan nguoi dung</h1>
-          <p className="text-sm text-gray-500">Quan ly tai khoan trong he thong</p>
+      {/* Page Header */}
+      <PageHeader
+        icon={UserCog}
+        title="Tài khoản"
+        subtitle="Quản lý tài khoản người dùng"
+        count={users.length}
+        iconColor="linear-gradient(135deg, #F59E0B, #FBBF24)"
+        actions={
+          <Button onClick={() => {
+            setFormData({ email: "", role: "TENANT", phone: "" });
+            setShowForm(true);
+          }}>
+            <Plus size={18} /> Thêm tài khoản
+          </Button>
+        }
+      />
+
+      {/* Search */}
+      <SearchInput value={search} onChange={setSearch} placeholder="Tìm theo email, role..." className="max-w-md" />
+
+      {/* Bảng dữ liệu (Adminator style) */}
+      <div className="premium-table-container">
+        <div className="overflow-x-auto">
+          <table className="premium-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Email</th>
+                <th>SĐT</th>
+                <th>Role</th>
+                <th>Trạng thái</th>
+                <th className="text-right">Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((user) => (
+                <tr key={user.id}>
+                  <td className="text-gray-650">#{user.id}</td>
+                  <td className="font-semibold text-gray-800">{user.email}</td>
+                  <td className="text-gray-600">{user.phone || "-"}</td>
+                  <td>{getRoleBadge(user.role)}</td>
+                  <td>
+                    <Badge variant={user.status === "ACTIVE" ? "success" : "gray"}>
+                      {user.status === "ACTIVE" ? "Hoạt động" : "Tạm khóa"}
+                    </Badge>
+                  </td>
+                  <td>
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => handleResetPassword(user)}
+                        className="p-2 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 cursor-pointer"
+                        title="Reset mật khẩu"
+                      >
+                        <RotateCcw size={16} />
+                      </button>
+                      <button
+                        onClick={() => setDeleteItem(user)}
+                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                        title="Xóa"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="text-center py-12 text-gray-500">
+                    <UserCog size={48} className="mx-auto mb-3 text-gray-300" />
+                    Không tìm thấy tài khoản nào
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus size={18} />
-          Them tai khoan
-        </Button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <SearchInput
-          value={search}
-          onChange={(v) => { setSearch(v); setCurrentPage(1); }}
-          placeholder="Tim theo email hoac so dien thoai..."
-          className="flex-1 max-w-sm"
-        />
-        <select
-          value={roleFilter}
-          onChange={(e) => { setRoleFilter(e.target.value); setCurrentPage(1); }}
-          className="px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500"
-        >
-          <option value="">Tat ca vai tro</option>
-          <option value="ADMIN">Quan tri vien</option>
-          <option value="MANAGER">Quan ly</option>
-          <option value="TENANT">Nguoi thue</option>
-        </select>
-      </div>
-
-      <Card padding={false}>
-        <DataTable columns={columns} data={paginated} />
-      </Card>
-
-      <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
-
+      {/* Modal thêm tài khoản */}
       <Modal
         isOpen={showForm}
         onClose={() => setShowForm(false)}
-        title="Them tai khoan moi"
-        size="md"
+        title="Thêm tài khoản mới"
         footer={
           <>
-            <Button variant="outline" onClick={() => setShowForm(false)}>Huy</Button>
-            <Button onClick={() => { toast.success("Da them tai khoan moi"); setShowForm(false); }}>Them moi</Button>
+            <Button variant="outline" onClick={() => setShowForm(false)}>Hủy</Button>
+            <Button onClick={handleCreate} isLoading={saving}>Tạo tài khoản</Button>
           </>
         }
       >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email *</label>
-            <input type="email" placeholder="email@example.com" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
+        <div className="space-y-6">
+          <div className="grid grid-cols-12 gap-6">
+            <div className="col-span-12">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email *</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="user@dukihome.vn"
+                className="premium-input rounded-xl"
+              />
+            </div>
+            <div className="col-span-12 sm:col-span-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Role *</label>
+              <select
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                className="premium-select w-full rounded-xl"
+              >
+                <option value="TENANT">Người thuê (Tenant)</option>
+                <option value="MANAGER">Quản lý (Manager)</option>
+                <option value="ADMIN">Quản trị viên (Admin)</option>
+              </select>
+            </div>
+            <div className="col-span-12 sm:col-span-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Số điện thoại</label>
+              <input
+                type="text"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="0901234567"
+                className="premium-input rounded-xl"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">So dien thoai</label>
-            <input type="tel" placeholder="0901234567" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Mat khau *</label>
-            <input type="password" placeholder="Toi thieu 6 ky tu" className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Vai tro *</label>
-            <select className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500">
-              <option value="">Chon vai tro</option>
-              <option value="ADMIN">Quan tri vien</option>
-              <option value="MANAGER">Quan ly</option>
-              <option value="TENANT">Nguoi thue</option>
-            </select>
-          </div>
+          <p className="text-xs text-gray-400">Mật khẩu mặc định: 123456</p>
         </div>
       </Modal>
+
+      {/* Dialog xóa */}
+      <ConfirmDialog
+        isOpen={!!deleteItem}
+        onClose={() => setDeleteItem(null)}
+        onConfirm={handleDelete}
+        title="Xóa tài khoản"
+        message={`Xóa tài khoản "${deleteItem?.email}"?`}
+        confirmText="Xóa"
+      />
     </div>
   );
 }

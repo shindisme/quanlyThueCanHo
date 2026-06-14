@@ -1,8 +1,8 @@
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, MapPin, Maximize2, DollarSign, FileText, Pencil, Home } from "lucide-react";
-import Card from "../../components/common/ui/Card";
-import Badge from "../../components/common/ui/Badge";
-import Button from "../../components/common/ui/Button";
+import Card from "../../components/ui/Card";
+import Badge from "../../components/ui/Badge";
+import Button from "../../components/ui/Button";
 import { mockApartments } from "../../data/apartments";
 import { mockBuildings } from "../../data/buildings";
 import { mockContracts } from "../../data/contracts";
@@ -51,7 +51,7 @@ export default function ApartmentDetail() {
       {/* Thong tin chinh */}
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Hinh anh */}
-        <div className="w-full lg:w-96 h-64 bg-gray-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+        <div className="w-full lg:w-96 h-64 bg-gray-100 rounded-2xl flex items-center justify-center shrink-0">
           <Home size={48} className="text-gray-300" />
         </div>
 

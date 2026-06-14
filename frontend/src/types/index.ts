@@ -1,7 +1,6 @@
 import type {
   Role,
   UserStatus,
-  BuildingStatus,
   ApartmentStatus,
   ContractStatus,
   InvoiceStatus,

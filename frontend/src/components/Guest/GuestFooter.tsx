@@ -11,9 +11,9 @@ export default function GuestFooter() {
           <div className="md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-9 h-9 bg-primary-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-sm">DK</span>
+                <span className="text-white font-bold text-sm">YK</span>
               </div>
-              <span className="text-lg font-bold text-white">DuKiHome</span>
+              <span className="text-lg font-bold text-white">YuKi House</span>
             </div>
             <p className="text-sm text-gray-400 leading-relaxed">
               He thong quan ly cho thue can ho hien dai, chuyen nghiep tai TP. Ho Chi Minh.
@@ -56,7 +56,7 @@ export default function GuestFooter() {
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-400">
                 <Mail size={16} className="flex-shrink-0" />
-                <span>info@dukihome.vn</span>
+                <span>info@yukihouse.vn</span>
               </div>
             </div>
           </div>
@@ -64,7 +64,7 @@ export default function GuestFooter() {
 
         <div className="mt-10 pt-6 border-t border-gray-800 text-center">
           <p className="text-sm text-gray-500">
-            2026 DuKiHome. Tat ca quyen duoc bao luu.
+            2026 YuKi House. Tat ca quyen duoc bao luu.
           </p>
         </div>
       </div>

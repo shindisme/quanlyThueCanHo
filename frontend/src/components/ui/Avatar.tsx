@@ -1,4 +1,4 @@
-import { cn } from "../../../lib/utils";
+import { cn } from "../../lib/utils";
 
 // Hien thi ky tu dau cua ten khi khong co anh
 interface AvatarProps {
@@ -14,13 +14,6 @@ const sizeStyles = {
   lg: "w-12 h-12 text-base",
 };
 
-// Lay 2 ky tu dau cua ten (vi du: "Nguyen Van An" => "NA")
-function getInitials(name: string): string {
-  const parts = name.trim().split(" ");
-  if (parts.length === 1) return parts[0][0]?.toUpperCase() || "";
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
 export default function Avatar({ src, name, size = "md", className }: AvatarProps) {
   if (src) {
     return (
@@ -28,7 +21,7 @@ export default function Avatar({ src, name, size = "md", className }: AvatarProp
         src={src}
         alt={name}
         className={cn(
-          "rounded-full object-cover",
+          "rounded-lg object-cover",
           sizeStyles[size],
           className
         )}
@@ -39,12 +32,14 @@ export default function Avatar({ src, name, size = "md", className }: AvatarProp
   return (
     <div
       className={cn(
-        "rounded-full bg-primary-100 text-primary-700 font-medium flex items-center justify-center",
+        "rounded-lg bg-gray-200 text-gray-400 border border-gray-300 flex items-center justify-center overflow-hidden",
         sizeStyles[size],
         className
       )}
     >
-      {getInitials(name)}
+      <svg viewBox="0 0 24 24" className="w-2/3 h-2/3" fill="currentColor">
+        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+      </svg>
     </div>
   );
 }

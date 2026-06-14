@@ -26,62 +26,62 @@ export type NotificationType = "SYSTEM" | "INVOICE" | "MAINTENANCE" | "CHAT";
 
 export type SenderType = "USER" | "CHATBOT";
 
-// Map trang thai sang tieng Viet de hien thi tren UI
+// Map trang thai 
 export const USER_STATUS_LABELS: Record<UserStatus, string> = {
-  ACTIVE: "Hoat dong",
-  INACTIVE: "Ngung hoat dong",
-  BANNED: "Bi khoa",
+  ACTIVE: "Hoạt động",
+  INACTIVE: "Không hoạt động",
+  BANNED: "Bị khoá",
 };
 
 export const APARTMENT_STATUS_LABELS: Record<ApartmentStatus, string> = {
-  AVAILABLE: "Con trong",
-  RENTED: "Dang thue",
-  MAINTENANCE: "Bao tri",
+  AVAILABLE: "Còn trống",
+  RENTED: "Đang thuê",
+  MAINTENANCE: "Bảo trì",
 };
 
 export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {
-  ACTIVE: "Hieu luc",
-  ENDED: "Da ket thuc",
-  LIQUIDATED: "Da thanh ly",
+  ACTIVE: "Hiệu lực",
+  ENDED: "Đã kết thúc",
+  LIQUIDATED: "Đã thanh lý",
 };
 
 export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
-  PAID: "Da thanh toan",
-  UNPAID: "Chua thanh toan",
-  OVERDUE: "Qua han",
+  PAID: "Đã thanh toán",
+  UNPAID: "Chưa thanh toán",
+  OVERDUE: "Quá hạn",
 };
 
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
-  PENDING: "Cho xu ly",
-  SUCCESS: "Thanh cong",
-  FAILED: "That bai",
+  PENDING: "Chờ xử lý",
+  SUCCESS: "Thành công",
+  FAILED: "Thất bại",
 };
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  BANK_TRANSFER: "Chuyen khoan",
+  BANK_TRANSFER: "Chuyển khoản",
   MOMO: "MoMo",
   VNPAY: "VNPay",
-  CASH: "Tien mat",
+  CASH: "Tiền mặt",
 };
 
 export const PRIORITY_LABELS: Record<Priority, string> = {
-  LOW: "Thap",
-  MEDIUM: "Trung binh",
+  LOW: "Thấp",
+  MEDIUM: "Trung bình",
   HIGH: "Cao",
 };
 
 export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
-  PENDING: "Moi tao",
-  PROCESSING: "Dang xu ly",
-  DONE: "Hoan thanh",
-  CANCELLED: "Da huy",
+  PENDING: "Mới tạo",
+  PROCESSING: "Đang xử lý",
+  DONE: "Hoàn thành",
+  CANCELLED: "Đã huỷ",
 };
 
 export const SCHEDULE_STATUS_LABELS: Record<ScheduleStatus, string> = {
-  PENDING: "Cho xac nhan",
-  CONFIRMED: "Da xac nhan",
-  DONE: "Hoan thanh",
-  CANCELLED: "Da huy",
+  PENDING: "Chờ xác nhận",
+  CONFIRMED: "Đã xác nhận",
+  DONE: "Hoàn thành",
+  CANCELLED: "Đã huỷ",
 };
 
 // Map trang thai sang mau Badge

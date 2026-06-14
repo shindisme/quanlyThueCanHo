@@ -1,6 +1,7 @@
-import Card from "../../components/common/ui/Card";
-import Badge from "../../components/common/ui/Badge";
-import DataTable, { type Column } from "../../components/common/ui/DataTable";
+import { CreditCard } from "lucide-react";
+import PageHeader from "../../components/ui/PageHeader";
+import Badge from "../../components/ui/Badge";
+import DataTable, { type Column } from "../../components/ui/DataTable";
 import { mockPayments } from "../../data/payments";
 import { mockInvoices } from "../../data/invoices";
 import { mockTenants } from "../../data/tenants";
@@ -51,14 +52,15 @@ export default function PaymentList() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">Thanh toan</h1>
-        <p className="text-sm text-gray-500">Lich su giao dich thanh toan</p>
-      </div>
+      <PageHeader
+        icon={CreditCard}
+        title="Thanh toán"
+        subtitle="Lịch sử giao dịch thanh toán"
+        count={mockPayments.length}
+        iconColor="linear-gradient(135deg, #10B981, #34D399)"
+      />
 
-      <Card padding={false}>
-        <DataTable columns={columns} data={mockPayments} />
-      </Card>
+      <DataTable columns={columns} data={mockPayments} />
     </div>
   );
 }

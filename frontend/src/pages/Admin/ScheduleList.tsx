@@ -1,62 +1,189 @@
-import Card from "../../components/common/ui/Card";
-import Badge from "../../components/common/ui/Badge";
-import DataTable, { type Column } from "../../components/common/ui/DataTable";
-import { mockViewingSchedules } from "../../data/schedules";
-import { mockApartments } from "../../data/apartments";
-import { SCHEDULE_STATUS_LABELS } from "../../constants/enums";
-import { formatDateTime } from "../../utils/format";
-import type { ViewingSchedule } from "../../types";
-import type { ScheduleStatus } from "../../constants/enums";
-import Button from "../../components/common/ui/Button";
+import { useState, useEffect } from "react";
+import { CalendarDays, Check, X, Trash2, Loader2 } from "lucide-react";
+import PageHeader from "../../components/ui/PageHeader";
+import Badge from "../../components/ui/Badge";
+import SearchInput from "../../components/ui/SearchInput";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { toast } from "sonner";
 
-// Trang lich xem phong
-export default function ScheduleList() {
-  const statusColors: Record<string, string> = {
-    PENDING: "warning",
-    CONFIRMED: "info",
-    DONE: "success",
-    CANCELLED: "gray",
-  };
+import * as scheduleService from "../../services/schedules.service";
+import type { ScheduleData } from "../../services/schedules.service";
 
-  const columns: Column<ViewingSchedule>[] = [
-    { key: "guest", label: "Khach hang", render: (s) => <span className="font-medium">{s.guest_name}</span> },
-    { key: "phone", label: "So dien thoai", render: (s) => s.guest_phone },
-    { key: "email", label: "Email", render: (s) => s.guest_email || "-" },
-    {
-      key: "apartment", label: "Can ho",
-      render: (s) => mockApartments.find((a) => a.id === s.apartment_id)?.apartment_code || "-",
-    },
-    { key: "time", label: "Thoi gian xem", render: (s) => formatDateTime(s.schedule_time) },
-    {
-      key: "status", label: "Trang thai",
-      render: (s) => (
-        <Badge variant={statusColors[s.status] as "warning" | "info" | "success" | "gray"}>
-          {SCHEDULE_STATUS_LABELS[s.status as ScheduleStatus]}
-        </Badge>
-      ),
-    },
-    {
-      key: "actions", label: "",
-      render: (s) => s.status === "PENDING" ? (
-        <div className="flex gap-2">
-          <Button size="sm" onClick={() => toast.success("Da xac nhan lich")}>Xac nhan</Button>
-          <Button size="sm" variant="outline" onClick={() => toast.info("Da huy lich")}>Huy</Button>
-        </div>
-      ) : null,
-    },
-  ];
+// ============================================================
+// TRANG QUẢN LÝ LỊCH XEM PHÒNG - Kết nối API thật
+// ============================================================
+
+export default function ScheduleList() {
+  const [schedules, setSchedules] = useState<ScheduleData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [deleteItem, setDeleteItem] = useState<ScheduleData | null>(null);
+
+  useEffect(() => {
+    fetchSchedules();
+  }, []);
+
+  async function fetchSchedules() {
+    try {
+      setLoading(true);
+      const data = await scheduleService.getSchedules();
+      setSchedules(data);
+    } catch {
+      toast.error("Không thể tải danh sách lịch xem phòng");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const filtered = schedules.filter(
+    (s) =>
+      s.guest_name.toLowerCase().includes(search.toLowerCase()) ||
+      s.guest_phone.includes(search)
+  );
+
+  // Xác nhận lịch
+  async function handleConfirm(id: number) {
+    try {
+      await scheduleService.confirmSchedule(id);
+      toast.success("Đã xác nhận lịch xem phòng");
+      fetchSchedules();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Xác nhận thất bại");
+    }
+  }
+
+  // Hủy lịch
+  async function handleCancel(id: number) {
+    try {
+      await scheduleService.cancelSchedule(id);
+      toast.success("Đã hủy lịch");
+      fetchSchedules();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Hủy thất bại");
+    }
+  }
+
+  // Xóa lịch
+  async function handleDelete() {
+    if (!deleteItem) return;
+    try {
+      await scheduleService.deleteSchedule(deleteItem.id);
+      toast.success("Đã xóa lịch");
+      setDeleteItem(null);
+      fetchSchedules();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Xóa thất bại");
+    }
+  }
+
+  function getStatusBadge(status: string) {
+    const map: Record<string, { label: string; variant: string }> = {
+      PENDING: { label: "Chờ xác nhận", variant: "warning" },
+      CONFIRMED: { label: "Đã xác nhận", variant: "success" },
+      CANCELLED: { label: "Đã hủy", variant: "gray" },
+    };
+    const s = map[status] || { label: status, variant: "gray" };
+    return <Badge variant={s.variant as any}>{s.label}</Badge>;
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-primary-600" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">Lich xem phong</h1>
-        <p className="text-sm text-gray-500">Quan ly lich hen xem phong cua khach</p>
+      <PageHeader
+        icon={CalendarDays}
+        title="Lịch xem phòng"
+        subtitle="Quản lý lịch hẹn xem căn hộ"
+        count={schedules.length}
+        iconColor="linear-gradient(135deg, #EC4899, #F472B6)"
+      />
+
+      <SearchInput value={search} onChange={setSearch} placeholder="Tìm theo tên, SĐT..." className="max-w-md" />
+
+      {/* Bảng */}
+      <div className="premium-table-container">
+        <div className="overflow-x-auto">
+          <table className="premium-table">
+            <thead>
+              <tr>
+                <th>Khách</th>
+                <th>SĐT</th>
+                <th>Thời gian</th>
+                <th>Trạng thái</th>
+                <th>Ghi chú</th>
+                <th className="text-right">Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((s) => (
+                <tr key={s.id}>
+                  <td className="font-semibold text-gray-800">{s.guest_name}</td>
+                  <td className="text-gray-650">{s.guest_phone}</td>
+                  <td className="text-gray-600">
+                    {new Date(s.schedule_time).toLocaleString("vi-VN")}
+                  </td>
+                  <td>{getStatusBadge(s.status)}</td>
+                  <td className="text-gray-500 max-w-[200px] truncate" title={s.note || ""}>
+                    {s.note || "-"}
+                  </td>
+                  <td>
+                    <div className="flex items-center justify-end gap-1">
+                      {s.status === "PENDING" && (
+                        <>
+                          <button
+                            onClick={() => handleConfirm(s.id)}
+                            className="p-2 rounded-lg text-green-600 hover:bg-green-50 cursor-pointer"
+                            title="Xác nhận"
+                          >
+                            <Check size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleCancel(s.id)}
+                            className="p-2 rounded-lg text-amber-600 hover:bg-amber-50 cursor-pointer"
+                            title="Hủy"
+                          >
+                            <X size={16} />
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={() => setDeleteItem(s)}
+                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                        title="Xóa"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="text-center py-12 text-gray-500">
+                    <CalendarDays size={48} className="mx-auto mb-3 text-gray-300" />
+                    Chưa có lịch xem phòng nào
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <Card padding={false}>
-        <DataTable columns={columns} data={mockViewingSchedules} />
-      </Card>
+      <ConfirmDialog
+        isOpen={!!deleteItem}
+        onClose={() => setDeleteItem(null)}
+        onConfirm={handleDelete}
+        title="Xóa lịch xem phòng"
+        message={`Xóa lịch xem phòng của "${deleteItem?.guest_name}"?`}
+        confirmText="Xóa"
+      />
     </div>
   );
 }

@@ -1,142 +1,139 @@
 import { useState } from "react";
-import Card from "../../components/common/ui/Card";
-import Badge from "../../components/common/ui/Badge";
-import Button from "../../components/common/ui/Button";
-import Modal from "../../components/common/ui/Modal";
-import { useAuthStore } from "../../stores/auth.store";
-import { mockMaintenanceRequests } from "../../data/maintenance";
-import { mockApartments } from "../../data/apartments";
-import { REQUEST_STATUS_LABELS, REQUEST_STATUS_COLORS, PRIORITY_LABELS, PRIORITY_COLORS } from "../../constants/enums";
-import { formatRelativeTime } from "../../utils/format";
-import type { RequestStatus, Priority } from "../../constants/enums";
-import { Plus, Wrench, AlertCircle } from "lucide-react";
+import { Wrench, Plus } from "lucide-react";
+import Badge from "../../components/ui/Badge";
+import Button from "../../components/ui/Button";
+import Modal from "../../components/ui/Modal";
 import { toast } from "sonner";
 
-// Trang yeu cau sua chua cua nguoi thue
-// Hien thi danh sach yeu cau va form tao yeu cau moi
-export default function TenantMaintenance() {
-  const { user } = useAuthStore();
-  const tenantId = user?.id ? user.id - 3 : 1;
+import PageHeader from "../../components/ui/PageHeader";
+
+// ============================================================
+// YÊU CẦU SỬA CHỮA CỦA TÔI - Tenant tạo/xem yêu cầu
+// ============================================================
+
+const mockRequests = [
+  {
+    id: 1, title: "Bóng đèn phòng khách hỏng", description: "Bóng đèn LED phòng khách không sáng",
+    priority: "MEDIUM", status: "PROCESSING", created_at: "2026-06-10",
+  },
+  {
+    id: 2, title: "Vòi nước bồn rửa bị rỉ", description: "Vòi nước bồn rửa bếp bị rỉ nước",
+    priority: "HIGH", status: "PENDING", created_at: "2026-06-08",
+  },
+  {
+    id: 3, title: "Điều hòa không mát", description: "Điều hòa phòng ngủ kêu to và không mát",
+    priority: "HIGH", status: "DONE", created_at: "2026-05-20",
+  },
+];
+
+export default function MyMaintenance() {
   const [showForm, setShowForm] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState("MEDIUM");
 
-  // Lay yeu cau cua nguoi thue
-  const requests = mockMaintenanceRequests.filter((r) => r.tenant_id === tenantId);
+  function getStatusBadge(status: string) {
+    const map: Record<string, { label: string; variant: string }> = {
+      PENDING: { label: "Mới tạo", variant: "warning" },
+      PROCESSING: { label: "Đang xử lý", variant: "info" },
+      DONE: { label: "Hoàn thành", variant: "success" },
+      CANCELLED: { label: "Đã hủy", variant: "gray" },
+    };
+    const s = map[status] || { label: status, variant: "gray" };
+    return <Badge variant={s.variant as any}>{s.label}</Badge>;
+  }
 
-  function getApartmentCode(aptId: number) {
-    return mockApartments.find((a) => a.id === aptId)?.apartment_code || "";
+  function getPriorityBadge(priority: string) {
+    const map: Record<string, { label: string; variant: string }> = {
+      LOW: { label: "Thấp", variant: "gray" },
+      MEDIUM: { label: "Trung bình", variant: "warning" },
+      HIGH: { label: "Cao", variant: "danger" },
+    };
+    const p = map[priority] || { label: priority, variant: "gray" };
+    return <Badge variant={p.variant as any}>{p.label}</Badge>;
+  }
+
+  function handleSubmit() {
+    if (!title) { toast.error("Vui lòng nhập tiêu đề"); return; }
+    toast.success("Đã gửi yêu cầu sửa chữa");
+    setShowForm(false);
+    setTitle(""); setDescription(""); setPriority("MEDIUM");
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Yeu cau sua chua</h1>
-          <p className="text-sm text-gray-500">Gui va theo doi yeu cau bao tri</p>
-        </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus size={18} /> Tao yeu cau moi
-        </Button>
-      </div>
+      <PageHeader
+        icon={Wrench}
+        title="Yêu cầu sửa chữa"
+        subtitle="Gửi và theo dõi yêu cầu bảo trì căn hộ của bạn"
+        count={mockRequests.length}
+        iconColor="linear-gradient(135deg, #F59E0B, #EF4444)"
+        actions={
+          <Button onClick={() => setShowForm(true)}>
+            <Plus size={18} /> Tạo yêu cầu
+          </Button>
+        }
+      />
 
-      {/* Danh sach yeu cau */}
-      <div className="space-y-3">
-        {requests.map((req) => (
-          <Card key={req.id}>
-            <div className="flex items-start gap-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                req.status === "DONE" ? "bg-success-50" :
-                req.status === "PROCESSING" ? "bg-info-50" : "bg-warning-50"
-              }`}>
-                <Wrench size={22} className={
-                  req.status === "DONE" ? "text-success-600" :
-                  req.status === "PROCESSING" ? "text-info-600" : "text-warning-600"
-                } />
-              </div>
-
-              <div className="flex-1">
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <h4 className="font-semibold text-gray-800">{req.title}</h4>
-                    <p className="text-xs text-gray-400">
-                      {getApartmentCode(req.apartment_id)} - {formatRelativeTime(req.created_at)}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Badge variant={PRIORITY_COLORS[req.priority as Priority] as "gray" | "warning" | "danger"}>
-                      {PRIORITY_LABELS[req.priority as Priority]}
-                    </Badge>
-                    <Badge variant={REQUEST_STATUS_COLORS[req.status as RequestStatus] as "warning" | "info" | "success" | "gray"}>
-                      {REQUEST_STATUS_LABELS[req.status as RequestStatus]}
-                    </Badge>
-                  </div>
+      {/* Danh sách yêu cầu */}
+      <div className="space-y-4">
+        {mockRequests.map((req) => (
+          <div key={req.id} className="premium-card p-5">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-50 rounded-lg flex items-center justify-center">
+                  <Wrench size={20} className="text-amber-600" />
                 </div>
-
-                <p className="text-sm text-gray-600">{req.description}</p>
-
-                {/* Timeline cap nhat */}
-                {req.status === "PROCESSING" && (
-                  <div className="mt-3 p-3 bg-info-50 rounded-xl flex items-center gap-2">
-                    <AlertCircle size={16} className="text-info-600" />
-                    <p className="text-xs text-info-600">
-                      Yeu cau dang duoc xu ly. Cap nhat cuoi: {formatRelativeTime(req.updated_at)}
-                    </p>
-                  </div>
-                )}
+                <div>
+                  <h3 className="font-semibold text-gray-800">{req.title}</h3>
+                  <p className="text-xs text-gray-400">{new Date(req.created_at).toLocaleDateString("vi-VN")}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {getPriorityBadge(req.priority)}
+                {getStatusBadge(req.status)}
               </div>
             </div>
-          </Card>
+            <p className="text-sm text-gray-600 ml-13">{req.description}</p>
+          </div>
         ))}
-
-        {requests.length === 0 && (
-          <Card>
-            <p className="text-center text-gray-400 py-8">Ban chua co yeu cau nao</p>
-          </Card>
-        )}
       </div>
 
-      {/* Modal tao yeu cau moi */}
+      {/* Modal tạo yêu cầu */}
       <Modal
         isOpen={showForm}
         onClose={() => setShowForm(false)}
-        title="Tao yeu cau sua chua"
-        size="md"
+        title="Tạo yêu cầu sửa chữa"
         footer={
           <>
-            <Button variant="outline" onClick={() => setShowForm(false)}>Huy</Button>
-            <Button onClick={() => { toast.success("Da gui yeu cau sua chua"); setShowForm(false); }}>
-              Gui yeu cau
-            </Button>
+            <Button variant="outline" onClick={() => setShowForm(false)}>Hủy</Button>
+            <Button onClick={handleSubmit}>Gửi yêu cầu</Button>
           </>
         }
       >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tieu de *</label>
-            <input
-              type="text"
-              placeholder="Vi du: May lanh khong mat"
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Muc do uu tien *</label>
-            <select className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500">
-              <option value="LOW">Thap - Khong gap</option>
-              <option value="MEDIUM">Trung binh - Can xu ly som</option>
-              <option value="HIGH">Cao - Can xu ly ngay</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Mo ta chi tiet *</label>
-            <textarea
-              rows={4}
-              placeholder="Mo ta chi tiet van de ban gap phai..."
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 resize-none"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Hinh anh (neu co)</label>
-            <input type="file" accept="image/*" multiple className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-sm" />
+        <div className="space-y-6">
+          <div className="grid grid-cols-12 gap-6">
+            <div className="col-span-12">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tiêu đề *</label>
+              <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+                placeholder="VD: Bóng đèn phòng khách hỏng"
+                className="premium-input rounded-xl" />
+            </div>
+            <div className="col-span-12">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Mô tả chi tiết</label>
+              <textarea value={description} onChange={(e) => setDescription(e.target.value)}
+                rows={3} placeholder="Mô tả vấn đề cụ thể..."
+                className="premium-input rounded-xl resize-none" />
+            </div>
+            <div className="col-span-12">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Mức độ ưu tiên</label>
+              <select value={priority} onChange={(e) => setPriority(e.target.value)}
+                className="premium-select w-full rounded-xl">
+                <option value="LOW">Thấp</option>
+                <option value="MEDIUM">Trung bình</option>
+                <option value="HIGH">Cao</option>
+              </select>
+            </div>
           </div>
         </div>
       </Modal>

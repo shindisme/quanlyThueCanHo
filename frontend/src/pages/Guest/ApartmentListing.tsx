@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
-import Badge from "../../components/common/ui/Badge";
+import Badge from "../../components/ui/Badge";
 import { mockApartments } from "../../data/apartments";
 import { mockBuildings } from "../../data/buildings";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../constants/enums";
 import { formatCurrency } from "../../utils/format";
-import type { ApartmentStatus } from "../../constants/enums";
 
 // Trang danh sach can ho cho khach vang lai
 export default function GuestApartmentListing() {

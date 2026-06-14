@@ -1,4 +1,4 @@
-import { cn } from "../../../lib/utils";
+import { cn } from "../../lib/utils";
 import { Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
 

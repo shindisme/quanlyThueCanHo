@@ -1,9 +1,10 @@
 import { useState } from "react";
-import Card from "../../components/common/ui/Card";
-import SearchInput from "../../components/common/ui/SearchInput";
-import Badge from "../../components/common/ui/Badge";
-import DataTable, { type Column } from "../../components/common/ui/DataTable";
-import Pagination from "../../components/common/ui/Pagination";
+import { Receipt } from "lucide-react";
+import PageHeader from "../../components/ui/PageHeader";
+import SearchInput from "../../components/ui/SearchInput";
+import Badge from "../../components/ui/Badge";
+import DataTable, { type Column } from "../../components/ui/DataTable";
+import Pagination from "../../components/ui/Pagination";
 import { mockInvoices } from "../../data/invoices";
 import { mockTenants } from "../../data/tenants";
 import { INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS } from "../../constants/enums";
@@ -47,10 +48,13 @@ export default function InvoiceList() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">Hoa don</h1>
-        <p className="text-sm text-gray-500">Quan ly hoa don tien thue va dich vu</p>
-      </div>
+      <PageHeader
+        icon={Receipt}
+        title="Hóa đơn"
+        subtitle="Quản lý hóa đơn tiền thuê và dịch vụ"
+        count={filtered.length}
+        iconColor="linear-gradient(135deg, #F59E0B, #FBBF24)"
+      />
 
       <div className="flex flex-col sm:flex-row gap-3">
         <SearchInput
@@ -71,9 +75,7 @@ export default function InvoiceList() {
         </select>
       </div>
 
-      <Card padding={false}>
-        <DataTable columns={columns} data={paginated} />
-      </Card>
+      <DataTable columns={columns} data={paginated} />
 
       <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
     </div>
