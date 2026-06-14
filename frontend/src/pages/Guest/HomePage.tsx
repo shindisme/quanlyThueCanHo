@@ -201,10 +201,10 @@ export default function GuestHomePage() {
                     </span>
                   </div>
                   <div className="p-5">
-                    <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors">{apt.title}</h3>
+                    <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors">P.{apt.room_number} - T{apt.floor}</h3>
                     <div className="flex items-center gap-1.5 mt-1.5 text-xs text-gray-400">
                       <MapPin size={12} />
-                      <span>{building?.name} - {building?.address}</span>
+                      <span>{building?.name} - {building?.address_new || building?.address_old}</span>
                     </div>
                     <p className="text-sm text-gray-500 mt-2 line-clamp-2">{apt.description}</p>
                     <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100">

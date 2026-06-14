@@ -22,18 +22,34 @@ const tenantGrowthData = [
   { month: "06/2026", count: 10 },
 ];
 
+import { useAuthStore } from "../../stores/auth.store";
+import { mockUsers } from "../../data/users";
+import { mockBuildings } from "../../data/buildings";
+
 // Trang bao cao thong ke
 export default function ReportDashboard() {
+  const { role, email } = useAuthStore();
+  const currentUser = mockUsers.find((u) => u.email === email);
+  const managerBuildingId = currentUser?.managedBuildingId;
+
   const revenueData = getMonthlyRevenueData();
-  const occupancyData = getOccupancyData();
+  const rawOccupancyData = getOccupancyData();
   const contractData = getContractStatusData();
+
+  const occupancyData = (() => {
+    if (role === "MANAGER" && managerBuildingId) {
+      const bldName = mockBuildings.find(b => b.id === managerBuildingId)?.name;
+      return rawOccupancyData.filter(d => d.name === bldName);
+    }
+    return rawOccupancyData;
+  })();
 
   return (
     <div className="space-y-6">
       <PageHeader
         icon={TrendingUp}
         title="Báo cáo thống kê"
-        subtitle="Phân tích và theo dõi số liệu toàn hệ thống"
+        subtitle={role === "MANAGER" ? "Phân tích và theo dõi số liệu tòa nhà của bạn" : "Phân tích và theo dõi số liệu toàn hệ thống"}
         iconColor="linear-gradient(135deg, #3B82F6, #8B5CF6)"
       />
 

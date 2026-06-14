@@ -1,6 +1,6 @@
 import {
   Building2, Home, Users, DollarSign, FileText, Wrench,
-  TrendingUp, ChevronDown, ArrowUpRight,
+  TrendingUp, TrendingDown, ChevronDown, ArrowUpRight,
 } from "lucide-react";
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -51,10 +51,12 @@ const recentActivities = [
   { type: "invoice", text: "Hóa đơn tháng 6 đã phát hành", time: "2 giờ trước", color: "bg-gray-400" },
 ];
 
-function StatCard({ icon: Icon, label, value, iconColor, iconBg }: {
+function StatCard({ icon: Icon, label, value, trend, trendValue, iconColor, iconBg }: {
   icon: React.ComponentType<{ size?: number; className?: string }>;
   label: string;
   value: string | number;
+  trend?: "up" | "down";
+  trendValue?: string;
   iconColor: string;
   iconBg: string;
 }) {
@@ -64,6 +66,14 @@ function StatCard({ icon: Icon, label, value, iconColor, iconBg }: {
         <div className="flex-1">
           <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3">{label}</p>
           <p className="text-2xl font-bold text-gray-900 mb-1">{value}</p>
+          {trend && trendValue && (
+            <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${
+              trend === "up" ? "text-success-600" : "text-danger-600"
+            }`}>
+              {trend === "up" ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+              <span>{trendValue}</span>
+            </div>
+          )}
         </div>
         <div className={`w-14 h-14 ${iconBg} rounded-xl flex items-center justify-center shrink-0 shadow-sm`}>
           <Icon size={26} className={iconColor} />
@@ -93,9 +103,6 @@ function ChartCard({ title, subtitle, children, action }: {
   );
 }
 
-//
-// TRANG DASHBOARD CHÍNH - DashboardPack Commerce Style
-//
 export default function Dashboard() {
   const { email } = useAuthStore();
   const displayName = email?.split("@")[0] || "Admin";

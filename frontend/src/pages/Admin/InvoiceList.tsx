@@ -7,6 +7,10 @@ import DataTable, { type Column } from "../../components/ui/DataTable";
 import Pagination from "../../components/ui/Pagination";
 import { mockInvoices } from "../../data/invoices";
 import { mockTenants } from "../../data/tenants";
+import { mockApartments } from "../../data/apartments";
+import { mockContracts } from "../../data/contracts";
+import { mockUsers } from "../../data/users";
+import { useAuthStore } from "../../stores/auth.store";
 import { INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS } from "../../constants/enums";
 import { formatCurrency, formatDate } from "../../utils/format";
 import type { Invoice } from "../../types";
@@ -14,12 +18,29 @@ import type { InvoiceStatus } from "../../constants/enums";
 
 // Trang danh sach hoa don
 export default function InvoiceList() {
+  const { role, email } = useAuthStore();
+  const currentUser = mockUsers.find((u) => u.email === email);
+  const managerBuildingId = currentUser?.managedBuildingId;
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
-  const filtered = mockInvoices.filter((inv) => {
+  const displayInvoices = (() => {
+    if (role === "MANAGER" && managerBuildingId) {
+      const managerApartmentIds = mockApartments
+        .filter((a) => a.building_id === managerBuildingId)
+        .map((a) => a.id);
+      const managerContractIds = mockContracts
+        .filter((c) => managerApartmentIds.includes(c.apartment_id))
+        .map((c) => c.id);
+      return mockInvoices.filter((inv) => managerContractIds.includes(inv.contract_id));
+    }
+    return mockInvoices;
+  })();
+
+  const filtered = displayInvoices.filter((inv) => {
     const tenant = mockTenants.find((t) => t.id === inv.tenant_id);
     const matchSearch =
       inv.invoice_code.toLowerCase().includes(search.toLowerCase()) ||

@@ -4,31 +4,13 @@ import { Plus, MapPin, Layers, Home, MoreVertical, Pencil, Trash2, Loader2, Buil
 import PageHeader from "../../components/ui/PageHeader";
 import Button from "../../components/ui/Button";
 import SearchInput from "../../components/ui/SearchInput";
+import Badge from "../../components/ui/Badge";
 import Modal from "../../components/ui/Modal";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { toast } from "sonner";
 
-// Import service thay vì mock data
 import * as buildingService from "../../services/buildings.service";
 import type { BuildingData } from "../../services/buildings.service";
-
-// ============================================================
-// TRANG DANH SÁCH TÒA NHÀ - Kết nối API thật
-// ============================================================
-//
-// USEEFFECT + USESTATE PATTERN:
-// - useState: lưu dữ liệu (buildings, loading, error)
-// - useEffect: gọi API khi component mount (lần đầu hiển thị)
-//   → fetchData() → set state → re-render
-//
-// TẠI SAO CẦN LOADING STATE?
-// - Khi gọi API mất thời gian (network) → hiện spinner
-// - User biết app đang tải, không phải bị treo
-//
-// TẠI SAO CẦN TRY-CATCH?
-// - API có thể lỗi (mất mạng, server die, sai token)
-// - catch bắt lỗi → hiện thông báo cho user biết
-// ============================================================
 
 export default function BuildingList() {
   const navigate = useNavigate();
@@ -41,13 +23,12 @@ export default function BuildingList() {
   const [menuOpen, setMenuOpen] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // State cho form inputs
+  // State cho form inputs - khớp DB schema
   const [formData, setFormData] = useState({
-    name: "", address: "", total_floors: 0, description: "", branch_name: "",
+    name: "", address_old: "", address_new: "", total_floors: 0,
+    description: "", branch_name: "",
   });
 
-  // ===== GỌI API LẤY DANH SÁCH TÒA NHÀ =====
-  // useEffect chạy 1 lần khi component mount ([] = dependency rỗng)
   useEffect(() => {
     fetchBuildings();
   }, []);
@@ -55,36 +36,36 @@ export default function BuildingList() {
   async function fetchBuildings() {
     try {
       setLoading(true);
-      const data = await buildingService.getAllBuildings();
-      setBuildings(data);
-    } catch (error: any) {
+      const result = await buildingService.getAllBuildings();
+      setBuildings(result.data);
+    } catch {
       toast.error("Không thể tải danh sách tòa nhà");
     } finally {
       setLoading(false);
     }
   }
 
-  // Lọc theo từ khóa tìm kiếm
+  // Lọc theo từ khóa tìm kiếm (client-side)
   const filtered = buildings.filter(
     (b) =>
       b.name.toLowerCase().includes(search.toLowerCase()) ||
-      b.address.toLowerCase().includes(search.toLowerCase()) ||
+      b.address_old?.toLowerCase().includes(search.toLowerCase()) ||
+      b.address_new?.toLowerCase().includes(search.toLowerCase()) ||
       b.branch_name?.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Mở form thêm mới
   function openAddForm() {
     setEditItem(null);
-    setFormData({ name: "", address: "", total_floors: 0, description: "", branch_name: "" });
+    setFormData({ name: "", address_old: "", address_new: "", total_floors: 0, description: "", branch_name: "" });
     setShowForm(true);
   }
 
-  // Mở form chỉnh sửa
   function openEditForm(building: BuildingData) {
     setEditItem(building);
     setFormData({
       name: building.name,
-      address: building.address,
+      address_old: building.address_old || "",
+      address_new: building.address_new || "",
       total_floors: building.total_floors,
       description: building.description || "",
       branch_name: building.branch_name || "",
@@ -93,10 +74,9 @@ export default function BuildingList() {
     setMenuOpen(null);
   }
 
-  // ===== LƯU (THÊM MỚI / CẬP NHẬT) =====
   async function handleSave() {
-    if (!formData.name || !formData.address) {
-      toast.error("Vui lòng nhập tên và địa chỉ");
+    if (!formData.name || !formData.address_old || !formData.address_new || !formData.branch_name) {
+      toast.error("Vui lòng nhập tên, địa chỉ cũ, địa chỉ mới và chi nhánh");
       return;
     }
     setSaving(true);
@@ -110,15 +90,14 @@ export default function BuildingList() {
       }
       setShowForm(false);
       setEditItem(null);
-      fetchBuildings(); // Tải lại danh sách
+      fetchBuildings();
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Thao tác thất bại");
+      toast.error(error.response?.data?.error || error.response?.data?.message || "Thao tác thất bại");
     } finally {
       setSaving(false);
     }
   }
 
-  // ===== XÓA =====
   async function handleDelete() {
     if (!deleteItem) return;
     try {
@@ -131,7 +110,6 @@ export default function BuildingList() {
     }
   }
 
-  // ===== LOADING STATE =====
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -142,7 +120,7 @@ export default function BuildingList() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header - ArchitectUI style */}
+      {/* Page Header */}
       <PageHeader
         icon={Building2}
         title="Tòa nhà"
@@ -218,23 +196,31 @@ export default function BuildingList() {
                     <Home size={22} className="text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-800">{building.name}</h3>
-                    {building.branch_name && (
-                      <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">
-                        {building.branch_name}
-                      </span>
-                    )}
+                    <h3 className="font-semibold text-gray-800">
+                      {building.branch_name} - {building.name.replace(/yuki\s*house\s*|yuki\s*/gi, "")}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant={building.status === "ACTIVE" ? "success" : "gray"}>
+                        {building.status === "ACTIVE" ? "Hoạt động" : "Ngừng"}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
 
                 <div className="space-y-2 text-sm text-gray-600">
                   <div className="flex items-center gap-2">
-                    <MapPin size={14} className="text-gray-400" />
-                    <span className="truncate">{building.address}</span>
+                    <MapPin size={14} className="text-gray-400 flex-shrink-0" />
+                    <span className="truncate">{building.address_new || building.address_old}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Layers size={14} className="text-gray-400" />
-                    <span>{building.total_floors} tầng</span>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Layers size={14} className="text-gray-400" />
+                      <span>{building.total_floors} tầng</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Home size={14} className="text-gray-400" />
+                      <span>{building._count?.apartments ?? building.total_apartments} căn hộ</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -268,17 +254,27 @@ export default function BuildingList() {
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="VD: YuKi Tower A"
+                placeholder="VD: Tower A"
                 className="premium-input rounded-xl"
               />
             </div>
-            <div className="col-span-12">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Địa chỉ *</label>
+            <div className="col-span-12 sm:col-span-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Địa chỉ cũ *</label>
               <input
                 type="text"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                value={formData.address_old}
+                onChange={(e) => setFormData({ ...formData, address_old: e.target.value })}
                 placeholder="VD: 123 Nguyễn Huệ, Quận 1"
+                className="premium-input rounded-xl"
+              />
+            </div>
+            <div className="col-span-12 sm:col-span-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Địa chỉ mới *</label>
+              <input
+                type="text"
+                value={formData.address_new}
+                onChange={(e) => setFormData({ ...formData, address_new: e.target.value })}
+                placeholder="VD: 123 Nguyễn Huệ, Phường Bến Nghé, Quận 1"
                 className="premium-input rounded-xl"
               />
             </div>
@@ -292,7 +288,7 @@ export default function BuildingList() {
               />
             </div>
             <div className="col-span-12 sm:col-span-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Chi nhánh</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Chi nhánh *</label>
               <input
                 type="text"
                 value={formData.branch_name}

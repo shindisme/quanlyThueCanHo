@@ -22,7 +22,7 @@ export default function GuestApartmentDetail() {
   const [saving, setSaving] = useState(false);
   // Form đặt lịch - controlled inputs
   const [scheduleForm, setScheduleForm] = useState({
-    guest_name: "", guest_phone: "", guest_email: "", schedule_time: "", note: "",
+    guest_name: "", guest_phone: "", guest_email: "", schedule_time: "",
   });
 
   if (!apartment) {
@@ -49,7 +49,7 @@ export default function GuestApartmentDetail() {
       });
       toast.success("Đã gửi yêu cầu đặt lịch xem phòng!");
       setShowScheduleForm(false);
-      setScheduleForm({ guest_name: "", guest_phone: "", guest_email: "", schedule_time: "", note: "" });
+      setScheduleForm({ guest_name: "", guest_phone: "", guest_email: "", schedule_time: "" });
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Gửi yêu cầu thất bại");
     } finally {
@@ -77,10 +77,10 @@ export default function GuestApartmentDetail() {
             <div>
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">{apartment.apartment_code} - {apartment.title}</h1>
+                  <h1 className="text-2xl font-bold text-gray-900">P.{apartment.room_number} - Tầng {apartment.floor}</h1>
                   <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
                     <MapPin size={14} />
-                    <span>{building?.name} - {building?.address}</span>
+                    <span>{building?.name} - {building?.address_new || building?.address_old}</span>
                   </div>
                 </div>
                 <Badge variant={APARTMENT_STATUS_COLORS[apartment.status] as "success" | "info" | "warning"}>
@@ -107,7 +107,7 @@ export default function GuestApartmentDetail() {
                   <p className="text-xs text-gray-400">Toa nha</p>
                 </div>
                 <div className="text-center p-3 bg-gray-50 rounded-xl">
-                  <p className="text-sm font-semibold text-gray-800">{building?.totalFloors} tang</p>
+                  <p className="text-sm font-semibold text-gray-800">{building?.total_floors} tầng</p>
                   <p className="text-xs text-gray-400">Tong tang</p>
                 </div>
                 <div className="text-center p-3 bg-gray-50 rounded-xl">
@@ -155,7 +155,7 @@ export default function GuestApartmentDetail() {
       >
         <div className="space-y-6">
           <p className="text-sm text-gray-500 mb-2">
-            Căn hộ: <span className="font-medium text-gray-800">{apartment.apartment_code} - {apartment.title}</span>
+            Căn hộ: <span className="font-medium text-gray-800">P.{apartment.room_number} - Tầng {apartment.floor}</span>
           </p>
           <div className="grid grid-cols-12 gap-6">
             <div className="col-span-12">
@@ -164,7 +164,7 @@ export default function GuestApartmentDetail() {
                 <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input type="text" value={scheduleForm.guest_name}
                   onChange={(e) => setScheduleForm({ ...scheduleForm, guest_name: e.target.value })}
-                  placeholder="Nguyễn Văn A" className="premium-input rounded-xl pl-10" />
+                  placeholder="Nguyễn Văn A" className="premium-input rounded-xl !pl-10" />
               </div>
             </div>
 
@@ -174,7 +174,7 @@ export default function GuestApartmentDetail() {
                 <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input type="tel" value={scheduleForm.guest_phone}
                   onChange={(e) => setScheduleForm({ ...scheduleForm, guest_phone: e.target.value })}
-                  placeholder="0901234567" className="premium-input rounded-xl pl-10" />
+                  placeholder="0901234567" className="premium-input rounded-xl !pl-10" />
               </div>
             </div>
 
@@ -184,7 +184,7 @@ export default function GuestApartmentDetail() {
                 <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input type="email" value={scheduleForm.guest_email}
                   onChange={(e) => setScheduleForm({ ...scheduleForm, guest_email: e.target.value })}
-                  placeholder="email@example.com" className="premium-input rounded-xl pl-10" />
+                  placeholder="email@example.com" className="premium-input rounded-xl !pl-10" />
               </div>
             </div>
 
@@ -197,8 +197,7 @@ export default function GuestApartmentDetail() {
 
             <div className="col-span-12">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Ghi chú</label>
-              <textarea rows={3} value={scheduleForm.note}
-                onChange={(e) => setScheduleForm({ ...scheduleForm, note: e.target.value })}
+              <textarea rows={3}
                 placeholder="Lưu ý gì thêm..." className="premium-input rounded-xl resize-none" />
             </div>
           </div>

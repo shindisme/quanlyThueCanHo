@@ -1,18 +1,5 @@
 import api from "../lib/api";
 
-// ============================================================
-// AUTH SERVICE - Các hàm gọi API xác thực người dùng
-// ============================================================
-//
-// TẠI SAO ĐẶT Ở SERVICES/ MÀ KHÔNG PHẢI LIB/?
-// - services/ = nơi chứa các hàm gọi API (giao tiếp với backend)
-// - lib/ = nơi chứa utility/config (axios instance, helper functions)
-// - Giống cách backend tách: controllers/ gọi → services/ xử lý logic
-// - Frontend cũng vậy: components gọi → services/ gọi API
-//
-// FLOW: Component → Service → API (axios) → Backend
-// Ví dụ: Login.tsx → authService.login() → api.post("/auth/login") → Backend
-// ============================================================
 
 // Interface mô tả dữ liệu trả về khi login
 export interface LoginResponse {

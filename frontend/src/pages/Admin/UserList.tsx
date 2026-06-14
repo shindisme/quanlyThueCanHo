@@ -11,10 +11,6 @@ import { toast } from "sonner";
 import * as authService from "../../services/auth.service";
 import type { UserData } from "../../services/auth.service";
 
-// ============================================================
-// TRANG QUẢN LÝ TÀI KHOẢN - Kết nối API thật
-// ============================================================
-
 export default function UserList() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);

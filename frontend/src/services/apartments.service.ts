@@ -2,57 +2,69 @@ import api from "../lib/api";
 
 // ============================================================
 // APARTMENTS SERVICE - CRUD căn hộ
+// Interface khớp DB: apartments table
+// DB fields: id, building_id, room_number, floor, area, bedrooms,
+//   bathrooms, rental_price, description, status
 // ============================================================
 
 export interface ApartmentData {
   id: number;
-  apartment_code: string;
   building_id: number;
-  title: string;
-  description: string | null;
+  room_number: string;
+  floor: number;
   area: number;
+  bedrooms: number;
+  bathrooms: number;
   rental_price: number;
+  description: string | null;
   status: string; // AVAILABLE | RENTED | MAINTENANCE
-  created_at: string;
   building?: {
     id: number;
     name: string;
+    address_new?: string;
+    branch_name?: string;
   };
 }
 
-// Lấy tất cả căn hộ - GET /apartments
-export async function getAllApartments(): Promise<ApartmentData[]> {
-  const res = await api.get<any>("/apartments");
-  const rawData = res.data.data || res.data;
-  if (Array.isArray(rawData)) {
-    return rawData.map((item: any) => ({
-      ...item,
-      apartment_code: item.apartment_code || item.room_number || `PH-${item.id}`,
-      title: item.title || item.description || `Căn hộ ${item.room_number || item.id}`,
-    }));
+export interface ApartmentPagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+// Lấy tất cả căn hộ - GET /apartments (hỗ trợ server-side pagination)
+export async function getAllApartments(params?: {
+  building_id?: number;
+  search?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{ data: ApartmentData[]; pagination: ApartmentPagination }> {
+  const res = await api.get<any>("/apartments", { params });
+  if (res.data.data && res.data.pagination) {
+    return res.data;
   }
-  return [];
+  // Fallback
+  const rawData = Array.isArray(res.data) ? res.data : [];
+  return { data: rawData, pagination: { total: rawData.length, page: 1, limit: 10, totalPages: 1 } };
 }
 
 // Lấy 1 căn hộ - GET /apartments/:id
 export async function getApartmentById(id: number): Promise<ApartmentData> {
-  const res = await api.get<any>(`/apartments/${id}`);
-  const item = res.data;
-  return {
-    ...item,
-    apartment_code: item.apartment_code || item.room_number || `PH-${item.id}`,
-    title: item.title || item.description || `Căn hộ ${item.room_number || item.id}`,
-  };
+  const res = await api.get<ApartmentData>(`/apartments/${id}`);
+  return res.data;
 }
 
 // Tạo căn hộ mới - POST /apartments
 export async function createApartment(data: {
-  apartment_code: string;
   building_id: number;
-  title: string;
-  description?: string;
+  room_number: string;
+  floor: number;
   area: number;
+  bedrooms: number;
+  bathrooms: number;
   rental_price: number;
+  description?: string;
   status?: string;
 }) {
   const res = await api.post("/apartments", data);
@@ -70,3 +82,4 @@ export async function deleteApartment(id: number) {
   const res = await api.delete(`/apartments/${id}`);
   return res.data;
 }
+

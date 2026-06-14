@@ -11,11 +11,18 @@ import Input from "../../components/ui/Input";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { mockTenants } from "../../data/tenants";
 import { mockUsers } from "../../data/users";
+import { mockApartments } from "../../data/apartments";
+import { mockContracts } from "../../data/contracts";
+import { useAuthStore } from "../../stores/auth.store";
 import type { Tenant } from "../../types";
 import { toast } from "sonner";
 
 // Trang danh sach nguoi thue
 export default function TenantList() {
+  const { role, email } = useAuthStore();
+  const currentUser = mockUsers.find((u) => u.email === email);
+  const managerBuildingId = currentUser?.managedBuildingId;
+
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
@@ -23,8 +30,22 @@ export default function TenantList() {
   const [deleteItem, setDeleteItem] = useState<Tenant | null>(null);
   const pageSize = 10;
 
+  // Lọc tenants theo building của manager trước khi tìm kiếm
+  const displayTenants = (() => {
+    if (role === "MANAGER" && managerBuildingId) {
+      const managerApartmentIds = mockApartments
+        .filter((a) => a.building_id === managerBuildingId)
+        .map((a) => a.id);
+      const managerTenantIds = mockContracts
+        .filter((c) => managerApartmentIds.includes(c.apartment_id))
+        .map((c) => c.tenant_id);
+      return mockTenants.filter((t) => managerTenantIds.includes(t.id));
+    }
+    return mockTenants;
+  })();
+
   // Loc theo tu khoa
-  const filtered = mockTenants.filter(
+  const filtered = displayTenants.filter(
     (t) =>
       t.full_name.toLowerCase().includes(search.toLowerCase()) ||
       t.citizen_id.includes(search)

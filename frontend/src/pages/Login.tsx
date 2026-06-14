@@ -85,7 +85,7 @@ export default function Login() {
                   type="email"
                   placeholder="Nhập tên tài khoản"
                   {...register("email")}
-                  className={`premium-input rounded-xl pl-11
+                  className={`premium-input rounded-xl !pl-11
                     ${errors.email ? "border-danger-500 focus:border-danger-500 focus:ring-danger-500/20" : ""}`}
                 />
               </div>
@@ -106,7 +106,7 @@ export default function Login() {
                   type={showPassword ? "text" : "password"}
                   placeholder="Nhập mật khẩu"
                   {...register("password")}
-                  className={`premium-input rounded-xl pl-11 pr-12
+                  className={`premium-input rounded-xl !pl-11 !pr-12
                     ${errors.password ? "border-danger-500 focus:border-danger-500 focus:ring-danger-500/20" : ""}`}
                 />
                 <button
@@ -137,7 +137,7 @@ export default function Login() {
           <div className="mt-4 p-4 bg-primary-50 rounded-lg border border-primary-100">            <p className="text-xs font-semibold text-primary-700 mb-2">Tài khoản demo:</p>
             <div className="space-y-1 text-xs text-primary-600">
               <p>Tên đăng nhập: admin@gmail.com</p>
-              <p>Mật khẩu: admin123</p>
+              <p>Mật khẩu: 123456</p>
             </div>
           </div>
         </div>

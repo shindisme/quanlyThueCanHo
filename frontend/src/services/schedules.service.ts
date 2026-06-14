@@ -1,9 +1,5 @@
 import api from "../lib/api";
 
-// ============================================================
-// SCHEDULES SERVICE - Quản lý lịch xem phòng
-// ============================================================
-
 export interface ScheduleData {
   id: number;
   guest_name: string;
@@ -12,9 +8,15 @@ export interface ScheduleData {
   apartment_id: number;
   schedule_time: string;
   status: string; // PENDING | CONFIRMED | CANCELLED
-  note: string | null;
   created_at: string;
   temp_locked_until: string | null;
+  // API trả về include apartment
+  apartment?: {
+    id: number;
+    room_number: string;
+    floor: number;
+    building_id: number;
+  };
 }
 
 // Đặt lịch xem phòng - POST /schedules/book (public, không cần login)

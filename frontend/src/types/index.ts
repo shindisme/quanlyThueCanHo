@@ -46,31 +46,35 @@ export interface Tenant {
   maintenance_requests?: MaintenanceRequest[];
 }
 
-// Building - toa nha
+// Building - toa nha (khớp DB schema)
 export interface Building {
   id: number;
   name: string;
-  address: string;
+  address_old: string;
+  address_new: string;
   description: string | null;
-  status: number;
-  totalFloors: number;
-  branchName: string;
-  totalApartments: number;
-  thumbnailUrl: string | null;
-  createdAt: string;
+  status: string;
+  total_floors: number;
+  total_apartments: number;
+  branch_name: string;
+  thumbnail_url: string | null;
+  created_at: string;
   // Lien ket
   apartments?: Apartment[];
+  _count?: { apartments: number };
 }
 
-// Apartment - can ho
+// Apartment - can ho (khớp DB schema)
 export interface Apartment {
   id: number;
   building_id: number;
-  apartment_code: string;
-  title: string;
-  description: string | null;
+  room_number: string;
+  floor: number;
   area: number;
+  bedrooms: number;
+  bathrooms: number;
   rental_price: number;
+  description: string | null;
   status: ApartmentStatus;
   created_at: string;
   // Lien ket
@@ -150,18 +154,16 @@ export interface Payment {
   invoice?: Invoice;
 }
 
-// UtilityReading - chi so dien nuoc
+// UtilityReading - chi so dien nuoc (khớp DB schema)
 export interface UtilityReading {
   id: number;
   apartment_id: number;
-  invoice_id: number | null;
   month: number;
   year: number;
   electric_old: number;
   electric_new: number;
   water_old: number;
   water_new: number;
-  image_url: string | null;
   recorded_by: number;
   created_at: string;
   // Lien ket

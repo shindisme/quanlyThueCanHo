@@ -10,6 +10,9 @@ import Modal from "../../components/ui/Modal";
 import { mockContracts } from "../../data/contracts";
 import { mockTenants } from "../../data/tenants";
 import { mockApartments } from "../../data/apartments";
+import { mockUsers } from "../../data/users";
+import { mockBuildings } from "../../data/buildings";
+import { useAuthStore } from "../../stores/auth.store";
 import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS } from "../../constants/enums";
 import { formatCurrency, formatDate } from "../../utils/format";
 import type { RentalContract } from "../../types";
@@ -18,18 +21,55 @@ import { toast } from "sonner";
 
 // Trang danh sach hop dong thue
 export default function ContractList() {
+  const { role, email } = useAuthStore();
+  const currentUser = mockUsers.find((u) => u.email === email);
+  const managerBuildingId = currentUser?.managedBuildingId;
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const pageSize = 10;
 
-  const filtered = mockContracts.filter((c) => {
+  // Form selection states
+  const [selectedFormBuilding, setSelectedFormBuilding] = useState<number | undefined>(
+    role === "MANAGER" ? managerBuildingId : undefined
+  );
+  const [selectedFormFloor, setSelectedFormFloor] = useState<number | undefined>();
+  const [selectedFormApartment, setSelectedFormApartment] = useState<number | undefined>();
+
+  const formFloors = (() => {
+    if (!selectedFormBuilding) return [];
+    const buildingApts = mockApartments.filter(
+      (a) => a.building_id === selectedFormBuilding && a.status === "AVAILABLE"
+    );
+    const floors = buildingApts.map((a) => a.floor);
+    return [...new Set(floors)].sort((a, b) => a - b);
+  })();
+
+  const formApartments = (() => {
+    if (!selectedFormBuilding || !selectedFormFloor) return [];
+    return mockApartments.filter(
+      (a) => a.building_id === selectedFormBuilding && a.floor === selectedFormFloor && a.status === "AVAILABLE"
+    );
+  })();
+
+  const displayContracts = (() => {
+    if (role === "MANAGER" && managerBuildingId) {
+      const managerApartmentIds = mockApartments
+        .filter((a) => a.building_id === managerBuildingId)
+        .map((a) => a.id);
+      return mockContracts.filter((c) => managerApartmentIds.includes(c.apartment_id));
+    }
+    return mockContracts;
+  })();
+
+  const filtered = displayContracts.filter((c) => {
     const tenant = mockTenants.find((t) => t.id === c.tenant_id);
     const apt = mockApartments.find((a) => a.id === c.apartment_id);
     const matchSearch =
       tenant?.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      apt?.apartment_code.toLowerCase().includes(search.toLowerCase());
+      apt?.room_number.toLowerCase().includes(search.toLowerCase());
     const matchStatus = !statusFilter || c.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -40,7 +80,15 @@ export default function ContractList() {
   const columns: Column<RentalContract>[] = [
     { key: "id", label: "Ma HD", render: (c) => <span className="font-medium">HD-{String(c.id).padStart(3, "0")}</span> },
     { key: "tenant", label: "Nguoi thue", render: (c) => mockTenants.find((t) => t.id === c.tenant_id)?.full_name || "-" },
-    { key: "apartment", label: "Can ho", render: (c) => mockApartments.find((a) => a.id === c.apartment_id)?.apartment_code || "-" },
+    {
+      key: "apartment",
+      label: "Can ho",
+      render: (c) => {
+        const apt = mockApartments.find((a) => a.id === c.apartment_id);
+        const bld = apt ? mockBuildings.find((b) => b.id === apt.building_id) : null;
+        return apt ? `P.${apt.room_number} T${apt.floor} - ${bld?.branch_name || ""}` : "-";
+      }
+    },
     { key: "start", label: "Ngay bat dau", render: (c) => formatDate(c.start_date) },
     { key: "end", label: "Ngay ket thuc", render: (c) => formatDate(c.end_date) },
     { key: "deposit", label: "Tien coc", render: (c) => formatCurrency(c.deposit_amount) },
@@ -115,11 +163,61 @@ export default function ContractList() {
                 {mockTenants.map((t) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
               </select>
             </div>
+            
+            {/* Chọn Chi nhánh */}
+            <div className="col-span-12 sm:col-span-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Chi nhánh *</label>
+              <select
+                value={selectedFormBuilding || ""}
+                onChange={(e) => {
+                  setSelectedFormBuilding(e.target.value ? Number(e.target.value) : undefined);
+                  setSelectedFormFloor(undefined);
+                  setSelectedFormApartment(undefined);
+                }}
+                disabled={role === "MANAGER"}
+                className="premium-select w-full rounded-xl disabled:bg-gray-50 disabled:text-gray-500"
+              >
+                <option value="">Chọn chi nhánh</option>
+                {mockBuildings.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.branch_name} - {b.name.replace(/yuki\s*house\s*|yuki\s*/gi, "")}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Chọn Tầng */}
+            <div className="col-span-12 sm:col-span-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tầng *</label>
+              <select
+                value={selectedFormFloor || ""}
+                onChange={(e) => {
+                  setSelectedFormFloor(e.target.value ? Number(e.target.value) : undefined);
+                  setSelectedFormApartment(undefined);
+                }}
+                disabled={!selectedFormBuilding}
+                className="premium-select w-full rounded-xl disabled:bg-gray-50 disabled:text-gray-500"
+              >
+                <option value="">Chọn tầng</option>
+                {formFloors.map((floor) => (
+                  <option key={floor} value={floor}>Tầng {floor}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Chọn Căn hộ */}
             <div className="col-span-12 sm:col-span-6">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Can ho *</label>
-              <select className="premium-select w-full rounded-xl">
-                <option value="">Chon can ho</option>
-                {mockApartments.filter((a) => a.status === "AVAILABLE").map((a) => <option key={a.id} value={a.id}>{a.apartment_code} - {a.title}</option>)}
+              <select
+                value={selectedFormApartment || ""}
+                onChange={(e) => setSelectedFormApartment(e.target.value ? Number(e.target.value) : undefined)}
+                disabled={!selectedFormFloor}
+                className="premium-select w-full rounded-xl disabled:bg-gray-50 disabled:text-gray-500"
+              >
+                <option value="">Chọn căn hộ</option>
+                {formApartments.map((a) => (
+                  <option key={a.id} value={a.id}>P.{a.room_number} ({a.area}m²)</option>
+                ))}
               </select>
             </div>
 

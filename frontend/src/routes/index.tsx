@@ -60,7 +60,7 @@ const router = createBrowserRouter([
     path: "/guest",
     element: <GuestLayout />,
     children: [
-      { index: true, element: <Navigate to="/login" replace /> },
+      { index: true, element: <GuestHomePage /> },
       { path: "apartments", element: <GuestApartmentListing /> },
       { path: "apartments/:id", element: <GuestApartmentDetail /> },
       { path: "buildings", element: <GuestApartmentListing /> },

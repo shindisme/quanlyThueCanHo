@@ -11,80 +11,73 @@ interface Message {
   time: string;
 }
 
+import api from "../../lib/api";
+
 // Cau hoi goi y
 const suggestedQuestions = [
-  "Doanh thu thang nay la bao nhieu?",
-  "Co bao nhieu can ho trong?",
-  "Hop dong nao sap het han?",
-  "Tong so nguoi thue hien tai?",
-  "Yeu cau sua chua nao dang cho xu ly?",
+  "Có bao nhiêu căn hộ trống?",
+  "Địa chỉ tòa nhà Quận 1 ở đâu?",
+  "Giới thiệu các căn hộ ở Thủ Đức",
+  "Có phòng nào trống 2 phòng ngủ không?",
 ];
-
-// Tra loi gia lap cua AI
-const mockResponses: Record<string, string> = {
-  "doanh thu": "Doanh thu thang 6/2026 uoc tinh khoang 240.000.000 VND, tang 6.7% so voi thang truoc.",
-  "can ho trong": "Hien tai co 6 can ho dang trong tren tong so 20 can ho trong he thong. Ty le lap day dat 70%.",
-  "hop dong": "Co 2 hop dong sap het han trong 30 ngay toi. Ban co the xem chi tiet tai trang Hop dong.",
-  "nguoi thue": "Hien tai co 10 nguoi thue dang hoat dong trong he thong.",
-  "sua chua": "Co 3 yeu cau sua chua dang cho xu ly va 2 yeu cau dang duoc tien hanh.",
-};
 
 // Tro ly AI - giao dien chat
 export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
-      text: "Xin chao! Toi la tro ly AI cua YuKi House. Toi co the giup ban tra cuu thong tin ve toa nha, can ho, hop dong, hoa don va nhieu hon nua. Hay hoi toi bat cu dieu gi!",
+      text: "Xin chào! Tôi là trợ lý AI của YuKi House. Tôi có thể giúp bạn tra cứu thông tin về tòa nhà và các căn hộ trống trong hệ thống. Hãy hỏi tôi bất cứ điều gì!",
       sender: "bot",
-      time: "Vua xong",
+      time: "Vừa xong",
     },
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Tu dong cuon xuong khi co tin nhan moi
+  // Tự động cuộn xuống khi có tin nhắn mới
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  function handleSend() {
+  async function handleSend() {
     if (!input.trim()) return;
 
+    const userText = input;
     const userMessage: Message = {
       id: messages.length + 1,
-      text: input,
+      text: userText,
       sender: "user",
-      time: "Vua xong",
+      time: "Vừa xong",
     };
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsTyping(true);
 
-    // Gia lap thoi gian suy nghi cua AI
-    setTimeout(() => {
-      // Tim cau tra loi phu hop
-      const lowerInput = input.toLowerCase();
-      let response = "Toi chua hieu ro cau hoi cua ban. Ban co the hoi ve doanh thu, can ho, hop dong, nguoi thue hoac yeu cau sua chua.";
-
-      for (const [keyword, answer] of Object.entries(mockResponses)) {
-        if (lowerInput.includes(keyword)) {
-          response = answer;
-          break;
-        }
-      }
+    try {
+      // Gọi real API đến backend
+      const res = await api.post<{ reply: string }>("/chat", { message: userText });
+      const responseText = res.data?.reply || "Tôi chưa có câu trả lời cho vấn đề này.";
 
       const botMessage: Message = {
         id: messages.length + 2,
-        text: response,
+        text: responseText,
         sender: "bot",
-        time: "Vua xong",
+        time: "Vừa xong",
       };
-
       setMessages((prev) => [...prev, botMessage]);
+    } catch (error) {
+      const errorMessage: Message = {
+        id: messages.length + 2,
+        text: "Xin lỗi, hệ thống trợ lý ảo đang bận hoặc gặp sự cố kết nối. Vui lòng thử lại sau.",
+        sender: "bot",
+        time: "Vừa xong",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   }
 
   return (

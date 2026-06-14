@@ -1,19 +1,21 @@
 import { useState, useEffect } from "react";
-import { CalendarDays, Check, X, Trash2, Loader2 } from "lucide-react";
+import { CalendarDays, Check, X, Trash2, Loader2, Mail } from "lucide-react";
 import PageHeader from "../../components/ui/PageHeader";
 import Badge from "../../components/ui/Badge";
 import SearchInput from "../../components/ui/SearchInput";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { toast } from "sonner";
 
+import { useAuthStore } from "../../stores/auth.store";
+import { mockUsers } from "../../data/users";
 import * as scheduleService from "../../services/schedules.service";
 import type { ScheduleData } from "../../services/schedules.service";
 
-// ============================================================
-// TRANG QUẢN LÝ LỊCH XEM PHÒNG - Kết nối API thật
-// ============================================================
-
 export default function ScheduleList() {
+  const { role, email } = useAuthStore();
+  const currentUser = mockUsers.find((u) => u.email === email);
+  const managerBuildingId = currentUser?.managedBuildingId;
+
   const [schedules, setSchedules] = useState<ScheduleData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -35,13 +37,22 @@ export default function ScheduleList() {
     }
   }
 
-  const filtered = schedules.filter(
+  const displaySchedules = (() => {
+    if (role === "MANAGER" && managerBuildingId) {
+      return schedules.filter(
+        (s) => s.apartment?.building_id === managerBuildingId
+      );
+    }
+    return schedules;
+  })();
+
+  const filtered = displaySchedules.filter(
     (s) =>
       s.guest_name.toLowerCase().includes(search.toLowerCase()) ||
-      s.guest_phone.includes(search)
+      s.guest_phone.includes(search) ||
+      (s.guest_email && s.guest_email.toLowerCase().includes(search.toLowerCase()))
   );
 
-  // Xác nhận lịch
   async function handleConfirm(id: number) {
     try {
       await scheduleService.confirmSchedule(id);
@@ -52,7 +63,6 @@ export default function ScheduleList() {
     }
   }
 
-  // Hủy lịch
   async function handleCancel(id: number) {
     try {
       await scheduleService.cancelSchedule(id);
@@ -63,7 +73,6 @@ export default function ScheduleList() {
     }
   }
 
-  // Xóa lịch
   async function handleDelete() {
     if (!deleteItem) return;
     try {
@@ -104,7 +113,7 @@ export default function ScheduleList() {
         iconColor="linear-gradient(135deg, #EC4899, #F472B6)"
       />
 
-      <SearchInput value={search} onChange={setSearch} placeholder="Tìm theo tên, SĐT..." className="max-w-md" />
+      <SearchInput value={search} onChange={setSearch} placeholder="Tìm theo tên, SĐT, email..." className="max-w-md" />
 
       {/* Bảng */}
       <div className="premium-table-container">
@@ -114,9 +123,10 @@ export default function ScheduleList() {
               <tr>
                 <th>Khách</th>
                 <th>SĐT</th>
+                <th>Email</th>
+                <th>Căn hộ</th>
                 <th>Thời gian</th>
                 <th>Trạng thái</th>
-                <th>Ghi chú</th>
                 <th className="text-right">Hành động</th>
               </tr>
             </thead>
@@ -125,13 +135,27 @@ export default function ScheduleList() {
                 <tr key={s.id}>
                   <td className="font-semibold text-gray-800">{s.guest_name}</td>
                   <td className="text-gray-650">{s.guest_phone}</td>
+                  <td className="text-gray-500">
+                    {s.guest_email ? (
+                      <div className="flex items-center gap-1">
+                        <Mail size={13} className="text-gray-400" />
+                        <span className="truncate max-w-[150px]">{s.guest_email}</span>
+                      </div>
+                    ) : "-"}
+                  </td>
+                  <td className="text-gray-600">
+                    {s.apartment ? (
+                      <span className="font-medium text-primary-600">
+                        P.{s.apartment.room_number} - T{s.apartment.floor}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">#{s.apartment_id}</span>
+                    )}
+                  </td>
                   <td className="text-gray-600">
                     {new Date(s.schedule_time).toLocaleString("vi-VN")}
                   </td>
                   <td>{getStatusBadge(s.status)}</td>
-                  <td className="text-gray-500 max-w-[200px] truncate" title={s.note || ""}>
-                    {s.note || "-"}
-                  </td>
                   <td>
                     <div className="flex items-center justify-end gap-1">
                       {s.status === "PENDING" && (
@@ -165,7 +189,7 @@ export default function ScheduleList() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-gray-500">
+                  <td colSpan={7} className="text-center py-12 text-gray-500">
                     <CalendarDays size={48} className="mx-auto mb-3 text-gray-300" />
                     Chưa có lịch xem phòng nào
                   </td>

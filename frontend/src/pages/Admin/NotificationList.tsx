@@ -2,10 +2,6 @@ import { Bell, Check } from "lucide-react";
 import { useState } from "react";
 import PageHeader from "../../components/ui/PageHeader";
 
-// ============================================================
-// TRANG THÔNG BÁO - Mock data nội tuyến
-// ============================================================
-
 const mockNotifications = [
   { id: 1, title: "Hóa đơn tháng 6 đã được tạo", content: "Hóa đơn tháng 6/2026 đã được phát hành. Vui lòng thanh toán trước ngày 30/06.", type: "INVOICE", is_read: false, created_at: "2026-06-10" },
   { id: 2, title: "Yêu cầu sửa chữa #5 đã hoàn thành", content: "Yêu cầu sửa chữa bóng đèn phòng khách đã được xử lý xong.", type: "MAINTENANCE", is_read: false, created_at: "2026-06-09" },

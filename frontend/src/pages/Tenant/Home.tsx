@@ -12,12 +12,12 @@ import { useAuthStore } from "../../stores/auth.store";
 // hợp đồng, thông báo, yêu cầu sửa chữa gần đây
 
 const mockContract = {
-  apartment_code: "A-1205",
+  room_number: "05",
+  floor: 12,
   title: "Căn hộ 2 phòng ngủ cao cấp",
   building: "YuKi Tower A",
   address: "123 Nguyễn Huệ, Quận 1, TP.HCM",
   area: 65,
-  floor: 12,
   start_date: "2026-01-15",
   end_date: "2027-01-15",
   monthly_rent: 9500000,
@@ -87,7 +87,7 @@ export default function TenantHome() {
               <div>
                 <h3 className="font-bold text-gray-800 text-lg">Căn hộ của bạn</h3>
                 <p className="text-sm text-gray-600 mt-1">
-                  <span className="font-semibold text-primary-600">{mockContract.apartment_code}</span>
+                  <span className="font-semibold text-primary-600">P.{mockContract.room_number} T{mockContract.floor}</span>
                   {" "}- {mockContract.title}
                 </p>
               </div>
