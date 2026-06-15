@@ -1,17 +1,7 @@
 import { prisma } from "../config/database.js";
-import { Prisma } from "@prisma/client";
+import { Prisma, BuildingStatus } from "@prisma/client";
 
-export const createBuildingService = async (data: {
-    name: string;
-    address_old: string;
-    address_new: string;
-    description?: string;
-    status?: any;
-    total_floors: number;
-    total_apartments?: number;
-    thumbnail_url?: string;
-    branch_name: string;
-}) => {
+export const createBuildingService = async (data: Prisma.BuildingCreateInput) => {
     return await prisma.building.create({
         data,
     });
@@ -31,14 +21,14 @@ export const getAllBuildingsService = async (filters: {
 
     if (filters.search) {
         whereClause.OR = [
-            { name: { contains: filters.search } },
+            { branch_name: { contains: filters.search } },
             { address_old: { contains: filters.search } },
             { address_new: { contains: filters.search } },
         ];
     }
 
     if (filters.branch_name) {
-        whereClause.branch_name = filters.branch_name;
+        whereClause.branch_name = { equals: filters.branch_name };
     }
 
     const [buildings, total] = await prisma.$transaction([
@@ -76,17 +66,7 @@ export const getBuildingByIdService = async (id: number) => {
 
 export const updateBuildingService = async (
     id: number,
-    data: {
-        name?: string;
-        address_old?: string;
-        address_new?: string;
-        description?: string;
-        status?: any;
-        total_floors?: number;
-        total_apartments?: number;
-        thumbnail_url?: string;
-        branch_name?: string;
-    }
+    data: Prisma.BuildingUpdateInput
 ) => {
     return await prisma.building.update({
         where: { id },

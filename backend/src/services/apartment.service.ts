@@ -20,9 +20,10 @@ export const getAllApartmentsService = async (filters: {
     search?: string;
     page?: number;
     limit?: number;
+    status?: string | string[];
 }) => {
-    const page = filters.page || 1;
-    const limit = filters.limit || 10;
+    const page = Math.max(1, filters.page || 1);
+    const limit = Math.min(100, Math.max(1, filters.limit || 10));
     const skip = (page - 1) * limit;
 
     const whereClause: Prisma.ApartmentWhereInput = {};
@@ -33,6 +34,13 @@ export const getAllApartmentsService = async (filters: {
 
     if (filters.search) {
         whereClause.room_number = { contains: filters.search };
+    }
+
+    if (filters.status) {
+        const statusList = Array.isArray(filters.status) ? filters.status : [filters.status];
+        whereClause.status = {
+            in: statusList as any
+        };
     }
 
     const [apartments, total] = await prisma.$transaction([
