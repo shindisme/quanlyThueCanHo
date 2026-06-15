@@ -24,14 +24,14 @@ export const processCustomerMessage = async (userMessage: string) => {
         ]);
 
         const buildingData = bldResult.data
-            .map(bld => `Tòa nhà: ${bld.name || "N/A"}, Địa chỉ: ${bld.address_old || "N/A"}`)
+            .map(bld => `Tòa nhà: ${bld.branch_name || "N/A"}, Địa chỉ: ${bld.address_old || "N/A"}`)
             .join("\n");
 
         const apartmentData = aptResult.data
             .filter((apt) => ["available", "vacant", "AVAILABLE"].includes(apt.status || ""))
             .map((apt) => {
                 const building = bldResult.data.find((b) => b.id === apt.building_id);
-                return `[Căn ${apt.room_number}] Tầng ${apt.floor}, ${apt.bedrooms}PN, ${apt.area}m², ${Number(apt.rental_price).toLocaleString("vi-VN")} VNĐ. (Thuộc: ${building?.name || "Tòa nhà chính"})`;
+                return `[Căn ${apt.room_number}] Tầng ${apt.floor}, ${apt.bedrooms}PN, ${apt.area}m², ${Number(apt.rental_price).toLocaleString("vi-VN")} VNĐ. (Thuộc: ${building?.branch_name || "Tòa nhà chính"})`;
             })
             .join("\n");
 

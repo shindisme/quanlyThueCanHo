@@ -2,21 +2,20 @@ import { prisma } from "../config/database.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-
 export const createAccountByAdminService = async (data: { email: string, role: any, phone?: string }) => {
     const tempPassword = "123456";
     const password_hash = await bcrypt.hash(tempPassword, 10);
 
     return await prisma.user.create({
         data: {
-            email: data.email,
-            phone: data.phone,
+            username: data.email,
             role: data.role,
             password_hash,
             status: 'ACTIVE'
         }
     });
 };
+
 export const deleteUserService = async (id: number) => {
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) throw new Error("Người dùng không tồn tại");
@@ -24,20 +23,32 @@ export const deleteUserService = async (id: number) => {
         where: { id }
     });
 };
+
 export const getAllUsersService = async () => {
-    return await prisma.user.findMany({
-        select: {
-            id: true,
-            email: true,
-            phone: true,
-            role: true,
-            status: true,
-            created_at: true
+    const users = await prisma.user.findMany({
+        include: {
+            tenant: true
         }
     });
+    return users.map(user => ({
+        id: user.id,
+        email: user.username,
+        phone: user.tenant?.phone || null,
+        role: user.role,
+        status: user.status,
+        created_at: user.created_at
+    }));
 };
+
 export const loginService = async (email: string, password: string) => {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findFirst({
+        where: {
+            OR: [
+                { username: email },
+                { username: email.split("@")[0] }
+            ]
+        }
+    });
     if (!user) throw new Error("Tài khoản không tồn tại");
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
@@ -53,9 +64,17 @@ export const loginService = async (email: string, password: string) => {
 };
 
 export const updateUserService = async (id: number, data: { email?: string, phone?: string, role?: any }) => {
+    const updateData: any = {};
+    if (data.email) {
+        updateData.username = data.email;
+    }
+    if (data.role) {
+        updateData.role = data.role;
+    }
+    
     return await prisma.user.update({
         where: { id },
-        data
+        data: updateData
     });
 };
 
