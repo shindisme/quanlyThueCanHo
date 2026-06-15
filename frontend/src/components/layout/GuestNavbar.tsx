@@ -33,7 +33,7 @@ export default function GuestNavbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center"
+            <div className="w-9 h-9 rounded-t-lg flex items-center justify-center"
               style={{ background: "linear-gradient(135deg, #7C3AED, #A78BFA)" }}>
               <Building2 size={18} className="text-white" />
             </div>

@@ -1,14 +1,12 @@
-import { useState } from "react";
-import { User, Mail, Save } from "lucide-react";
+import { useState, useEffect } from "react";
+import { User, Mail, Save, Plus, Pencil, Trash2 } from "lucide-react";
 import Button from "../../../components/ui/Button";
 import PageHeader from "../../../components/ui/PageHeader";
+import Modal from "../../../components/ui/Modal";
+import Input from "../../../components/ui/Input";
 import { useAuthStore } from "../../../stores/auth.store";
-import { changePassword } from "../../../services/auth.service";
+import { changePassword } from "../../../services/authService";
 import { toast } from "sonner";
-
-// ============================================================
-// HỒ SƠ CÁ NHÂN - Xem và đổi mật khẩu
-// ============================================================
 
 export default function ProfilePage() {
   const { email, role } = useAuthStore();
@@ -16,6 +14,86 @@ export default function ProfilePage() {
   const [newPass, setNewPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Khai báo người ở cùng (co-occupants)
+  interface Occupant {
+    id: string;
+    name: string;
+    cccd: string;
+    phone: string;
+    dob: string;
+  }
+  
+  const [occupants, setOccupants] = useState<Occupant[]>([]);
+  const [showOccupantModal, setShowOccupantModal] = useState(false);
+  const [editOccupant, setEditOccupant] = useState<Occupant | null>(null);
+  const [occupantForm, setOccupantForm] = useState({ name: "", cccd: "", phone: "", dob: "" });
+
+  useEffect(() => {
+    if (role === "TENANT" && email) {
+      const key = `occupants-${email}`;
+      const stored = localStorage.getItem(key);
+      if (stored) {
+        try {
+          setOccupants(JSON.parse(stored));
+        } catch {
+          // ignore
+        }
+      } else {
+        // mock occupants
+        const initial = [
+          { id: "1", name: "Nguyễn Văn B", cccd: "079200009999", phone: "0909123456", dob: "1997-05-10" }
+        ];
+        localStorage.setItem(key, JSON.stringify(initial));
+        setOccupants(initial);
+      }
+    }
+  }, [role, email]);
+
+  function handleOpenOccupantForm(occ: Occupant | null) {
+    setEditOccupant(occ);
+    if (occ) {
+      setOccupantForm({ name: occ.name, cccd: occ.cccd, phone: occ.phone, dob: occ.dob });
+    } else {
+      setOccupantForm({ name: "", cccd: "", phone: "", dob: "" });
+    }
+    setShowOccupantModal(true);
+  }
+
+  function handleSaveOccupant() {
+    if (!occupantForm.name || !occupantForm.cccd) {
+      toast.error("Vui lòng nhập đầy đủ Họ tên và CCCD");
+      return;
+    }
+    const key = `occupants-${email}`;
+    let updated: Occupant[];
+    if (editOccupant) {
+      updated = occupants.map((o) =>
+        o.id === editOccupant.id ? { ...o, ...occupantForm } : o
+      );
+      toast.success("Cập nhật thông tin thành công");
+    } else {
+      const newOcc = {
+        id: String(Date.now()),
+        ...occupantForm
+      };
+      updated = [...occupants, newOcc];
+      toast.success("Thêm người ở cùng thành công");
+    }
+    setOccupants(updated);
+    localStorage.setItem(key, JSON.stringify(updated));
+    setShowOccupantModal(false);
+  }
+
+  function handleDeleteOccupant(id: string) {
+    if (window.confirm("Bạn có chắc chắn muốn xóa người ở cùng này không?")) {
+      const key = `occupants-${email}`;
+      const updated = occupants.filter((o) => o.id !== id);
+      setOccupants(updated);
+      localStorage.setItem(key, JSON.stringify(updated));
+      toast.success("Đã xóa người ở cùng");
+    }
+  }
 
   const displayName = email?.split("@")[0] || "User";
   const roleLabel =
@@ -111,6 +189,110 @@ export default function ProfilePage() {
           </Button>
         </div>
       </div>
+
+      {/* Khai báo người ở cùng (chỉ dành cho TENANT) */}
+      {role === "TENANT" && (
+        <div className="premium-card p-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-gray-800">Khai báo người ở cùng</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Khai báo thông tin những người sinh hoạt cùng căn hộ của bạn</p>
+            </div>
+            <Button size="sm" onClick={() => handleOpenOccupantForm(null)}>
+              <Plus size={16} /> Khai báo người ở
+            </Button>
+          </div>
+
+          <div className="overflow-x-auto rounded-xl border border-gray-150">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Họ và tên</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Số CCCD</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Ngày sinh</th>
+                  <th className="px-4 py-3 text-left font-semibold text-gray-600">SĐT</th>
+                  <th className="px-4 py-3 text-right font-semibold text-gray-600">Chức năng</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 bg-white">
+                {occupants.map((occ) => (
+                  <tr key={occ.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-800">{occ.name}</td>
+                    <td className="px-4 py-3 text-gray-600">{occ.cccd}</td>
+                    <td className="px-4 py-3 text-gray-600">{occ.dob ? new Date(occ.dob).toLocaleDateString("vi-VN") : "-"}</td>
+                    <td className="px-4 py-3 text-gray-600">{occ.phone || "-"}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => handleOpenOccupantForm(occ)}
+                          className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg cursor-pointer"
+                          title="Chỉnh sửa"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteOccupant(occ.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-650 hover:bg-red-50 rounded-lg cursor-pointer"
+                          title="Xóa"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {occupants.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
+                      Chưa khai báo người ở cùng nào.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Modal khai báo/chỉnh sửa người ở cùng */}
+          <Modal
+            isOpen={showOccupantModal}
+            onClose={() => setShowOccupantModal(false)}
+            title={editOccupant ? "Chỉnh sửa thông tin người ở" : "Khai báo người ở cùng mới"}
+            footer={
+              <>
+                <Button variant="outline" onClick={() => setShowOccupantModal(false)}>Hủy</Button>
+                <Button onClick={handleSaveOccupant}>Lưu thông tin</Button>
+              </>
+            }
+          >
+            <div className="space-y-4">
+              <Input
+                label="Họ và tên *"
+                value={occupantForm.name}
+                onChange={(e) => setOccupantForm({ ...occupantForm, name: e.target.value })}
+                placeholder="Nguyễn Văn A"
+              />
+              <Input
+                label="Số CCCD (Căn cước công dân) *"
+                value={occupantForm.cccd}
+                onChange={(e) => setOccupantForm({ ...occupantForm, cccd: e.target.value })}
+                placeholder="079200001234"
+              />
+              <Input
+                label="Ngày sinh"
+                type="date"
+                value={occupantForm.dob}
+                onChange={(e) => setOccupantForm({ ...occupantForm, dob: e.target.value })}
+              />
+              <Input
+                label="Số điện thoại"
+                value={occupantForm.phone}
+                onChange={(e) => setOccupantForm({ ...occupantForm, phone: e.target.value })}
+                placeholder="0901234567"
+              />
+            </div>
+          </Modal>
+        </div>
+      )}
     </div>
   );
 }

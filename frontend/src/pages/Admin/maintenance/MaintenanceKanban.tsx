@@ -85,7 +85,7 @@ export default function MaintenanceKanban() {
                 })}
 
                 {requests.length === 0 && (
-                  <p className="text-center text-sm text-gray-400 py-8">Khong co yeu cau</p>
+                  <p className="text-center text-sm text-gray-400 py-8">Không có yêu cầu</p>
                 )}
               </div>
             </div>

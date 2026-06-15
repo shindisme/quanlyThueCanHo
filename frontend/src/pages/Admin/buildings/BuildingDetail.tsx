@@ -7,10 +7,10 @@ import Card from "../../../components/ui/Card";
 import Modal from "../../../components/ui/Modal";
 import { toast } from "sonner";
 
-import * as buildingService from "../../../services/buildings.service";
-import * as apartmentService from "../../../services/apartments.service";
-import type { BuildingData } from "../../../services/buildings.service";
-import type { ApartmentData } from "../../../services/apartments.service";
+import * as buildingService from "../../../services/buildingService";
+import * as apartmentService from "../../../services/apartmentService";
+import type { BuildingData } from "../../../services/buildingService";
+import type { ApartmentData } from "../../../services/apartmentService";
 
 export default function BuildingDetail() {
   const { id } = useParams();
@@ -177,11 +177,11 @@ export default function BuildingDetail() {
 
           <div className="space-y-2 text-sm text-gray-600 mb-4">
             <div className="flex items-center gap-2">
-              <MapPin size={16} className="text-gray-400 flex-shrink-0" />
+              <MapPin size={16} className="text-gray-400 shrink-0" />
               <span>{building.address_new || building.address_old}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Layers size={16} className="text-gray-400 flex-shrink-0" />
+              <Layers size={16} className="text-gray-400 shrink-0" />
               <span>{building.total_floors} tầng</span>
             </div>
           </div>

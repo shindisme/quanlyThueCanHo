@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, RotateCcw, Loader2, UserCog } from "lucide-react";
+import { Plus, Trash2, RotateCcw, Loader2, UserCog, Eye } from "lucide-react";
 import PageHeader from "../../../components/ui/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
@@ -8,11 +8,11 @@ import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import Badge from "../../../components/ui/Badge";
 import { toast } from "sonner";
 
-import * as authService from "../../../services/auth.service";
-import type { UserData } from "../../../services/auth.service";
+import * as authService from "../../../services/authService";
+import type { UserData } from "../../../services/authService";
 
 import { useSort } from "../../../hooks/useSort";
-import { removeVietnameseTones } from "../../../utils/format";
+import { removeVietnameseTones, maskPhone } from "../../../utils/format";
 
 export default function UserList() {
   const [users, setUsers] = useState<UserData[]>([]);
@@ -21,6 +21,7 @@ export default function UserList() {
   const [showForm, setShowForm] = useState(false);
   const [deleteItem, setDeleteItem] = useState<UserData | null>(null);
   const [resetItem, setResetItem] = useState<UserData | null>(null);
+  const [viewItem, setViewItem] = useState<UserData | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Form state
@@ -167,7 +168,7 @@ export default function UserList() {
                 <tr key={user.id}>
                   <td className="text-gray-650">#{user.id}</td>
                   <td className="font-semibold text-gray-800">{user.email}</td>
-                  <td className="text-gray-600">{user.phone || "-"}</td>
+                  <td className="text-gray-600">{maskPhone(user.phone || "")}</td>
                   <td>{getRoleBadge(user.role)}</td>
                   <td>
                     <Badge variant={user.status === "ACTIVE" ? "success" : "gray"}>
@@ -176,6 +177,13 @@ export default function UserList() {
                   </td>
                   <td>
                     <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => setViewItem(user)}
+                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
+                        title="Xem chi tiết"
+                      >
+                        <Eye size={16} />
+                      </button>
                       <button
                         onClick={() => setResetItem(user)}
                         className="p-2 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 cursor-pointer"
@@ -277,6 +285,50 @@ export default function UserList() {
         message={`Bạn có chắc chắn muốn đặt lại mật khẩu cho tài khoản "${resetItem?.email}" về mặc định "123456" không?`}
         confirmText="Đặt lại"
       />
+
+      {/* Modal xem chi tiết tài khoản */}
+      <Modal
+        isOpen={!!viewItem}
+        onClose={() => setViewItem(null)}
+        title="Chi tiết tài khoản"
+        size="md"
+        footer={
+          <Button onClick={() => setViewItem(null)}>Đóng</Button>
+        }
+      >
+        {viewItem && (
+          <div className="space-y-4 font-sans text-sm">
+            <div className="flex justify-between border-b pb-2 border-gray-100">
+              <span className="text-gray-500 font-medium">Mã tài khoản (ID):</span>
+              <span className="font-semibold text-gray-800">#{viewItem.id}</span>
+            </div>
+            <div className="flex justify-between border-b pb-2 border-gray-100">
+              <span className="text-gray-500 font-medium">Email:</span>
+              <span className="font-semibold text-gray-800">{viewItem.email}</span>
+            </div>
+            <div className="flex justify-between border-b pb-2 border-gray-100">
+              <span className="text-gray-500 font-medium">Số điện thoại:</span>
+              <span className="font-semibold text-gray-800">{viewItem.phone || "-"}</span>
+            </div>
+            <div className="flex justify-between border-b pb-2 border-gray-100">
+              <span className="text-gray-500 font-medium">Vai trò (Role):</span>
+              <span>{getRoleBadge(viewItem.role)}</span>
+            </div>
+            <div className="flex justify-between border-b pb-2 border-gray-100">
+              <span className="text-gray-500 font-medium">Trạng thái:</span>
+              <Badge variant={viewItem.status === "ACTIVE" ? "success" : "gray"}>
+                {viewItem.status === "ACTIVE" ? "Hoạt động" : "Tạm khóa"}
+              </Badge>
+            </div>
+            <div className="flex justify-between border-b pb-2 border-gray-100">
+              <span className="text-gray-500 font-medium">Ngày tạo:</span>
+              <span className="font-semibold text-gray-800">
+                {viewItem.created_at ? new Date(viewItem.created_at).toLocaleString("vi-VN") : "-"}
+              </span>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

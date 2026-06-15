@@ -106,7 +106,8 @@ export interface RentalContract {
   signedAt: string;
   createdBy: number;
   created_at: string;
-  // Lien ket
+  actual_occupants?: number;
+  max_occupants?: number;
   apartment?: Apartment;
   tenant?: Tenant;
   invoices?: Invoice[];

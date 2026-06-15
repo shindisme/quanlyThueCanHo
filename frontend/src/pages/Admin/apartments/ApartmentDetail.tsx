@@ -6,12 +6,15 @@ import Badge from "../../../components/ui/Badge";
 import Button from "../../../components/ui/Button";
 import { toast } from "sonner";
 
-import * as apartmentService from "../../../services/apartments.service";
-import type { ApartmentData } from "../../../services/apartments.service";
+import * as apartmentService from "../../../services/apartmentService";
+import type { ApartmentData } from "../../../services/apartmentService";
 import type { ApartmentImage } from "../../../types";
+import { mockContracts } from "../../../data/contracts";
+import { mockTenants } from "../../../data/tenants";
+import { mockUsers } from "../../../data/users";
 
 import { useAuthStore } from "../../../stores/auth.store";
-import { formatApartmentDisplay } from "../../../utils/format";
+import { formatApartmentDisplay, formatDate } from "../../../utils/format";
 
 export default function ApartmentDetail() {
   const { role } = useAuthStore();
@@ -20,6 +23,78 @@ export default function ApartmentDetail() {
   const [loading, setLoading] = useState(true);
   const [images, setImages] = useState<ApartmentImage[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  const [contracts, setContracts] = useState<any[]>([]);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [occupants, setOccupants] = useState<any[]>([]);
+
+  useEffect(() => {
+    // load contracts
+    const storedContracts = localStorage.getItem("custom-contracts");
+    if (storedContracts) {
+      try {
+        setContracts(JSON.parse(storedContracts));
+      } catch {
+        setContracts(mockContracts);
+      }
+    } else {
+      setContracts(mockContracts);
+    }
+
+    // load tenants
+    const storedTenants = localStorage.getItem("custom-tenants");
+    if (storedTenants) {
+      try {
+        setTenants(JSON.parse(storedTenants));
+      } catch {
+        setTenants(mockTenants);
+      }
+    } else {
+      setTenants(mockTenants);
+    }
+
+    // load users
+    const storedUsers = localStorage.getItem("custom-users");
+    if (storedUsers) {
+      try {
+        setUsers(JSON.parse(storedUsers));
+      } catch {
+        setUsers(mockUsers);
+      }
+    } else {
+      setUsers(mockUsers);
+    }
+  }, []);
+
+  const activeContract = contracts.find(
+    (c) => c.apartment_id === Number(id) && c.status === "ACTIVE"
+  );
+  const activeTenant = activeContract
+    ? tenants.find((t) => t.id === activeContract.tenant_id)
+    : null;
+  const activeTenantUser = activeTenant
+    ? users.find((u) => u.id === activeTenant.user_id)
+    : null;
+
+  useEffect(() => {
+    if (activeTenantUser?.email) {
+      const stored = localStorage.getItem(`occupants-${activeTenantUser.email}`);
+      if (stored) {
+        try {
+          setOccupants(JSON.parse(stored));
+        } catch {
+          setOccupants([]);
+        }
+      } else {
+        setOccupants([]);
+      }
+    } else {
+      setOccupants([]);
+    }
+  }, [activeTenantUser]);
+
+  const historyContracts = contracts.filter((c) => c.apartment_id === Number(id));
 
   useEffect(() => {
     if (!id) return;
@@ -318,16 +393,98 @@ export default function ApartmentDetail() {
         )}
       </Card>
 
-      {/* Placeholder cho hợp đồng - sẽ kết nối khi có API */}
+      {/* Người thuê và lịch sử hợp đồng */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <h3 className="font-semibold text-gray-800 mb-4">Người thuê hiện tại</h3>
-          <p className="text-sm text-gray-400">Chưa có dữ liệu hợp đồng (chờ API)</p>
+          <h3 className="font-semibold text-gray-800 mb-4 text-base">Người thuê hiện tại</h3>
+          {activeContract && activeTenant ? (
+            <div className="space-y-4 text-sm font-sans">
+              <div className="bg-primary-50/50 p-4 rounded-xl border border-primary-100/50 space-y-2">
+                <p className="font-semibold text-gray-800 flex justify-between">
+                  <span>Chủ hợp đồng:</span>
+                  <span className="text-primary-700">{activeTenant.full_name}</span>
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-xs text-gray-650">
+                  <p>Số CCCD: <span className="font-medium">{activeTenant.citizen_id}</span></p>
+                  <p>SĐT: <span className="font-medium">{activeTenantUser?.phone || "-"}</span></p>
+                  <p>Email: <span className="font-medium">{activeTenantUser?.email || "-"}</span></p>
+                  <p>Thời hạn thuê: <span className="font-medium">{formatDate(activeContract.start_date)} - {formatDate(activeContract.end_date)}</span></p>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <h4 className="font-semibold text-gray-750 text-xs uppercase tracking-wider">Người ở cùng ({occupants.length})</h4>
+                <div className="border border-gray-150 rounded-xl overflow-hidden">
+                  <table className="min-w-full divide-y divide-gray-150 text-xs">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-650">Họ và tên</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-650">CCCD</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-650">SĐT</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 bg-white">
+                      {occupants.map((occ) => (
+                        <tr key={occ.id}>
+                          <td className="px-3 py-2 font-medium text-gray-850">{occ.name}</td>
+                          <td className="px-3 py-2 text-gray-600">{occ.cccd}</td>
+                          <td className="px-3 py-2 text-gray-600">{occ.phone || "-"}</td>
+                        </tr>
+                      ))}
+                      {occupants.length === 0 && (
+                        <tr>
+                          <td colSpan={3} className="px-3 py-4 text-center text-gray-400">
+                            Chưa khai báo người ở cùng
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 py-6 text-center">Căn hộ hiện đang trống (chưa có hợp đồng thuê hiệu lực)</p>
+          )}
         </Card>
 
         <Card>
-          <h3 className="font-semibold text-gray-800 mb-4">Lịch sử hợp đồng</h3>
-          <p className="text-sm text-gray-400">Chưa có dữ liệu (chờ API)</p>
+          <h3 className="font-semibold text-gray-800 mb-4 text-base">Lịch sử hợp đồng</h3>
+          {historyContracts.length > 0 ? (
+            <div className="overflow-x-auto rounded-xl border border-gray-150">
+              <table className="min-w-full divide-y divide-gray-150 text-xs">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Mã HĐ</th>
+                    <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Chủ hợp đồng</th>
+                    <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Thời hạn</th>
+                    <th className="px-3 py-2.5 text-right font-semibold text-gray-600">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {historyContracts.map((c) => {
+                    const tenant = tenants.find((t) => t.id === c.tenant_id);
+                    return (
+                      <tr key={c.id} className="hover:bg-gray-50">
+                        <td className="px-3 py-2.5 font-medium text-gray-700">HD-{String(c.id).padStart(3, "0")}</td>
+                        <td className="px-3 py-2.5 text-gray-850 font-semibold">{tenant?.full_name || "-"}</td>
+                        <td className="px-3 py-2.5 text-gray-600">
+                          {formatDate(c.start_date)} - {formatDate(c.end_date)}
+                        </td>
+                        <td className="px-3 py-2.5 text-right">
+                          <Badge variant={c.status === "ACTIVE" ? "success" : c.status === "ENDED" ? "gray" : "danger"}>
+                            {c.status === "ACTIVE" ? "Hiệu lực" : c.status === "ENDED" ? "Đã kết thúc" : "Thanh lý"}
+                          </Badge>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 py-6 text-center">Không có lịch sử hợp đồng nào cho căn hộ này</p>
+          )}
         </Card>
       </div>
     </div>

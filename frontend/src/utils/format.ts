@@ -65,3 +65,71 @@ export function formatApartmentDisplay(
   }
   return baseName;
 }
+
+export function maskPhone(phone: string): string {
+  if (!phone) return "-";
+  const trimmed = phone.trim();
+  if (trimmed.length < 6) return trimmed;
+  const first = trimmed.slice(0, 3);
+  const last = trimmed.slice(-3);
+  const masked = "*".repeat(trimmed.length - 6);
+  return `${first}${masked}${last}`;
+}
+
+export function maskCCCD(cccd: string): string {
+  if (!cccd) return "-";
+  const trimmed = cccd.trim();
+  if (trimmed.length < 6) return trimmed;
+  const first = trimmed.slice(0, 3);
+  const last = trimmed.slice(-3);
+  const masked = "*".repeat(trimmed.length - 6);
+  return `${first}${masked}${last}`;
+}
+
+export function numberToVietnameseWords(num: number): string {
+  if (num === 0) return "không";
+  const units = ["", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
+  
+  function readThreeDigits(n: number, showZeroHundred: boolean): string {
+    let hundred = Math.floor(n / 100);
+    let ten = Math.floor((n % 100) / 10);
+    let unit = n % 10;
+    let res = "";
+    
+    if (hundred > 0 || showZeroHundred) {
+      res += units[hundred] + " trăm ";
+    }
+    
+    if (ten > 0) {
+      if (ten === 1) res += "mười ";
+      else res += units[ten] + " ";
+    } else if (hundred > 0 && unit > 0) {
+      res += "lẻ ";
+    }
+    
+    if (unit > 0) {
+      if (unit === 1 && ten > 1) res += "mốt";
+      else if (unit === 5 && ten > 0) res += "lăm";
+      else res += units[unit];
+    }
+    return res.trim();
+  }
+
+  const groups = ["", "nghìn", "triệu", "tỷ", "nghìn tỷ", "triệu tỷ"];
+  let temp = num;
+  let parts = [];
+  while (temp > 0) {
+    parts.push(temp % 1000);
+    temp = Math.floor(temp / 1000);
+  }
+  
+  let result = "";
+  for (let i = parts.length - 1; i >= 0; i--) {
+    let text = readThreeDigits(parts[i], i < parts.length - 1 && parts[i] > 0);
+    if (text !== "") {
+      result += text + " " + groups[i] + " ";
+    }
+  }
+  
+  return result.trim().replace(/\s+/g, " ");
+}

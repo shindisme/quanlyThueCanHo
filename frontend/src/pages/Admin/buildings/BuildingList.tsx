@@ -11,8 +11,8 @@ import { toast } from "sonner";
 
 import { removeVietnameseTones } from "../../../utils/format";
 
-import * as buildingService from "../../../services/buildings.service";
-import type { BuildingData } from "../../../services/buildings.service";
+import * as buildingService from "../../../services/buildingService";
+import type { BuildingData } from "../../../services/buildingService";
 
 export default function BuildingList() {
   const navigate = useNavigate();

@@ -11,10 +11,10 @@ import {
 } from "recharts";
 
 import { mockUtilityReadings } from "../../../data/utilities";
-import * as apartmentService from "../../../services/apartments.service";
-import * as buildingService from "../../../services/buildings.service";
-import type { ApartmentData } from "../../../services/apartments.service";
-import type { BuildingData } from "../../../services/buildings.service";
+import * as apartmentService from "../../../services/apartmentService";
+import * as buildingService from "../../../services/buildingService";
+import type { ApartmentData } from "../../../services/apartmentService";
+import type { BuildingData } from "../../../services/buildingService";
 import { useAuthStore } from "../../../stores/auth.store";
 import { mockUsers } from "../../../data/users";
 
@@ -190,7 +190,7 @@ export default function UtilityList() {
       {/* Filter */}
       <div className="flex flex-col sm:flex-row gap-3">
         <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm..." className="max-w-md" />
-        {role !== "MANAGER" ? (
+        {role !== "MANAGER" && (
           <select
             value={filterBuilding || ""}
             onChange={(e) => setFilterBuilding(e.target.value ? Number(e.target.value) : undefined)}
@@ -203,10 +203,6 @@ export default function UtilityList() {
               </option>
             ))}
           </select>
-        ) : (
-          <div className="px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-gray-50 text-gray-500 font-medium">
-            Chi nhánh: {buildings.find(b => b.id === filterBuilding)?.branch_name || "Đang tải..."}
-          </div>
         )}
       </div>
 

@@ -7,20 +7,19 @@ export default function GuestAbout() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Tieu de */}
         <div className="text-center mb-16">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Ve YuKi House</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Về YuKi House</h1>
           <p className="text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
-            YuKi House la he thong quan ly va cho thue can ho chuyen nghiep hang dau tai TP. Ho Chi Minh, 
-            mang den trai nghiem song tien nghi va dich vu cham soc cu dan tot nhat.
+            YuKi House là hệ thống quản lý và cho thuê căn hộ chuyên nghiệp hàng đầu tại TP. Hồ Chí Minh,
+            mang đến trải nghiệm sống tiện nghi và dịch vụ chăm sóc cư dân tốt nhất.
           </p>
         </div>
 
-        {/* Gia tri cot loi */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {[
-            { icon: Building2, title: "5+ Toa nha", desc: "He thong toa nha trai dai khap TP.HCM" },
-            { icon: Users, title: "200+ Cu dan", desc: "Cu dan tin tuong va hai long" },
-            { icon: Award, title: "3+ Nam", desc: "Kinh nghiem trong linh vuc bat dong san" },
-            { icon: Heart, title: "98% Hai long", desc: "Ty le hai long cua khach hang" },
+            { icon: Building2, title: "5+ Tòa nhà", desc: "Hệ thống tòa nhà trải dài khắp TP.HCM" },
+            { icon: Users, title: "200+ Cư dân", desc: "Cư dân tin tưởng và hài lòng" },
+            { icon: Award, title: "3+ Năm", desc: "Kinh nghiệm trong lĩnh vực bất động sản" },
+            { icon: Heart, title: "98% Hài lòng", desc: "Tỷ lệ hài lòng của khách hàng" },
           ].map((item, i) => (
             <div key={i} className="text-center p-6 bg-gray-50 rounded-2xl">
               <div className="w-14 h-14 bg-primary-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -35,21 +34,20 @@ export default function GuestAbout() {
         {/* Su menh */}
         <div className="bg-primary-50 rounded-3xl p-8 lg:p-12 mb-16">
           <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Su menh cua chung toi</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Sứ mệnh của chúng tôi</h2>
             <p className="text-gray-600 leading-relaxed">
-              Chung toi mong muon mang den cho moi nguoi mot noi song ly tuong, 
-              noi ma su tien nghi, an toan va chat luong dich vu luon duoc dat len hang dau. 
-              Voi YuKi House, viec tim kiem va quan ly can ho chua bao gio de dang va chuyen nghiep den the.
+              Chúng tôi mong muốn mang đến cho mọi người một nơi sống lý tưởng,
+              nơi mà sự tiện nghi, an toàn và chất lượng dịch vụ luôn được đặt lên hàng đầu.
+              Với YuKi House, việc tìm kiếm và quản lý căn hộ chưa bao giờ dễ dàng và chuyên nghiệp đến thế.
             </p>
           </div>
         </div>
 
-        {/* Tam nhin */}
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Tam nhin</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Tầm nhìn</h2>
           <p className="text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Tro thanh nen tang cho thue can ho so 1 Viet Nam, ung dung cong nghe AI 
-            de toi uu hoa trai nghiem nguoi dung va nang cao hieu qua quan ly bat dong san.
+            Trở thành nền tảng cho thuê căn hộ số 1 Việt Nam, ứng dụng công nghệ AI
+            để tối ưu hóa trải nghiệm người dùng và nâng cao hiệu quả quản lý bất động sản.
           </p>
         </div>
       </div>

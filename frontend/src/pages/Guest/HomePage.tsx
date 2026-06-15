@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Search, ArrowRight, Building2, Users, Shield, Star,
-  MapPin, Maximize2, Phone, CheckCircle2,
+  MapPin, Maximize2, Phone, CheckCircle2, Loader2,
 } from "lucide-react";
 import { mockApartments } from "../../data/apartments";
 import { mockBuildings } from "../../data/buildings";
 import { formatCurrency, formatApartmentDisplay } from "../../utils/format";
+import * as buildingService from "../../services/buildingService";
+import * as apartmentService from "../../services/apartmentService";
 
 // Helper to fetch apartment thumbnail from localStorage or fallback
 function getApartmentThumbnail(aptId: number): string {
@@ -31,6 +33,11 @@ export default function GuestHomePage() {
   const [heroSubtitle, setHeroSubtitle] = useState("YuKi House cung cấp các căn hộ cho thuê chất lượng cao tại TP. Hồ Chí Minh với đầy đủ tiện nghi, an ninh 24/7 và dịch vụ chuyên nghiệp.");
   const [featuredIds, setFeaturedIds] = useState<number[]>([]);
 
+  // API State
+  const [apartments, setApartments] = useState<any[]>([]);
+  const [buildings, setBuildings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     const storedSettings = localStorage.getItem("landing-page-settings");
     if (storedSettings) {
@@ -47,22 +54,34 @@ export default function GuestHomePage() {
     if (storedIds) {
       try {
         setFeaturedIds(JSON.parse(storedIds));
-      } catch {
-        // ignore
-      }
+      } catch { /* empty */ }
     }
+
+    setLoading(true);
+    Promise.all([
+      buildingService.getAllBuildings({ limit: 100 }),
+      apartmentService.getAllApartments({ limit: 1000 })
+    ]).then(([bRes, aRes]) => {
+      setBuildings(bRes.data);
+      setApartments(aRes.data);
+    }).catch(() => {
+      setBuildings(mockBuildings);
+      setApartments(mockApartments as any);
+    }).finally(() => {
+      setLoading(false);
+    });
   }, []);
 
   const featuredApartments = (() => {
     if (featuredIds.length > 0) {
-      const filtered = mockApartments.filter((a) => featuredIds.includes(a.id) && a.status === "AVAILABLE");
+      const filtered = apartments.filter((a) => featuredIds.includes(a.id) && ["available", "vacant", "AVAILABLE"].includes(a.status));
       if (filtered.length > 0) return filtered.slice(0, 6);
     }
-    return mockApartments.filter((a) => a.status === "AVAILABLE").slice(0, 6);
+    return apartments.filter((a) => ["available", "vacant", "AVAILABLE"].includes(a.status)).slice(0, 6);
   })();
 
   return (
-    <div>
+    <div className="font-sans">
       {/* HERO SECTION */}
       <section className="relative pt-16 overflow-hidden"
         style={{ background: "linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 50%, #DDD6FE 100%)" }}>
@@ -122,7 +141,6 @@ export default function GuestHomePage() {
               </div>
             </div>
 
-            {/* Right illustration */}
             <div className="hidden lg:block relative">
               <div className="w-full h-96 rounded-2xl flex items-center justify-center"
                 style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.1), rgba(167,139,250,0.15))" }}>
@@ -206,6 +224,7 @@ export default function GuestHomePage() {
         </div>
       </section>
 
+      {/* FEATURED APARTMENTS */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
           <div className="flex items-center justify-between mb-10">
@@ -222,46 +241,52 @@ export default function GuestHomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredApartments.map((apt) => {
-              const building = mockBuildings.find((b) => b.id === apt.building_id);
-              return (
-                <Link
-                  key={apt.id}
-                  to={`/apartments/${apt.id}`}
-                  className="bg-white rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 border border-gray-200 hover:border-primary-200 group block"
-                >
-                  <div className="w-full h-48 bg-gray-100 overflow-hidden relative">
-                    <img
-                      src={getApartmentThumbnail(apt.id)}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
-                      alt="Ảnh căn hộ"
-                    />
-                    <span className="absolute top-3 left-3 text-xs px-2.5 py-1 rounded-full bg-success-500 text-white font-semibold">
-                      Còn trống
-                    </span>
-                  </div>
-                  <div className="p-5">
-                    <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors">
-                      {formatApartmentDisplay(apt.room_number, apt.floor, "ADMIN", building?.branch_name)}
-                    </h3>
-                    <div className="flex items-center gap-1.5 mt-1.5 text-xs text-gray-400">
-                      <MapPin size={12} />
-                      <span>{building?.address_new || building?.address_old}</span>
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="animate-spin text-primary-600" size={32} />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredApartments.map((apt) => {
+                const building = buildings.find((b) => b.id === apt.building_id);
+                return (
+                  <Link
+                    key={apt.id}
+                    to={`/apartments/${apt.id}`}
+                    className="bg-white rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 border border-gray-200 hover:border-primary-200 group block"
+                  >
+                    <div className="w-full h-48 bg-gray-100 overflow-hidden relative">
+                      <img
+                        src={getApartmentThumbnail(apt.id)}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
+                        alt="Ảnh căn hộ"
+                      />
+                      <span className="absolute top-3 left-3 text-xs px-2.5 py-1 rounded-full bg-success-500 text-white font-semibold">
+                        Còn trống
+                      </span>
                     </div>
-                    <p className="text-sm text-gray-500 mt-2 line-clamp-2">{apt.description}</p>
-                    <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100">
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                        <Maximize2 size={12} />
-                        <span>{apt.area} m²</span>
+                    <div className="p-5">
+                      <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors">
+                        {formatApartmentDisplay(apt.room_number, apt.floor, "ADMIN", building?.branch_name)}
+                      </h3>
+                      <div className="flex items-center gap-1.5 mt-1.5 text-xs text-gray-400">
+                        <MapPin size={12} />
+                        <span>{building?.address_new || building?.address_old}</span>
                       </div>
-                      <span className="text-lg font-bold text-primary-600">{formatCurrency(apt.rental_price)}/tháng</span>
+                      <p className="text-sm text-gray-500 mt-2 line-clamp-2">{apt.description}</p>
+                      <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100">
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                          <Maximize2 size={12} />
+                          <span>{apt.area} m²</span>
+                        </div>
+                        <span className="text-lg font-bold text-primary-600">{formatCurrency(apt.rental_price)}/tháng</span>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 

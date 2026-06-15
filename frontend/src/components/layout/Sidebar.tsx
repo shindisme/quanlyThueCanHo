@@ -20,7 +20,7 @@ export default function Sidebar() {
       <div className="px-5 py-5 flex items-center justify-between border-b border-gray-100">
         <div className="flex items-center gap-3">
           {/* Logo */}
-          <div className="w-10 h-10 rounded-t-full flex items-center justify-center shrink-0"
+          <div className="w-10 h-10 rounded-t-lg flex items-center justify-center shrink-0"
             style={{ background: "linear-gradient(135deg, #7C3AED, #A78BFA)" }}>
             <Building2 size={20} className="text-white" />
           </div>

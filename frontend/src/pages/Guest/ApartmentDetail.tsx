@@ -10,7 +10,7 @@ import { mockBuildings } from "../../data/buildings";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../constants/enums";
 import { formatCurrency, formatApartmentDisplay } from "../../utils/format";
 import { toast } from "sonner";
-import { bookViewing } from "../../services/schedules.service";
+import { bookViewing } from "../../services/scheduleService";
 
 interface BookedSlot {
   apartmentId: number;
@@ -19,10 +19,10 @@ interface BookedSlot {
 }
 
 const timeSlots = [
-  "09:00 - 10:00",
-  "10:30 - 11:30",
-  "14:00 - 15:00",
-  "16:00 - 17:00"
+  "09h00",
+  "11h00",
+  "13h00",
+  "15h00"
 ];
 
 export default function GuestApartmentDetail() {
@@ -104,7 +104,7 @@ export default function GuestApartmentDetail() {
       return;
     }
     setSaving(true);
-    const combinedTime = `${selectedDate}T${selectedSlot.split(" - ")[0]}:00`;
+    const combinedTime = `${selectedDate}T${selectedSlot.replace("h", ":")}:00`;
     try {
       await bookViewing({
         apartment_id: apartment!.id,
@@ -277,7 +277,7 @@ export default function GuestApartmentDetail() {
                 <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input type="text" value={scheduleForm.guest_name}
                   onChange={(e) => setScheduleForm({ ...scheduleForm, guest_name: e.target.value })}
-                  placeholder="Nguyễn Văn A" className="premium-input rounded-xl !pl-10 text-xs" />
+                  placeholder="Nguyễn Văn A" className="premium-input rounded-xl pl-10! text-xs" />
               </div>
             </div>
 
@@ -287,7 +287,7 @@ export default function GuestApartmentDetail() {
                 <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input type="tel" value={scheduleForm.guest_phone}
                   onChange={(e) => setScheduleForm({ ...scheduleForm, guest_phone: e.target.value })}
-                  placeholder="0901234567" className="premium-input rounded-xl !pl-10 text-xs" />
+                  placeholder="0901234567" className="premium-input rounded-xl pl-10! text-xs" />
               </div>
             </div>
 
@@ -297,7 +297,7 @@ export default function GuestApartmentDetail() {
                 <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input type="email" value={scheduleForm.guest_email}
                   onChange={(e) => setScheduleForm({ ...scheduleForm, guest_email: e.target.value })}
-                  placeholder="email@example.com" className="premium-input rounded-xl !pl-10 text-xs" />
+                  placeholder="email@example.com" className="premium-input rounded-xl pl-10! text-xs" />
               </div>
             </div>
 
@@ -328,13 +328,12 @@ export default function GuestApartmentDetail() {
                         type="button"
                         disabled={booked}
                         onClick={() => setSelectedSlot(slot)}
-                        className={`py-2.5 px-3 border rounded-xl text-xs font-semibold text-center transition-all cursor-pointer ${
-                          booked
+                        className={`py-2.5 px-3 border rounded-xl text-xs font-semibold text-center transition-all cursor-pointer ${booked
                             ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                             : selected
-                            ? "bg-primary-600 text-white border-primary-600 shadow-sm"
-                            : "bg-white text-gray-700 border-gray-300 hover:border-primary-500 hover:text-primary-600"
-                        }`}
+                              ? "bg-primary-600 text-white border-primary-600 shadow-sm"
+                              : "bg-white text-gray-700 border-gray-300 hover:border-primary-500 hover:text-primary-600"
+                          }`}
                       >
                         {slot} {booked && " (Đã đặt)"}
                       </button>

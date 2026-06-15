@@ -9,10 +9,10 @@ import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import Pagination from "../../../components/ui/Pagination";
 import { toast } from "sonner";
 
-import * as apartmentService from "../../../services/apartments.service";
-import * as buildingService from "../../../services/buildings.service";
-import type { ApartmentData } from "../../../services/apartments.service";
-import type { BuildingData } from "../../../services/buildings.service";
+import * as apartmentService from "../../../services/apartmentService";
+import * as buildingService from "../../../services/buildingService";
+import type { ApartmentData } from "../../../services/apartmentService";
+import type { BuildingData } from "../../../services/buildingService";
 import { useAuthStore } from "../../../stores/auth.store";
 import { mockUsers } from "../../../data/users";
 
@@ -59,9 +59,7 @@ export default function ApartmentList() {
     if (stored) {
       try {
         setFeaturedIds(JSON.parse(stored));
-      } catch {
-        // ignore
-      }
+      } catch { /* empty */ }
     }
   }, []);
 
@@ -71,6 +69,10 @@ export default function ApartmentList() {
       updated = featuredIds.filter((fid) => fid !== id);
       toast.success("Đã bỏ nổi bật căn hộ");
     } else {
+      if (featuredIds.length >= 6) {
+        toast.warning("Chỉ được phép đặt tối đa 6 căn hộ nổi bật");
+        return;
+      }
       updated = [...featuredIds, id];
       toast.success("Đã đặt làm nổi bật trên trang chủ");
     }
@@ -78,10 +80,10 @@ export default function ApartmentList() {
     localStorage.setItem("featured-apartment-ids", JSON.stringify(updated));
   }
 
-  // Lấy danh sách căn hộ (server-side pagination)
+  // Lấy danh sách căn hộ 
   useEffect(() => {
     fetchApartments();
-  }, [currentPage, filterBuilding, search]);
+  }, [currentPage, filterBuilding, search, filterStatus]);
 
   async function fetchApartments() {
     try {
@@ -216,11 +218,10 @@ export default function ApartmentList() {
           <Button onClick={openAddForm}><Plus size={18} /> Thêm căn hộ</Button>
         }
       />
-
       {/* Search + Filter */}
       <div className="flex flex-col sm:flex-row gap-3">
         <SearchInput value={search} onChange={(v) => { setSearch(v); setCurrentPage(1); }} placeholder="Tìm kiếm..." className="max-w-md" />
-        {role !== "MANAGER" ? (
+        {role !== "MANAGER" && (
           <select
             value={filterBuilding || ""}
             onChange={(e) => { setFilterBuilding(e.target.value ? Number(e.target.value) : undefined); setCurrentPage(1); }}
@@ -234,19 +235,10 @@ export default function ApartmentList() {
               );
             })}
           </select>
-        ) : (
-          <div className="px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-gray-50 text-gray-500 font-medium">
-            Chi nhánh: {(() => {
-              const b = buildings.find(b => b.id === filterBuilding);
-              if (!b) return "Đang tải...";
-              const cleanedName = b.name.replace(/yuki\s*house\s*|yuki\s*/gi, "");
-              return `${b.branch_name}${cleanedName ? ` - ${cleanedName}` : ""}`;
-            })()}
-          </div>
         )}
         <select
           value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
+          onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
           className="px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:border-primary-500"
         >
           <option value="">Tất cả trạng thái</option>
@@ -310,11 +302,10 @@ export default function ApartmentList() {
                     <td className="text-center">
                       <button
                         onClick={() => toggleFeatured(apt.id)}
-                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                          featuredIds.includes(apt.id)
-                            ? "text-amber-500 hover:text-amber-600"
-                            : "text-gray-300 hover:text-gray-400"
-                        }`}
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${featuredIds.includes(apt.id)
+                          ? "text-amber-500 hover:text-amber-600"
+                          : "text-gray-300 hover:text-gray-400"
+                          }`}
                         title={featuredIds.includes(apt.id) ? "Bỏ nổi bật" : "Bật nổi bật"}
                       >
                         <Star size={18} fill={featuredIds.includes(apt.id) ? "currentColor" : "none"} />

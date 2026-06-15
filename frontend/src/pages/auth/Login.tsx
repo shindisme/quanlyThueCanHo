@@ -2,15 +2,84 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Mail, Lock, Building2 } from "lucide-react";
+import { Eye, EyeOff, User, Lock, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { loginSchema } from "../../schemas/auth.schema";
 import { useAuthStore } from "../../stores/auth.store";
-import { login } from "../../services/auth.service";
+import { login } from "../../services/authService";
 import Button from "../../components/ui/Button";
+
+import { mockBuildings } from "../../data/buildings";
+import { mockTenants } from "../../data/tenants";
+import { mockUsers } from "../../data/users";
+import { removeVietnameseTones } from "../../utils/format";
+
 interface LoginForm {
-  email: string;
+  email: string; // Used for binding username state in hook-form
   password: string;
+}
+
+// Helper function to resolve email/actual DB credential identifier from user-friendly usernames
+function resolveEmailFromUsername(username: string): string {
+  const clean = username.trim().toLowerCase();
+
+  // 1. Admin
+  if (clean === "admin") {
+    return "admin@dukihome.vn";
+  }
+
+  // 2. Managers (Dynamic matching based on district/branch name or building name suffixes)
+  if (clean.startsWith("manager")) {
+    const searchPart = clean.slice(7); // Extract the suffix part, e.g. "q1", "quan1", "thuduc"
+
+    const matchBuilding = mockBuildings.find((b) => {
+      const bBranchClean = removeVietnameseTones(b.branch_name)
+        .replace(/\s+/g, "")
+        .toLowerCase()
+        .replace("chinhanh", ""); // Convert "Chi nhánh Quận 1" to "quan1"
+      const bNameClean = removeVietnameseTones(b.name)
+        .replace(/\s+/g, "")
+        .toLowerCase(); // Convert "YuKi Tower A" to "yukitowera"
+
+      return (
+        bBranchClean === searchPart ||
+        bBranchClean.replace("quan", "q") === searchPart ||
+        bNameClean.includes(searchPart)
+      );
+    });
+
+    if (matchBuilding) {
+      const storedUsers = localStorage.getItem("custom-users");
+      const userList = storedUsers ? JSON.parse(storedUsers) : mockUsers;
+      const matchedManager = userList.find(
+        (u: any) => u.role === "MANAGER" && u.managedBuildingId === matchBuilding.id
+      );
+      if (matchedManager) {
+        return matchedManager.email;
+      }
+    }
+  }
+
+  const storedTenants = localStorage.getItem("custom-tenants");
+  const tenantList = storedTenants ? JSON.parse(storedTenants) : mockTenants;
+
+  let targetTenant = null;
+
+  if (clean.startsWith("yh")) {
+    const last6 = clean.slice(2);
+    targetTenant = tenantList.find((t: any) => t.citizen_id.endsWith(last6));
+  }
+
+  if (targetTenant) {
+    const storedUsers = localStorage.getItem("custom-users");
+    const userList = storedUsers ? JSON.parse(storedUsers) : mockUsers;
+    const linkedUser = userList.find((u: any) => u.id === targetTenant.user_id);
+    if (linkedUser) {
+      return linkedUser.email;
+    }
+  }
+
+  return username;
 }
 
 export default function Login() {
@@ -30,8 +99,9 @@ export default function Login() {
   async function onSubmit(data: LoginForm) {
     setIsLoading(true);
     try {
-      const result = await login(data.email, data.password);
-      setAuth(result.token, result.role, data.email);
+      const resolvedEmail = resolveEmailFromUsername(data.email);
+      const result = await login(resolvedEmail, data.password);
+      setAuth(result.token, result.role, resolvedEmail);
       toast.success("Đăng nhập thành công!");
 
       switch (result.role) {
@@ -57,12 +127,12 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex">
-      {/*Left side - form đăng nhập*/}
+      {/* Left side - form đăng nhập */}
       <div className="flex-1 flex items-center justify-center px-6 py-12 bg-white">
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-10">
-            <div className="w-12 h-12 rounded-t-xl flex items-center justify-center"
+            <div className="w-12 h-12 rounded-t-lg flex items-center justify-center"
               style={{ background: "linear-gradient(135deg, #7C3AED, #A78BFA)" }}>
               <Building2 size={24} className="text-white" />
             </div>
@@ -76,16 +146,16 @@ export default function Login() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Username */}
             <div>
-              <label className="flex items-center text-sm font-medium text-gray-700 mb-1.5">
-                <Mail size={18} className="inline-block text-gray-400 mr-2" />
-                Tên tài khoản
+              <label className="flex items-center text-sm font-medium text-gray-700 mb-1.5 font-sans">
+                <User size={18} className="inline-block text-gray-400 mr-2" />
+                Tên đăng nhập
               </label>
               <div className="relative">
                 <input
-                  type="email"
-                  placeholder="Nhập tên tài khoản"
+                  type="text"
+                  placeholder="Nhập tên đăng nhập"
                   {...register("email")}
-                  className={`premium-input rounded-xl !pl-11
+                  className={`premium-input rounded-xl pl-11!
                     ${errors.email ? "border-danger-500 focus:border-danger-500 focus:ring-danger-500/20" : ""}`}
                 />
               </div>
@@ -96,17 +166,16 @@ export default function Login() {
 
             {/* Password */}
             <div>
-              <label className="flex items-center text-sm font-medium text-gray-700 mb-1.5">
+              <label className="flex items-center text-sm font-medium text-gray-700 mb-1.5 font-sans">
                 <Lock size={18} className="inline-block text-gray-400 mr-2" />
                 Mật khẩu
               </label>
               <div className="relative">
-
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Nhập mật khẩu"
                   {...register("password")}
-                  className={`premium-input rounded-xl !pl-11 !pr-12
+                  className={`premium-input rounded-xl pl-11! pr-12!
                     ${errors.password ? "border-danger-500 focus:border-danger-500 focus:ring-danger-500/20" : ""}`}
                 />
                 <button
@@ -132,18 +201,10 @@ export default function Login() {
               Đăng nhập
             </Button>
           </form>
-
-          {/* Demo info */}
-          <div className="mt-4 p-4 bg-primary-50 rounded-lg border border-primary-100">            <p className="text-xs font-semibold text-primary-700 mb-2">Tài khoản demo:</p>
-            <div className="space-y-1 text-xs text-primary-600">
-              <p>Tên đăng nhập: admin@gmail.com</p>
-              <p>Mật khẩu: 123456</p>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/*Righjt side*/}
+      {/* Right side */}
       <div className="hidden lg:flex flex-1 items-center justify-center relative overflow-hidden"
         style={{ background: "linear-gradient(135deg, #7C3AED 0%, #6D28D9 40%, #4C1D95 100%)" }}>
         <div className="absolute top-20 left-20 w-72 h-72 rounded-full opacity-20"
@@ -157,12 +218,9 @@ export default function Login() {
           <div className="w-20 h-20 bg-white/15 rounded-2xl flex items-center justify-center mx-auto mb-8 backdrop-blur-sm border border-white/20">
             <Building2 size={40} className="text-white" />
           </div>
-          <h2 className="text-3xl font-bold mb-4 capitalize">
+          <h2 className="text-3xl font-bold mb-4 capitalize font-sans">
             Hệ thống quản lý căn hộ thông minh
           </h2>
-          <p className="text-lg text-purple-200 leading-relaxed">
-
-          </p>
         </div>
       </div>
     </div>

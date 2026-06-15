@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import Badge from "../../components/ui/Badge";
 import { mockApartments } from "../../data/apartments";
 import { mockBuildings } from "../../data/buildings";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../constants/enums";
 import { formatCurrency, formatApartmentDisplay, removeVietnameseTones } from "../../utils/format";
+import * as buildingService from "../../services/buildingService";
+import * as apartmentService from "../../services/apartmentService";
+import type { BuildingData } from "../../services/buildingService";
+import type { ApartmentData } from "../../services/apartmentService";
 
-// Helper to fetch apartment thumbnail from localStorage or fallback
 function getApartmentThumbnail(aptId: number): string {
   const stored = localStorage.getItem(`apartment-${aptId}-images`);
   if (stored) {
@@ -23,7 +26,6 @@ function getApartmentThumbnail(aptId: number): string {
   return "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80";
 }
 
-// Trang danh sach can ho cho khach vang lai
 export default function GuestApartmentListing() {
   const [searchParams] = useSearchParams();
   const searchParamVal = searchParams.get("search") || "";
@@ -34,6 +36,27 @@ export default function GuestApartmentListing() {
   const [floorFilter, setFloorFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("AVAILABLE");
 
+  // API State
+  const [apartments, setApartments] = useState<ApartmentData[]>([]);
+  const [buildings, setBuildings] = useState<BuildingData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      buildingService.getAllBuildings({ limit: 100 }),
+      apartmentService.getAllApartments({ limit: 1000 })
+    ]).then(([bRes, aRes]) => {
+      setBuildings(bRes.data);
+      setApartments(aRes.data);
+    }).catch(() => {
+      setBuildings(mockBuildings);
+      setApartments(mockApartments as any);
+    }).finally(() => {
+      setLoading(false);
+    });
+  }, []);
+
   useEffect(() => {
     if (searchParamVal !== undefined) {
       setSearch(searchParamVal);
@@ -43,13 +66,13 @@ export default function GuestApartmentListing() {
   // Lay danh sach tang cua toa nha duoc chon
   const floors = (() => {
     if (!buildingFilter) return [];
-    const bApts = mockApartments.filter((a) => a.building_id === Number(buildingFilter));
+    const bApts = apartments.filter((a) => a.building_id === Number(buildingFilter));
     return [...new Set(bApts.map((a) => a.floor))].sort((a, b) => a - b);
   })();
 
   // Loc can ho
-  const filtered = mockApartments.filter((a) => {
-    const building = mockBuildings.find((b) => b.id === a.building_id);
+  const filtered = apartments.filter((a) => {
+    const building = buildings.find((b) => b.id === a.building_id);
     const term = removeVietnameseTones(search);
     const roomNorm = removeVietnameseTones(a.room_number);
     const descNorm = removeVietnameseTones(a.description || "");
@@ -77,7 +100,7 @@ export default function GuestApartmentListing() {
   });
 
   return (
-    <div className="pt-20 pb-16">
+    <div className="pt-20 pb-16 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Tieu de */}
         <div className="mb-8">
@@ -118,7 +141,7 @@ export default function GuestApartmentListing() {
             className="px-4 py-3 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500"
           >
             <option value="">Tất cả chi nhánh</option>
-            {mockBuildings.map((b) => (
+            {buildings.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.branch_name} - {b.name.replace(/yuki\s*house\s*|yuki\s*/gi, "")}
               </option>
@@ -148,51 +171,59 @@ export default function GuestApartmentListing() {
           </select>
         </div>
 
-        {/* Ket qua */}
-        <p className="text-sm text-gray-500 mb-4">{filtered.length} căn hộ</p>
-
-        {/* Grid can ho */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((apt) => {
-            const building = mockBuildings.find((b) => b.id === apt.building_id);
-            return (
-              <Link
-                key={apt.id}
-                to={`/apartments/${apt.id}`}
-                className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-card-hover transition-shadow block group"
-              >
-                <div className="w-full h-48 bg-gray-100 overflow-hidden relative">
-                  <img
-                    src={getApartmentThumbnail(apt.id)}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    alt="Ảnh căn hộ"
-                  />
-                </div>
-                <div className="p-5">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors">
-                      {formatApartmentDisplay(apt.room_number, apt.floor, "ADMIN", building?.branch_name)}
-                    </h3>
-                    <Badge variant={APARTMENT_STATUS_COLORS[apt.status] as "success" | "info" | "warning"}>
-                      {APARTMENT_STATUS_LABELS[apt.status]}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1">{building?.address_new || building?.address_old}</p>
-                  <p className="text-sm text-gray-500 line-clamp-2 mt-2">{apt.description}</p>
-                  <div className="flex items-center justify-between pt-3 mt-3 border-t border-gray-100">
-                    <span className="text-sm text-gray-500">{apt.area} m²</span>
-                    <span className="text-lg font-bold text-primary-600">{formatCurrency(apt.rental_price)}/tháng</span>
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-
-        {filtered.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-gray-400">Không tìm thấy căn hộ phù hợp</p>
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="animate-spin text-primary-600" size={32} />
           </div>
+        ) : (
+          <>
+            {/* Ket qua */}
+            <p className="text-sm text-gray-500 mb-4">{filtered.length} căn hộ</p>
+
+            {/* Grid can ho */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filtered.map((apt) => {
+                const building = buildings.find((b) => b.id === apt.building_id);
+                return (
+                  <Link
+                    key={apt.id}
+                    to={`/apartments/${apt.id}`}
+                    className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-card-hover transition-shadow block group border border-gray-100"
+                  >
+                    <div className="w-full h-48 bg-gray-100 overflow-hidden relative">
+                      <img
+                        src={getApartmentThumbnail(apt.id)}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        alt="Ảnh căn hộ"
+                      />
+                    </div>
+                    <div className="p-5">
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors">
+                          {formatApartmentDisplay(apt.room_number, apt.floor, "ADMIN", building?.branch_name)}
+                        </h3>
+                        <Badge variant={APARTMENT_STATUS_COLORS[apt.status as keyof typeof APARTMENT_STATUS_COLORS] as "success" | "info" | "warning"}>
+                          {APARTMENT_STATUS_LABELS[apt.status as keyof typeof APARTMENT_STATUS_LABELS]}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">{building?.address_new || building?.address_old}</p>
+                      <p className="text-sm text-gray-500 line-clamp-2 mt-2">{apt.description}</p>
+                      <div className="flex items-center justify-between pt-3 mt-3 border-t border-gray-100">
+                        <span className="text-sm text-gray-500">{apt.area} m²</span>
+                        <span className="text-lg font-bold text-primary-600">{formatCurrency(apt.rental_price)}/tháng</span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+
+            {filtered.length === 0 && (
+              <div className="text-center py-16">
+                <p className="text-gray-400">Không tìm thấy căn hộ phù hợp</p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

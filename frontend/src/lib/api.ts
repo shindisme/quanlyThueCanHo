@@ -1,21 +1,6 @@
 import axios from "axios";
 
-// ============================================================
-// API CLIENT - Cấu hình axios để gọi backend
-// ============================================================
-//
-// TẠI SAO CẦN TẠO INSTANCE RIÊNG?
-// - Thay vì gọi axios.get("http://localhost:3000/buildings") mỗi lần,
-//   ta tạo 1 instance có sẵn baseURL, rồi chỉ cần gọi api.get("/buildings")
-// - Giảm lặp code, dễ thay đổi URL sau này (ví dụ: từ localhost → production)
-//
-// INTERCEPTOR LÀ GÌ?
-// - Interceptor = "bộ chặn" chạy trước khi request được gửi đi
-// - Ở đây ta dùng để tự động gắn token JWT vào header mỗi request
-// - Giúp không cần viết { headers: { Authorization: "Bearer ..." } } thủ công
-// ============================================================
-
-const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 // Tạo instance axios với baseURL mặc định
 const api = axios.create({
@@ -40,9 +25,7 @@ api.interceptors.request.use(
           // Format: "Bearer <token>" - đây là chuẩn JWT
           config.headers.Authorization = `Bearer ${token}`;
         }
-      } catch {
-        // Nếu parse lỗi thì bỏ qua, không gắn token
-      }
+      } catch { /* empty */ }
     }
     return config;
   },

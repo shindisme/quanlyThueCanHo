@@ -22,18 +22,20 @@ export default function Pagination({
   function getPageNumbers(): (number | "...")[] {
     const pages: (number | "...")[] = [];
     const maxVisible = 5;
+    const curr = Number(currentPage);
+    const total = Number(totalPages);
 
-    if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    if (total <= maxVisible) {
+      for (let i = 1; i <= total; i++) pages.push(i);
     } else {
       pages.push(1);
-      const start = Math.max(2, currentPage - 1);
-      const end = Math.min(totalPages - 1, currentPage + 1);
+      const start = Math.max(2, curr - 1);
+      const end = Math.min(total - 1, curr + 1);
 
       if (start > 2) pages.push("...");
       for (let i = start; i <= end; i++) pages.push(i);
-      if (end < totalPages - 1) pages.push("...");
-      pages.push(totalPages);
+      if (end < total - 1) pages.push("...");
+      pages.push(total);
     }
 
     return pages;
@@ -42,8 +44,9 @@ export default function Pagination({
   return (
     <div className={cn("flex items-center justify-center gap-1", className)}>
       <button
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
+        type="button"
+        onClick={() => onPageChange(Number(currentPage) - 1)}
+        disabled={Number(currentPage) === 1}
         className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
       >
         <ChevronLeft size={18} />
@@ -57,10 +60,11 @@ export default function Pagination({
         ) : (
           <button
             key={page}
-            onClick={() => onPageChange(page)}
+            type="button"
+            onClick={() => onPageChange(Number(page))}
             className={cn(
               "w-9 h-9 rounded-lg text-sm font-medium transition-colors cursor-pointer",
-              page === currentPage
+              Number(page) === Number(currentPage)
                 ? "bg-primary-600 text-white"
                 : "text-gray-600 hover:bg-gray-100"
             )}
@@ -71,8 +75,9 @@ export default function Pagination({
       )}
 
       <button
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
+        type="button"
+        onClick={() => onPageChange(Number(currentPage) + 1)}
+        disabled={Number(currentPage) === Number(totalPages)}
         className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
       >
         <ChevronRight size={18} />
