@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { User, Mail, Save, Plus, Pencil, Trash2 } from "lucide-react";
 import Button from "../../../components/ui/Button";
 import PageHeader from "../../../components/ui/PageHeader";
@@ -14,86 +14,6 @@ export default function ProfilePage() {
   const [newPass, setNewPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
   const [saving, setSaving] = useState(false);
-
-  // Khai báo người ở cùng (co-occupants)
-  interface Occupant {
-    id: string;
-    name: string;
-    cccd: string;
-    phone: string;
-    dob: string;
-  }
-  
-  const [occupants, setOccupants] = useState<Occupant[]>([]);
-  const [showOccupantModal, setShowOccupantModal] = useState(false);
-  const [editOccupant, setEditOccupant] = useState<Occupant | null>(null);
-  const [occupantForm, setOccupantForm] = useState({ name: "", cccd: "", phone: "", dob: "" });
-
-  useEffect(() => {
-    if (role === "TENANT" && email) {
-      const key = `occupants-${email}`;
-      const stored = localStorage.getItem(key);
-      if (stored) {
-        try {
-          setOccupants(JSON.parse(stored));
-        } catch {
-          // ignore
-        }
-      } else {
-        // mock occupants
-        const initial = [
-          { id: "1", name: "Nguyễn Văn B", cccd: "079200009999", phone: "0909123456", dob: "1997-05-10" }
-        ];
-        localStorage.setItem(key, JSON.stringify(initial));
-        setOccupants(initial);
-      }
-    }
-  }, [role, email]);
-
-  function handleOpenOccupantForm(occ: Occupant | null) {
-    setEditOccupant(occ);
-    if (occ) {
-      setOccupantForm({ name: occ.name, cccd: occ.cccd, phone: occ.phone, dob: occ.dob });
-    } else {
-      setOccupantForm({ name: "", cccd: "", phone: "", dob: "" });
-    }
-    setShowOccupantModal(true);
-  }
-
-  function handleSaveOccupant() {
-    if (!occupantForm.name || !occupantForm.cccd) {
-      toast.error("Vui lòng nhập đầy đủ Họ tên và CCCD");
-      return;
-    }
-    const key = `occupants-${email}`;
-    let updated: Occupant[];
-    if (editOccupant) {
-      updated = occupants.map((o) =>
-        o.id === editOccupant.id ? { ...o, ...occupantForm } : o
-      );
-      toast.success("Cập nhật thông tin thành công");
-    } else {
-      const newOcc = {
-        id: String(Date.now()),
-        ...occupantForm
-      };
-      updated = [...occupants, newOcc];
-      toast.success("Thêm người ở cùng thành công");
-    }
-    setOccupants(updated);
-    localStorage.setItem(key, JSON.stringify(updated));
-    setShowOccupantModal(false);
-  }
-
-  function handleDeleteOccupant(id: string) {
-    if (window.confirm("Bạn có chắc chắn muốn xóa người ở cùng này không?")) {
-      const key = `occupants-${email}`;
-      const updated = occupants.filter((o) => o.id !== id);
-      setOccupants(updated);
-      localStorage.setItem(key, JSON.stringify(updated));
-      toast.success("Đã xóa người ở cùng");
-    }
-  }
 
   const displayName = email?.split("@")[0] || "User";
   const roleLabel =
@@ -190,7 +110,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Khai báo người ở cùng (chỉ dành cho TENANT) */}
+      {/* Khai báo người ở cùng */}
       {role === "TENANT" && (
         <div className="premium-card p-6 space-y-6">
           <div className="flex items-center justify-between">
@@ -268,25 +188,25 @@ export default function ProfilePage() {
               <Input
                 label="Họ và tên *"
                 value={occupantForm.name}
-                onChange={(e) => setOccupantForm({ ...occupantForm, name: e.target.value })}
+                onChange={(v) => setOccupantForm({ ...occupantForm, name: v })}
                 placeholder="Nguyễn Văn A"
               />
               <Input
                 label="Số CCCD (Căn cước công dân) *"
                 value={occupantForm.cccd}
-                onChange={(e) => setOccupantForm({ ...occupantForm, cccd: e.target.value })}
+                onChange={(v) => setOccupantForm({ ...occupantForm, cccd: v })}
                 placeholder="079200001234"
               />
               <Input
                 label="Ngày sinh"
                 type="date"
                 value={occupantForm.dob}
-                onChange={(e) => setOccupantForm({ ...occupantForm, dob: e.target.value })}
+                onChange={(v) => setOccupantForm({ ...occupantForm, dob: v })}
               />
               <Input
                 label="Số điện thoại"
                 value={occupantForm.phone}
-                onChange={(e) => setOccupantForm({ ...occupantForm, phone: e.target.value })}
+                onChange={(v) => setOccupantForm({ ...occupantForm, phone: v })}
                 placeholder="0901234567"
               />
             </div>
