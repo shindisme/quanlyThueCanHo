@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { Search } from "lucide-react";
 import Badge from "../../components/ui/Badge";
 import { mockApartments } from "../../data/apartments";
@@ -25,11 +25,20 @@ function getApartmentThumbnail(aptId: number): string {
 
 // Trang danh sach can ho cho khach vang lai
 export default function GuestApartmentListing() {
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  const searchParamVal = searchParams.get("search") || "";
+
+  const [search, setSearch] = useState(searchParamVal);
   const [priceFilter, setPriceFilter] = useState("");
   const [buildingFilter, setBuildingFilter] = useState("");
   const [floorFilter, setFloorFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("AVAILABLE");
+
+  useEffect(() => {
+    if (searchParamVal !== undefined) {
+      setSearch(searchParamVal);
+    }
+  }, [searchParamVal]);
 
   // Lay danh sach tang cua toa nha duoc chon
   const floors = (() => {
@@ -40,10 +49,23 @@ export default function GuestApartmentListing() {
 
   // Loc can ho
   const filtered = mockApartments.filter((a) => {
+    const building = mockBuildings.find((b) => b.id === a.building_id);
     const term = removeVietnameseTones(search);
     const roomNorm = removeVietnameseTones(a.room_number);
     const descNorm = removeVietnameseTones(a.description || "");
-    const matchSearch = roomNorm.includes(term) || descNorm.includes(term);
+    const buildingNameNorm = removeVietnameseTones(building?.name || "");
+    const branchNameNorm = removeVietnameseTones(building?.branch_name || "");
+    const addressNewNorm = removeVietnameseTones(building?.address_new || "");
+    const addressOldNorm = removeVietnameseTones(building?.address_old || "");
+
+    const matchSearch =
+      roomNorm.includes(term) ||
+      descNorm.includes(term) ||
+      buildingNameNorm.includes(term) ||
+      branchNameNorm.includes(term) ||
+      addressNewNorm.includes(term) ||
+      addressOldNorm.includes(term);
+
     const matchStatus = !statusFilter || a.status === statusFilter;
     const matchBuilding = !buildingFilter || a.building_id === Number(buildingFilter);
     const matchFloor = !floorFilter || a.floor === Number(floorFilter);
@@ -59,8 +81,8 @@ export default function GuestApartmentListing() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Tieu de */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Danh sach can ho</h1>
-          <p className="text-gray-500 mt-1">Tim can ho phu hop voi nhu cau cua ban</p>
+          <h1 className="text-3xl font-bold text-gray-900">Danh sách căn hộ</h1>
+          <p className="text-gray-500 mt-1">Tìm căn hộ phù hợp với nhu cầu của bạn</p>
         </div>
 
         {/* Bo loc */}
@@ -71,7 +93,7 @@ export default function GuestApartmentListing() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tim kiem..."
+              placeholder="Tìm kiếm..."
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500"
             />
           </div>
@@ -81,10 +103,10 @@ export default function GuestApartmentListing() {
             onChange={(e) => setPriceFilter(e.target.value)}
             className="px-4 py-3 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500"
           >
-            <option value="">Muc gia</option>
-            <option value="low">Duoi 6 trieu</option>
-            <option value="mid">6 - 15 trieu</option>
-            <option value="high">Tren 15 trieu</option>
+            <option value="">Mức giá</option>
+            <option value="low">Dưới 6 triệu</option>
+            <option value="mid">Từ 6 - 15 triệu</option>
+            <option value="high">Trên 15 triệu</option>
           </select>
 
           <select
@@ -127,7 +149,7 @@ export default function GuestApartmentListing() {
         </div>
 
         {/* Ket qua */}
-        <p className="text-sm text-gray-500 mb-4">{filtered.length} can ho</p>
+        <p className="text-sm text-gray-500 mb-4">{filtered.length} căn hộ</p>
 
         {/* Grid can ho */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -148,18 +170,18 @@ export default function GuestApartmentListing() {
                 </div>
                 <div className="p-5">
                   <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold text-gray-800">
-                      {formatApartmentDisplay(apt.room_number, apt.floor)}
+                    <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors">
+                      {formatApartmentDisplay(apt.room_number, apt.floor, "ADMIN", building?.branch_name)}
                     </h3>
                     <Badge variant={APARTMENT_STATUS_COLORS[apt.status] as "success" | "info" | "warning"}>
                       {APARTMENT_STATUS_LABELS[apt.status]}
                     </Badge>
                   </div>
-                  <p className="text-xs text-gray-400">{building?.branch_name} - {building?.address_new || building?.address_old}</p>
+                  <p className="text-xs text-gray-400 mt-1">{building?.address_new || building?.address_old}</p>
                   <p className="text-sm text-gray-500 line-clamp-2 mt-2">{apt.description}</p>
                   <div className="flex items-center justify-between pt-3 mt-3 border-t border-gray-100">
-                    <span className="text-sm text-gray-500">{apt.area} m2</span>
-                    <span className="text-lg font-bold text-primary-600">{formatCurrency(apt.rental_price)}/thang</span>
+                    <span className="text-sm text-gray-500">{apt.area} m²</span>
+                    <span className="text-lg font-bold text-primary-600">{formatCurrency(apt.rental_price)}/tháng</span>
                   </div>
                 </div>
               </Link>
@@ -169,7 +191,7 @@ export default function GuestApartmentListing() {
 
         {filtered.length === 0 && (
           <div className="text-center py-16">
-            <p className="text-gray-400">Khong tim thay can ho phu hop</p>
+            <p className="text-gray-400">Không tìm thấy căn hộ phù hợp</p>
           </div>
         )}
       </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Search, ArrowRight, Building2, Users, Shield, Star,
@@ -6,24 +6,64 @@ import {
 } from "lucide-react";
 import { mockApartments } from "../../data/apartments";
 import { mockBuildings } from "../../data/buildings";
-import { formatCurrency } from "../../utils/format";
+import { formatCurrency, formatApartmentDisplay } from "../../utils/format";
 
-// ============================================================
-// GUEST HOMEPAGE - DashboardPack Landing Style
-// ============================================================
+// Helper to fetch apartment thumbnail from localStorage or fallback
+function getApartmentThumbnail(aptId: number): string {
+  const stored = localStorage.getItem(`apartment-${aptId}-images`);
+  if (stored) {
+    try {
+      const images = JSON.parse(stored);
+      const thumb = images.find((img: any) => img.is_thumbnail);
+      if (thumb) return thumb.image_url;
+      if (images.length > 0) return images[0].image_url;
+    } catch {
+      // ignore
+    }
+  }
+  return "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80";
+}
+
 // Landing page cho khách vãng lai
-// Sections: Hero, Features, Featured Apartments, Stats, CTA
-
 export default function GuestHomePage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [heroTitle, setHeroTitle] = useState("Tìm căn hộ lý tưởng của bạn");
+  const [heroSubtitle, setHeroSubtitle] = useState("YuKi House cung cấp các căn hộ cho thuê chất lượng cao tại TP. Hồ Chí Minh với đầy đủ tiện nghi, an ninh 24/7 và dịch vụ chuyên nghiệp.");
+  const [featuredIds, setFeaturedIds] = useState<number[]>([]);
 
-  const featuredApartments = mockApartments
-    .filter((a) => a.status === "AVAILABLE")
-    .slice(0, 6);
+  useEffect(() => {
+    const storedSettings = localStorage.getItem("landing-page-settings");
+    if (storedSettings) {
+      try {
+        const parsed = JSON.parse(storedSettings);
+        if (parsed.heroTitle) setHeroTitle(parsed.heroTitle);
+        if (parsed.heroSubtitle) setHeroSubtitle(parsed.heroSubtitle);
+      } catch {
+        // ignore
+      }
+    }
+
+    const storedIds = localStorage.getItem("featured-apartment-ids");
+    if (storedIds) {
+      try {
+        setFeaturedIds(JSON.parse(storedIds));
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
+  const featuredApartments = (() => {
+    if (featuredIds.length > 0) {
+      const filtered = mockApartments.filter((a) => featuredIds.includes(a.id) && a.status === "AVAILABLE");
+      if (filtered.length > 0) return filtered.slice(0, 6);
+    }
+    return mockApartments.filter((a) => a.status === "AVAILABLE").slice(0, 6);
+  })();
 
   return (
     <div>
-      {/* ===== HERO SECTION ===== */}
+      {/* HERO SECTION */}
       <section className="relative pt-16 overflow-hidden"
         style={{ background: "linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 50%, #DDD6FE 100%)" }}>
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-20 lg:py-28">
@@ -35,13 +75,11 @@ export default function GuestHomePage() {
                 <span>Nền tảng quản lý căn hộ #1 TP.HCM</span>
               </div>
 
-              <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-6">
-                Tìm căn hộ <br />
-                <span className="text-primary-600">lý tưởng</span> của bạn
+              <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-6 whitespace-pre-line">
+                {heroTitle}
               </h1>
               <p className="text-lg text-gray-600 mb-8 leading-relaxed max-w-lg">
-                YuKi House cung cấp các căn hộ cho thuê chất lượng cao tại TP. Hồ Chí Minh
-                với đầy đủ tiện nghi, an ninh 24/7 và dịch vụ chuyên nghiệp.
+                {heroSubtitle}
               </p>
 
               {/* Search bar */}
@@ -59,7 +97,7 @@ export default function GuestHomePage() {
                   />
                 </div>
                 <Link
-                  to="/apartments"
+                  to={`/apartments?search=${encodeURIComponent(searchQuery)}`}
                   className="px-6 py-4 text-white rounded-xl font-medium hover:opacity-90 transition-all
                     flex items-center justify-center gap-2 shadow-md w-full sm:w-auto"
                   style={{ background: "linear-gradient(135deg, #7C3AED, #6D28D9)" }}
@@ -191,20 +229,25 @@ export default function GuestHomePage() {
                 <Link
                   key={apt.id}
                   to={`/apartments/${apt.id}`}
-                  className="bg-white rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 border border-gray-200 hover:border-primary-200 group"
+                  className="bg-white rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 border border-gray-200 hover:border-primary-200 group block"
                 >
-                  {/* Image placeholder */}
-                  <div className="w-full h-48 bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center relative">
-                    <Building2 size={40} className="text-primary-300" />
-                    <span className="absolute top-3 left-3 text-xs px-2.5 py-1 rounded-full bg-success-500 text-white font-medium">
+                  <div className="w-full h-48 bg-gray-100 overflow-hidden relative">
+                    <img
+                      src={getApartmentThumbnail(apt.id)}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
+                      alt="Ảnh căn hộ"
+                    />
+                    <span className="absolute top-3 left-3 text-xs px-2.5 py-1 rounded-full bg-success-500 text-white font-semibold">
                       Còn trống
                     </span>
                   </div>
                   <div className="p-5">
-                    <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors">P.{apt.room_number} - T{apt.floor}</h3>
+                    <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors">
+                      {formatApartmentDisplay(apt.room_number, apt.floor, "ADMIN", building?.branch_name)}
+                    </h3>
                     <div className="flex items-center gap-1.5 mt-1.5 text-xs text-gray-400">
                       <MapPin size={12} />
-                      <span>{building?.name} - {building?.address_new || building?.address_old}</span>
+                      <span>{building?.address_new || building?.address_old}</span>
                     </div>
                     <p className="text-sm text-gray-500 mt-2 line-clamp-2">{apt.description}</p>
                     <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100">
@@ -222,7 +265,7 @@ export default function GuestHomePage() {
         </div>
       </section>
 
-      {/* ===== CTA SECTION ===== */}
+      {/* CTA SECTION */}
       <section className="py-20 relative overflow-hidden"
         style={{ background: "linear-gradient(135deg, #7C3AED 0%, #6D28D9 50%, #4C1D95 100%)" }}>
         {/* Decorative */}
@@ -234,7 +277,7 @@ export default function GuestHomePage() {
             Bạn muốn xem phòng?
           </h2>
           <p className="text-lg text-purple-200 mb-8 max-w-2xl mx-auto">
-            Đặt lịch xem phòng miễn phí ngay hôm nay. Không cần đăng ký tài khoản.
+            Đặt lịch xem phòng miễn phí ngay hôm nay.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link

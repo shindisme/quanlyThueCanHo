@@ -7,7 +7,7 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area,
 } from "recharts";
 import { useState } from "react";
-import { useAuthStore } from "../../stores/auth.store";
+import { useAuthStore } from "../../../stores/auth.store";
 
 const mockKPI = {
   totalBuildings: 5,

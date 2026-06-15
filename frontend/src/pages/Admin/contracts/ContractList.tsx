@@ -1,22 +1,22 @@
 import { useState } from "react";
 import { Plus, FileText } from "lucide-react";
-import PageHeader from "../../components/ui/PageHeader";
-import Button from "../../components/ui/Button";
-import SearchInput from "../../components/ui/SearchInput";
-import Badge from "../../components/ui/Badge";
-import DataTable, { type Column } from "../../components/ui/DataTable";
-import Pagination from "../../components/ui/Pagination";
-import Modal from "../../components/ui/Modal";
-import { mockContracts } from "../../data/contracts";
-import { mockTenants } from "../../data/tenants";
-import { mockApartments } from "../../data/apartments";
-import { mockUsers } from "../../data/users";
-import { mockBuildings } from "../../data/buildings";
-import { useAuthStore } from "../../stores/auth.store";
-import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS } from "../../constants/enums";
-import { formatCurrency, formatDate, formatApartmentDisplay, removeVietnameseTones } from "../../utils/format";
-import type { RentalContract } from "../../types";
-import type { ContractStatus } from "../../constants/enums";
+import PageHeader from "../../../components/ui/PageHeader";
+import Button from "../../../components/ui/Button";
+import SearchInput from "../../../components/ui/SearchInput";
+import Badge from "../../../components/ui/Badge";
+import DataTable, { type Column } from "../../../components/ui/DataTable";
+import Pagination from "../../../components/ui/Pagination";
+import Modal from "../../../components/ui/Modal";
+import { mockContracts } from "../../../data/contracts";
+import { mockTenants } from "../../../data/tenants";
+import { mockApartments } from "../../../data/apartments";
+import { mockUsers } from "../../../data/users";
+import { mockBuildings } from "../../../data/buildings";
+import { useAuthStore } from "../../../stores/auth.store";
+import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS } from "../../../constants/enums";
+import { formatCurrency, formatDate, formatApartmentDisplay, removeVietnameseTones } from "../../../utils/format";
+import type { RentalContract } from "../../../types";
+import type { ContractStatus } from "../../../constants/enums";
 import { toast } from "sonner";
 
 // Trang danh sach hop dong thue
@@ -133,10 +133,10 @@ export default function ContractList() {
           onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
           className="px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500"
         >
-          <option value="">Tat ca trang thai</option>
-          <option value="ACTIVE">Hieu luc</option>
-          <option value="ENDED">Da ket thuc</option>
-          <option value="LIQUIDATED">Da thanh ly</option>
+          <option value="">Tất cả trạng thái</option>
+          <option value="ACTIVE">Hiệu lực</option>
+          <option value="ENDED">Đã kết thúc</option>
+          <option value="LIQUIDATED">Đã thanh lý</option>
         </select>
       </div>
 

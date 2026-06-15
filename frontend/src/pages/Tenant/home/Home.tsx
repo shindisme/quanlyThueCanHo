@@ -3,7 +3,7 @@ import {
   Calendar, CreditCard, ArrowUpRight, Wrench, Clock,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useAuthStore } from "../../stores/auth.store";
+import { useAuthStore } from "../../../stores/auth.store";
 
 // ============================================================
 // TENANT HOME - DashboardPack Style

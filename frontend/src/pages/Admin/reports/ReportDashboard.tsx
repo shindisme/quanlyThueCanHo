@@ -1,6 +1,6 @@
 import { TrendingUp } from "lucide-react";
-import PageHeader from "../../components/ui/PageHeader";
-import Card from "../../components/ui/Card";
+import PageHeader from "../../../components/ui/PageHeader";
+import Card from "../../../components/ui/Card";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area,
@@ -9,8 +9,8 @@ import {
   getMonthlyRevenueData,
   getOccupancyData,
   getContractStatusData,
-} from "../../data/dashboard";
-import { formatCurrency } from "../../utils/format";
+} from "../../../data/dashboard";
+import { formatCurrency } from "../../../utils/format";
 
 // Du lieu tang truong nguoi thue
 const tenantGrowthData = [
@@ -22,9 +22,9 @@ const tenantGrowthData = [
   { month: "06/2026", count: 10 },
 ];
 
-import { useAuthStore } from "../../stores/auth.store";
-import { mockUsers } from "../../data/users";
-import { mockBuildings } from "../../data/buildings";
+import { useAuthStore } from "../../../stores/auth.store";
+import { mockUsers } from "../../../data/users";
+import { mockBuildings } from "../../../data/buildings";
 
 // Trang bao cao thong ke
 export default function ReportDashboard() {

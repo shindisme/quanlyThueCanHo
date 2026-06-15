@@ -4,10 +4,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Mail, Lock, Building2 } from "lucide-react";
 import { toast } from "sonner";
-import { loginSchema } from "../schemas/auth.schema";
-import { useAuthStore } from "../stores/auth.store";
-import { login } from "../services/auth.service";
-import Button from "../components/ui/Button";
+import { loginSchema } from "../../schemas/auth.schema";
+import { useAuthStore } from "../../stores/auth.store";
+import { login } from "../../services/auth.service";
+import Button from "../../components/ui/Button";
 interface LoginForm {
   email: string;
   password: string;

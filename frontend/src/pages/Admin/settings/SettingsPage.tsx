@@ -1,92 +1,171 @@
-import PageHeader from "../../components/ui/PageHeader";
-import Card from "../../components/ui/Card";
-import { Settings as SettingsIcon, Zap, Building2, Shield } from "lucide-react";
-import Button from "../../components/ui/Button";
+import { useState, useEffect } from "react";
+import PageHeader from "../../../components/ui/PageHeader";
+import Card from "../../../components/ui/Card";
+import { Settings as SettingsIcon, Zap, Building2, LayoutGrid } from "lucide-react";
+import Button from "../../../components/ui/Button";
 import { toast } from "sonner";
 
-// Trang cai dat tong quan he thong
+// Trang cài đặt tổng quan hệ thống và Landing Page
 export default function SettingsPage() {
+  const [settings, setSettings] = useState({
+    systemName: "YuKi House",
+    contactEmail: "info@yukihouse.vn",
+    contactPhone: "1900-1234",
+    mainAddress: "123 Nguyễn Huệ, Quận 1, TP.HCM",
+    heroTitle: "Tìm căn hộ lý tưởng của bạn",
+    heroSubtitle: "YuKi House cung cấp các căn hộ cho thuê chất lượng cao tại TP. Hồ Chí Minh với đầy đủ tiện nghi, an ninh 24/7 và dịch vụ chuyên nghiệp.",
+    electricPrice: 3500,
+    waterPrice: 15000,
+    serviceFee: 300000,
+  });
+
+  useEffect(() => {
+    const stored = localStorage.getItem("landing-page-settings");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setSettings((prev) => ({ ...prev, ...parsed }));
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
+  function handleSave() {
+    localStorage.setItem("landing-page-settings", JSON.stringify(settings));
+    toast.success("Đã lưu tất cả cài đặt hệ thống và Landing Page!");
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
         icon={SettingsIcon}
         title="Cài đặt hệ thống"
-        subtitle="Cấu hình tổng quan cho hệ thống YuKi House"
+        subtitle="Cấu hình tổng quan cho hệ thống và thông tin Landing Page"
         iconColor="linear-gradient(135deg, #7C3AED, #A78BFA)"
       />
 
       <div className="grid grid-cols-12 gap-6">
-        {/* Thong tin he thong */}
-        <Card className="col-span-12 lg:col-span-6">
+        {/* Cấu hình Landing Page */}
+        <Card className="col-span-12">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center">
-              <Building2 size={20} className="text-primary-600" />
+              <LayoutGrid size={20} className="text-primary-600" />
             </div>
-            <h3 className="font-semibold text-gray-800">Thông tin hệ thống</h3>
+            <h3 className="font-semibold text-gray-800">Cấu hình Landing Page (Trang chủ)</h3>
           </div>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên hệ thống</label>
-              <input type="text" defaultValue="YuKi House" className="premium-input rounded-xl" />
+          <div className="grid grid-cols-12 gap-6">
+            <div className="col-span-12">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tiêu đề chính (Hero Title)</label>
+              <input
+                type="text"
+                value={settings.heroTitle}
+                onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })}
+                className="premium-input rounded-xl"
+              />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email liên hệ</label>
-              <input type="email" defaultValue="info@yukihouse.vn" className="premium-input rounded-xl" />
+            <div className="col-span-12">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Phụ đề (Hero Subtitle)</label>
+              <textarea
+                value={settings.heroSubtitle}
+                onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })}
+                rows={3}
+                className="premium-input rounded-xl resize-none"
+              />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Số điện thoại</label>
-              <input type="tel" defaultValue="1900-1234" className="premium-input rounded-xl" />
+            <div className="col-span-12">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Địa chỉ trụ sở chính (Hiển thị ở Footer)</label>
+              <input
+                type="text"
+                value={settings.mainAddress}
+                onChange={(e) => setSettings({ ...settings, mainAddress: e.target.value })}
+                className="premium-input rounded-xl"
+              />
             </div>
           </div>
         </Card>
 
-        {/* Don gia dien nuoc */}
+        {/* Thông tin hệ thống */}
+        <Card className="col-span-12 lg:col-span-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center">
+              <Building2 size={20} className="text-purple-600" />
+            </div>
+            <h3 className="font-semibold text-gray-800">Thông tin liên hệ liên lạc</h3>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên thương hiệu hệ thống</label>
+              <input
+                type="text"
+                value={settings.systemName}
+                onChange={(e) => setSettings({ ...settings, systemName: e.target.value })}
+                className="premium-input rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email liên hệ</label>
+              <input
+                type="email"
+                value={settings.contactEmail}
+                onChange={(e) => setSettings({ ...settings, contactEmail: e.target.value })}
+                className="premium-input rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Số hotline</label>
+              <input
+                type="tel"
+                value={settings.contactPhone}
+                onChange={(e) => setSettings({ ...settings, contactPhone: e.target.value })}
+                className="premium-input rounded-xl"
+              />
+            </div>
+          </div>
+        </Card>
+
+        {/* Đơn giá điện nước */}
         <Card className="col-span-12 lg:col-span-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-warning-50 rounded-xl flex items-center justify-center">
               <Zap size={20} className="text-warning-600" />
             </div>
-            <h3 className="font-semibold text-gray-800">Đơn giá điện nước</h3>
+            <h3 className="font-semibold text-gray-800">Đơn giá dịch vụ</h3>
           </div>
           <div className="space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Giá điện (VND/kWh)</label>
-              <input type="number" defaultValue="3500" className="premium-input rounded-xl" />
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Đơn giá điện (VND/kWh)</label>
+              <input
+                type="number"
+                value={settings.electricPrice}
+                onChange={(e) => setSettings({ ...settings, electricPrice: Number(e.target.value) })}
+                className="premium-input rounded-xl"
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Giá nước (VND/m3)</label>
-              <input type="number" defaultValue="15000" className="premium-input rounded-xl" />
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Đơn giá nước (VND/m³)</label>
+              <input
+                type="number"
+                value={settings.waterPrice}
+                onChange={(e) => setSettings({ ...settings, waterPrice: Number(e.target.value) })}
+                className="premium-input rounded-xl"
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Phí dịch vụ cơ bản (VND/tháng)</label>
-              <input type="number" defaultValue="300000" className="premium-input rounded-xl" />
-            </div>
-          </div>
-        </Card>
-
-        {/* Bao mat */}
-        <Card className="col-span-12">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-danger-50 rounded-xl flex items-center justify-center">
-              <Shield size={20} className="text-danger-500" />
-            </div>
-            <h3 className="font-semibold text-gray-800">Bảo mật</h3>
-          </div>
-          <div className="grid grid-cols-12 gap-6">
-            <div className="col-span-12 sm:col-span-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Thời gian hết phiên (phút)</label>
-              <input type="number" defaultValue="60" className="premium-input rounded-xl" />
-            </div>
-            <div className="col-span-12 sm:col-span-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Số lần đăng nhập sai tối đa</label>
-              <input type="number" defaultValue="5" className="premium-input rounded-xl" />
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Phí quản lý & dịch vụ cơ bản (VND/tháng)</label>
+              <input
+                type="number"
+                value={settings.serviceFee}
+                onChange={(e) => setSettings({ ...settings, serviceFee: Number(e.target.value) })}
+                className="premium-input rounded-xl"
+              />
             </div>
           </div>
         </Card>
       </div>
 
-      <div className="flex justify-end">
-        <Button onClick={() => toast.success("Da luu cai dat")}>
+      <div className="flex justify-end pt-4">
+        <Button onClick={handleSave} size="lg">
           Lưu cài đặt
         </Button>
       </div>

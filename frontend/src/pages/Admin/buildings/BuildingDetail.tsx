@@ -1,16 +1,16 @@
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { ArrowLeft, MapPin, Layers, Building2, Home, Pencil, Loader2, BedDouble, Bath, Plus } from "lucide-react";
-import Badge from "../../components/ui/Badge";
-import Button from "../../components/ui/Button";
-import Card from "../../components/ui/Card";
-import Modal from "../../components/ui/Modal";
+import Badge from "../../../components/ui/Badge";
+import Button from "../../../components/ui/Button";
+import Card from "../../../components/ui/Card";
+import Modal from "../../../components/ui/Modal";
 import { toast } from "sonner";
 
-import * as buildingService from "../../services/buildings.service";
-import * as apartmentService from "../../services/apartments.service";
-import type { BuildingData } from "../../services/buildings.service";
-import type { ApartmentData } from "../../services/apartments.service";
+import * as buildingService from "../../../services/buildings.service";
+import * as apartmentService from "../../../services/apartments.service";
+import type { BuildingData } from "../../../services/buildings.service";
+import type { ApartmentData } from "../../../services/apartments.service";
 
 export default function BuildingDetail() {
   const { id } = useParams();
@@ -38,7 +38,7 @@ export default function BuildingDetail() {
 
     setUploading(true);
     try {
-      const { uploadImage } = await import("../../utils/upload");
+      const { uploadImage } = await import("../../../utils/upload");
       const url = await uploadImage(file);
       setFormData((prev) => ({ ...prev, thumbnail_url: url }));
       toast.success("Tải ảnh lên thành công");

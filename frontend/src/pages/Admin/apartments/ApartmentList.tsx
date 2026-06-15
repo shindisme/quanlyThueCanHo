@@ -1,23 +1,23 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, Loader2, Home } from "lucide-react";
-import PageHeader from "../../components/ui/PageHeader";
-import Button from "../../components/ui/Button";
-import SearchInput from "../../components/ui/SearchInput";
-import Badge from "../../components/ui/Badge";
-import Modal from "../../components/ui/Modal";
-import ConfirmDialog from "../../components/ui/ConfirmDialog";
-import Pagination from "../../components/ui/Pagination";
+import { Plus, Pencil, Trash2, Loader2, Home, Star } from "lucide-react";
+import PageHeader from "../../../components/ui/PageHeader";
+import Button from "../../../components/ui/Button";
+import SearchInput from "../../../components/ui/SearchInput";
+import Badge from "../../../components/ui/Badge";
+import Modal from "../../../components/ui/Modal";
+import ConfirmDialog from "../../../components/ui/ConfirmDialog";
+import Pagination from "../../../components/ui/Pagination";
 import { toast } from "sonner";
 
-import * as apartmentService from "../../services/apartments.service";
-import * as buildingService from "../../services/buildings.service";
-import type { ApartmentData } from "../../services/apartments.service";
-import type { BuildingData } from "../../services/buildings.service";
-import { useAuthStore } from "../../stores/auth.store";
-import { mockUsers } from "../../data/users";
+import * as apartmentService from "../../../services/apartments.service";
+import * as buildingService from "../../../services/buildings.service";
+import type { ApartmentData } from "../../../services/apartments.service";
+import type { BuildingData } from "../../../services/buildings.service";
+import { useAuthStore } from "../../../stores/auth.store";
+import { mockUsers } from "../../../data/users";
 
-import { useSort } from "../../hooks/useSort";
-import { formatApartmentDisplay, removeVietnameseTones } from "../../utils/format";
+import { useSort } from "../../../hooks/useSort";
+import { formatApartmentDisplay, removeVietnameseTones } from "../../../utils/format";
 
 export default function ApartmentList() {
   const { role, email } = useAuthStore();
@@ -36,6 +36,7 @@ export default function ApartmentList() {
   const [editItem, setEditItem] = useState<ApartmentData | null>(null);
   const [deleteItem, setDeleteItem] = useState<ApartmentData | null>(null);
   const [saving, setSaving] = useState(false);
+  const [featuredIds, setFeaturedIds] = useState<number[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -53,7 +54,29 @@ export default function ApartmentList() {
     buildingService.getAllBuildings().then((result) => {
       setBuildings(result.data);
     }).catch(() => { });
+
+    const stored = localStorage.getItem("featured-apartment-ids");
+    if (stored) {
+      try {
+        setFeaturedIds(JSON.parse(stored));
+      } catch {
+        // ignore
+      }
+    }
   }, []);
+
+  function toggleFeatured(id: number) {
+    let updated: number[];
+    if (featuredIds.includes(id)) {
+      updated = featuredIds.filter((fid) => fid !== id);
+      toast.success("Đã bỏ nổi bật căn hộ");
+    } else {
+      updated = [...featuredIds, id];
+      toast.success("Đã đặt làm nổi bật trên trang chủ");
+    }
+    setFeaturedIds(updated);
+    localStorage.setItem("featured-apartment-ids", JSON.stringify(updated));
+  }
 
   // Lấy danh sách căn hộ (server-side pagination)
   useEffect(() => {
@@ -260,6 +283,9 @@ export default function ApartmentList() {
                 <th onClick={() => requestSort("status")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                   Trạng thái {getSortIcon("status")}
                 </th>
+                {role === "ADMIN" && (
+                  <th className="text-center w-24">Nổi bật</th>
+                )}
                 <th className="text-right">Chức năng</th>
               </tr>
             </thead>
@@ -280,6 +306,21 @@ export default function ApartmentList() {
                   <td className="text-gray-600">{apt.bathrooms}</td>
                   <td className="font-semibold text-gray-850">{formatPrice(apt.rental_price)}</td>
                   <td>{getStatusBadge(apt.status)}</td>
+                  {role === "ADMIN" && (
+                    <td className="text-center">
+                      <button
+                        onClick={() => toggleFeatured(apt.id)}
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                          featuredIds.includes(apt.id)
+                            ? "text-amber-500 hover:text-amber-600"
+                            : "text-gray-300 hover:text-gray-400"
+                        }`}
+                        title={featuredIds.includes(apt.id) ? "Bỏ nổi bật" : "Bật nổi bật"}
+                      >
+                        <Star size={18} fill={featuredIds.includes(apt.id) ? "currentColor" : "none"} />
+                      </button>
+                    </td>
+                  )}
                   <td>
                     <div className="flex items-center justify-end gap-1">
                       <button onClick={() => openEditForm(apt)}
@@ -296,7 +337,7 @@ export default function ApartmentList() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="text-center py-12 text-gray-500">
+                  <td colSpan={role === "ADMIN" ? 9 : 8} className="text-center py-12 text-gray-500">
                     <Home size={48} className="mx-auto mb-3 text-gray-300" />
                     Không tìm thấy căn hộ nào
                   </td>

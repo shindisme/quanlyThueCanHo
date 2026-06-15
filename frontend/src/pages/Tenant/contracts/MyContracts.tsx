@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { FileText } from "lucide-react";
-import Badge from "../../components/ui/Badge";
-import SearchInput from "../../components/ui/SearchInput";
-import PageHeader from "../../components/ui/PageHeader";
+import Badge from "../../../components/ui/Badge";
+import SearchInput from "../../../components/ui/SearchInput";
+import PageHeader from "../../../components/ui/PageHeader";
 
 // ============================================================
 // HỢP ĐỒNG CỦA TÔI - Tenant xem hợp đồng

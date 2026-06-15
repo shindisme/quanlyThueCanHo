@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { User, Mail, Save } from "lucide-react";
-import Button from "../../components/ui/Button";
-import PageHeader from "../../components/ui/PageHeader";
-import { useAuthStore } from "../../stores/auth.store";
-import { changePassword } from "../../services/auth.service";
+import Button from "../../../components/ui/Button";
+import PageHeader from "../../../components/ui/PageHeader";
+import { useAuthStore } from "../../../stores/auth.store";
+import { changePassword } from "../../../services/auth.service";
 import { toast } from "sonner";
 
 // ============================================================

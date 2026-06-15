@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Receipt } from "lucide-react";
-import Badge from "../../components/ui/Badge";
-import SearchInput from "../../components/ui/SearchInput";
-import PageHeader from "../../components/ui/PageHeader";
+import Badge from "../../../components/ui/Badge";
+import SearchInput from "../../../components/ui/SearchInput";
+import PageHeader from "../../../components/ui/PageHeader";
 
 // ============================================================
 // HÓA ĐƠN CỦA TÔI - Tenant xem hóa đơn
@@ -26,8 +26,8 @@ const mockInvoices = [
   },
 ];
 
-import { useSort } from "../../hooks/useSort";
-import { removeVietnameseTones } from "../../utils/format";
+import { useSort } from "../../../hooks/useSort";
+import { removeVietnameseTones } from "../../../utils/format";
 
 export default function MyInvoices() {
   const [search, setSearch] = useState("");

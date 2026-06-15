@@ -2,14 +2,6 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X, Building2 } from "lucide-react";
 
-// ============================================================
-// GUEST NAVBAR - DashboardPack Style
-// ============================================================
-// Navbar cho trang công khai (Guest)
-// - Fixed top, backdrop blur khi cuộn
-// - Logo gradient + menu links + nút đăng nhập
-// - Responsive: hamburger menu trên mobile
-
 export default function GuestNavbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -26,18 +18,16 @@ export default function GuestNavbar() {
   const navLinks = [
     { label: "Trang chủ", path: "/" },
     { label: "Căn hộ", path: "/apartments" },
-    { label: "Tòa nhà", path: "/buildings" },
     { label: "Giới thiệu", path: "/about" },
     { label: "Liên hệ", path: "/contact" },
   ];
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
-          ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100"
-          : "bg-white/80 backdrop-blur-sm"
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
+        ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100"
+        : "bg-white/80 backdrop-blur-sm"
+        }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
@@ -56,27 +46,17 @@ export default function GuestNavbar() {
               <Link
                 key={link.path}
                 to={link.path}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  location.pathname === link.path
-                    ? "text-primary-600 bg-primary-50"
-                    : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
-                }`}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${location.pathname === link.path
+                  ? "text-primary-600 bg-primary-50"
+                  : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                  }`}
               >
                 {link.label}
               </Link>
             ))}
           </div>
 
-          {/* Login button */}
-          <div className="hidden lg:flex items-center gap-3">
-            <Link
-              to="/login"
-              className="px-5 py-2 text-white text-sm font-medium rounded-lg hover:opacity-90 transition-all"
-              style={{ background: "linear-gradient(135deg, #7C3AED, #6D28D9)" }}
-            >
-              Đăng nhập
-            </Link>
-          </div>
+          <div className="hidden lg:block w-5 h-5"></div>
 
           {/* Mobile toggle */}
           <button
@@ -95,23 +75,14 @@ export default function GuestNavbar() {
                 key={link.path}
                 to={link.path}
                 onClick={() => setIsMobileOpen(false)}
-                className={`block px-4 py-3 text-sm font-medium rounded-lg ${
-                  location.pathname === link.path
-                    ? "text-primary-600 bg-primary-50"
-                    : "text-gray-600 hover:bg-gray-50"
-                }`}
+                className={`block px-4 py-3 text-sm font-medium rounded-lg ${location.pathname === link.path
+                  ? "text-primary-600 bg-primary-50"
+                  : "text-gray-600 hover:bg-gray-50"
+                  }`}
               >
                 {link.label}
               </Link>
             ))}
-            <Link
-              to="/login"
-              onClick={() => setIsMobileOpen(false)}
-              className="block mt-2 px-4 py-3 text-sm font-semibold text-white rounded-lg text-center"
-              style={{ background: "linear-gradient(135deg, #7C3AED, #6D28D9)" }}
-            >
-              Đăng nhập
-            </Link>
           </div>
         )}
       </div>

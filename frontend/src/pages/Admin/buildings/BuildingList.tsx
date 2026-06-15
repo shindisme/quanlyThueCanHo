@@ -1,18 +1,18 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, MapPin, Layers, Home, MoreVertical, Pencil, Trash2, Loader2, Building2 } from "lucide-react";
-import PageHeader from "../../components/ui/PageHeader";
-import Button from "../../components/ui/Button";
-import SearchInput from "../../components/ui/SearchInput";
-import Badge from "../../components/ui/Badge";
-import Modal from "../../components/ui/Modal";
-import ConfirmDialog from "../../components/ui/ConfirmDialog";
+import PageHeader from "../../../components/ui/PageHeader";
+import Button from "../../../components/ui/Button";
+import SearchInput from "../../../components/ui/SearchInput";
+import Badge from "../../../components/ui/Badge";
+import Modal from "../../../components/ui/Modal";
+import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import { toast } from "sonner";
 
-import { removeVietnameseTones } from "../../utils/format";
+import { removeVietnameseTones } from "../../../utils/format";
 
-import * as buildingService from "../../services/buildings.service";
-import type { BuildingData } from "../../services/buildings.service";
+import * as buildingService from "../../../services/buildings.service";
+import type { BuildingData } from "../../../services/buildings.service";
 
 export default function BuildingList() {
   const navigate = useNavigate();
@@ -65,7 +65,7 @@ export default function BuildingList() {
 
     setUploading(true);
     try {
-      const { uploadImage } = await import("../../utils/upload");
+      const { uploadImage } = await import("../../../utils/upload");
       const url = await uploadImage(file);
       setFormData((prev) => ({ ...prev, thumbnail_url: url }));
       toast.success("Tải ảnh lên thành công");

@@ -59,7 +59,7 @@ export default function Header() {
 
   function handleLogout() {
     logout();
-    navigate("/login");
+    navigate("/system/login");
   }
 
   const breadcrumbParts = getBreadcrumb();

@@ -1,39 +1,37 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import Login from "../pages/Login";
+import Login from "../pages/auth/Login";
 import AdminLayout from "../layouts/AdminLayout";
 import TenantLayout from "../layouts/TenantLayout";
 import GuestLayout from "../layouts/GuestLayout";
 import RoleRoute from "./RoleRoute";
-import RootRedirect from "./RootRedirect";
 
 // Admin pages
-import AdminDashboard from "../pages/Admin/Dashboard";
-import BuildingList from "../pages/Admin/BuildingList";
-import BuildingDetail from "../pages/Admin/BuildingDetail";
-import ApartmentList from "../pages/Admin/ApartmentList";
-import ApartmentDetail from "../pages/Admin/ApartmentDetail";
-import TenantList from "../pages/Admin/TenantList";
-import ContractList from "../pages/Admin/ContractList";
-import InvoiceList from "../pages/Admin/InvoiceList";
-import PaymentList from "../pages/Admin/PaymentList";
-import MaintenanceKanban from "../pages/Admin/MaintenanceKanban";
-import ScheduleList from "../pages/Admin/ScheduleList";
-import UtilityList from "../pages/Admin/UtilityList";
-import NotificationList from "../pages/Admin/NotificationList";
-import AIAssistant from "../pages/Admin/AIAssistant";
-import SettingsPage from "../pages/Admin/SettingsPage";
-import UserList from "../pages/Admin/UserList";
-import ReportDashboard from "../pages/Admin/ReportDashboard";
+import AdminDashboard from "../pages/Admin/dashboard/Dashboard";
+import BuildingList from "../pages/Admin/buildings/BuildingList";
+import BuildingDetail from "../pages/Admin/buildings/BuildingDetail";
+import ApartmentList from "../pages/Admin/apartments/ApartmentList";
+import ApartmentDetail from "../pages/Admin/apartments/ApartmentDetail";
+import TenantList from "../pages/Admin/tenants/TenantList";
+import ContractList from "../pages/Admin/contracts/ContractList";
+import InvoiceList from "../pages/Admin/invoices/InvoiceList";
+import PaymentList from "../pages/Admin/payments/PaymentList";
+import MaintenanceKanban from "../pages/Admin/maintenance/MaintenanceKanban";
+import ScheduleList from "../pages/Admin/schedules/ScheduleList";
+import UtilityList from "../pages/Admin/utilities/UtilityList";
+import NotificationList from "../pages/Admin/notifications/NotificationList";
+import SettingsPage from "../pages/Admin/settings/SettingsPage";
+import UserList from "../pages/Admin/users/UserList";
+import ReportDashboard from "../pages/Admin/reports/ReportDashboard";
 
 // Manager pages
-import ManagerDashboard from "../pages/Manager/Dashboard";
+import ManagerDashboard from "../pages/Manager/dashboard/Dashboard";
 
 // Tenant pages
-import TenantHome from "../pages/Tenant/Home";
-import TenantContracts from "../pages/Tenant/MyContracts";
-import TenantInvoices from "../pages/Tenant/MyInvoices";
-import TenantMaintenance from "../pages/Tenant/MyMaintenance";
-import ProfilePage from "../pages/Tenant/ProfilePage";
+import TenantHome from "../pages/Tenant/home/Home";
+import TenantContracts from "../pages/Tenant/contracts/MyContracts";
+import TenantInvoices from "../pages/Tenant/invoices/MyInvoices";
+import TenantMaintenance from "../pages/Tenant/maintenance/MyMaintenance";
+import ProfilePage from "../pages/Tenant/profile/ProfilePage";
 
 // Guest pages
 import GuestHomePage from "../pages/Guest/HomePage";
@@ -43,21 +41,21 @@ import GuestContact from "../pages/Guest/Contact";
 import GuestAbout from "../pages/Guest/About";
 
 const router = createBrowserRouter([
-  // Trang login
+  // Trang login mới
   {
-    path: "/login",
+    path: "/system/login",
     element: <Login />,
   },
 
-  // Điều hướng gốc /
+  // Tự động chuyển hướng từ login cũ sang login mới
   {
-    path: "/",
-    element: <RootRedirect />,
+    path: "/login",
+    element: <Navigate to="/system/login" replace />,
   },
 
-  // Tạm thời chuyển trang Guest sang /guest
+  // Trang Guest công khai đặt ở gốc /
   {
-    path: "/guest",
+    path: "/",
     element: <GuestLayout />,
     children: [
       { index: true, element: <GuestHomePage /> },
@@ -69,7 +67,7 @@ const router = createBrowserRouter([
     ],
   },
 
-  // Admin routes - can role ADMIN
+  // Admin routes - cần role ADMIN
   {
     path: "/admin",
     element: (
@@ -94,13 +92,12 @@ const router = createBrowserRouter([
       { path: "notifications", element: <NotificationList /> },
       { path: "users", element: <UserList /> },
       { path: "reports", element: <ReportDashboard /> },
-      { path: "ai-assistant", element: <AIAssistant /> },
       { path: "settings", element: <SettingsPage /> },
       { path: "profile", element: <ProfilePage /> },
     ],
   },
 
-  // Manager routes - can role MANAGER
+  // Manager routes - cần role MANAGER
   {
     path: "/manager",
     element: (
@@ -121,12 +118,11 @@ const router = createBrowserRouter([
       { path: "utilities", element: <UtilityList /> },
       { path: "notifications", element: <NotificationList /> },
       { path: "reports", element: <ReportDashboard /> },
-      { path: "ai-assistant", element: <AIAssistant /> },
       { path: "profile", element: <ProfilePage /> },
     ],
   },
 
-  // Tenant routes - can role TENANT
+  // Tenant routes - cần role TENANT
   {
     path: "/tenant",
     element: (
@@ -143,7 +139,6 @@ const router = createBrowserRouter([
       { path: "utilities", element: <UtilityList /> },
       { path: "maintenance", element: <TenantMaintenance /> },
       { path: "notifications", element: <NotificationList /> },
-      { path: "ai-assistant", element: <AIAssistant /> },
       { path: "profile", element: <ProfilePage /> },
     ],
   },

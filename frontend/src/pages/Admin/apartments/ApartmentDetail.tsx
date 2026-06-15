@@ -1,17 +1,17 @@
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Home, Loader2, Trash2, Plus } from "lucide-react";
-import Card from "../../components/ui/Card";
-import Badge from "../../components/ui/Badge";
-import Button from "../../components/ui/Button";
+import Card from "../../../components/ui/Card";
+import Badge from "../../../components/ui/Badge";
+import Button from "../../../components/ui/Button";
 import { toast } from "sonner";
 
-import * as apartmentService from "../../services/apartments.service";
-import type { ApartmentData } from "../../services/apartments.service";
-import type { ApartmentImage } from "../../types";
+import * as apartmentService from "../../../services/apartments.service";
+import type { ApartmentData } from "../../../services/apartments.service";
+import type { ApartmentImage } from "../../../types";
 
-import { useAuthStore } from "../../stores/auth.store";
-import { formatApartmentDisplay } from "../../utils/format";
+import { useAuthStore } from "../../../stores/auth.store";
+import { formatApartmentDisplay } from "../../../utils/format";
 
 export default function ApartmentDetail() {
   const { role } = useAuthStore();
@@ -71,7 +71,7 @@ export default function ApartmentDetail() {
 
     setUploading(true);
     try {
-      const { uploadImage } = await import("../../utils/upload");
+      const { uploadImage } = await import("../../../utils/upload");
       const url = await uploadImage(file);
       
       const newImg: ApartmentImage = {

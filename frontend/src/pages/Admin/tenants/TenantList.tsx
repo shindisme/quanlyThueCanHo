@@ -1,22 +1,22 @@
 import { useState } from "react";
 import { Plus, Users } from "lucide-react";
-import PageHeader from "../../components/ui/PageHeader";
-import Button from "../../components/ui/Button";
-import SearchInput from "../../components/ui/SearchInput";
-import Badge from "../../components/ui/Badge";
-import DataTable, { type Column } from "../../components/ui/DataTable";
-import Pagination from "../../components/ui/Pagination";
-import Modal from "../../components/ui/Modal";
-import Input from "../../components/ui/Input";
-import ConfirmDialog from "../../components/ui/ConfirmDialog";
-import { mockTenants } from "../../data/tenants";
-import { mockUsers } from "../../data/users";
-import { mockApartments } from "../../data/apartments";
-import { mockContracts } from "../../data/contracts";
-import { useAuthStore } from "../../stores/auth.store";
-import type { Tenant } from "../../types";
+import PageHeader from "../../../components/ui/PageHeader";
+import Button from "../../../components/ui/Button";
+import SearchInput from "../../../components/ui/SearchInput";
+import Badge from "../../../components/ui/Badge";
+import DataTable, { type Column } from "../../../components/ui/DataTable";
+import Pagination from "../../../components/ui/Pagination";
+import Modal from "../../../components/ui/Modal";
+import Input from "../../../components/ui/Input";
+import ConfirmDialog from "../../../components/ui/ConfirmDialog";
+import { mockTenants } from "../../../data/tenants";
+import { mockUsers } from "../../../data/users";
+import { mockApartments } from "../../../data/apartments";
+import { mockContracts } from "../../../data/contracts";
+import { useAuthStore } from "../../../stores/auth.store";
+import type { Tenant } from "../../../types";
 import { toast } from "sonner";
-import { removeVietnameseTones } from "../../utils/format";
+import { removeVietnameseTones } from "../../../utils/format";
 
 // Trang danh sach nguoi thue
 export default function TenantList() {

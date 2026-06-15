@@ -1,19 +1,19 @@
 import { useState, useEffect } from "react";
 import { CalendarDays, Check, X, Trash2, Loader2 } from "lucide-react";
-import PageHeader from "../../components/ui/PageHeader";
-import Badge from "../../components/ui/Badge";
-import SearchInput from "../../components/ui/SearchInput";
-import ConfirmDialog from "../../components/ui/ConfirmDialog";
+import PageHeader from "../../../components/ui/PageHeader";
+import Badge from "../../../components/ui/Badge";
+import SearchInput from "../../../components/ui/SearchInput";
+import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import { toast } from "sonner";
 
-import { useAuthStore } from "../../stores/auth.store";
-import { mockUsers } from "../../data/users";
-import * as scheduleService from "../../services/schedules.service";
-import type { ScheduleData } from "../../services/schedules.service";
+import { useAuthStore } from "../../../stores/auth.store";
+import { mockUsers } from "../../../data/users";
+import * as scheduleService from "../../../services/schedules.service";
+import type { ScheduleData } from "../../../services/schedules.service";
 
-import { useSort } from "../../hooks/useSort";
-import { formatApartmentDisplay, removeVietnameseTones } from "../../utils/format";
-import { mockBuildings } from "../../data/buildings";
+import { useSort } from "../../../hooks/useSort";
+import { formatApartmentDisplay, removeVietnameseTones } from "../../../utils/format";
+import { mockBuildings } from "../../../data/buildings";
 
 export default function ScheduleList() {
   const { role, email } = useAuthStore();

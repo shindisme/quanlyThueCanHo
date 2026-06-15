@@ -12,7 +12,6 @@ import {
   Bell,
   UserCog,
   BarChart3,
-  Bot,
   Settings,
   ClipboardList,
   User,
@@ -65,7 +64,6 @@ const adminMenu: SidebarGroup[] = [
     items: [
       { label: "Tài khoản", path: "/admin/users", icon: UserCog },
       { label: "Báo cáo", path: "/admin/reports", icon: BarChart3 },
-      { label: "Trợ lý AI", path: "/admin/ai-assistant", icon: Bot },
       { label: "Cài đặt", path: "/admin/settings", icon: Settings },
     ],
   },
@@ -100,7 +98,6 @@ const managerMenu: SidebarGroup[] = [
     title: "Khác",
     items: [
       { label: "Báo cáo", path: "/manager/reports", icon: BarChart3 },
-      { label: "Tro ly AI", path: "/manager/ai-assistant", icon: Bot },
     ],
   },
 ];
@@ -126,7 +123,6 @@ const tenantMenu: SidebarGroup[] = [
     items: [
       { label: "Yêu cầu sửa chữa", path: "/tenant/maintenance", icon: Wrench },
       { label: "Thông báo", path: "/tenant/notifications", icon: Bell },
-      { label: "Tro lý AI", path: "/tenant/ai-assistant", icon: Bot },
       { label: "Hồ sơ cá nhân", path: "/tenant/profile", icon: User },
     ],
   },

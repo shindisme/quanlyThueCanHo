@@ -60,7 +60,7 @@ api.interceptors.response.use(
     // 401 = Token hết hạn hoặc không hợp lệ → buộc logout (NGOẠI TRỪ api login)
     if (error.response?.status === 401 && !error.config.url?.includes("/auth/login")) {
       localStorage.removeItem("auth-storage");
-      window.location.href = "/login";
+      window.location.href = "/system/login";
     }
     return Promise.reject(error);
   }

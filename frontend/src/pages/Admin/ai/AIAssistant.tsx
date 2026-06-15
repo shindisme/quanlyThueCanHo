@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Bot, User, Sparkles } from "lucide-react";
-import Card from "../../components/ui/Card";
-import PageHeader from "../../components/ui/PageHeader";
+import Card from "../../../components/ui/Card";
+import PageHeader from "../../../components/ui/PageHeader";
 
 // Tin nhan gia lap
 interface Message {
@@ -11,7 +11,7 @@ interface Message {
   time: string;
 }
 
-import api from "../../lib/api";
+import api from "../../../lib/api";
 
 // Cau hoi goi y
 const suggestedQuestions = [

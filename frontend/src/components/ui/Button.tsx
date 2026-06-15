@@ -1,12 +1,7 @@
 import { cn } from "../../lib/utils";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-// Cac bien the cua nut bam
-// primary: hanh dong chinh (tim)
-// secondary: hanh dong phu (xam)
-// outline: vien (khong nen)
-// ghost: trong suot
-// danger: nguy hiem (do)
+
 type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger";
 type ButtonSize = "sm" | "md" | "lg";
 

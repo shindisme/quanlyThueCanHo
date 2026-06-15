@@ -1,22 +1,22 @@
 import { useState, useEffect } from "react";
 import { Zap, Plus, Droplets } from "lucide-react";
-import PageHeader from "../../components/ui/PageHeader";
-import Card from "../../components/ui/Card";
-import Button from "../../components/ui/Button";
-import Modal from "../../components/ui/Modal";
-import SearchInput from "../../components/ui/SearchInput";
+import PageHeader from "../../../components/ui/PageHeader";
+import Card from "../../../components/ui/Card";
+import Button from "../../../components/ui/Button";
+import Modal from "../../../components/ui/Modal";
+import SearchInput from "../../../components/ui/SearchInput";
 import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 
-import { mockUtilityReadings } from "../../data/utilities";
-import * as apartmentService from "../../services/apartments.service";
-import * as buildingService from "../../services/buildings.service";
-import type { ApartmentData } from "../../services/apartments.service";
-import type { BuildingData } from "../../services/buildings.service";
-import { useAuthStore } from "../../stores/auth.store";
-import { mockUsers } from "../../data/users";
+import { mockUtilityReadings } from "../../../data/utilities";
+import * as apartmentService from "../../../services/apartments.service";
+import * as buildingService from "../../../services/buildings.service";
+import type { ApartmentData } from "../../../services/apartments.service";
+import type { BuildingData } from "../../../services/buildings.service";
+import { useAuthStore } from "../../../stores/auth.store";
+import { mockUsers } from "../../../data/users";
 
 interface UtilityRecord {
   id: number;
@@ -31,8 +31,8 @@ interface UtilityRecord {
   created_at: string;
 }
 
-import { useSort } from "../../hooks/useSort";
-import { formatApartmentDisplay, removeVietnameseTones } from "../../utils/format";
+import { useSort } from "../../../hooks/useSort";
+import { formatApartmentDisplay, removeVietnameseTones } from "../../../utils/format";
 
 export default function UtilityList() {
   const { role, email } = useAuthStore();

@@ -1,16 +1,16 @@
 import { Wrench } from "lucide-react";
-import PageHeader from "../../components/ui/PageHeader";
-import Card from "../../components/ui/Card";
-import Badge from "../../components/ui/Badge";
-import { mockMaintenanceRequests } from "../../data/maintenance";
-import { mockTenants } from "../../data/tenants";
-import { mockApartments } from "../../data/apartments";
-import { mockUsers } from "../../data/users";
-import { useAuthStore } from "../../stores/auth.store";
-import { PRIORITY_LABELS, PRIORITY_COLORS } from "../../constants/enums";
-import { formatRelativeTime } from "../../utils/format";
-import type { MaintenanceRequest } from "../../types";
-import type { RequestStatus, Priority } from "../../constants/enums";
+import PageHeader from "../../../components/ui/PageHeader";
+import Card from "../../../components/ui/Card";
+import Badge from "../../../components/ui/Badge";
+import { mockMaintenanceRequests } from "../../../data/maintenance";
+import { mockTenants } from "../../../data/tenants";
+import { mockApartments } from "../../../data/apartments";
+import { mockUsers } from "../../../data/users";
+import { useAuthStore } from "../../../stores/auth.store";
+import { PRIORITY_LABELS, PRIORITY_COLORS } from "../../../constants/enums";
+import { formatRelativeTime } from "../../../utils/format";
+import type { MaintenanceRequest } from "../../../types";
+import type { RequestStatus, Priority } from "../../../constants/enums";
 
 
 export default function MaintenanceKanban() {
