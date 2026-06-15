@@ -7,10 +7,9 @@ export interface ScheduleData {
   guest_email: string | null;
   apartment_id: number;
   schedule_time: string;
-  status: string; // PENDING | CONFIRMED | CANCELLED
+  status: string;
   created_at: string;
   temp_locked_until: string | null;
-  // API trả về include apartment
   apartment?: {
     id: number;
     room_number: string;
@@ -19,7 +18,6 @@ export interface ScheduleData {
   };
 }
 
-// Đặt lịch xem phòng - POST /schedules/book (public, không cần login)
 export async function bookViewing(data: {
   guest_name: string;
   guest_phone: string;
@@ -32,25 +30,21 @@ export async function bookViewing(data: {
   return res.data;
 }
 
-// Lấy danh sách lịch - GET /schedules (cần quyền ADMIN)
 export async function getSchedules(): Promise<ScheduleData[]> {
   const res = await api.get<ScheduleData[]>("/schedules");
   return res.data;
 }
 
-// Xác nhận lịch - PATCH /schedules/confirm/:id
 export async function confirmSchedule(id: number) {
-  const res = await api.patch(`/schedules/confirm/${id}`);
+  const res = await api.patch(`/schedules/confirm/${id}`, { status: "CONFIRMED" });
   return res.data;
 }
 
-// Hủy lịch - PATCH /schedules/cancel/:id
 export async function cancelSchedule(id: number) {
   const res = await api.patch(`/schedules/cancel/${id}`);
   return res.data;
 }
 
-// Xóa lịch - DELETE /schedules/:id
 export async function deleteSchedule(id: number) {
   const res = await api.delete(`/schedules/${id}`);
   return res.data;

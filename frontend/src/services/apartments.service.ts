@@ -24,6 +24,13 @@ export interface ApartmentData {
     address_new?: string;
     branch_name?: string;
   };
+  images?: {
+    id: number;
+    apartment_id: number;
+    image_url: string;
+    is_thumbnail: boolean;
+    created_at?: string;
+  }[];
 }
 
 export interface ApartmentPagination {

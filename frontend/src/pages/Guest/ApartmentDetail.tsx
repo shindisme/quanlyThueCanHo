@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, MapPin, Maximize2, Calendar, Phone, Mail, User } from "lucide-react";
 import Card from "../../components/ui/Card";
@@ -8,7 +8,7 @@ import Modal from "../../components/ui/Modal";
 import { mockApartments } from "../../data/apartments";
 import { mockBuildings } from "../../data/buildings";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../constants/enums";
-import { formatCurrency } from "../../utils/format";
+import { formatCurrency, formatApartmentDisplay } from "../../utils/format";
 import { toast } from "sonner";
 import { bookViewing } from "../../services/schedules.service";
 
@@ -20,6 +20,35 @@ export default function GuestApartmentDetail() {
   const building = apartment ? mockBuildings.find((b) => b.id === apartment.building_id) : null;
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  
+  const [images, setImages] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!id) return;
+    const stored = localStorage.getItem(`apartment-${id}-images`);
+    if (stored) {
+      setImages(JSON.parse(stored));
+    } else {
+      // Pre-populate with beautiful default images
+      const fallback = [
+        {
+          id: 1,
+          apartment_id: Number(id),
+          image_url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
+          is_thumbnail: true
+        },
+        {
+          id: 2,
+          apartment_id: Number(id),
+          image_url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
+          is_thumbnail: false
+        }
+      ];
+      localStorage.setItem(`apartment-${id}-images`, JSON.stringify(fallback));
+      setImages(fallback);
+    }
+  }, [id]);
+
   // Form đặt lịch - controlled inputs
   const [scheduleForm, setScheduleForm] = useState({
     guest_name: "", guest_phone: "", guest_email: "", schedule_time: "",
@@ -69,15 +98,50 @@ export default function GuestApartmentDetail() {
           {/* Cot trai - Thong tin chi tiet */}
           <div className="lg:col-span-2 space-y-6">
             {/* Hinh anh */}
-            <div className="w-full h-72 lg:h-96 bg-gray-100 rounded-2xl flex items-center justify-center overflow-hidden">
-              <span className="text-gray-300">Hinh anh can ho</span>
-            </div>
+            {images.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                <div className="w-full h-72 lg:h-96 rounded-2xl overflow-hidden border border-gray-200 shadow-sm bg-gray-50">
+                  <img
+                    src={images.find((img) => img.is_thumbnail)?.image_url || images[0].image_url}
+                    className="w-full h-full object-cover"
+                    alt="Ảnh căn hộ"
+                  />
+                </div>
+                {images.length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto py-1">
+                    {images.map((img) => (
+                      <button
+                        key={img.id}
+                        onClick={() => {
+                          const updated = images.map((i) => ({
+                            ...i,
+                            is_thumbnail: i.id === img.id
+                          }));
+                          setImages(updated);
+                        }}
+                        className={`w-20 h-14 rounded-lg overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${
+                          img.is_thumbnail ? "border-primary-500 scale-102" : "border-gray-200"
+                        }`}
+                      >
+                        <img src={img.image_url} className="w-full h-full object-cover" alt="" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="w-full h-72 lg:h-96 bg-gray-100 rounded-2xl flex items-center justify-center overflow-hidden border border-gray-200">
+                <span className="text-gray-300">Hinh anh can ho</span>
+              </div>
+            )}
 
             {/* Thong tin co ban */}
             <div>
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">P.{apartment.room_number} - Tầng {apartment.floor}</h1>
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    {formatApartmentDisplay(apartment.room_number, apartment.floor)}
+                  </h1>
                   <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
                     <MapPin size={14} />
                     <span>{building?.name} - {building?.address_new || building?.address_old}</span>

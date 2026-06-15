@@ -11,12 +11,16 @@ import { toast } from "sonner";
 import * as authService from "../../services/auth.service";
 import type { UserData } from "../../services/auth.service";
 
+import { useSort } from "../../hooks/useSort";
+import { removeVietnameseTones } from "../../utils/format";
+
 export default function UserList() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [deleteItem, setDeleteItem] = useState<UserData | null>(null);
+  const [resetItem, setResetItem] = useState<UserData | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Form state
@@ -38,11 +42,15 @@ export default function UserList() {
     }
   }
 
-  const filtered = users.filter(
-    (u) =>
-      u.email.toLowerCase().includes(search.toLowerCase()) ||
-      u.role.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = users.filter((u) => {
+    const term = removeVietnameseTones(search);
+    const emailNorm = removeVietnameseTones(u.email);
+    const roleNorm = removeVietnameseTones(u.role);
+    const phoneNorm = removeVietnameseTones(u.phone || "");
+    return emailNorm.includes(term) || roleNorm.includes(term) || phoneNorm.includes(term);
+  });
+
+  const { items: sortedUsers, requestSort, getSortIcon } = useSort(filtered);
 
   // Thêm user mới
   async function handleCreate() {
@@ -78,12 +86,14 @@ export default function UserList() {
   }
 
   // Reset password
-  async function handleResetPassword(user: UserData) {
+  async function confirmResetPassword() {
+    if (!resetItem) return;
     try {
-      await authService.resetPassword(user.id);
-      toast.success(`Đã reset mật khẩu cho ${user.email} về 123456`);
+      await authService.resetPassword(resetItem.id);
+      toast.success(`Đã đặt lại mật khẩu cho tài khoản "${resetItem.email}" về mặc định "123456"`);
+      setResetItem(null);
     } catch {
-      toast.error("Reset mật khẩu thất bại");
+      toast.error("Đặt lại mật khẩu thất bại");
     }
   }
 
@@ -126,24 +136,34 @@ export default function UserList() {
       />
 
       {/* Search */}
-      <SearchInput value={search} onChange={setSearch} placeholder="Tìm theo email, role..." className="max-w-md" />
+      <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm..." className="max-w-md" />
 
-      {/* Bảng dữ liệu (Adminator style) */}
+      {/* Bảng dữ liệu */}
       <div className="premium-table-container">
         <div className="overflow-x-auto">
           <table className="premium-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th>Email</th>
-                <th>SĐT</th>
-                <th>Role</th>
-                <th>Trạng thái</th>
-                <th className="text-right">Hành động</th>
+                <th onClick={() => requestSort("id")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  ID {getSortIcon("id")}
+                </th>
+                <th onClick={() => requestSort("email")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Email {getSortIcon("email")}
+                </th>
+                <th onClick={() => requestSort("phone")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  SĐT {getSortIcon("phone")}
+                </th>
+                <th onClick={() => requestSort("role")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Role {getSortIcon("role")}
+                </th>
+                <th onClick={() => requestSort("status")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Trạng thái {getSortIcon("status")}
+                </th>
+                <th className="text-right">Chức năng</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((user) => (
+              {sortedUsers.map((user) => (
                 <tr key={user.id}>
                   <td className="text-gray-650">#{user.id}</td>
                   <td className="font-semibold text-gray-800">{user.email}</td>
@@ -157,9 +177,9 @@ export default function UserList() {
                   <td>
                     <div className="flex items-center justify-end gap-1">
                       <button
-                        onClick={() => handleResetPassword(user)}
+                        onClick={() => setResetItem(user)}
                         className="p-2 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 cursor-pointer"
-                        title="Reset mật khẩu"
+                        title="Đặt lại mật khẩu"
                       >
                         <RotateCcw size={16} />
                       </button>
@@ -244,8 +264,18 @@ export default function UserList() {
         onClose={() => setDeleteItem(null)}
         onConfirm={handleDelete}
         title="Xóa tài khoản"
-        message={`Xóa tài khoản "${deleteItem?.email}"?`}
+        message={`Bạn có chắc chắn muốn xóa tài khoản "${deleteItem?.email}"?`}
         confirmText="Xóa"
+      />
+
+      {/* Dialog reset mật khẩu */}
+      <ConfirmDialog
+        isOpen={!!resetItem}
+        onClose={() => setResetItem(null)}
+        onConfirm={confirmResetPassword}
+        title="Đặt lại mật khẩu"
+        message={`Bạn có chắc chắn muốn đặt lại mật khẩu cho tài khoản "${resetItem?.email}" về mặc định "123456" không?`}
+        confirmText="Đặt lại"
       />
     </div>
   );

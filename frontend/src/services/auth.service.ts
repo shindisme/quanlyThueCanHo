@@ -1,13 +1,9 @@
 import api from "../lib/api";
 
-
-// Interface mô tả dữ liệu trả về khi login
 export interface LoginResponse {
-  token: string;  // JWT token để xác thực các request sau
-  role: string;   // Role: ADMIN | MANAGER | TENANT
+  token: string;
+  role: string;
 }
-
-// Interface mô tả thông tin user
 export interface UserData {
   id: number;
   email: string;
@@ -17,19 +13,16 @@ export interface UserData {
   created_at: string;
 }
 
-// Đăng nhập - POST /auth/login
 export async function login(email: string, password: string): Promise<LoginResponse> {
   const res = await api.post<LoginResponse>("/auth/login", { email, password });
   return res.data;
 }
 
-// Lấy danh sách tất cả users - GET /auth/users (cần quyền ADMIN)
 export async function getAllUsers(): Promise<UserData[]> {
   const res = await api.get<UserData[]>("/auth/users");
   return res.data;
 }
 
-// Tạo user mới - POST /auth/create-user (cần quyền ADMIN)
 export async function createUser(data: {
   email: string;
   role: string;
@@ -39,7 +32,6 @@ export async function createUser(data: {
   return res.data;
 }
 
-// Cập nhật user - PUT /auth/users/:id
 export async function updateUser(
   id: number,
   data: { email?: string; phone?: string; role?: string }
@@ -48,19 +40,16 @@ export async function updateUser(
   return res.data;
 }
 
-// Xóa user - DELETE /auth/delete-user/:id
 export async function deleteUser(id: number) {
   const res = await api.delete(`/auth/delete-user/${id}`);
   return res.data;
 }
 
-// Reset password - POST /auth/reset-password/:id
 export async function resetPassword(id: number) {
   const res = await api.post(`/auth/reset-password/${id}`);
   return res.data;
 }
 
-// Đổi password - POST /auth/change-password
 export async function changePassword(oldPass: string, newPass: string) {
   const res = await api.post("/auth/change-password", { oldPass, newPass });
   return res.data;

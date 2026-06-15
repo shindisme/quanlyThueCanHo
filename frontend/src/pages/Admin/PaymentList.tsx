@@ -15,14 +15,20 @@ export default function PaymentList() {
   const columns: Column<Payment>[] = [
     {
       key: "txn", label: "Ma giao dich",
+      sortValue: (p) => p.transaction_code || "",
       render: (p) => <span className="font-medium">{p.transaction_code || "-"}</span>,
     },
     {
       key: "invoice", label: "Hoa don",
+      sortValue: (p) => mockInvoices.find((i) => i.id === p.invoice_id)?.invoice_code || "",
       render: (p) => mockInvoices.find((i) => i.id === p.invoice_id)?.invoice_code || "-",
     },
     {
       key: "tenant", label: "Nguoi thue",
+      sortValue: (p) => {
+        const invoice = mockInvoices.find((i) => i.id === p.invoice_id);
+        return mockTenants.find((t) => t.id === invoice?.tenant_id)?.full_name || "";
+      },
       render: (p) => {
         const invoice = mockInvoices.find((i) => i.id === p.invoice_id);
         return mockTenants.find((t) => t.id === invoice?.tenant_id)?.full_name || "-";
@@ -30,18 +36,22 @@ export default function PaymentList() {
     },
     {
       key: "method", label: "Phuong thuc",
+      sortValue: (p) => PAYMENT_METHOD_LABELS[p.payment_method as PaymentMethod],
       render: (p) => PAYMENT_METHOD_LABELS[p.payment_method as PaymentMethod],
     },
     {
       key: "amount", label: "So tien",
+      sortValue: (p) => Number(p.amount),
       render: (p) => <span className="font-semibold">{formatCurrency(p.amount)}</span>,
     },
     {
       key: "date", label: "Thoi gian",
+      sortValue: (p) => new Date(p.paid_at).getTime(),
       render: (p) => formatDateTime(p.paid_at),
     },
     {
       key: "status", label: "Trang thai",
+      sortValue: (p) => p.status,
       render: (p) => (
         <Badge variant={PAYMENT_STATUS_COLORS[p.status as PaymentStatus] as "warning" | "success" | "danger"}>
           {PAYMENT_STATUS_LABELS[p.status as PaymentStatus]}

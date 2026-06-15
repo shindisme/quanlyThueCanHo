@@ -16,6 +16,7 @@ import { mockContracts } from "../../data/contracts";
 import { useAuthStore } from "../../stores/auth.store";
 import type { Tenant } from "../../types";
 import { toast } from "sonner";
+import { removeVietnameseTones } from "../../utils/format";
 
 // Trang danh sach nguoi thue
 export default function TenantList() {
@@ -44,12 +45,13 @@ export default function TenantList() {
     return mockTenants;
   })();
 
-  // Loc theo tu khoa
-  const filtered = displayTenants.filter(
-    (t) =>
-      t.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      t.citizen_id.includes(search)
-  );
+  // Loc 
+  const filtered = displayTenants.filter((t) => {
+    const term = removeVietnameseTones(search);
+    const nameNorm = removeVietnameseTones(t.full_name);
+    const citizenNorm = removeVietnameseTones(t.citizen_id);
+    return nameNorm.includes(term) || citizenNorm.includes(term);
+  });
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -66,16 +68,17 @@ export default function TenantList() {
   }
 
   const columns: Column<Tenant>[] = [
-    { key: "name", label: "Ho ten", render: (t) => <span className="font-medium">{t.full_name}</span> },
-    { key: "email", label: "Email", render: (t) => getUserEmail(t.user_id) },
-    { key: "phone", label: "So dien thoai", render: (t) => getUserPhone(t.user_id) },
-    { key: "citizen_id", label: "CCCD", render: (t) => t.citizen_id },
+    { key: "name", label: "Họ tên", sortValue: (t) => t.full_name, render: (t) => <span className="font-medium">{t.full_name}</span> },
+    { key: "email", label: "Email", sortValue: (t) => getUserEmail(t.user_id), render: (t) => getUserEmail(t.user_id) },
+    { key: "phone", label: "Số điện thoại", sortValue: (t) => getUserPhone(t.user_id), render: (t) => getUserPhone(t.user_id) },
+    { key: "citizen_id", label: "CCCD", sortValue: (t) => t.citizen_id, render: (t) => t.citizen_id },
     {
       key: "verified",
-      label: "Xac thuc",
+      label: "Xác thực",
+      sortValue: (t) => t.is_verified,
       render: (t) => (
         <Badge variant={t.is_verified ? "success" : "warning"}>
-          {t.is_verified ? "Da xac thuc" : "Chua xac thuc"}
+          {t.is_verified ? "Đã xác thực" : "Chưa xác thực"}
         </Badge>
       ),
     },
@@ -99,7 +102,7 @@ export default function TenantList() {
       <SearchInput
         value={search}
         onChange={(v) => { setSearch(v); setCurrentPage(1); }}
-        placeholder="Tim theo ho ten hoac CCCD..."
+        placeholder="Tìm kiếm..."
         className="max-w-md"
       />
 
@@ -107,17 +110,17 @@ export default function TenantList() {
 
       <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
 
-      {/* Modal them/sua nguoi thue */}
+      {/* Modal thêm/sửa người thuê */}
       <Modal
         isOpen={showForm}
         onClose={() => { setShowForm(false); setEditItem(null); }}
-        title={editItem ? "Chinh sua nguoi thue" : "Them nguoi thue moi"}
+        title={editItem ? "Chỉnh sửa người thuê" : "Thêm người thuê mới"}
         size="lg"
         footer={
           <>
-            <Button variant="outline" onClick={() => { setShowForm(false); setEditItem(null); }}>Huy</Button>
-            <Button onClick={() => { toast.success(editItem ? "Da cap nhat" : "Da them nguoi thue moi"); setShowForm(false); setEditItem(null); }}>
-              {editItem ? "Cap nhat" : "Them moi"}
+            <Button variant="outline" onClick={() => { setShowForm(false); setEditItem(null); }}>Hủy</Button>
+            <Button onClick={() => { toast.success(editItem ? "Đã cập nhật" : "Đã thêm người thuê mới"); setShowForm(false); setEditItem(null); }}>
+              {editItem ? "Cập nhật" : "Thêm mới"}
             </Button>
           </>
         }
@@ -125,16 +128,16 @@ export default function TenantList() {
         <div className="space-y-6">
           <div className="grid grid-cols-12 gap-6">
             <div className="col-span-12">
-              <Input label="Ho ten *" defaultValue={editItem?.full_name || ""} placeholder="Nguyen Van A" />
+              <Input label="Họ tên *" defaultValue={editItem?.full_name || ""} placeholder="Nguyễn Văn A" />
             </div>
             <div className="col-span-12 sm:col-span-6">
               <Input label="CCCD *" defaultValue={editItem?.citizen_id || ""} placeholder="079200001234" />
             </div>
             <div className="col-span-12 sm:col-span-6">
-              <Input label="Ngay sinh" type="date" defaultValue={editItem?.date_of_birth || ""} />
+              <Input label="Ngày sinh" type="date" defaultValue={editItem?.date_of_birth || ""} />
             </div>
             <div className="col-span-12">
-              <Input label="Dia chi" defaultValue={editItem?.address || ""} placeholder="Dia chi thuong tru" />
+              <Input label="Địa chỉ" defaultValue={editItem?.address || ""} placeholder="Địa chỉ thường trú" />
             </div>
           </div>
         </div>
@@ -143,9 +146,9 @@ export default function TenantList() {
       <ConfirmDialog
         isOpen={!!deleteItem}
         onClose={() => setDeleteItem(null)}
-        onConfirm={() => { toast.success("Da xoa nguoi thue"); setDeleteItem(null); }}
-        title="Xoa nguoi thue"
-        message={`Ban co chac muon xoa nguoi thue "${deleteItem?.full_name}"?`}
+        onConfirm={() => { toast.success("Đã xóa người thuê"); setDeleteItem(null); }}
+        title="Xóa người thuê"
+        message={`Bạn có chắc chắn muốn xóa người thuê "${deleteItem?.full_name}" không?`}
       />
     </div>
   );

@@ -216,6 +216,12 @@ body {
 .premium-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 800px;
+}
+
+.overflow-x-auto {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .premium-table th {

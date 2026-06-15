@@ -26,13 +26,25 @@ const mockInvoices = [
   },
 ];
 
+import { useSort } from "../../hooks/useSort";
+import { removeVietnameseTones } from "../../utils/format";
+
 export default function MyInvoices() {
   const [search, setSearch] = useState("");
 
-  const filtered = mockInvoices.filter(
-    (inv) => inv.invoice_code.toLowerCase().includes(search.toLowerCase()) ||
-      inv.billing_month.includes(search)
-  );
+  const filtered = mockInvoices.filter((inv) => {
+    const term = removeVietnameseTones(search);
+    const codeNorm = removeVietnameseTones(inv.invoice_code);
+    const monthNorm = removeVietnameseTones(inv.billing_month);
+    return codeNorm.includes(term) || monthNorm.includes(term);
+  });
+
+  const { items: sortedInvoices, requestSort, getSortIcon } = useSort(filtered, null, {
+    billing_month: (inv) => {
+      const [m, y] = inv.billing_month.split("/");
+      return Number(y) * 12 + Number(m);
+    }
+  });
 
   function formatCurrency(amount: number) {
     return new Intl.NumberFormat("vi-VN").format(amount) + " đ";
@@ -54,7 +66,7 @@ export default function MyInvoices() {
         iconColor="linear-gradient(135deg, #F59E0B, #FBBF24)"
       />
 
-      <SearchInput value={search} onChange={setSearch} placeholder="Tìm theo mã hóa đơn, tháng..." className="max-w-md" />
+      <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm..." className="max-w-md" />
 
       {/* Bảng hóa đơn */}
       <div className="premium-table-container">
@@ -62,18 +74,34 @@ export default function MyInvoices() {
           <table className="premium-table">
             <thead>
               <tr>
-                <th>Mã HĐ</th>
-                <th>Tháng</th>
-                <th className="text-right">Tiền thuê</th>
-                <th className="text-right">Điện</th>
-                <th className="text-right">Nước</th>
-                <th className="text-right">Dịch vụ</th>
-                <th className="text-right">Tổng</th>
-                <th className="text-center">Trạng thái</th>
+                <th onClick={() => requestSort("invoice_code")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Mã HĐ {getSortIcon("invoice_code")}
+                </th>
+                <th onClick={() => requestSort("billing_month")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Tháng {getSortIcon("billing_month")}
+                </th>
+                <th onClick={() => requestSort("rent")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Tiền thuê {getSortIcon("rent")}
+                </th>
+                <th onClick={() => requestSort("electricity")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Điện {getSortIcon("electricity")}
+                </th>
+                <th onClick={() => requestSort("water")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Nước {getSortIcon("water")}
+                </th>
+                <th onClick={() => requestSort("service_fee")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Dịch vụ {getSortIcon("service_fee")}
+                </th>
+                <th onClick={() => requestSort("total")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Tổng {getSortIcon("total")}
+                </th>
+                <th onClick={() => requestSort("status")} className="text-center cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Trạng thái {getSortIcon("status")}
+                </th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((inv) => (
+              {sortedInvoices.map((inv) => (
                 <tr key={inv.id}>
                   <td className="font-semibold text-primary-600">{inv.invoice_code}</td>
                   <td className="text-gray-650">{inv.billing_month}</td>

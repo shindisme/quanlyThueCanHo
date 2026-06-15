@@ -14,7 +14,7 @@ import { mockUsers } from "../../data/users";
 import { mockBuildings } from "../../data/buildings";
 import { useAuthStore } from "../../stores/auth.store";
 import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS } from "../../constants/enums";
-import { formatCurrency, formatDate } from "../../utils/format";
+import { formatCurrency, formatDate, formatApartmentDisplay, removeVietnameseTones } from "../../utils/format";
 import type { RentalContract } from "../../types";
 import type { ContractStatus } from "../../constants/enums";
 import { toast } from "sonner";
@@ -67,9 +67,10 @@ export default function ContractList() {
   const filtered = displayContracts.filter((c) => {
     const tenant = mockTenants.find((t) => t.id === c.tenant_id);
     const apt = mockApartments.find((a) => a.id === c.apartment_id);
-    const matchSearch =
-      tenant?.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      apt?.room_number.toLowerCase().includes(search.toLowerCase());
+    const term = removeVietnameseTones(search);
+    const tenantNameNorm = removeVietnameseTones(tenant?.full_name || "");
+    const roomNorm = removeVietnameseTones(apt?.room_number || "");
+    const matchSearch = tenantNameNorm.includes(term) || roomNorm.includes(term);
     const matchStatus = !statusFilter || c.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -78,23 +79,25 @@ export default function ContractList() {
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const columns: Column<RentalContract>[] = [
-    { key: "id", label: "Ma HD", render: (c) => <span className="font-medium">HD-{String(c.id).padStart(3, "0")}</span> },
-    { key: "tenant", label: "Nguoi thue", render: (c) => mockTenants.find((t) => t.id === c.tenant_id)?.full_name || "-" },
+    { key: "id", label: "Mã HĐ", sortValue: (c) => c.id, render: (c) => <span className="font-medium">HD-{String(c.id).padStart(3, "0")}</span> },
+    { key: "tenant", label: "Người thuê", sortValue: (c) => mockTenants.find((t) => t.id === c.tenant_id)?.full_name || "", render: (c) => mockTenants.find((t) => t.id === c.tenant_id)?.full_name || "-" },
     {
       key: "apartment",
-      label: "Can ho",
+      label: "Căn hộ",
+      sortValue: (c) => mockApartments.find((a) => a.id === c.apartment_id)?.room_number || "",
       render: (c) => {
         const apt = mockApartments.find((a) => a.id === c.apartment_id);
         const bld = apt ? mockBuildings.find((b) => b.id === apt.building_id) : null;
-        return apt ? `P.${apt.room_number} T${apt.floor} - ${bld?.branch_name || ""}` : "-";
+        return apt ? formatApartmentDisplay(apt.room_number, apt.floor, role || undefined, bld?.branch_name) : "-";
       }
     },
-    { key: "start", label: "Ngay bat dau", render: (c) => formatDate(c.start_date) },
-    { key: "end", label: "Ngay ket thuc", render: (c) => formatDate(c.end_date) },
-    { key: "deposit", label: "Tien coc", render: (c) => formatCurrency(c.deposit_amount) },
-    { key: "rent", label: "Tien thue/thang", render: (c) => formatCurrency(c.monthly_rent) },
+    { key: "start", label: "Ngày bắt đầu", sortValue: (c) => new Date(c.start_date).getTime(), render: (c) => formatDate(c.start_date) },
+    { key: "end", label: "Ngày kết thúc", sortValue: (c) => new Date(c.end_date).getTime(), render: (c) => formatDate(c.end_date) },
+    { key: "deposit", label: "Tiền cọc", sortValue: (c) => Number(c.deposit_amount), render: (c) => formatCurrency(c.deposit_amount) },
+    { key: "rent", label: "Tiền thuê/tháng", sortValue: (c) => Number(c.monthly_rent), render: (c) => formatCurrency(c.monthly_rent) },
     {
-      key: "status", label: "Trang thai",
+      key: "status", label: "Trạng thái",
+      sortValue: (c) => c.status,
       render: (c) => (
         <Badge variant={CONTRACT_STATUS_COLORS[c.status as ContractStatus] as "success" | "gray" | "danger"}>
           {CONTRACT_STATUS_LABELS[c.status as ContractStatus]}
@@ -122,8 +125,8 @@ export default function ContractList() {
         <SearchInput
           value={search}
           onChange={(v) => { setSearch(v); setCurrentPage(1); }}
-          placeholder="Tim theo nguoi thue hoac can ho..."
-          className="flex-1 max-w-sm"
+          placeholder="Tìm kiếm..."
+          className="max-w-md"
         />
         <select
           value={statusFilter}
@@ -141,25 +144,25 @@ export default function ContractList() {
 
       <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
 
-      {/* Modal tao hop dong */}
+      {/* Modal tạo hợp đồng */}
       <Modal
         isOpen={showForm}
         onClose={() => setShowForm(false)}
-        title="Tao hop dong moi"
+        title="Tạo hợp đồng mới"
         size="lg"
         footer={
           <>
-            <Button variant="outline" onClick={() => setShowForm(false)}>Huy</Button>
-            <Button onClick={() => { toast.success("Da tao hop dong moi"); setShowForm(false); }}>Tao hop dong</Button>
+            <Button variant="outline" onClick={() => setShowForm(false)}>Hủy</Button>
+            <Button onClick={() => { toast.success("Đã tạo hợp đồng mới"); setShowForm(false); }}>Tạo hợp đồng</Button>
           </>
         }
       >
         <div className="space-y-6">
           <div className="grid grid-cols-12 gap-6">
             <div className="col-span-12 sm:col-span-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Nguoi thue *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Người thuê *</label>
               <select className="premium-select w-full rounded-xl">
-                <option value="">Chon nguoi thue</option>
+                <option value="">Chọn người thuê</option>
                 {mockTenants.map((t) => <option key={t.id} value={t.id}>{t.full_name}</option>)}
               </select>
             </div>
@@ -207,7 +210,7 @@ export default function ContractList() {
 
             {/* Chọn Căn hộ */}
             <div className="col-span-12 sm:col-span-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Can ho *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Căn hộ *</label>
               <select
                 value={selectedFormApartment || ""}
                 onChange={(e) => setSelectedFormApartment(e.target.value ? Number(e.target.value) : undefined)}
@@ -222,25 +225,25 @@ export default function ContractList() {
             </div>
 
             <div className="col-span-12 sm:col-span-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngay bat dau *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngày bắt đầu *</label>
               <input type="date" className="premium-input rounded-xl" />
             </div>
             <div className="col-span-12 sm:col-span-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngay ket thuc *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngày kết thúc *</label>
               <input type="date" className="premium-input rounded-xl" />
             </div>
 
             <div className="col-span-12 sm:col-span-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tien thue/thang (VND) *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tiền thuê/tháng (VND) *</label>
               <input type="number" placeholder="0" className="premium-input rounded-xl" />
             </div>
             <div className="col-span-12 sm:col-span-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tien coc (VND) *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tiền cọc (VND) *</label>
               <input type="number" placeholder="0" className="premium-input rounded-xl" />
             </div>
 
             <div className="col-span-12">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">File hop dong (PDF)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">File hợp đồng (PDF)</label>
               <input type="file" accept=".pdf" className="premium-input rounded-xl border-dashed" />
             </div>
           </div>

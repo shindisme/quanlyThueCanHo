@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, Loader2, Home, BedDouble, Bath } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Home } from "lucide-react";
 import PageHeader from "../../components/ui/PageHeader";
 import Button from "../../components/ui/Button";
 import SearchInput from "../../components/ui/SearchInput";
@@ -15,6 +15,9 @@ import type { ApartmentData } from "../../services/apartments.service";
 import type { BuildingData } from "../../services/buildings.service";
 import { useAuthStore } from "../../stores/auth.store";
 import { mockUsers } from "../../data/users";
+
+import { useSort } from "../../hooks/useSort";
+import { formatApartmentDisplay, removeVietnameseTones } from "../../utils/format";
 
 export default function ApartmentList() {
   const { role, email } = useAuthStore();
@@ -76,12 +79,20 @@ export default function ApartmentList() {
     }
   }
 
-  // Client-side status filter (vì backend chưa hỗ trợ filter status)
-  const filtered = filterStatus
-    ? apartments.filter((a) => a.status === filterStatus)
-    : apartments;
+  const filtered = apartments.filter((a) => {
+    if (filterStatus && a.status !== filterStatus) return false;
+    if (search) {
+      const term = removeVietnameseTones(search);
+      const roomNorm = removeVietnameseTones(a.room_number);
+      const b = buildings.find((build) => build.id === a.building_id);
+      const branchNorm = removeVietnameseTones(b?.branch_name || "");
+      const bNameNorm = removeVietnameseTones(b?.name || "");
+      return roomNorm.includes(term) || branchNorm.includes(term) || bNameNorm.includes(term);
+    }
+    return true;
+  });
 
-
+  const { items: sortedApartments, requestSort, getSortIcon } = useSort(filtered);
 
   function getStatusBadge(status: string) {
     const map: Record<string, { label: string; variant: string }> = {
@@ -185,7 +196,7 @@ export default function ApartmentList() {
 
       {/* Search + Filter */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <SearchInput value={search} onChange={(v) => { setSearch(v); setCurrentPage(1); }} placeholder="Tìm theo số phòng..." className="max-w-xs" />
+        <SearchInput value={search} onChange={(v) => { setSearch(v); setCurrentPage(1); }} placeholder="Tìm kiếm..." className="max-w-md" />
         {role !== "MANAGER" ? (
           <select
             value={filterBuilding || ""}
@@ -228,28 +239,41 @@ export default function ApartmentList() {
           <table className="premium-table">
             <thead>
               <tr>
-                <th>Phòng</th>
-                <th>Tầng</th>
-                <th>Diện tích</th>
-                <th>
-                  <div className="flex items-center gap-1">
-                    <BedDouble size={14} /> PN
-                  </div>
+                <th onClick={() => requestSort("room_number")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Phòng {getSortIcon("room_number")}
                 </th>
-                <th>
-                  <div className="flex items-center gap-1">
-                    <Bath size={14} /> PT
-                  </div>
+                <th onClick={() => requestSort("floor")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Tầng {getSortIcon("floor")}
                 </th>
-                <th>Giá thuê</th>
-                <th>Trạng thái</th>
-                <th className="text-right">Hành động</th>
+                <th onClick={() => requestSort("area")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Diện tích {getSortIcon("area")}
+                </th>
+                <th onClick={() => requestSort("bedrooms")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  PN {getSortIcon("bedrooms")}
+                </th>
+                <th onClick={() => requestSort("bathrooms")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  PT {getSortIcon("bathrooms")}
+                </th>
+                <th onClick={() => requestSort("rental_price")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Giá thuê {getSortIcon("rental_price")}
+                </th>
+                <th onClick={() => requestSort("status")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Trạng thái {getSortIcon("status")}
+                </th>
+                <th className="text-right">Chức năng</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((apt) => (
+              {sortedApartments.map((apt) => (
                 <tr key={apt.id}>
-                  <td className="font-semibold text-primary-600">{apt.room_number}</td>
+                  <td className="font-semibold text-primary-600">
+                    {formatApartmentDisplay(
+                      apt.room_number,
+                      apt.floor,
+                      role || undefined,
+                      buildings.find((b) => b.id === apt.building_id)?.branch_name
+                    )}
+                  </td>
                   <td className="text-gray-600">{apt.floor}</td>
                   <td className="text-gray-600">{apt.area} m²</td>
                   <td className="text-gray-600">{apt.bedrooms}</td>

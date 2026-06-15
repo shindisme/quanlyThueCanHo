@@ -9,6 +9,8 @@ import Modal from "../../components/ui/Modal";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { toast } from "sonner";
 
+import { removeVietnameseTones } from "../../utils/format";
+
 import * as buildingService from "../../services/buildings.service";
 import type { BuildingData } from "../../services/buildings.service";
 
@@ -26,8 +28,9 @@ export default function BuildingList() {
   // State cho form inputs - khớp DB schema
   const [formData, setFormData] = useState({
     name: "", address_old: "", address_new: "", total_floors: 0,
-    description: "", branch_name: "",
+    description: "", branch_name: "", thumbnail_url: "",
   });
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchBuildings();
@@ -46,17 +49,36 @@ export default function BuildingList() {
   }
 
   // Lọc theo từ khóa tìm kiếm (client-side)
-  const filtered = buildings.filter(
-    (b) =>
-      b.name.toLowerCase().includes(search.toLowerCase()) ||
-      b.address_old?.toLowerCase().includes(search.toLowerCase()) ||
-      b.address_new?.toLowerCase().includes(search.toLowerCase()) ||
-      b.branch_name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = buildings.filter((b) => {
+    const term = removeVietnameseTones(search);
+    return (
+      removeVietnameseTones(b.name).includes(term) ||
+      removeVietnameseTones(b.address_old || "").includes(term) ||
+      removeVietnameseTones(b.address_new || "").includes(term) ||
+      removeVietnameseTones(b.branch_name || "").includes(term)
+    );
+  });
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const { uploadImage } = await import("../../utils/upload");
+      const url = await uploadImage(file);
+      setFormData((prev) => ({ ...prev, thumbnail_url: url }));
+      toast.success("Tải ảnh lên thành công");
+    } catch {
+      toast.error("Không thể tải ảnh lên");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   function openAddForm() {
     setEditItem(null);
-    setFormData({ name: "", address_old: "", address_new: "", total_floors: 0, description: "", branch_name: "" });
+    setFormData({ name: "", address_old: "", address_new: "", total_floors: 0, description: "", branch_name: "", thumbnail_url: "" });
     setShowForm(true);
   }
 
@@ -69,6 +91,7 @@ export default function BuildingList() {
       total_floors: building.total_floors,
       description: building.description || "",
       branch_name: building.branch_name || "",
+      thumbnail_url: building.thumbnail_url || "",
     });
     setShowForm(true);
     setMenuOpen(null);
@@ -137,7 +160,7 @@ export default function BuildingList() {
       <SearchInput
         value={search}
         onChange={setSearch}
-        placeholder="Tìm theo tên, địa chỉ, chi nhánh..."
+        placeholder="Tìm kiếm..."
         className="max-w-md"
       />
 
@@ -191,10 +214,14 @@ export default function BuildingList() {
               {/* Nội dung */}
               <div onClick={() => navigate(`/admin/buildings/${building.id}`)}>
                 <div className="flex items-start gap-3 mb-4 pr-8">
-                  <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'linear-gradient(135deg, #7C3AED, #A78BFA)' }}>
-                    <Home size={22} className="text-white" />
-                  </div>
+                  {building.thumbnail_url ? (
+                    <img src={building.thumbnail_url} className="w-12 h-12 rounded-lg object-cover shrink-0" alt="" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ background: 'linear-gradient(135deg, #7C3AED, #A78BFA)' }}>
+                      <Home size={22} className="text-white" />
+                    </div>
+                  )}
                   <div>
                     <h3 className="font-semibold text-gray-800">
                       {building.branch_name} - {building.name.replace(/yuki\s*house\s*|yuki\s*/gi, "")}
@@ -209,7 +236,7 @@ export default function BuildingList() {
 
                 <div className="space-y-2 text-sm text-gray-600">
                   <div className="flex items-center gap-2">
-                    <MapPin size={14} className="text-gray-400 flex-shrink-0" />
+                    <MapPin size={14} className="text-gray-400 shrink-0" />
                     <span className="truncate">{building.address_new || building.address_old}</span>
                   </div>
                   <div className="flex items-center gap-4">
@@ -296,6 +323,39 @@ export default function BuildingList() {
                 placeholder="VD: Chi nhánh Quận 1"
                 className="premium-input rounded-xl"
               />
+            </div>
+            <div className="col-span-12">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Ảnh bìa tòa nhà</label>
+              <div className="flex items-center gap-4">
+                {formData.thumbnail_url ? (
+                  <div className="relative w-28 h-20 rounded-xl overflow-hidden border border-gray-200 shrink-0">
+                    <img src={formData.thumbnail_url} className="w-full h-full object-cover" alt="" />
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, thumbnail_url: "" })}
+                      className="absolute top-1 right-1 p-1 bg-red-650 hover:bg-red-700 text-white rounded-full text-[10px] shadow w-4 h-4 flex items-center justify-center cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <label className="w-28 h-20 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-primary-500 hover:bg-primary-50/10 transition-colors shrink-0">
+                    {uploading ? (
+                      <Loader2 className="animate-spin text-primary-600" size={20} />
+                    ) : (
+                      <>
+                        <Plus className="text-gray-400" size={20} />
+                        <span className="text-[10px] text-gray-400 mt-1">Chọn ảnh</span>
+                      </>
+                    )}
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+                  </label>
+                )}
+                <div className="text-xs text-gray-400">
+                  <p>Hỗ trợ JPG, PNG, WEBP.</p>
+                  <p>Tải ảnh lên ImageKit để lấy URL lưu trữ.</p>
+                </div>
+              </div>
             </div>
             <div className="col-span-12">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Mô tả</label>

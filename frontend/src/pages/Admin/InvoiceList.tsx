@@ -12,7 +12,7 @@ import { mockContracts } from "../../data/contracts";
 import { mockUsers } from "../../data/users";
 import { useAuthStore } from "../../stores/auth.store";
 import { INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS } from "../../constants/enums";
-import { formatCurrency, formatDate } from "../../utils/format";
+import { formatCurrency, formatDate, removeVietnameseTones } from "../../utils/format";
 import type { Invoice } from "../../types";
 import type { InvoiceStatus } from "../../constants/enums";
 
@@ -42,9 +42,10 @@ export default function InvoiceList() {
 
   const filtered = displayInvoices.filter((inv) => {
     const tenant = mockTenants.find((t) => t.id === inv.tenant_id);
-    const matchSearch =
-      inv.invoice_code.toLowerCase().includes(search.toLowerCase()) ||
-      tenant?.full_name.toLowerCase().includes(search.toLowerCase());
+    const term = removeVietnameseTones(search);
+    const codeNorm = removeVietnameseTones(inv.invoice_code);
+    const tenantNorm = removeVietnameseTones(tenant?.full_name || "");
+    const matchSearch = codeNorm.includes(term) || tenantNorm.includes(term);
     const matchStatus = !statusFilter || inv.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -53,12 +54,13 @@ export default function InvoiceList() {
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const columns: Column<Invoice>[] = [
-    { key: "code", label: "Ma hoa don", render: (inv) => <span className="font-medium">{inv.invoice_code}</span> },
-    { key: "tenant", label: "Nguoi thue", render: (inv) => mockTenants.find((t) => t.id === inv.tenant_id)?.full_name || "-" },
-    { key: "total", label: "Tong tien", render: (inv) => <span className="font-semibold">{formatCurrency(inv.total_amount)}</span> },
-    { key: "due", label: "Han thanh toan", render: (inv) => formatDate(inv.due_date) },
+    { key: "code", label: "Mã hoá đơn", sortValue: (inv) => inv.invoice_code, render: (inv) => <span className="font-medium">{inv.invoice_code}</span> },
+    { key: "tenant", label: "Người thuê", sortValue: (inv) => mockTenants.find((t) => t.id === inv.tenant_id)?.full_name || "", render: (inv) => mockTenants.find((t) => t.id === inv.tenant_id)?.full_name || "-" },
+    { key: "total", label: "Tổng tiền", sortValue: (inv) => Number(inv.total_amount), render: (inv) => <span className="font-semibold">{formatCurrency(inv.total_amount)}</span> },
+    { key: "due", label: "Hạn thanh toán", sortValue: (inv) => new Date(inv.due_date).getTime(), render: (inv) => formatDate(inv.due_date) },
     {
-      key: "status", label: "Trang thai",
+      key: "status", label: "Trạng thái",
+      sortValue: (inv) => inv.status,
       render: (inv) => (
         <Badge variant={INVOICE_STATUS_COLORS[inv.status as InvoiceStatus] as "success" | "warning" | "danger"}>
           {INVOICE_STATUS_LABELS[inv.status as InvoiceStatus]}
@@ -81,18 +83,18 @@ export default function InvoiceList() {
         <SearchInput
           value={search}
           onChange={(v) => { setSearch(v); setCurrentPage(1); }}
-          placeholder="Tim theo ma hoa don hoac ten nguoi thue..."
-          className="flex-1 max-w-sm"
+          placeholder="Tìm kiếm..."
+          className="max-w-md"
         />
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
           className="px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500"
         >
-          <option value="">Tat ca trang thai</option>
-          <option value="PAID">Da thanh toan</option>
-          <option value="UNPAID">Chua thanh toan</option>
-          <option value="OVERDUE">Qua han</option>
+          <option value="">Tất cả trạng thái</option>
+          <option value="PAID">Đã thanh toán</option>
+          <option value="UNPAID">Chưa thanh toán</option>
+          <option value="OVERDUE">Quá hạn</option>
         </select>
       </div>
 

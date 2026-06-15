@@ -5,7 +5,23 @@ import Badge from "../../components/ui/Badge";
 import { mockApartments } from "../../data/apartments";
 import { mockBuildings } from "../../data/buildings";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../constants/enums";
-import { formatCurrency } from "../../utils/format";
+import { formatCurrency, formatApartmentDisplay, removeVietnameseTones } from "../../utils/format";
+
+// Helper to fetch apartment thumbnail from localStorage or fallback
+function getApartmentThumbnail(aptId: number): string {
+  const stored = localStorage.getItem(`apartment-${aptId}-images`);
+  if (stored) {
+    try {
+      const images = JSON.parse(stored);
+      const thumb = images.find((img: any) => img.is_thumbnail);
+      if (thumb) return thumb.image_url;
+      if (images.length > 0) return images[0].image_url;
+    } catch {
+      // ignore
+    }
+  }
+  return "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80";
+}
 
 // Trang danh sach can ho cho khach vang lai
 export default function GuestApartmentListing() {
@@ -24,8 +40,10 @@ export default function GuestApartmentListing() {
 
   // Loc can ho
   const filtered = mockApartments.filter((a) => {
-    const matchSearch =
-      (a.room_number + " " + (a.description || "")).toLowerCase().includes(search.toLowerCase());
+    const term = removeVietnameseTones(search);
+    const roomNorm = removeVietnameseTones(a.room_number);
+    const descNorm = removeVietnameseTones(a.description || "");
+    const matchSearch = roomNorm.includes(term) || descNorm.includes(term);
     const matchStatus = !statusFilter || a.status === statusFilter;
     const matchBuilding = !buildingFilter || a.building_id === Number(buildingFilter);
     const matchFloor = !floorFilter || a.floor === Number(floorFilter);
@@ -119,14 +137,20 @@ export default function GuestApartmentListing() {
               <Link
                 key={apt.id}
                 to={`/apartments/${apt.id}`}
-                className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-card-hover transition-shadow"
+                className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-card-hover transition-shadow block group"
               >
-                <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
-                  <span className="text-gray-300 text-sm">Hinh anh can ho</span>
+                <div className="w-full h-48 bg-gray-100 overflow-hidden relative">
+                  <img
+                    src={getApartmentThumbnail(apt.id)}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    alt="Ảnh căn hộ"
+                  />
                 </div>
                 <div className="p-5">
                   <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold text-gray-800">P.{apt.room_number} - Tầng {apt.floor}</h3>
+                    <h3 className="font-semibold text-gray-800">
+                      {formatApartmentDisplay(apt.room_number, apt.floor)}
+                    </h3>
                     <Badge variant={APARTMENT_STATUS_COLORS[apt.status] as "success" | "info" | "warning"}>
                       {APARTMENT_STATUS_LABELS[apt.status]}
                     </Badge>

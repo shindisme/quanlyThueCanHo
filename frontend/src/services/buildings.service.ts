@@ -52,6 +52,7 @@ export async function createBuilding(data: {
   total_floors: number;
   description?: string;
   branch_name: string;
+  thumbnail_url?: string | null;
 }) {
   const res = await api.post("/buildings", data);
   return res.data;

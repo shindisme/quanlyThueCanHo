@@ -31,6 +31,9 @@ interface UtilityRecord {
   created_at: string;
 }
 
+import { useSort } from "../../hooks/useSort";
+import { formatApartmentDisplay, removeVietnameseTones } from "../../utils/format";
+
 export default function UtilityList() {
   const { role, email } = useAuthStore();
   const currentUser = mockUsers.find((u) => u.email === email);
@@ -66,7 +69,7 @@ export default function UtilityList() {
     const apt = apartments.find((a) => a.id === aptId);
     if (!apt) return `#${aptId}`;
     const bld = buildings.find((b) => b.id === apt.building_id);
-    return `P.${apt.room_number} T${apt.floor} - ${bld?.branch_name || ""}`;
+    return formatApartmentDisplay(apt.room_number, apt.floor, role || undefined, bld?.branch_name);
   }
 
   // Lọc theo tòa nhà & tìm kiếm
@@ -74,10 +77,18 @@ export default function UtilityList() {
     const apt = apartments.find((a) => a.id === r.apartment_id);
     if (filterBuilding && apt?.building_id !== filterBuilding) return false;
     if (search) {
-      const label = getApartmentLabel(r.apartment_id).toLowerCase();
-      return label.includes(search.toLowerCase());
+      const term = removeVietnameseTones(search);
+      const label = removeVietnameseTones(getApartmentLabel(r.apartment_id));
+      return label.includes(term);
     }
     return true;
+  });
+
+  const { items: sortedReadings, requestSort, getSortIcon } = useSort(filtered, null, {
+    apartment_id: (r) => getApartmentLabel(r.apartment_id),
+    period: (r) => r.year * 12 + r.month,
+    electric_usage: (r) => r.electric_new - r.electric_old,
+    water_usage: (r) => r.water_new - r.water_old,
   });
 
   // Chart data
@@ -178,7 +189,7 @@ export default function UtilityList() {
 
       {/* Filter */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <SearchInput value={search} onChange={setSearch} placeholder="Tìm theo phòng..." className="max-w-xs" />
+        <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm..." className="max-w-md" />
         {role !== "MANAGER" ? (
           <select
             value={filterBuilding || ""}
@@ -220,18 +231,34 @@ export default function UtilityList() {
           <table className="premium-table">
             <thead>
               <tr>
-                <th>Căn hộ</th>
-                <th>Kỳ</th>
-                <th>Điện cũ</th>
-                <th>Điện mới</th>
-                <th>Tiêu thụ điện</th>
-                <th>Nước cũ</th>
-                <th>Nước mới</th>
-                <th>Tiêu thụ nước</th>
+                <th onClick={() => requestSort("apartment_id")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Căn hộ {getSortIcon("apartment_id")}
+                </th>
+                <th onClick={() => requestSort("period")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Kỳ {getSortIcon("period")}
+                </th>
+                <th onClick={() => requestSort("electric_old")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Điện cũ {getSortIcon("electric_old")}
+                </th>
+                <th onClick={() => requestSort("electric_new")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Điện mới {getSortIcon("electric_new")}
+                </th>
+                <th onClick={() => requestSort("electric_usage")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Tiêu thụ điện {getSortIcon("electric_usage")}
+                </th>
+                <th onClick={() => requestSort("water_old")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Nước cũ {getSortIcon("water_old")}
+                </th>
+                <th onClick={() => requestSort("water_new")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Nước mới {getSortIcon("water_new")}
+                </th>
+                <th onClick={() => requestSort("water_usage")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Tiêu thụ nước {getSortIcon("water_usage")}
+                </th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => (
+              {sortedReadings.map((r) => (
                 <tr key={r.id}>
                   <td className="font-medium">{getApartmentLabel(r.apartment_id)}</td>
                   <td>Tháng {r.month}/{r.year}</td>
@@ -239,7 +266,6 @@ export default function UtilityList() {
                   <td className="text-gray-600">{r.electric_new} kWh</td>
                   <td>
                     <span className="font-semibold text-warning-600">
-                      <Zap size={14} className="inline mr-1" />
                       {r.electric_new - r.electric_old} kWh
                     </span>
                   </td>
@@ -247,7 +273,6 @@ export default function UtilityList() {
                   <td className="text-gray-600">{r.water_new} m³</td>
                   <td>
                     <span className="font-semibold text-info-600">
-                      <Droplets size={14} className="inline mr-1" />
                       {r.water_new - r.water_old} m³
                     </span>
                   </td>

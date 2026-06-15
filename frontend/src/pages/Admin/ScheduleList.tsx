@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CalendarDays, Check, X, Trash2, Loader2, Mail } from "lucide-react";
+import { CalendarDays, Check, X, Trash2, Loader2 } from "lucide-react";
 import PageHeader from "../../components/ui/PageHeader";
 import Badge from "../../components/ui/Badge";
 import SearchInput from "../../components/ui/SearchInput";
@@ -10,6 +10,10 @@ import { useAuthStore } from "../../stores/auth.store";
 import { mockUsers } from "../../data/users";
 import * as scheduleService from "../../services/schedules.service";
 import type { ScheduleData } from "../../services/schedules.service";
+
+import { useSort } from "../../hooks/useSort";
+import { formatApartmentDisplay, removeVietnameseTones } from "../../utils/format";
+import { mockBuildings } from "../../data/buildings";
 
 export default function ScheduleList() {
   const { role, email } = useAuthStore();
@@ -46,12 +50,24 @@ export default function ScheduleList() {
     return schedules;
   })();
 
-  const filtered = displaySchedules.filter(
-    (s) =>
-      s.guest_name.toLowerCase().includes(search.toLowerCase()) ||
-      s.guest_phone.includes(search) ||
-      (s.guest_email && s.guest_email.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filtered = displaySchedules.filter((s) => {
+    const term = removeVietnameseTones(search);
+    const nameNorm = removeVietnameseTones(s.guest_name);
+    const phoneNorm = removeVietnameseTones(s.guest_phone);
+    const emailNorm = removeVietnameseTones(s.guest_email || "");
+    const roomNorm = removeVietnameseTones(s.apartment?.room_number || "");
+    return (
+      nameNorm.includes(term) ||
+      phoneNorm.includes(term) ||
+      emailNorm.includes(term) ||
+      roomNorm.includes(term)
+    );
+  });
+
+  const { items: sortedSchedules, requestSort, getSortIcon } = useSort(filtered, null, {
+    apartment_id: (s) => s.apartment?.room_number || String(s.apartment_id),
+    schedule_time: (s) => new Date(s.schedule_time).getTime(),
+  });
 
   async function handleConfirm(id: number) {
     try {
@@ -113,7 +129,7 @@ export default function ScheduleList() {
         iconColor="linear-gradient(135deg, #EC4899, #F472B6)"
       />
 
-      <SearchInput value={search} onChange={setSearch} placeholder="Tìm theo tên, SĐT, email..." className="max-w-md" />
+      <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm..." className="max-w-md" />
 
       {/* Bảng */}
       <div className="premium-table-container">
@@ -121,32 +137,46 @@ export default function ScheduleList() {
           <table className="premium-table">
             <thead>
               <tr>
-                <th>Khách</th>
-                <th>SĐT</th>
-                <th>Email</th>
-                <th>Căn hộ</th>
-                <th>Thời gian</th>
-                <th>Trạng thái</th>
-                <th className="text-right">Hành động</th>
+                <th onClick={() => requestSort("guest_name")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Khách {getSortIcon("guest_name")}
+                </th>
+                <th onClick={() => requestSort("guest_phone")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  SĐT {getSortIcon("guest_phone")}
+                </th>
+                <th onClick={() => requestSort("guest_email")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Email {getSortIcon("guest_email")}
+                </th>
+                <th onClick={() => requestSort("apartment_id")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Căn hộ {getSortIcon("apartment_id")}
+                </th>
+                <th onClick={() => requestSort("schedule_time")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Thời gian {getSortIcon("schedule_time")}
+                </th>
+                <th onClick={() => requestSort("status")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Trạng thái {getSortIcon("status")}
+                </th>
+                <th className="text-right">Chức năng</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((s) => (
+              {sortedSchedules.map((s) => (
                 <tr key={s.id}>
                   <td className="font-semibold text-gray-800">{s.guest_name}</td>
                   <td className="text-gray-650">{s.guest_phone}</td>
                   <td className="text-gray-500">
                     {s.guest_email ? (
-                      <div className="flex items-center gap-1">
-                        <Mail size={13} className="text-gray-400" />
-                        <span className="truncate max-w-[150px]">{s.guest_email}</span>
-                      </div>
+                      <span className="truncate max-w-[150px]">{s.guest_email}</span>
                     ) : "-"}
                   </td>
                   <td className="text-gray-600">
                     {s.apartment ? (
                       <span className="font-medium text-primary-600">
-                        P.{s.apartment.room_number} - T{s.apartment.floor}
+                        {formatApartmentDisplay(
+                          s.apartment.room_number,
+                          s.apartment.floor,
+                          role || undefined,
+                          mockBuildings.find((b) => b.id === s.apartment?.building_id)?.branch_name
+                        )}
                       </span>
                     ) : (
                       <span className="text-gray-400">#{s.apartment_id}</span>
