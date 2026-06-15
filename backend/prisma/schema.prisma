@@ -68,8 +68,7 @@ enum ScheduleStatus {
 
 model User {
   id            Int        @id @default(autoincrement())
-  email         String     @unique
-  phone         String?    @unique
+  username         String     @unique
   password_hash String
   role          Role       @default(TENANT)
   status        UserStatus @default(ACTIVE)
@@ -78,6 +77,7 @@ model User {
   tenant        Tenant?
   notifications Notification[]
   chat_sessions ChatConversation[]
+  buildings     Building[]
 
   @@map("users")
 }
@@ -86,6 +86,7 @@ model Tenant {
   id            Int       @id @default(autoincrement())
   user_id       Int       @unique
   full_name     String
+  phone         String?    @unique
   date_of_birth DateTime?
   citizen_id    String    @unique
   address       String?
@@ -93,15 +94,31 @@ model Tenant {
   created_at    DateTime  @default(now())
 
   user        User                 @relation(fields: [user_id], references: [id])
+  occupants   Occupant[]
   contracts   RentalContract[]
   maintenance MaintenanceRequest[]
 
   @@map("tenants")
 }
 
+model Occupant {
+  id            Int      @id @default(autoincrement())
+  tenant_id     Int      
+  full_name     String
+  phone         String?
+  citizen_id    String
+  date_of_birth DateTime?
+  created_at    DateTime @default(now())
+
+  tenant        Tenant   @relation(fields: [tenant_id], references: [id])
+
+  @@map("occupants")
+}
+
 model Building {
   id               Int            @id @default(autoincrement())
-  name             String
+  admin_id         Int?
+  branch_name      String
   address_old      String
   address_new      String
   description      String?        @db.Text
@@ -109,10 +126,10 @@ model Building {
   total_floors     Int
   total_apartments Int            @default(0)
   thumbnail_url    String?
-  branch_name      String
   created_at       DateTime       @default(now())
 
   apartments Apartment[]
+  admin      User?                 @relation(fields: [admin_id], references: [id])
 
   @@map("buildings")
 }
@@ -299,3 +316,4 @@ model ChatbotMessage {
 
   @@map("chatbot_messages")
 }
+

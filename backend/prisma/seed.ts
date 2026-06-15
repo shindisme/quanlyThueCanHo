@@ -18,7 +18,6 @@ const apartmentTemplates = [
 
 async function main() {
     console.log("Đang bắt đầu seeding dữ liệu...");
-
     for (let bId = 1; bId <= 5; bId++) {
         for (let floor = 1; floor <= 20; floor++) {
             for (const apt of apartmentTemplates) {
