@@ -3,8 +3,6 @@ import { CalendarDays, Check, X, Trash2, Loader2, Eye } from "lucide-react";
 import PageHeader from "../../../components/ui/PageHeader";
 import Badge from "../../../components/ui/Badge";
 import SearchInput from "../../../components/ui/SearchInput";
-import ConfirmDialog from "../../../components/ui/ConfirmDialog";
-import Modal from "../../../components/ui/Modal";
 import Button from "../../../components/ui/Button";
 import { toast } from "sonner";
 
@@ -16,6 +14,9 @@ import type { ScheduleData } from "../../../services/scheduleService";
 import { useSort } from "../../../hooks/useSort";
 import { formatApartmentDisplay, removeVietnameseTones, maskPhone } from "../../../utils/format";
 import { mockBuildings } from "../../../data/buildings";
+
+import ScheduleDeleteModal from "./components/ScheduleDeleteModal";
+import ScheduleDetailModal from "./components/ScheduleDetailModal";
 
 export default function ScheduleList() {
   const { role, email } = useAuthStore();
@@ -230,70 +231,20 @@ export default function ScheduleList() {
         </div>
       </div>
 
-      <ConfirmDialog
+      {/* Modals */}
+      <ScheduleDeleteModal
         isOpen={!!deleteItem}
         onClose={() => setDeleteItem(null)}
         onConfirm={handleDelete}
-        title="Xóa lịch xem phòng"
-        message={`Xóa lịch xem phòng của "${deleteItem?.guest_name}"?`}
-        confirmText="Xóa"
+        schedule={deleteItem}
       />
 
-      {/* Modal xem chi tiết lịch xem phòng */}
-      <Modal
+      <ScheduleDetailModal
         isOpen={!!viewItem}
         onClose={() => setViewItem(null)}
-        title="Chi tiết lịch xem phòng"
-        size="md"
-        footer={
-          <Button onClick={() => setViewItem(null)}>Đóng</Button>
-        }
-      >
-        {viewItem && (
-          <div className="space-y-4 font-sans text-sm">
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Họ và tên khách:</span>
-              <span className="font-semibold text-gray-800">{viewItem.guest_name}</span>
-            </div>
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Số điện thoại:</span>
-              <span className="font-semibold text-gray-800">{viewItem.guest_phone}</span>
-            </div>
-
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Căn hộ:</span>
-              <span className="font-semibold text-gray-800">
-                {viewItem.apartment ? (
-                  formatApartmentDisplay(
-                    viewItem.apartment.room_number,
-                    viewItem.apartment.floor,
-                    role || undefined,
-                    mockBuildings.find((b) => b.id === viewItem.apartment?.building_id)?.branch_name
-                  )
-                ) : (
-                  `#${viewItem.apartment_id}`
-                )}
-              </span>
-            </div>
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Thời gian hẹn:</span>
-              <span className="font-semibold text-gray-800">
-                {new Date(viewItem.schedule_time).toLocaleString("vi-VN")}
-              </span>
-            </div>
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Trạng thái:</span>
-              <span>{getStatusBadge(viewItem.status)}</span>
-            </div>
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Thời điểm đăng ký:</span>
-              <span className="font-semibold text-gray-800">
-                {viewItem.created_at ? new Date(viewItem.created_at).toLocaleString("vi-VN") : "-"}
-              </span>
-            </div>
-          </div>
-        )}
-      </Modal>
+        schedule={viewItem}
+        role={role}
+      />
     </div>
   );
 }

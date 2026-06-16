@@ -1,15 +1,11 @@
 import { useState, useEffect } from "react";
 import { Plus, Users, Eye, Pencil, Trash2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import PageHeader from "../../../components/ui/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
 import Badge from "../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../components/ui/DataTable";
 import Pagination from "../../../components/ui/Pagination";
-import Modal from "../../../components/ui/Modal";
-import Input from "../../../components/ui/Input";
-import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import { mockTenants } from "../../../data/tenants";
 import { mockUsers } from "../../../data/users";
 import { mockApartments } from "../../../data/apartments";
@@ -17,18 +13,23 @@ import { mockContracts } from "../../../data/contracts";
 import { useAuthStore } from "../../../stores/auth.store";
 import type { Tenant } from "../../../types";
 import { toast } from "sonner";
-import { removeVietnameseTones, maskPhone, maskCCCD, formatDate } from "../../../utils/format";
+import { removeVietnameseTones, maskPhone, maskCCCD } from "../../../utils/format";
+
+import TenantCreateModal from "./components/TenantCreateModal";
+import TenantModifyModal from "./components/TenantModifyModal";
+import TenantDeleteModal from "./components/TenantDeleteModal";
+import TenantDetailModal from "./components/TenantDetailModal";
 
 // Trang danh sach nguoi thue
 export default function TenantList() {
-  const navigate = useNavigate();
   const { role, email } = useAuthStore();
   const currentUser = mockUsers.find((u) => u.email === email);
   const managerBuildingId = currentUser?.managedBuildingId;
 
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [showForm, setShowForm] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showModifyModal, setShowModifyModal] = useState(false);
   const [editItem, setEditItem] = useState<Tenant | null>(null);
   const [deleteItem, setDeleteItem] = useState<Tenant | null>(null);
   const [viewItem, setViewItem] = useState<Tenant | null>(null);
@@ -37,13 +38,11 @@ export default function TenantList() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [users, setUsers] = useState<any[]>([]);
 
-  // Controlled form states
-  const [formFullName, setFormFullName] = useState("");
-  const [formCitizenId, setFormCitizenId] = useState("");
-  const [formDob, setFormDob] = useState("");
-  const [formAddress, setFormAddress] = useState("");
-
   useEffect(() => {
+    loadData();
+  }, []);
+
+  function loadData() {
     // Load custom tenants
     const storedTenants = localStorage.getItem("custom-tenants");
     if (storedTenants) {
@@ -67,21 +66,7 @@ export default function TenantList() {
     } else {
       setUsers(mockUsers);
     }
-  }, [showForm]);
-
-  useEffect(() => {
-    if (editItem) {
-      setFormFullName(editItem.full_name);
-      setFormCitizenId(editItem.citizen_id);
-      setFormDob(editItem.date_of_birth || "");
-      setFormAddress(editItem.address || "");
-    } else {
-      setFormFullName("");
-      setFormCitizenId("");
-      setFormDob("");
-      setFormAddress("");
-    }
-  }, [editItem, showForm]);
+  }
 
   // Lọc tenants theo building của manager trước khi tìm kiếm
   const displayTenants = (() => {
@@ -111,88 +96,6 @@ export default function TenantList() {
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-  // Thêm người thuê và tự động tạo tài khoản user, chuyển hướng qua tạo hợp đồng
-  function handleSaveTenantAndUser() {
-    if (!formFullName || !formCitizenId) {
-      toast.error("Vui lòng nhập đầy đủ Họ tên và số CCCD");
-      return;
-    }
-
-    const cleanCCCD = formCitizenId.trim();
-    const last6Digits = cleanCCCD.slice(-6);
-    const username = `YH${last6Digits}`;
-    const tenantEmail = `${username}@yukihouse.vn`;
-
-    const storedUsers = localStorage.getItem("custom-users");
-    let currentUsers = storedUsers ? JSON.parse(storedUsers) : [...mockUsers];
-
-    let existingUser = currentUsers.find((u: any) => u.email === tenantEmail);
-    let newUserId = existingUser ? existingUser.id : Date.now();
-
-    if (!existingUser) {
-      const newUser = {
-        id: newUserId,
-        email: tenantEmail,
-        phone: "-",
-        password_hash: "$mock_hash",
-        role: "TENANT",
-        status: "ACTIVE",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      currentUsers.push(newUser);
-      localStorage.setItem("custom-users", JSON.stringify(currentUsers));
-    }
-
-    const storedTenants = localStorage.getItem("custom-tenants");
-    let currentTenants = storedTenants ? JSON.parse(storedTenants) : [...mockTenants];
-
-    const newTenantId = Date.now() + 1;
-    const newTenant = {
-      id: newTenantId,
-      user_id: newUserId,
-      full_name: formFullName,
-      citizen_id: formCitizenId,
-      date_of_birth: formDob || null,
-      address: formAddress || null,
-      is_verified: true,
-      created_at: new Date().toISOString()
-    };
-
-    currentTenants.push(newTenant);
-    localStorage.setItem("custom-tenants", JSON.stringify(currentTenants));
-    setTenants(currentTenants);
-
-    // 3. Close modal
-    setShowForm(false);
-    toast.success(`Đã tự động tạo tài khoản "${username}" (Mật khẩu: 123456) và lưu người thuê thành công!`);
-
-    // 4. Chuyển hướng qua trang Tạo hợp đồng
-    const basePath = role === "MANAGER" ? "/manager" : "/admin";
-    navigate(`${basePath}/contracts?auto_open=true&new_tenant_id=${newTenantId}&new_tenant_building_id=${managerBuildingId || ""}`);
-  }
-
-  // Chỉnh sửa thông tin người thuê
-  function handleEditSave() {
-    if (!formFullName || !formCitizenId) {
-      toast.error("Vui lòng nhập đầy đủ Họ tên và số CCCD");
-      return;
-    }
-    const storedTenants = localStorage.getItem("custom-tenants");
-    let currentTenants = storedTenants ? JSON.parse(storedTenants) : [...mockTenants];
-
-    const updated = currentTenants.map((t: any) =>
-      t.id === editItem?.id
-        ? { ...t, full_name: formFullName, citizen_id: formCitizenId, date_of_birth: formDob || null, address: formAddress || null }
-        : t
-    );
-    localStorage.setItem("custom-tenants", JSON.stringify(updated));
-    setTenants(updated);
-    setShowForm(false);
-    setEditItem(null);
-    toast.success("Đã cập nhật thông tin người thuê");
-  }
 
   // Xóa người thuê
   function handleDelete() {
@@ -248,7 +151,7 @@ export default function TenantList() {
           <button
             onClick={() => {
               setEditItem(t);
-              setShowForm(true);
+              setShowModifyModal(true);
             }}
             className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
             title="Chỉnh sửa"
@@ -276,7 +179,7 @@ export default function TenantList() {
         count={filtered.length}
         iconColor="linear-gradient(135deg, #8B5CF6, #A78BFA)"
         actions={
-          <Button onClick={() => { setEditItem(null); setShowForm(true); }}>
+          <Button onClick={() => setShowCreateModal(true)}>
             <Plus size={18} /> Thêm người thuê
           </Button>
         }
@@ -293,99 +196,36 @@ export default function TenantList() {
 
       <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
 
-      {/* Modal thêm/sửa người thuê */}
-      <Modal
-        isOpen={showForm}
-        onClose={() => { setShowForm(false); setEditItem(null); }}
-        title={editItem ? "Chỉnh sửa người thuê" : "Thêm người thuê mới"}
-        size="lg"
-        footer={
-          editItem ? (
-            <>
-              <Button variant="outline" onClick={() => { setShowForm(false); setEditItem(null); }}>Hủy</Button>
-              <Button onClick={handleEditSave}>Cập nhật</Button>
-            </>
-          ) : (
-            <>
-              <Button variant="outline" onClick={() => { setShowForm(false); setEditItem(null); }}>Hủy</Button>
-              <Button onClick={handleSaveTenantAndUser}>Tiếp tục tạo hợp đồng & tài khoản</Button>
-            </>
-          )
-        }
-      >
-        <div className="space-y-6">
-          <div className="grid grid-cols-12 gap-6">
-            <div className="col-span-12">
-              <Input label="Họ tên *" value={formFullName} onChange={(e) => setFormFullName(e.target.value)} placeholder="Nguyễn Văn A" />
-            </div>
-            <div className="col-span-12 sm:col-span-6">
-              <Input label="CCCD *" value={formCitizenId} onChange={(e) => setFormCitizenId(e.target.value)} placeholder="079200001234" />
-            </div>
-            <div className="col-span-12 sm:col-span-6">
-              <Input label="Ngày sinh" type="date" value={formDob} onChange={(e) => setFormDob(e.target.value)} />
-            </div>
-            <div className="col-span-12">
-              <Input label="Địa chỉ" value={formAddress} onChange={(e) => setFormAddress(e.target.value)} placeholder="Địa chỉ thường trú" />
-            </div>
-          </div>
-        </div>
-      </Modal>
+      {/* Modals */}
+      <TenantCreateModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={loadData}
+        role={role}
+        managerBuildingId={managerBuildingId}
+      />
 
-      <ConfirmDialog
+      <TenantModifyModal
+        isOpen={showModifyModal}
+        onClose={() => { setShowModifyModal(false); setEditItem(null); }}
+        onSuccess={loadData}
+        editItem={editItem}
+      />
+
+      <TenantDeleteModal
         isOpen={!!deleteItem}
         onClose={() => setDeleteItem(null)}
         onConfirm={handleDelete}
-        title="Xóa người thuê"
-        message={`Bạn có chắc chắn muốn xóa người thuê "${deleteItem?.full_name}" không?`}
+        tenant={deleteItem}
       />
 
-      {/* Modal xem chi tiết người thuê */}
-      <Modal
+      <TenantDetailModal
         isOpen={!!viewItem}
         onClose={() => setViewItem(null)}
-        title="Chi tiết người thuê"
-        size="md"
-        footer={
-          <Button onClick={() => setViewItem(null)}>Đóng</Button>
-        }
-      >
-        {viewItem && (
-          <div className="space-y-4 font-sans text-sm">
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Họ và tên:</span>
-              <span className="font-semibold text-gray-800">{viewItem.full_name}</span>
-            </div>
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Số điện thoại:</span>
-              <span className="font-semibold text-gray-800">{getUserPhone(viewItem.user_id)}</span>
-            </div>
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Email:</span>
-              <span className="font-semibold text-gray-800">{getUserEmail(viewItem.user_id)}</span>
-            </div>
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Số CCCD:</span>
-              <span className="font-semibold text-gray-800">{viewItem.citizen_id}</span>
-            </div>
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Ngày sinh:</span>
-              <span className="font-semibold text-gray-800">
-                {viewItem.date_of_birth ? formatDate(viewItem.date_of_birth) : "-"}
-              </span>
-            </div>
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Địa chỉ:</span>
-              <span className="font-semibold text-gray-800">{viewItem.address || "-"}</span>
-            </div>
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Trạng thái xác thực:</span>
-              <Badge variant={viewItem.is_verified ? "success" : "warning"}>
-                {viewItem.is_verified ? "Đã xác thực" : "Chưa xác thực"}
-              </Badge>
-            </div>
-          </div>
-        )}
-      </Modal>
+        tenant={viewItem}
+        phone={viewItem ? getUserPhone(viewItem.user_id) : ""}
+        email={viewItem ? getUserEmail(viewItem.user_id) : ""}
+      />
     </div>
   );
 }

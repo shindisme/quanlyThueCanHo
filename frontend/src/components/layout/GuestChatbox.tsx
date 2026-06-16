@@ -21,7 +21,6 @@ function parseBotMessage(text: string): ParsedContent {
   const links: { label: string; url: string }[] = [];
   let cleanText = text;
 
-  // Extract images
   const imgRegexGlobal = /!\[([^\]]*)\]\(([^)]+)\)/g;
   let imgMatch;
   while ((imgMatch = imgRegexGlobal.exec(text)) !== null) {
@@ -29,7 +28,6 @@ function parseBotMessage(text: string): ParsedContent {
   }
   cleanText = cleanText.replace(imgRegexGlobal, "");
 
-  // Extract links
   const linkRegexGlobal = /\[([^\]]+)\]\(([^)]+)\)/g;
   let linkMatch;
   while ((linkMatch = linkRegexGlobal.exec(text)) !== null) {
@@ -37,7 +35,6 @@ function parseBotMessage(text: string): ParsedContent {
   }
   cleanText = cleanText.replace(linkRegexGlobal, "");
 
-  // Clean up extra whitespace/newlines
   cleanText = cleanText.trim();
 
   return { cleanText, images, links };
@@ -64,7 +61,6 @@ export default function GuestChatbox() {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Tự động cuộn xuống khi có tin nhắn mới
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -109,7 +105,7 @@ export default function GuestChatbox() {
 
   return (
     <div className="fixed bottom-6 right-6 z-50 font-sans">
-      {/* NÚT CHAT BONG BÓNG */}
+      {/* NÚT CHAT */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
@@ -121,10 +117,10 @@ export default function GuestChatbox() {
         </button>
       )}
 
-      {/* CỬA SỔ CHATBOX */}
+      {/* CHATBOX */}
       {isOpen && (
         <div
-          className="w-[360px] sm:w-[380px] h-[520px] bg-white rounded-2xl border border-gray-250 shadow-2xl flex flex-col overflow-hidden animate-scale-in"
+          className="w-90 sm:w-95 h-130 bg-white rounded-2xl border border-gray-250 shadow-2xl flex flex-col overflow-hidden animate-scale-in"
           style={{ boxShadow: "0 12px 30px rgba(0,0,0,0.15)" }}
         >
           {/* HEADER */}
@@ -269,7 +265,6 @@ export default function GuestChatbox() {
               </div>
             ))}
 
-            {/* Typing indicator */}
             {isTyping && (
               <div className="flex gap-2.5">
                 <div className="w-7 h-7 bg-primary-100 rounded-full flex items-center justify-center shrink-0 border border-primary-200">
@@ -291,7 +286,7 @@ export default function GuestChatbox() {
               <p className="text-[10px] font-semibold text-gray-400 mb-1.5 flex items-center gap-1.5">
                 <Sparkles size={11} className="text-primary-500" /> Gợi ý câu hỏi:
               </p>
-              <div className="flex flex-col gap-1.5 max-h-[100px] overflow-y-auto pr-1">
+              <div className="flex flex-col gap-1.5 max-h-25 overflow-y-auto pr-1">
                 {suggestedQuestions.map((q, idx) => (
                   <button
                     key={idx}

@@ -3,8 +3,6 @@ import { Plus, Trash2, RotateCcw, Loader2, UserCog, Eye } from "lucide-react";
 import PageHeader from "../../../components/ui/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
-import Modal from "../../../components/ui/Modal";
-import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import Badge from "../../../components/ui/Badge";
 import { toast } from "sonner";
 
@@ -12,20 +10,21 @@ import * as authService from "../../../services/authService";
 import type { UserData } from "../../../services/authService";
 
 import { useSort } from "../../../hooks/useSort";
-import { removeVietnameseTones, maskPhone } from "../../../utils/format";
+import { removeVietnameseTones } from "../../../utils/format";
+
+import UserCreateModal from "./components/UserCreateModal";
+import UserDeleteModal from "./components/UserDeleteModal";
+import UserResetPasswordModal from "./components/UserResetPasswordModal";
+import UserDetailModal from "./components/UserDetailModal";
 
 export default function UserList() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [showForm, setShowForm] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [deleteItem, setDeleteItem] = useState<UserData | null>(null);
   const [resetItem, setResetItem] = useState<UserData | null>(null);
   const [viewItem, setViewItem] = useState<UserData | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  // Form state
-  const [formData, setFormData] = useState({ username: "", role: "TENANT" });
 
   useEffect(() => {
     fetchUsers();
@@ -51,26 +50,6 @@ export default function UserList() {
   });
 
   const { items: sortedUsers, requestSort, getSortIcon } = useSort(filtered);
-
-  // Thêm user mới
-  async function handleCreate() {
-    if (!formData.username) {
-      toast.error("Vui lòng nhập tên tài khoản");
-      return;
-    }
-    setSaving(true);
-    try {
-      await authService.createUser(formData);
-      toast.success("Đã tạo tài khoản mới (mật khẩu mặc định: 123456)");
-      setShowForm(false);
-      setFormData({ username: "", role: "TENANT" });
-      fetchUsers();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Tạo tài khoản thất bại");
-    } finally {
-      setSaving(false);
-    }
-  }
 
   // Xóa user
   async function handleDelete() {
@@ -126,10 +105,7 @@ export default function UserList() {
         count={users.length}
         iconColor="linear-gradient(135deg, #F59E0B, #FBBF24)"
         actions={
-          <Button onClick={() => {
-            setFormData({ email: "", role: "TENANT", phone: "" });
-            setShowForm(true);
-          }}>
+          <Button onClick={() => setShowCreateModal(true)}>
             <Plus size={18} /> Thêm tài khoản
           </Button>
         }
@@ -210,116 +186,33 @@ export default function UserList() {
         </div>
       </div>
 
-      {/* Modal thêm tài khoản */}
-      <Modal
-        isOpen={showForm}
-        onClose={() => setShowForm(false)}
-        title="Thêm tài khoản mới"
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setShowForm(false)}>Hủy</Button>
-            <Button onClick={handleCreate} isLoading={saving}>Tạo tài khoản</Button>
-          </>
-        }
-      >
-        <div className="space-y-6">
-          <div className="grid grid-cols-12 gap-6">
-            <div className="col-span-12">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Username *</label>
-              <input
-                type="text"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                placeholder="VD: manager_q1"
-                className="premium-input rounded-xl"
-              />
-            </div>
-            <div className="col-span-12">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Role *</label>
-              <select
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                className="premium-select w-full rounded-xl"
-              >
-                <option value="TENANT">Người thuê (Tenant)</option>
-                <option value="MANAGER">Quản lý (Manager)</option>
-                <option value="ADMIN">Quản trị viên (Admin)</option>
-              </select>
-            </div>
-          </div>
-          <p className="text-xs text-gray-400">Mật khẩu mặc định: 123456</p>
-        </div>
-      </Modal>
+      {/* Modals */}
+      <UserCreateModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={fetchUsers}
+      />
 
-      {/* Dialog xóa */}
-      <ConfirmDialog
+      <UserDeleteModal
         isOpen={!!deleteItem}
         onClose={() => setDeleteItem(null)}
         onConfirm={handleDelete}
-        title="Xóa tài khoản"
-        message={`Bạn có chắc chắn muốn xóa tài khoản "${deleteItem?.username}"?`}
-        confirmText="Xóa"
+        user={deleteItem}
       />
 
-      {/* Dialog reset mật khẩu */}
-      <ConfirmDialog
+      <UserResetPasswordModal
         isOpen={!!resetItem}
         onClose={() => setResetItem(null)}
         onConfirm={confirmResetPassword}
-        title="Đặt lại mật khẩu"
-        message={`Bạn có chắc chắn muốn đặt lại mật khẩu cho tài khoản "${resetItem?.username}" về mặc định "123456" không?`}
-        confirmText="Đặt lại"
+        user={resetItem}
       />
 
-      {/* Modal xem chi tiết tài khoản */}
-      <Modal
+      <UserDetailModal
         isOpen={!!viewItem}
         onClose={() => setViewItem(null)}
-        title="Chi tiết tài khoản"
-        size="md"
-        footer={
-          <Button onClick={() => setViewItem(null)}>Đóng</Button>
-        }
-      >
-        {viewItem && (
-          <div className="space-y-4 font-sans text-sm">
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Mã tài khoản (ID):</span>
-              <span className="font-semibold text-gray-800">#{viewItem.id}</span>
-            </div>
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Username:</span>
-              <span className="font-semibold text-gray-800">{viewItem.username}</span>
-            </div>
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Vai trò (Role):</span>
-              <span>{getRoleBadge(viewItem.role)}</span>
-            </div>
-            {viewItem.role === "MANAGER" && (
-              <div className="flex justify-between border-b pb-2 border-gray-100">
-                <span className="text-gray-500 font-medium">Tòa nhà quản lý:</span>
-                <span className="font-semibold text-gray-800 text-right">
-                  {viewItem.managed_buildings && viewItem.managed_buildings.length > 0
-                    ? viewItem.managed_buildings.map((b: any) => b.branch_name).join(", ")
-                    : "Chưa phân công"}
-                </span>
-              </div>
-            )}
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Trạng thái:</span>
-              <Badge variant={viewItem.status === "ACTIVE" ? "success" : "gray"}>
-                {viewItem.status === "ACTIVE" ? "Hoạt động" : "Tạm khóa"}
-              </Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Ngày tạo:</span>
-              <span className="font-semibold text-gray-800">
-                {viewItem.created_at ? new Date(viewItem.created_at).toLocaleString("vi-VN") : "-"}
-              </span>
-            </div>
-          </div>
-        )}
-      </Modal>
+        user={viewItem}
+      />
     </div>
   );
 }
+
