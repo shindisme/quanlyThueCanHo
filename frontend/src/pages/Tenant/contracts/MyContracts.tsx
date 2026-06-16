@@ -27,25 +27,21 @@ export default function MyContracts() {
   const [buildings, setBuildings] = useState<any[]>([]);
   const [apartments, setApartments] = useState<any[]>([]);
 
-  // Selected contract for the printable modal
   const [viewContractDoc, setViewContractDoc] = useState<RentalContract | null>(null);
 
   useEffect(() => {
-    // 1. Fetch buildings from backend API
     buildingService.getAllBuildings({ limit: 100 }).then((res) => {
       setBuildings(res.data);
     }).catch(() => {
       setBuildings(mockBuildings);
     });
 
-    // 2. Fetch apartments from backend API
     apartmentService.getAllApartments({ limit: 1000 }).then((res) => {
       setApartments(res.data);
     }).catch(() => {
       setApartments(mockApartments as any);
     });
 
-    // 3. Load tenants from localStorage
     const storedTenants = localStorage.getItem("custom-tenants");
     if (storedTenants) {
       try {
@@ -57,7 +53,6 @@ export default function MyContracts() {
       setTenants(mockTenants);
     }
 
-    // 4. Load contracts from localStorage
     const storedContracts = localStorage.getItem("custom-contracts");
     if (storedContracts) {
       try {
@@ -69,7 +64,6 @@ export default function MyContracts() {
       setContracts(mockContracts);
     }
 
-    // 5. Load users from localStorage
     const storedUsers = localStorage.getItem("custom-users");
     if (storedUsers) {
       try {
@@ -82,13 +76,11 @@ export default function MyContracts() {
     }
   }, []);
 
-  // Find current tenant
   const currentUser = users.find((u) => u.email === email);
   const currentTenant = currentUser
     ? tenants.find((t) => t.user_id === currentUser.id)
     : null;
 
-  // Filter contracts for this tenant
   const myContracts = currentTenant
     ? contracts.filter((c) => c.tenant_id === currentTenant.id)
     : [];

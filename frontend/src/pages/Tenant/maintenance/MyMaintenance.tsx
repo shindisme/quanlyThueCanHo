@@ -7,10 +7,6 @@ import { toast } from "sonner";
 
 import PageHeader from "../../../components/ui/PageHeader";
 
-// ============================================================
-// YÊU CẦU SỬA CHỮA CỦA TÔI - Tenant tạo/xem yêu cầu
-// ============================================================
-
 const mockRequests = [
   {
     id: 1, title: "Bóng đèn phòng khách hỏng", description: "Bóng đèn LED phòng khách không sáng",

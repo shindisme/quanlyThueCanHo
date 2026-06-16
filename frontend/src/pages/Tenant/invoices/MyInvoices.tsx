@@ -4,10 +4,6 @@ import Badge from "../../../components/ui/Badge";
 import SearchInput from "../../../components/ui/SearchInput";
 import PageHeader from "../../../components/ui/PageHeader";
 
-// ============================================================
-// HÓA ĐƠN CỦA TÔI - Tenant xem hóa đơn
-// ============================================================
-
 const mockInvoices = [
   {
     id: 1, invoice_code: "INV-2026-06-001", billing_month: "06/2026",

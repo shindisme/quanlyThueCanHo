@@ -5,12 +5,6 @@ import {
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../../../stores/auth.store";
 
-// ============================================================
-// TENANT HOME - DashboardPack Style
-// ============================================================
-// Trang chủ người thuê: greeting, thông tin căn hộ, hóa đơn,
-// hợp đồng, thông báo, yêu cầu sửa chữa gần đây
-
 const mockContract = {
   room_number: "05",
   floor: 12,
@@ -68,14 +62,13 @@ export default function TenantHome() {
 
   return (
     <div className="space-y-6">
-      {/* ===== GREETING ===== */}
       <div className="rounded-lg p-6 text-white"
         style={{ background: "linear-gradient(135deg, #7C3AED 0%, #6D28D9 50%, #5B21B6 100%)" }}>
-        <h1 className="text-2xl font-bold mb-1">Xin chào, {displayName}! 👋</h1>
+        <h1 className="text-2xl font-bold mb-1">Xin chào, {displayName}! </h1>
         <p className="text-purple-200 text-sm">Chào mừng bạn quay trở lại YuKi House</p>
       </div>
 
-      {/* ===== APARTMENT INFO ===== */}
+      {/* APARTMENT INFO */}
       <div className="bg-white rounded-lg border border-gray-200 p-5">
         <div className="flex items-start gap-4">
           <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -98,19 +91,19 @@ export default function TenantHome() {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
               <div className="flex items-center gap-2 text-sm text-gray-600">
-                <MapPin size={15} className="text-gray-400 flex-shrink-0" />
+                <MapPin size={15} className="text-gray-400 shrink-0" />
                 <span className="truncate">{mockContract.building}</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Maximize2 size={15} className="text-gray-400 flex-shrink-0" />
+                <Maximize2 size={15} className="text-gray-400 shrink-0" />
                 <span>{mockContract.area} m² · Tầng {mockContract.floor}</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
-                <CreditCard size={15} className="text-gray-400 flex-shrink-0" />
+                <CreditCard size={15} className="text-gray-400 shrink-0" />
                 <span>{formatCurrency(mockContract.monthly_rent)}/tháng</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Calendar size={15} className="text-gray-400 flex-shrink-0" />
+                <Calendar size={15} className="text-gray-400 shrink-0" />
                 <span>Còn {daysUntilExpiry} ngày</span>
               </div>
             </div>
@@ -118,7 +111,7 @@ export default function TenantHome() {
         </div>
       </div>
 
-      {/* ===== CARDS ROW ===== */}
+      {/* CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Hóa đơn tháng này */}
         <div className="bg-white rounded-lg border border-gray-200 p-5">
@@ -217,13 +210,11 @@ export default function TenantHome() {
           <div className="space-y-3">
             {mockNotifications.map((n) => (
               <div key={n.id} className="flex items-start gap-2.5">
-                <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                  n.is_read ? "bg-gray-300" : "bg-primary-500"
-                }`} />
+                <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${n.is_read ? "bg-gray-300" : "bg-primary-500"
+                  }`} />
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm leading-snug ${
-                    n.is_read ? "text-gray-500" : "text-gray-800 font-medium"
-                  }`}>
+                  <p className={`text-sm leading-snug ${n.is_read ? "text-gray-500" : "text-gray-800 font-medium"
+                    }`}>
                     {n.title}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">{n.time}</p>
@@ -234,7 +225,7 @@ export default function TenantHome() {
         </div>
       </div>
 
-      {/* ===== YÊU CẦU SỬA CHỮA GẦN ĐÂY ===== */}
+      {/* YÊU CẦU SỬA CHỮA GẦN ĐÂY */}
       <div className="bg-white rounded-lg border border-gray-200 p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -262,11 +253,10 @@ export default function TenantHome() {
                   <p className="text-xs text-gray-400">{m.date}</p>
                 </div>
               </div>
-              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                m.status === "COMPLETED"
-                  ? "bg-success-50 text-success-600"
-                  : "bg-warning-50 text-warning-600"
-              }`}>
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${m.status === "COMPLETED"
+                ? "bg-success-50 text-success-600"
+                : "bg-warning-50 text-warning-600"
+                }`}>
                 {m.status === "COMPLETED" ? "Hoàn thành" : "Đang xử lý"}
               </span>
             </div>
