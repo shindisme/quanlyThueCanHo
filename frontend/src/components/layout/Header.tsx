@@ -3,17 +3,36 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../stores/auth.store";
 import { useSidebarStore } from "../../stores/sidebar.store";
+import * as buildingService from "../../services/buildingService";
 
-
+function parseJwt(token: string) {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      window
+        .atob(base64)
+        .split("")
+        .map(function (c) {
+          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+        })
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
 
 export default function Header() {
-  const { email, role, logout } = useAuthStore();
+  const { email, role, token, logout } = useAuthStore();
   const { setMobileOpen, toggle } = useSidebarStore();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [showProfile, setShowProfile] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
+  const [managedBuildingName, setManagedBuildingName] = useState<string | null>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -25,10 +44,29 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    async function fetchManagedBuilding() {
+      if (role === "MANAGER" && token) {
+        try {
+          const decoded = parseJwt(token);
+          if (decoded && decoded.userId) {
+            const result = await buildingService.getAllBuildings({ managerId: decoded.userId });
+            if (result.data && result.data.length > 0) {
+              setManagedBuildingName(result.data[0].branch_name);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching managed building", error);
+        }
+      }
+    }
+    fetchManagedBuilding();
+  }, [role, token]);
+
   const displayName = email?.split("@")[0] || "User";
   const roleLabel =
     role === "ADMIN" ? "Quản trị viên"
-      : role === "MANAGER" ? "Quản lý"
+      : role === "MANAGER" ? (managedBuildingName ? `Quản lý: ${managedBuildingName}` : "Quản lý")
         : "Người thuê";
 
   function getBreadcrumb() {
@@ -100,35 +138,38 @@ export default function Header() {
         )}
       </div>
 
-      {/* ===== BÊN PHẢI: Notification + Profile ===== */}
+      {/*Right side*/}
       <div className="flex items-center gap-1">
-        {/* Notification bell - ArchitectUI style (có dot đỏ nhấp nháy) */}
+        {role === "MANAGER" && managedBuildingName && (
+          <div className="hidden md:flex items-center px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-xs font-semibold border border-primary-100 mr-2">
+            Chi nhánh: {managedBuildingName}
+          </div>
+        )}
+        {/* Notification */}
         <button
           onClick={() => navigate(`/${role?.toLowerCase()}/notifications`)}
           className="p-2.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors relative cursor-pointer"
           title="Thông báo"
         >
           <Bell size={20} />
-          {/* Dot đỏ nhấp nháy - ArchitectUI */}
           <span className="absolute top-2 right-2 w-2 h-2 bg-danger-500 rounded-full animate-pulse-dot" />
         </button>
 
-        {/* Separator - ArchitectUI có đường kẻ dọc trước avatar */}
+        {/* Separator*/}
         <div className="hidden sm:block w-px h-8 bg-gray-200 mx-2" />
 
-        {/* ===== USER DROPDOWN - ArchitectUI style ===== */}
+        {/* USER DROPDOWN */}
         <div ref={profileRef} className="relative">
           <button
             onClick={() => setShowProfile(!showProfile)}
             className="flex items-center gap-2.5 p-1.5 pr-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
           >
-            {/* Avatar vuông bo góc với hình mặc định Facebook */}
             <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center shrink-0 bg-gray-200 text-gray-400 border border-gray-300">
               <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor">
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
               </svg>
             </div>
-            {/* Tên + Role */}
+
             <div className="hidden sm:block text-left">
               <p className="text-sm font-medium text-gray-800 leading-tight">{displayName}</p>
               <p className="text-[11px] text-gray-400">{roleLabel}</p>
@@ -140,7 +181,7 @@ export default function Header() {
           {showProfile && (
             <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg border border-gray-200 z-50 py-1 animate-scale-in"
               style={{ boxShadow: "var(--shadow-dropdown)" }}>
-              {/* User info header */}
+              {/* User info  */}
               <div className="px-4 py-3 border-b border-gray-100">
                 <p className="text-sm font-semibold text-gray-800">{displayName}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{email}</p>

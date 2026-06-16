@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import type { Role } from "./enums";
 
-// Cau truc 1 muc menu sidebar
 export interface SidebarItem {
   label: string;
   path: string;
@@ -26,13 +25,12 @@ export interface SidebarItem {
   badge?: number;
 }
 
-// Cau truc 1 nhom menu sidebar
 export interface SidebarGroup {
   title?: string;
   items: SidebarItem[];
 }
 
-// Menu cho Admin - quan tri toan he thong
+// Menu cho Admin
 const adminMenu: SidebarGroup[] = [
   {
     items: [
@@ -63,7 +61,7 @@ const adminMenu: SidebarGroup[] = [
     title: "Hệ thống",
     items: [
       { label: "Tài khoản", path: "/admin/users", icon: UserCog },
-      { label: "Báo cáo", path: "/admin/reports", icon: BarChart3 },
+      // { label: "Báo cáo", path: "/admin/reports", icon: BarChart3 },
       { label: "Cài đặt", path: "/admin/settings", icon: Settings },
     ],
   },
@@ -97,7 +95,7 @@ const managerMenu: SidebarGroup[] = [
   {
     title: "Khác",
     items: [
-      { label: "Báo cáo", path: "/manager/reports", icon: BarChart3 },
+      // { label: "Báo cáo", path: "/manager/reports", icon: BarChart3 },
     ],
   },
 ];

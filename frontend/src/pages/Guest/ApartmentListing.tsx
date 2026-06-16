@@ -143,7 +143,7 @@ export default function GuestApartmentListing() {
             <option value="">Tất cả chi nhánh</option>
             {buildings.map((b) => (
               <option key={b.id} value={b.id}>
-                {b.branch_name} - {b.name.replace(/yuki\s*house\s*|yuki\s*/gi, "")}
+                {b.branch_name}
               </option>
             ))}
           </select>

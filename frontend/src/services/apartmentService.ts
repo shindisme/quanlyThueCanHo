@@ -38,6 +38,7 @@ export async function getAllApartments(params?: {
   search?: string;
   page?: number;
   limit?: number;
+  status?: string;
 }): Promise<{ data: ApartmentData[]; pagination: ApartmentPagination }> {
   const res = await api.get<any>("/apartments", { params });
   if (res.data.data && res.data.pagination) {

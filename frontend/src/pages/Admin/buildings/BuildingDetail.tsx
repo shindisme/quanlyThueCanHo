@@ -98,7 +98,7 @@ export default function BuildingDetail() {
 
   async function handleSave() {
     if (!formData.name || !formData.address_old || !formData.address_new || !formData.branch_name) {
-      toast.error("Vui lòng nhập tên, địa chỉ cũ, địa chỉ mới và chi nhánh");
+      toast.error("Vui lòng nhập tên chi nhánh/tòa nhà, địa chỉ cũ và địa chỉ mới");
       return;
     }
     setSaving(true);
@@ -196,7 +196,7 @@ export default function BuildingDetail() {
           <div className="flex items-start justify-between mb-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-800">
-                {building.branch_name} - {building.name.replace(/yuki\s*house\s*|yuki\s*/gi, "")}
+                {building.branch_name}
               </h1>
               <div className="flex items-center gap-2 mt-1">
                 <Badge variant={building.status === "ACTIVE" ? "success" : "gray"}>
@@ -221,7 +221,7 @@ export default function BuildingDetail() {
             {building.manager && (
               <div className="flex items-center gap-2">
                 <User size={16} className="text-gray-400 shrink-0" />
-                <span>Người quản lý: <strong className="text-primary-600">{building.manager.username}</strong></span>
+                <span>Quản lý bởi: <strong className="text-primary-600">{building.manager.username}</strong></span>
               </div>
             )}
           </div>
@@ -306,12 +306,12 @@ export default function BuildingDetail() {
         <div className="space-y-6">
           <div className="grid grid-cols-12 gap-6">
             <div className="col-span-12">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên tòa nhà *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên chi nhánh/tòa nhà *</label>
               <input
                 type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="VD: Tower A"
+                value={formData.branch_name}
+                onChange={(e) => setFormData({ ...formData, branch_name: e.target.value, name: e.target.value })}
+                placeholder="VD: Chi nhánh Quận 1"
                 className="premium-input rounded-xl"
               />
             </div>
@@ -335,7 +335,7 @@ export default function BuildingDetail() {
                 className="premium-input rounded-xl"
               />
             </div>
-            <div className="col-span-12 sm:col-span-6">
+            <div className="col-span-12">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Số tầng *</label>
               <input
                 type="number"
@@ -344,18 +344,8 @@ export default function BuildingDetail() {
                 className="premium-input rounded-xl"
               />
             </div>
-            <div className="col-span-12 sm:col-span-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Chi nhánh *</label>
-              <input
-                type="text"
-                value={formData.branch_name}
-                onChange={(e) => setFormData({ ...formData, branch_name: e.target.value })}
-                placeholder="VD: Chi nhánh Quận 1"
-                className="premium-input rounded-xl"
-              />
-            </div>
             <div className="col-span-12">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Người quản lý (Manager)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Quản lý bởi</label>
               <select
                 value={formData.manager_id || ""}
                 onChange={(e) => setFormData({ ...formData, manager_id: e.target.value ? Number(e.target.value) : null })}

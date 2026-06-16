@@ -1,4 +1,3 @@
-// Cac enum trang thai tuong ung voi Prisma schema
 
 export type Role = "ADMIN" | "MANAGER" | "STAFF" | "TENANT";
 
@@ -84,7 +83,7 @@ export const SCHEDULE_STATUS_LABELS: Record<ScheduleStatus, string> = {
   CANCELLED: "Đã huỷ",
 };
 
-// Map trang thai sang mau Badge
+// Map trang thai Badge
 export const APARTMENT_STATUS_COLORS: Record<ApartmentStatus, string> = {
   AVAILABLE: "success",
   RENTED: "info",

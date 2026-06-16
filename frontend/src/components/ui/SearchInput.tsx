@@ -1,9 +1,7 @@
 import { cn } from "../../lib/utils";
 import { Search } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
-// O tim kiem voi debounce - cho 300ms sau khi nguoi dung ngung go moi goi onChange
-// Tranh goi qua nhieu lan khi go nhanh
 interface SearchInputProps {
   value?: string;
   onChange: (value: string) => void;
@@ -18,16 +16,19 @@ export default function SearchInput({
   className,
 }: SearchInputProps) {
   const [localValue, setLocalValue] = useState(externalValue || "");
+  const onChangeRef = useRef(onChange);
 
-  // Debounce: doi 300ms roi moi goi onChange
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      onChange(localValue);
+      onChangeRef.current(localValue);
     }, 300);
     return () => clearTimeout(timer);
-  }, [localValue, onChange]);
+  }, [localValue]);
 
-  // Dong bo khi gia tri ben ngoai thay doi
   useEffect(() => {
     if (externalValue !== undefined) {
       setLocalValue(externalValue);

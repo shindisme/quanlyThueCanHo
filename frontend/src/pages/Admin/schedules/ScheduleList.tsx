@@ -57,12 +57,10 @@ export default function ScheduleList() {
     const term = removeVietnameseTones(search);
     const nameNorm = removeVietnameseTones(s.guest_name);
     const phoneNorm = removeVietnameseTones(s.guest_phone);
-    const emailNorm = removeVietnameseTones(s.guest_email || "");
     const roomNorm = removeVietnameseTones(s.apartment?.room_number || "");
     return (
       nameNorm.includes(term) ||
       phoneNorm.includes(term) ||
-      emailNorm.includes(term) ||
       roomNorm.includes(term)
     );
   });
@@ -146,9 +144,6 @@ export default function ScheduleList() {
                 <th onClick={() => requestSort("guest_phone")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                   SĐT {getSortIcon("guest_phone")}
                 </th>
-                <th onClick={() => requestSort("guest_email")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Email {getSortIcon("guest_email")}
-                </th>
                 <th onClick={() => requestSort("apartment_id")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                   Căn hộ {getSortIcon("apartment_id")}
                 </th>
@@ -166,11 +161,6 @@ export default function ScheduleList() {
                 <tr key={s.id}>
                   <td className="font-semibold text-gray-800">{s.guest_name}</td>
                   <td className="text-gray-650">{maskPhone(s.guest_phone)}</td>
-                  <td className="text-gray-500">
-                    {s.guest_email ? (
-                      <span className="truncate max-w-[150px]">{s.guest_email}</span>
-                    ) : "-"}
-                  </td>
                   <td className="text-gray-600">
                     {s.apartment ? (
                       <span className="font-medium text-primary-600">
@@ -269,10 +259,7 @@ export default function ScheduleList() {
               <span className="text-gray-500 font-medium">Số điện thoại:</span>
               <span className="font-semibold text-gray-800">{viewItem.guest_phone}</span>
             </div>
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Email khách:</span>
-              <span className="font-semibold text-gray-800">{viewItem.guest_email || "-"}</span>
-            </div>
+
             <div className="flex justify-between border-b pb-2 border-gray-100">
               <span className="text-gray-500 font-medium">Căn hộ:</span>
               <span className="font-semibold text-gray-800">

@@ -145,7 +145,6 @@ export default function TenantList() {
       localStorage.setItem("custom-users", JSON.stringify(currentUsers));
     }
 
-    // 2. Tạo Tenant mới
     const storedTenants = localStorage.getItem("custom-tenants");
     let currentTenants = storedTenants ? JSON.parse(storedTenants) : [...mockTenants];
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, Loader2, Home, Star } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Home, Star, Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import PageHeader from "../../../components/ui/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
@@ -20,6 +21,7 @@ import { useSort } from "../../../hooks/useSort";
 import { formatApartmentDisplay, removeVietnameseTones } from "../../../utils/format";
 
 export default function ApartmentList() {
+  const navigate = useNavigate();
   const { role, email } = useAuthStore();
   const currentUser = mockUsers.find((u) => u.email === email);
   const managerBuildingId = currentUser?.managedBuildingId;
@@ -29,6 +31,7 @@ export default function ApartmentList() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [filterFeatured, setFilterFeatured] = useState("");
   const [filterBuilding, setFilterBuilding] = useState<number | undefined>(
     role === "MANAGER" ? managerBuildingId : undefined
   );
@@ -37,10 +40,10 @@ export default function ApartmentList() {
   const [deleteItem, setDeleteItem] = useState<ApartmentData | null>(null);
   const [saving, setSaving] = useState(false);
   const [featuredIds, setFeaturedIds] = useState<number[]>([]);
+  const [localThumbnail, setLocalThumbnail] = useState<string>("");
+  const [localImages, setLocalImages] = useState<string[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
   const pageSize = 20;
 
   const [formData, setFormData] = useState({
@@ -49,7 +52,7 @@ export default function ApartmentList() {
     rental_price: 0, description: "", status: "AVAILABLE",
   });
 
-  // Lấy danh sách tòa nhà (cho filter & form)
+  // Lấy danh sách tòa nhà 
   useEffect(() => {
     buildingService.getAllBuildings().then((result) => {
       setBuildings(result.data);
@@ -83,20 +86,18 @@ export default function ApartmentList() {
   // Lấy danh sách căn hộ 
   useEffect(() => {
     fetchApartments();
-  }, [currentPage, filterBuilding, search, filterStatus]);
+    setCurrentPage(1);
+  }, [filterBuilding, filterStatus]);
 
   async function fetchApartments() {
     try {
       setLoading(true);
       const result = await apartmentService.getAllApartments({
-        page: currentPage,
-        limit: pageSize,
         building_id: filterBuilding,
-        search: search || undefined,
+        status: filterStatus || undefined,
+        limit: 1000,
       });
       setApartments(result.data);
-      setTotalPages(result.pagination.totalPages);
-      setTotalCount(result.pagination.total);
     } catch {
       toast.error("Không thể tải dữ liệu");
     } finally {
@@ -104,20 +105,40 @@ export default function ApartmentList() {
     }
   }
 
-  const filtered = apartments.filter((a) => {
-    if (filterStatus && a.status !== filterStatus) return false;
+  // Lọc dữ liệu trên 
+  const filtered = apartments.filter((apt) => {
     if (search) {
       const term = removeVietnameseTones(search);
-      const roomNorm = removeVietnameseTones(a.room_number);
-      const b = buildings.find((build) => build.id === a.building_id);
-      const branchNorm = removeVietnameseTones(b?.branch_name || "");
-      const bNameNorm = removeVietnameseTones(b?.name || "");
-      return roomNorm.includes(term) || branchNorm.includes(term) || bNameNorm.includes(term);
+      const roomNorm = removeVietnameseTones(apt.room_number);
+      const descNorm = removeVietnameseTones(apt.description || "");
+      const buildingName = buildings.find((b) => b.id === apt.building_id)?.branch_name || "";
+      const bNameNorm = removeVietnameseTones(buildingName);
+
+      if (!roomNorm.includes(term) && !descNorm.includes(term) && !bNameNorm.includes(term)) {
+        return false;
+      }
     }
+
+    if (filterFeatured === "featured") {
+      return featuredIds.includes(apt.id);
+    }
+    if (filterFeatured === "non-featured") {
+      return !featuredIds.includes(apt.id);
+    }
+
     return true;
   });
 
   const { items: sortedApartments, requestSort, getSortIcon } = useSort(filtered);
+
+  // Phân trang 
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paginatedApartments = sortedApartments.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const totalCount = filtered.length;
 
   function getStatusBadge(status: string) {
     const map: Record<string, { label: string; variant: string }> = {
@@ -136,6 +157,8 @@ export default function ApartmentList() {
       area: 0, bedrooms: 1, bathrooms: 1,
       rental_price: 0, description: "", status: "AVAILABLE",
     });
+    setLocalThumbnail("");
+    setLocalImages([]);
     setShowForm(true);
   }
 
@@ -148,7 +171,42 @@ export default function ApartmentList() {
       rental_price: apt.rental_price, description: apt.description || "",
       status: apt.status,
     });
+    const thumbnail = apt.images?.find((img) => img.is_thumbnail)?.image_url || "";
+    const details = apt.images?.filter((img) => !img.is_thumbnail).map((img) => img.image_url) || [];
+    setLocalThumbnail(thumbnail);
+    setLocalImages(details);
     setShowForm(true);
+  }
+
+  function handleThumbnailChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLocalThumbnail(URL.createObjectURL(file));
+    }
+  }
+
+  function handleDetailImageChange(e: React.ChangeEvent<HTMLInputElement>, index: number) {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setLocalImages(prev => {
+        const next = [...prev];
+        next[index] = url;
+        return next;
+      });
+    }
+  }
+
+  function removeThumbnail() {
+    setLocalThumbnail("");
+  }
+
+  function removeDetailImage(index: number) {
+    setLocalImages(prev => {
+      const next = [...prev];
+      next.splice(index, 1);
+      return next;
+    });
   }
 
   async function handleSave() {
@@ -228,12 +286,9 @@ export default function ApartmentList() {
             className="px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:border-primary-500"
           >
             <option value="">Tất cả chi nhánh</option>
-            {buildings.map((b) => {
-              const cleanedName = b.name.replace(/yuki\s*house\s*|yuki\s*/gi, "");
-              return (
-                <option key={b.id} value={b.id}>{b.branch_name}{cleanedName ? ` - ${cleanedName}` : ""}</option>
-              );
-            })}
+            {buildings.map((b) => (
+              <option key={b.id} value={b.id}>{b.branch_name}</option>
+            ))}
           </select>
         )}
         <select
@@ -246,6 +301,17 @@ export default function ApartmentList() {
           <option value="RENTED">Đang thuê</option>
           <option value="MAINTENANCE">Bảo trì</option>
         </select>
+        {role === "ADMIN" && (
+          <select
+            value={filterFeatured}
+            onChange={(e) => { setFilterFeatured(e.target.value); setCurrentPage(1); }}
+            className="px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:border-primary-500"
+          >
+            <option value="">Tất cả nổi bật</option>
+            <option value="featured">Nổi bật</option>
+            <option value="non-featured">Không nổi bật</option>
+          </select>
+        )}
       </div>
 
       {/* Table */}
@@ -256,9 +322,6 @@ export default function ApartmentList() {
               <tr>
                 <th onClick={() => requestSort("room_number")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                   Phòng {getSortIcon("room_number")}
-                </th>
-                <th onClick={() => requestSort("floor")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Tầng {getSortIcon("floor")}
                 </th>
                 <th onClick={() => requestSort("area")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                   Diện tích {getSortIcon("area")}
@@ -282,7 +345,7 @@ export default function ApartmentList() {
               </tr>
             </thead>
             <tbody>
-              {sortedApartments.map((apt) => (
+              {paginatedApartments.map((apt) => (
                 <tr key={apt.id}>
                   <td className="font-semibold text-primary-600">
                     {formatApartmentDisplay(
@@ -292,7 +355,6 @@ export default function ApartmentList() {
                       buildings.find((b) => b.id === apt.building_id)?.branch_name
                     )}
                   </td>
-                  <td className="text-gray-600">{apt.floor}</td>
                   <td className="text-gray-600">{apt.area} m²</td>
                   <td className="text-gray-600">{apt.bedrooms}</td>
                   <td className="text-gray-600">{apt.bathrooms}</td>
@@ -314,6 +376,10 @@ export default function ApartmentList() {
                   )}
                   <td>
                     <div className="flex items-center justify-end gap-1">
+                      <button onClick={() => navigate(`/${role?.toLowerCase()}/apartments/${apt.id}`)}
+                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Xem chi tiết">
+                        <Eye size={16} />
+                      </button>
                       <button onClick={() => openEditForm(apt)}
                         className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Sửa">
                         <Pencil size={16} />
@@ -326,9 +392,9 @@ export default function ApartmentList() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {paginatedApartments.length === 0 && (
                 <tr>
-                  <td colSpan={role === "ADMIN" ? 9 : 8} className="text-center py-12 text-gray-500">
+                  <td colSpan={role === "ADMIN" ? 8 : 7} className="text-center py-12 text-gray-500">
                     <Home size={48} className="mx-auto mb-3 text-gray-300" />
                     Không tìm thấy căn hộ nào
                   </td>
@@ -339,7 +405,7 @@ export default function ApartmentList() {
         </div>
       </div>
 
-      {/* Server-side Pagination */}
+      {/* Pagination */}
       {totalPages > 1 && (
         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
       )}
@@ -373,12 +439,9 @@ export default function ApartmentList() {
                 disabled={role === "MANAGER"}
                 className="premium-select w-full rounded-xl disabled:bg-gray-50 disabled:text-gray-500">
                 <option value={0}>Chọn chi nhánh</option>
-                {buildings.map((b) => {
-                  const cleanedName = b.name.replace(/yuki\s*house\s*|yuki\s*/gi, "");
-                  return (
-                    <option key={b.id} value={b.id}>{b.branch_name}{cleanedName ? ` - ${cleanedName}` : ""}</option>
-                  );
-                })}
+                {buildings.map((b) => (
+                  <option key={b.id} value={b.id}>{b.branch_name}</option>
+                ))}
               </select>
             </div>
 
@@ -433,6 +496,66 @@ export default function ApartmentList() {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
                 className="premium-input rounded-xl resize-none" />
+            </div>
+
+            {/* Hình ảnh căn hộ */}
+            <div className="col-span-12 space-y-4 pt-2 border-t border-gray-100">
+              <label className="block text-sm font-semibold text-gray-800">Hình ảnh căn hộ</label>
+
+              {/* Ảnh bìa */}
+              <div className="space-y-1.5">
+                <span className="text-xs text-gray-500 font-medium">Ảnh bìa (Thumbnail)</span>
+                {localThumbnail ? (
+                  <div className="relative border border-gray-200 rounded-xl overflow-hidden h-40 w-full max-w-md bg-gray-50 flex items-center justify-center">
+                    <img src={localThumbnail} className="h-full w-full object-cover" alt="Thumbnail preview" />
+                    <button
+                      type="button"
+                      onClick={removeThumbnail}
+                      className="absolute top-2 right-2 p-1.5 bg-red-650 hover:bg-red-700 text-white rounded-full text-xs shadow-md transition-colors cursor-pointer"
+                      title="Xóa"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <label className="border-2 border-dashed border-gray-300 hover:border-primary-500 hover:bg-primary-50/10 rounded-xl h-40 w-full max-w-md flex flex-col items-center justify-center cursor-pointer transition-colors">
+                    <span className="text-sm text-gray-400 font-mono font-medium">Chọn hình ảnh</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleThumbnailChange} />
+                  </label>
+                )}
+              </div>
+
+              {/* Ảnh chi tiết */}
+              <div className="space-y-1.5">
+                <span className="text-xs text-gray-500 font-medium">Ảnh chi tiết (Tối đa 4 ảnh)</span>
+                <div className="grid grid-cols-4 gap-4">
+                  {Array.from({ length: 4 }).map((_, idx) => {
+                    const imageUrl = localImages[idx];
+                    return (
+                      <div key={idx} className="w-full">
+                        {imageUrl ? (
+                          <div className="relative border border-gray-200 rounded-xl overflow-hidden h-20 w-full bg-gray-50 flex items-center justify-center">
+                            <img src={imageUrl} className="h-full w-full object-cover" alt={`Detail preview ${idx + 1}`} />
+                            <button
+                              type="button"
+                              onClick={() => removeDetailImage(idx)}
+                              className="absolute top-1 right-1 p-1 bg-red-650 hover:bg-red-700 text-white rounded-full text-[10px] shadow transition-colors cursor-pointer"
+                              title="Xóa"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="border-2 border-dashed border-gray-300 hover:border-primary-500 hover:bg-primary-50/10 rounded-xl h-20 w-full flex items-center justify-center cursor-pointer transition-colors text-center px-1">
+                            <span className="text-[10px] text-gray-400 font-mono font-medium whitespace-nowrap">chọn hình ảnh</span>
+                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleDetailImageChange(e, idx)} />
+                          </label>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -2,7 +2,7 @@ import axios from "axios";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
-// Tạo instance axios với baseURL mặc định
+// instance axios với baseURL mặc định
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -22,7 +22,7 @@ api.interceptors.request.use(
         const token = parsed?.state?.token;
         if (token) {
           // Gắn token vào header Authorization
-          // Format: "Bearer <token>" - đây là chuẩn JWT
+          // Format: "Bearer <token>"
           config.headers.Authorization = `Bearer ${token}`;
         }
       } catch { /* empty */ }

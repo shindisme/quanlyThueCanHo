@@ -33,6 +33,7 @@ export async function getAllBuildings(params?: {
   branch_name?: string;
   page?: number;
   limit?: number;
+  managerId?: number;
 }): Promise<{ data: BuildingData[]; pagination: BuildingPagination }> {
   const res = await api.get<any>("/buildings", { params });
   if (res.data.data && res.data.pagination) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, MapPin, Layers, Home, MoreVertical, Pencil, Trash2, Loader2, Building2, User } from "lucide-react";
+import { Plus, MapPin, Layers, Home, MoreVertical, Pencil, Trash2, Loader2, Building2, User, Eye, Image } from "lucide-react";
 import PageHeader from "../../../components/ui/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
@@ -131,7 +131,7 @@ export default function BuildingList() {
 
   async function handleSave() {
     if (!formData.name || !formData.address_old || !formData.address_new || !formData.branch_name) {
-      toast.error("Vui lòng nhập tên, địa chỉ cũ, địa chỉ mới và chi nhánh");
+      toast.error("Vui lòng nhập tên chi nhánh/tòa nhà, địa chỉ cũ và địa chỉ mới");
       return;
     }
     setSaving(true);
@@ -197,7 +197,7 @@ export default function BuildingList() {
         className="max-w-md"
       />
 
-      {/* Danh sách card */}
+      {/* Danh sách list view  */}
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-gray-500 bg-white rounded-lg border border-gray-200">
           <Building2 size={48} className="mx-auto mb-3 text-gray-300" />
@@ -205,93 +205,71 @@ export default function BuildingList() {
           <p className="text-sm text-gray-400 mt-1">Thử tìm kiếm với từ khóa khác</p>
         </div>
       ) : (
-        <div className="grid grid-cols-12 gap-6">
-          {filtered.map((building) => (
-            <div
-              key={building.id}
-              className="col-span-12 md:col-span-6 lg:col-span-4 bg-white rounded-lg border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer relative"
-            >
-              {/* Menu 3 chấm */}
-              <div className="absolute top-4 right-4">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuOpen(menuOpen === building.id ? null : building.id);
-                  }}
-                  className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 cursor-pointer"
-                >
-                  <MoreVertical size={16} />
-                </button>
-                {menuOpen === building.id && (
-                  <div className="absolute right-0 top-8 w-36 bg-white rounded-lg shadow-lg border border-gray-200 z-10 py-1">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); openEditForm(building); }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer"
-                    >
-                      <Pencil size={14} /> Chỉnh sửa
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteItem(building);
-                        setMenuOpen(null);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-50 cursor-pointer"
-                    >
-                      <Trash2 size={14} /> Xóa
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Nội dung */}
-              <div onClick={() => navigate(`/admin/buildings/${building.id}`)}>
-                <div className="flex items-start gap-3 mb-4 pr-8">
-                  {building.thumbnail_url ? (
-                    <img src={building.thumbnail_url} className="w-12 h-12 rounded-lg object-cover shrink-0" alt="" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ background: 'linear-gradient(135deg, #7C3AED, #A78BFA)' }}>
-                      <Home size={22} className="text-white" />
-                    </div>
-                  )}
-                  <div>
-                    <h3 className="font-semibold text-gray-800">
-                      {building.branch_name} - {building.name.replace(/yuki\s*house\s*|yuki\s*/gi, "")}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1">
+        <div className="premium-table-container">
+          <div className="overflow-x-auto">
+            <table className="premium-table">
+              <thead>
+                <tr>
+                  <th>Tên chi nhánh</th>
+                  <th>Địa chỉ</th>
+                  <th>Số tầng</th>
+                  <th>Số căn hộ</th>
+                  <th>Quản lý bởi</th>
+                  <th>Trạng thái</th>
+                  <th className="text-right">Chức năng</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((building) => (
+                  <tr key={building.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="font-semibold text-primary-600">
+                      <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/admin/buildings/${building.id}`)}>
+                        <span>{building.branch_name}</span>
+                      </div>
+                    </td>
+                    <td className="text-gray-600">
+                      <span className="block max-w-xs truncate" title={building.address_new || building.address_old}>
+                        {building.address_new || building.address_old}
+                      </span>
+                    </td>
+                    <td className="text-gray-600 font-medium">{building.total_floors}</td>
+                    <td className="text-gray-600 font-medium">{building._count?.apartments ?? building.total_apartments} </td>
+                    <td className="text-gray-700">
+                      {building.manager ? (
+                        <div className="flex items-center gap-1.5 font-medium text-primary-600">
+                          <User size={13} />
+                          <span>{building.manager.username}</span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 italic text-xs">Không</span>
+                      )}
+                    </td>
+                    <td>
                       <Badge variant={building.status === "ACTIVE" ? "success" : "gray"}>
                         {building.status === "ACTIVE" ? "Hoạt động" : "Ngừng"}
                       </Badge>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2 text-sm text-gray-600">
-                  {building.manager && (
-                    <div className="flex items-center gap-2 text-primary-600 font-semibold mb-1">
-                      <User size={14} className="shrink-0" />
-                      <span>Quản lý: {building.manager.username}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <MapPin size={14} className="text-gray-400 shrink-0" />
-                    <span className="truncate">{building.address_new || building.address_old}</span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Layers size={14} className="text-gray-400" />
-                      <span>{building.total_floors} tầng</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Home size={14} className="text-gray-400" />
-                      <span>{building._count?.apartments ?? building.total_apartments} căn hộ</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+                    </td>
+                    <td>
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => navigate(`/admin/buildings/${building.id}`)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Xem chi tiết">
+                          <Eye size={16} />
+                        </button>
+                        <button onClick={() => openEditForm(building)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Sửa">
+                          <Pencil size={16} />
+                        </button>
+                        <button onClick={() => setDeleteItem(building)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer" title="Xóa">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -315,12 +293,12 @@ export default function BuildingList() {
         <div className="space-y-6">
           <div className="grid grid-cols-12 gap-6">
             <div className="col-span-12">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên tòa nhà *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên chi nhánh/tòa nhà *</label>
               <input
                 type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="VD: Tower A"
+                value={formData.branch_name}
+                onChange={(e) => setFormData({ ...formData, branch_name: e.target.value, name: e.target.value })}
+                placeholder="VD: Chi nhánh Quận 1"
                 className="premium-input rounded-xl"
               />
             </div>
@@ -344,7 +322,7 @@ export default function BuildingList() {
                 className="premium-input rounded-xl"
               />
             </div>
-            <div className="col-span-12 sm:col-span-6">
+            <div className="col-span-12">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Số tầng *</label>
               <input
                 type="number"
@@ -353,18 +331,8 @@ export default function BuildingList() {
                 className="premium-input rounded-xl"
               />
             </div>
-            <div className="col-span-12 sm:col-span-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Chi nhánh *</label>
-              <input
-                type="text"
-                value={formData.branch_name}
-                onChange={(e) => setFormData({ ...formData, branch_name: e.target.value })}
-                placeholder="VD: Chi nhánh Quận 1"
-                className="premium-input rounded-xl"
-              />
-            </div>
             <div className="col-span-12">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Người quản lý (Manager)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Quản lý bởi</label>
               <select
                 value={formData.manager_id || ""}
                 onChange={(e) => setFormData({ ...formData, manager_id: e.target.value ? Number(e.target.value) : null })}

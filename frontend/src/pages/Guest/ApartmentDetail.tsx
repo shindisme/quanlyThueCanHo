@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, MapPin, Maximize2, Calendar, Phone, Mail, User } from "lucide-react";
+import { ArrowLeft, MapPin, Maximize2, Calendar, Phone, Mail, User, Loader2 } from "lucide-react";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 import Badge from "../../components/ui/Badge";
@@ -11,6 +11,10 @@ import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../constant
 import { formatCurrency, formatApartmentDisplay } from "../../utils/format";
 import { toast } from "sonner";
 import { bookViewing } from "../../services/scheduleService";
+import * as apartmentService from "../../services/apartmentService";
+import * as buildingService from "../../services/buildingService";
+import type { ApartmentData } from "../../services/apartmentService";
+import type { BuildingData } from "../../services/buildingService";
 
 interface BookedSlot {
   apartmentId: number;
@@ -28,8 +32,9 @@ const timeSlots = [
 export default function GuestApartmentDetail() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
-  const apartment = mockApartments.find((a) => a.id === Number(id));
-  const building = apartment ? mockBuildings.find((b) => b.id === apartment.building_id) : null;
+  const [apartment, setApartment] = useState<ApartmentData | null>(null);
+  const [building, setBuilding] = useState<BuildingData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -37,29 +42,97 @@ export default function GuestApartmentDetail() {
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlot, setSelectedSlot] = useState("");
 
+  // Form đặt lịch - controlled inputs
+  const [scheduleForm, setScheduleForm] = useState({
+    guest_name: "",
+    guest_phone: "",
+    schedule_time: "",
+    note: ""
+  });
+
   useEffect(() => {
     if (!id) return;
-    const stored = localStorage.getItem(`apartment-${id}-images`);
-    if (stored) {
-      setImages(JSON.parse(stored));
-    } else {
-      const fallback = [
-        {
-          id: 1,
-          apartment_id: Number(id),
-          image_url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
-          is_thumbnail: true
-        },
-        {
-          id: 2,
-          apartment_id: Number(id),
-          image_url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
-          is_thumbnail: false
+
+    async function loadData() {
+      setLoading(true);
+      try {
+        const aptId = Number(id);
+        const apt = await apartmentService.getApartmentById(aptId);
+        setApartment(apt);
+
+        // Load images
+        if (apt.images && apt.images.length > 0) {
+          setImages(apt.images);
+        } else {
+          const stored = localStorage.getItem(`apartment-${id}-images`);
+          if (stored) {
+            setImages(JSON.parse(stored));
+          } else {
+            const fallback = [
+              {
+                id: 1,
+                apartment_id: aptId,
+                image_url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
+                is_thumbnail: true
+              },
+              {
+                id: 2,
+                apartment_id: aptId,
+                image_url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
+                is_thumbnail: false
+              }
+            ];
+            localStorage.setItem(`apartment-${id}-images`, JSON.stringify(fallback));
+            setImages(fallback);
+          }
         }
-      ];
-      localStorage.setItem(`apartment-${id}-images`, JSON.stringify(fallback));
-      setImages(fallback);
+
+        if (apt.building_id) {
+          const bld = await buildingService.getBuildingById(apt.building_id);
+          setBuilding(bld);
+        } else if (apt.building) {
+          setBuilding(apt.building as any);
+        }
+      } catch (error) {
+        console.error("Error fetching apartment from API, falling back to mock:", error);
+        // Fallback to mock data
+        const mockApt = mockApartments.find((a) => a.id === Number(id));
+        if (mockApt) {
+          setApartment(mockApt as any);
+          const mockBld = mockBuildings.find((b) => b.id === mockApt.building_id);
+          if (mockBld) setBuilding(mockBld as any);
+
+          const stored = localStorage.getItem(`apartment-${id}-images`);
+          if (stored) {
+            setImages(JSON.parse(stored));
+          } else {
+            const fallback = [
+              {
+                id: 1,
+                apartment_id: Number(id),
+                image_url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
+                is_thumbnail: true
+              },
+              {
+                id: 2,
+                apartment_id: Number(id),
+                image_url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
+                is_thumbnail: false
+              }
+            ];
+            localStorage.setItem(`apartment-${id}-images`, JSON.stringify(fallback));
+            setImages(fallback);
+          }
+        } else {
+          setApartment(null);
+          setBuilding(null);
+        }
+      } finally {
+        setLoading(false);
+      }
     }
+
+    loadData();
   }, [id]);
 
   useEffect(() => {
@@ -68,10 +141,14 @@ export default function GuestApartmentDetail() {
     }
   }, [searchParams]);
 
-  // Form đặt lịch - controlled inputs
-  const [scheduleForm, setScheduleForm] = useState({
-    guest_name: "", guest_phone: "", guest_email: "", schedule_time: "",
-  });
+  if (loading) {
+    return (
+      <div className="pt-24 text-center font-sans flex flex-col items-center justify-center min-h-[300px]">
+        <Loader2 className="animate-spin text-primary-600 mb-2" size={32} />
+        <p className="text-gray-500">Đang tải thông tin căn hộ...</p>
+      </div>
+    );
+  }
 
   if (!apartment) {
     return (
@@ -107,10 +184,11 @@ export default function GuestApartmentDetail() {
     const combinedTime = `${selectedDate}T${selectedSlot.replace("h", ":")}:00`;
     try {
       await bookViewing({
-        apartment_id: apartment!.id,
-        guest_name: scheduleForm.guest_name,
+        apartment_id: apartment.id,
+        guest_name: scheduleForm.note
+          ? `${scheduleForm.guest_name} [Ghi chú: ${scheduleForm.note}]`
+          : scheduleForm.guest_name,
         guest_phone: scheduleForm.guest_phone,
-        guest_email: scheduleForm.guest_email,
         schedule_time: combinedTime,
       });
 
@@ -118,7 +196,7 @@ export default function GuestApartmentDetail() {
       const stored = localStorage.getItem("booked-slots");
       const list = stored ? JSON.parse(stored) : [];
       list.push({
-        apartmentId: apartment!.id,
+        apartmentId: apartment.id,
         date: selectedDate,
         slot: selectedSlot
       });
@@ -126,7 +204,7 @@ export default function GuestApartmentDetail() {
 
       toast.success("Đã gửi yêu cầu đặt lịch xem phòng thành công!");
       setShowScheduleForm(false);
-      setScheduleForm({ guest_name: "", guest_phone: "", guest_email: "", schedule_time: "" });
+      setScheduleForm({ guest_name: "", guest_phone: "", schedule_time: "", note: "" });
       setSelectedDate("");
       setSelectedSlot("");
     } catch (error: any) {
@@ -135,6 +213,7 @@ export default function GuestApartmentDetail() {
       setSaving(false);
     }
   }
+
 
   return (
     <div className="pt-20 pb-16 font-sans">
@@ -196,8 +275,8 @@ export default function GuestApartmentDetail() {
                     <span>{building?.name} - {building?.address_new || building?.address_old}</span>
                   </div>
                 </div>
-                <Badge variant={APARTMENT_STATUS_COLORS[apartment.status] as "success" | "info" | "warning"}>
-                  {APARTMENT_STATUS_LABELS[apartment.status]}
+                <Badge variant={APARTMENT_STATUS_COLORS[apartment.status as keyof typeof APARTMENT_STATUS_COLORS] as "success" | "info" | "warning"}>
+                  {APARTMENT_STATUS_LABELS[apartment.status as keyof typeof APARTMENT_STATUS_LABELS]}
                 </Badge>
               </div>
 
@@ -281,23 +360,13 @@ export default function GuestApartmentDetail() {
               </div>
             </div>
 
-            <div className="col-span-12 sm:col-span-6">
+            <div className="col-span-12">
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Số điện thoại *</label>
               <div className="relative">
                 <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input type="tel" value={scheduleForm.guest_phone}
                   onChange={(e) => setScheduleForm({ ...scheduleForm, guest_phone: e.target.value })}
                   placeholder="0901234567" className="premium-input rounded-xl pl-10! text-xs" />
-              </div>
-            </div>
-
-            <div className="col-span-12 sm:col-span-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email</label>
-              <div className="relative">
-                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input type="email" value={scheduleForm.guest_email}
-                  onChange={(e) => setScheduleForm({ ...scheduleForm, guest_email: e.target.value })}
-                  placeholder="email@example.com" className="premium-input rounded-xl pl-10! text-xs" />
               </div>
             </div>
 
@@ -329,10 +398,10 @@ export default function GuestApartmentDetail() {
                         disabled={booked}
                         onClick={() => setSelectedSlot(slot)}
                         className={`py-2.5 px-3 border rounded-xl text-xs font-semibold text-center transition-all cursor-pointer ${booked
-                            ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                            : selected
-                              ? "bg-primary-600 text-white border-primary-600 shadow-sm"
-                              : "bg-white text-gray-700 border-gray-300 hover:border-primary-500 hover:text-primary-600"
+                          ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                          : selected
+                            ? "bg-primary-600 text-white border-primary-600 shadow-sm"
+                            : "bg-white text-gray-700 border-gray-300 hover:border-primary-500 hover:text-primary-600"
                           }`}
                       >
                         {slot} {booked && " (Đã đặt)"}
@@ -345,8 +414,13 @@ export default function GuestApartmentDetail() {
 
             <div className="col-span-12">
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ghi chú</label>
-              <textarea rows={3}
-                placeholder="Lưu ý gì thêm..." className="premium-input rounded-xl resize-none text-xs" />
+              <textarea
+                rows={3}
+                value={scheduleForm.note}
+                onChange={(e) => setScheduleForm({ ...scheduleForm, note: e.target.value })}
+                placeholder="Lưu ý gì thêm..."
+                className="premium-input rounded-xl resize-none text-xs"
+              />
             </div>
           </div>
         </div>
