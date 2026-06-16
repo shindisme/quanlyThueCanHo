@@ -256,3 +256,16 @@ export interface PaginatedResponse<T> {
   pageSize: number;
   totalPages: number;
 }
+
+export interface Staff {
+  id: number;
+  user_id: number | null;
+  building_id: number | null;
+  full_name: string;
+  phone: string | null;
+  position: string;
+  created_at: string;
+  // Lien ket
+  user?: User;
+  building?: Building;
+}

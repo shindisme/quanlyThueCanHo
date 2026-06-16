@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
-import { mockTenants } from "../../../../data/tenants";
 import type { Tenant } from "../../../../types";
 import { toast } from "sonner";
+import * as tenantService from "../../../../services/tenantService";
 
 interface TenantModifyModalProps {
   isOpen: boolean;
@@ -28,34 +28,33 @@ export default function TenantModifyModal({
     if (editItem && isOpen) {
       setFormFullName(editItem.full_name);
       setFormCitizenId(editItem.citizen_id);
-      setFormDob(editItem.date_of_birth || "");
+      setFormDob(
+        editItem.date_of_birth
+          ? new Date(editItem.date_of_birth).toISOString().split("T")[0]
+          : ""
+      );
       setFormAddress(editItem.address || "");
     }
   }, [editItem, isOpen]);
 
-  function handleEditSave() {
-    if (!formFullName || !formCitizenId) {
+  async function handleEditSave() {
+    if (!formFullName || !formCitizenId || !editItem) {
       toast.error("Vui lòng nhập đầy đủ Họ tên và số CCCD");
       return;
     }
-    const storedTenants = localStorage.getItem("custom-tenants");
-    let currentTenants = storedTenants ? JSON.parse(storedTenants) : [...mockTenants];
-
-    const updated = currentTenants.map((t: any) =>
-      t.id === editItem?.id
-        ? {
-            ...t,
-            full_name: formFullName,
-            citizen_id: formCitizenId,
-            date_of_birth: formDob || null,
-            address: formAddress || null,
-          }
-        : t
-    );
-    localStorage.setItem("custom-tenants", JSON.stringify(updated));
-    toast.success("Đã cập nhật thông tin người thuê");
-    onSuccess();
-    onClose();
+    try {
+      await tenantService.updateTenant(editItem.id, {
+        full_name: formFullName,
+        citizen_id: formCitizenId,
+        date_of_birth: formDob ? new Date(formDob).toISOString() : null,
+        address: formAddress || null,
+      });
+      toast.success("Đã cập nhật thông tin người thuê");
+      onSuccess();
+      onClose();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Cập nhật thất bại");
+    }
   }
 
   return (

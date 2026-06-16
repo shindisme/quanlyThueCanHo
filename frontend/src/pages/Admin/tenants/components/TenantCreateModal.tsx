@@ -3,9 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
-import { mockTenants } from "../../../../data/tenants";
-import { mockUsers } from "../../../../data/users";
 import { toast } from "sonner";
+import * as tenantService from "../../../../services/tenantService";
 
 interface TenantCreateModalProps {
   isOpen: boolean;
@@ -28,7 +27,7 @@ export default function TenantCreateModal({
   const [formDob, setFormDob] = useState("");
   const [formAddress, setFormAddress] = useState("");
 
-  function handleSaveTenantAndUser() {
+  async function handleSaveTenantAndUser() {
     if (!formFullName || !formCitizenId) {
       toast.error("Vui lòng nhập đầy đủ Họ tên và số CCCD");
       return;
@@ -39,63 +38,36 @@ export default function TenantCreateModal({
     const username = `YH${last6Digits}`;
     const tenantEmail = `${username}@yukihouse.vn`;
 
-    const storedUsers = localStorage.getItem("custom-users");
-    let currentUsers = storedUsers ? JSON.parse(storedUsers) : [...mockUsers];
+    try {
+      const tenant = await tenantService.createTenant({
+        full_name: formFullName,
+        citizen_id: formCitizenId,
+        date_of_birth: formDob ? new Date(formDob).toISOString() : null,
+        address: formAddress || null,
+        email: tenantEmail
+      });
 
-    let existingUser = currentUsers.find((u: any) => u.email === tenantEmail);
-    let newUserId = existingUser ? existingUser.id : Date.now();
+      toast.success(`Đã tự động tạo tài khoản "${username}" (Mật khẩu: 123456) và lưu người thuê thành công!`);
 
-    if (!existingUser) {
-      const newUser = {
-        id: newUserId,
-        email: tenantEmail,
-        phone: "-",
-        password_hash: "$mock_hash",
-        role: "TENANT",
-        status: "ACTIVE",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      currentUsers.push(newUser);
-      localStorage.setItem("custom-users", JSON.stringify(currentUsers));
+      // Reset fields
+      setFormFullName("");
+      setFormCitizenId("");
+      setFormDob("");
+      setFormAddress("");
+
+      onSuccess();
+      onClose();
+
+      // Redirect to contract page wizard
+      const basePath = role === "MANAGER" ? "/manager" : "/admin";
+      navigate(
+        `${basePath}/contracts?auto_open=true&new_tenant_id=${tenant.id}&new_tenant_building_id=${
+          managerBuildingId || ""
+        }`
+      );
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Không thể tạo người thuê");
     }
-
-    const storedTenants = localStorage.getItem("custom-tenants");
-    let currentTenants = storedTenants ? JSON.parse(storedTenants) : [...mockTenants];
-
-    const newTenantId = Date.now() + 1;
-    const newTenant = {
-      id: newTenantId,
-      user_id: newUserId,
-      full_name: formFullName,
-      citizen_id: formCitizenId,
-      date_of_birth: formDob || null,
-      address: formAddress || null,
-      is_verified: true,
-      created_at: new Date().toISOString(),
-    };
-
-    currentTenants.push(newTenant);
-    localStorage.setItem("custom-tenants", JSON.stringify(currentTenants));
-
-    toast.success(`Đã tự động tạo tài khoản "${username}" (Mật khẩu: 123456) và lưu người thuê thành công!`);
-
-    // Reset fields
-    setFormFullName("");
-    setFormCitizenId("");
-    setFormDob("");
-    setFormAddress("");
-
-    onSuccess();
-    onClose();
-
-    // Redirect to contract page wizard
-    const basePath = role === "MANAGER" ? "/manager" : "/admin";
-    navigate(
-      `${basePath}/contracts?auto_open=true&new_tenant_id=${newTenantId}&new_tenant_building_id=${
-        managerBuildingId || ""
-      }`
-    );
   }
 
   return (

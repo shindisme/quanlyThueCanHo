@@ -14,6 +14,7 @@ import { useAuthStore } from "../../../stores/auth.store";
 import type { Tenant } from "../../../types";
 import { toast } from "sonner";
 import { removeVietnameseTones, maskPhone, maskCCCD } from "../../../utils/format";
+import * as tenantService from "../../../services/tenantService";
 
 import TenantCreateModal from "./components/TenantCreateModal";
 import TenantModifyModal from "./components/TenantModifyModal";
@@ -42,17 +43,12 @@ export default function TenantList() {
     loadData();
   }, []);
 
-  function loadData() {
-    // Load custom tenants
-    const storedTenants = localStorage.getItem("custom-tenants");
-    if (storedTenants) {
-      try {
-        setTenants(JSON.parse(storedTenants));
-      } catch {
-        setTenants(mockTenants);
-      }
-    } else {
-      setTenants(mockTenants);
+  async function loadData() {
+    try {
+      const res = await tenantService.getAllTenants();
+      setTenants(res.data);
+    } catch {
+      toast.error("Không thể tải danh sách người thuê");
     }
 
     // Load custom users
@@ -98,16 +94,16 @@ export default function TenantList() {
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   // Xóa người thuê
-  function handleDelete() {
+  async function handleDelete() {
     if (!deleteItem) return;
-    const storedTenants = localStorage.getItem("custom-tenants");
-    let currentTenants = storedTenants ? JSON.parse(storedTenants) : [...mockTenants];
-
-    const updated = currentTenants.filter((t: any) => t.id !== deleteItem.id);
-    localStorage.setItem("custom-tenants", JSON.stringify(updated));
-    setTenants(updated);
-    setDeleteItem(null);
-    toast.success("Đã xóa người thuê");
+    try {
+      await tenantService.deleteTenant(deleteItem.id);
+      setDeleteItem(null);
+      toast.success("Đã xóa người thuê");
+      loadData();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Xóa người thuê thất bại");
+    }
   }
 
   // Lay email cua user lien ket voi tenant
