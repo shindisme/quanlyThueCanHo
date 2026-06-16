@@ -3,7 +3,7 @@ import * as buildingService from "../services/building.service.js";
 
 export const create = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { address_old, address_new, description, status, total_floors, branch_name, manager_id } = req.body;
+        const { address_old, address_new, description, status, total_floors, branch_name, staff_id } = req.body;
 
         if (!address_old || !address_new || !total_floors || !branch_name) {
             res.status(400).json({ message: "Vui lòng nhập đầy đủ thông tin!" });
@@ -17,7 +17,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
             status: status ? status : "ACTIVE",
             total_floors: Number(total_floors),
             branch_name,
-            manager: manager_id ? { connect: { id: Number(manager_id) } } : undefined
+            assigned_staff: staff_id ? { connect: { id: Number(staff_id) } } : undefined
         });
 
         res.status(201).json({
@@ -30,14 +30,14 @@ export const create = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const getAll = async (req: Request, res: Response): Promise<void> => {
-    const { search, branch_name, page, limit, managerId } = req.query;
+    const { search, branch_name, page, limit, staff } = req.query;
 
     const result = await buildingService.getAllBuildingsService({
         search: search as string,
         branch_name: branch_name as string,
         page: page ? Number(page) : 1,
         limit: limit ? Number(limit) : 10,
-        managerId: managerId ? Number(managerId) : undefined
+        staffId: staff ? Number(staff) : undefined
     });
 
     res.json({
@@ -62,14 +62,14 @@ export const getById = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const update = async (req: Request, res: Response): Promise<void> => {
-    const { name, manager_id, ...updateData } = req.body;
-    
+    const { name, staff_id, ...updateData } = req.body;
+
     const prismaUpdateData: any = {
         ...updateData
     };
 
-    if (manager_id !== undefined) {
-        prismaUpdateData.manager = manager_id ? { connect: { id: Number(manager_id) } } : { disconnect: true };
+    if (staff_id !== undefined) {
+        prismaUpdateData.assigned_staff = staff_id ? { connect: { id: Number(staff_id) } } : { disconnect: true };
     }
 
     const data = await buildingService.updateBuildingService(Number(req.params.id), prismaUpdateData);
