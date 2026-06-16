@@ -12,6 +12,7 @@ import BuildingDetail from "../pages/Admin/buildings/BuildingDetail";
 import ApartmentList from "../pages/Admin/apartments/ApartmentList";
 import ApartmentDetail from "../pages/Admin/apartments/ApartmentDetail";
 import TenantList from "../pages/Admin/tenants/TenantList";
+import StaffList from "../pages/Admin/staff/StaffList";
 import ContractList from "../pages/Admin/contracts/ContractList";
 import InvoiceList from "../pages/Admin/invoices/InvoiceList";
 import PaymentList from "../pages/Admin/payments/PaymentList";
@@ -83,6 +84,7 @@ const router = createBrowserRouter([
       { path: "apartments", element: <ApartmentList /> },
       { path: "apartments/:id", element: <ApartmentDetail /> },
       { path: "tenants", element: <TenantList /> },
+      { path: "staff", element: <StaffList /> },
       { path: "contracts", element: <ContractList /> },
       { path: "invoices", element: <InvoiceList /> },
       { path: "payments", element: <PaymentList /> },
@@ -111,6 +113,7 @@ const router = createBrowserRouter([
       { path: "apartments", element: <ApartmentList /> },
       { path: "apartments/:id", element: <ApartmentDetail /> },
       { path: "tenants", element: <TenantList /> },
+      { path: "staff", element: <StaffList /> },
       { path: "contracts", element: <ContractList /> },
       { path: "invoices", element: <InvoiceList /> },
       { path: "maintenance", element: <MaintenanceKanban /> },

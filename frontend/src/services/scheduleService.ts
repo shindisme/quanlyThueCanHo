@@ -36,12 +36,12 @@ export async function getSchedules(): Promise<ScheduleData[]> {
 }
 
 export async function confirmSchedule(id: number) {
-  const res = await api.patch(`/schedules/confirm/${id}`, { status: "CONFIRMED" });
+  const res = await api.put(`/schedules/${id}/confirm`, { status: "CONFIRMED" });
   return res.data;
 }
 
 export async function cancelSchedule(id: number) {
-  const res = await api.patch(`/schedules/cancel/${id}`);
+  const res = await api.put(`/schedules/${id}/cancel`);
   return res.data;
 }
 

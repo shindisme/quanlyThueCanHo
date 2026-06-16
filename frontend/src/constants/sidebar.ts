@@ -15,6 +15,7 @@ import {
   Settings,
   ClipboardList,
   User,
+  Briefcase,
 } from "lucide-react";
 import type { Role } from "./enums";
 
@@ -43,6 +44,7 @@ const adminMenu: SidebarGroup[] = [
       { label: "Tòa nhà", path: "/admin/buildings", icon: Building2 },
       { label: "Căn hộ", path: "/admin/apartments", icon: Home },
       { label: "Người thuê", path: "/admin/tenants", icon: Users },
+      { label: "Nhân viên", path: "/admin/staff", icon: Briefcase },
       { label: "Hợp đồng", path: "/admin/contracts", icon: FileText },
       { label: "Hoá đơn", path: "/admin/invoices", icon: Receipt },
       { label: "Thanh toán", path: "/admin/payments", icon: CreditCard },
@@ -79,6 +81,7 @@ const managerMenu: SidebarGroup[] = [
     items: [
       { label: "Căn hộ", path: "/manager/apartments", icon: Home },
       { label: "Người thuê", path: "/manager/tenants", icon: Users },
+      { label: "Nhân viên", path: "/manager/staff", icon: Briefcase },
       { label: "Hợp đồng", path: "/manager/contracts", icon: FileText },
       { label: "Hoá đơn", path: "/manager/invoices", icon: Receipt },
     ],
