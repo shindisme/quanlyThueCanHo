@@ -30,7 +30,7 @@ export const getAllUsersService = async () => {
             tenant: true,
             staff: {
                 include: {
-                    buildings: true
+                    building: true
                 }
             }
         }
@@ -41,11 +41,11 @@ export const getAllUsersService = async () => {
         role: user.role,
         status: user.status,
         created_at: user.created_at,
-        managed_buildings: user.staff?.buildings.map(b => ({
-            id: b.id,
-            branch_name: b.branch_name,
-            address_new: b.address_new
-        })) || []
+        managed_building: user.staff?.building ? {
+            id: user.staff.building.id,
+            branch_name: user.staff.building.branch_name,
+            address_new: user.staff.building.address_new
+        } : null
     }));
 };
 

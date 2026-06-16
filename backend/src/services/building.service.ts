@@ -33,8 +33,13 @@ export const getAllBuildingsService = async (filters: {
     }
 
     if (filters.staffId) {
-        whereClause.staff_id = { equals: filters.staffId };
+        whereClause.assigned_staff = {
+            some: {
+                id: filters.staffId
+            }
+        };
     }
+
 
     const [buildings, total] = await prisma.$transaction([
         prisma.building.findMany({

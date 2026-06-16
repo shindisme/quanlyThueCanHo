@@ -84,7 +84,7 @@ model User {
 
 model Tenant {
   id            Int       @id @default(autoincrement())
-  user_id       Int?       @unique
+  user_id       Int?      @unique
   full_name     String
   phone         String?   @unique
   email         String?   @unique
@@ -94,7 +94,7 @@ model Tenant {
   is_verified   Boolean   @default(false)
   created_at    DateTime  @default(now())
 
-  user        User?                 @relation(fields: [user_id], references: [id])
+  user        User?                @relation(fields: [user_id], references: [id])
   occupants   Occupant[]
   contracts   RentalContract[]
   maintenance MaintenanceRequest[]
@@ -118,7 +118,6 @@ model Occupant {
 
 model Building {
   id               Int            @id @default(autoincrement())
-  staff_id         Int?
   branch_name      String
   address_old      String
   address_new      String
@@ -130,21 +129,22 @@ model Building {
   created_at       DateTime       @default(now())
 
   apartments     Apartment[]
-  assigned_staff Staff?      @relation(fields: [staff_id], references: [id])
+  assigned_staff Staff[]     @relation("BuildingStaff")
 
   @@map("buildings")
 }
 
 model Staff {
-  id         Int      @id @default(autoincrement())
-  user_id    Int?     @unique
-  full_name  String
-  phone      String?  @unique
-  position   String
-  created_at DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  user_id     Int?     @unique
+  building_id Int?
+  full_name   String
+  phone       String?  @unique
+  position    String
+  created_at  DateTime @default(now())
 
   user           User?            @relation(fields: [user_id], references: [id])
-  buildings      Building[]
+  building       Building?        @relation("BuildingStaff", fields: [building_id], references: [id])
   UtilityReading UtilityReading[]
 
   @@map("staffs")
@@ -194,8 +194,8 @@ model RentalContract {
   contract_file  String?
   signed_at      DateTime
   created_at     DateTime       @default(now())
-  extended_at DateTime?
-  
+  extended_at    DateTime?
+
   apartment Apartment @relation(fields: [apartment_id], references: [id])
   tenant    Tenant    @relation(fields: [tenant_id], references: [id])
   invoices  Invoice[]
