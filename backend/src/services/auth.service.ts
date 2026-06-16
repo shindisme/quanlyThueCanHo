@@ -28,7 +28,11 @@ export const getAllUsersService = async () => {
     const users = await prisma.user.findMany({
         include: {
             tenant: true,
-            managed_buildings: true
+            staff: {
+                include: {
+                    buildings: true
+                }
+            }
         }
     });
     return users.map(user => ({
@@ -37,22 +41,17 @@ export const getAllUsersService = async () => {
         role: user.role,
         status: user.status,
         created_at: user.created_at,
-        managed_buildings: user.managed_buildings.map(b => ({
+        managed_buildings: user.staff?.buildings.map(b => ({
             id: b.id,
             branch_name: b.branch_name,
             address_new: b.address_new
-        }))
+        })) || []
     }));
 };
 
-export const loginService = async (email: string, password: string) => {
+export const loginService = async (username: string, password: string) => {
     const user = await prisma.user.findFirst({
-        where: {
-            OR: [
-                { username: email },
-                { username: email.split("@")[0] }
-            ]
-        }
+        where: { username: username }
     });
     if (!user) throw new Error("Tài khoản không tồn tại");
 
@@ -76,7 +75,7 @@ export const updateUserService = async (id: number, data: { username?: string, r
     if (data.role) {
         updateData.role = data.role;
     }
-    
+
     return await prisma.user.update({
         where: { id },
         data: updateData

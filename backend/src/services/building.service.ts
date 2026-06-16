@@ -12,7 +12,7 @@ export const getAllBuildingsService = async (filters: {
     branch_name?: string;
     page?: number;
     limit?: number;
-    managerId?: number;
+    staffId?: number;
 }) => {
     const page = filters.page || 1;
     const limit = filters.limit || 10;
@@ -32,8 +32,8 @@ export const getAllBuildingsService = async (filters: {
         whereClause.branch_name = { equals: filters.branch_name };
     }
 
-    if (filters.managerId) {
-        whereClause.manager_id = { equals: filters.managerId };
+    if (filters.staffId) {
+        whereClause.staff_id = { equals: filters.staffId };
     }
 
     const [buildings, total] = await prisma.$transaction([
@@ -44,16 +44,25 @@ export const getAllBuildingsService = async (filters: {
             orderBy: { created_at: "desc" },
             include: {
                 _count: {
-                    select: { apartments: true },
+                    select: {
+                        apartments: true
+                    }
                 },
-                manager: {
+                assigned_staff: {
                     select: {
                         id: true,
-                        username: true,
-                        role: true
+                        full_name: true,
+                        phone: true,
+                        user: {
+                            select: {
+                                username: true,
+                                role: true
+                            }
+                        }
                     }
-                }
-            },
+                },
+                apartments: true
+            }
         }),
         prisma.building.count({ where: whereClause }),
     ]);
@@ -74,11 +83,17 @@ export const getBuildingByIdService = async (id: number) => {
         where: { id },
         include: {
             apartments: true,
-            manager: {
+            assigned_staff: {
                 select: {
                     id: true,
-                    username: true,
-                    role: true
+                    full_name: true,
+                    phone: true,
+                    user: {
+                        select: {
+                            username: true,
+                            role: true
+                        }
+                    }
                 }
             }
         },
