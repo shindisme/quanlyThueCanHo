@@ -5,11 +5,11 @@ import { authenticate, authorizeRole } from "../middleware/auth.middleware.js";
 const router = Router();
 
 router.post("/book", scheduleController.bookViewing);
-router.patch("/cancel/:id", scheduleController.cancelSchedule);
+router.put("/:id/cancel", scheduleController.cancelSchedule);
 router.use(authenticate, authorizeRole(["ADMIN"]));
 
 router.get("/", scheduleController.getSchedules);
-router.patch("/confirm/:id", scheduleController.confirmSchedules);
+router.put("/:id/confirm", scheduleController.confirmSchedules);
 router.delete("/:id", scheduleController.deleteSchedule);
 
 export default router;

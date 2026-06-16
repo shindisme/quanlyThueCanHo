@@ -6,6 +6,7 @@ import apartmentRouter from "./routes/apartment.route.js";
 import authRouter from "./routes/auth.route.js";
 import scheduleRouter from "./routes/schedule.route.js";
 import chatbotRouter from "./routes/chatbot.route.js";
+import tenantRouter from "./routes/tenant.route.js";
 
 const app = express();
 
@@ -19,6 +20,7 @@ app.use("/apartments", apartmentRouter);
 app.use("/auth", authRouter);
 app.use("/schedules", scheduleRouter);
 app.use("/chat", chatbotRouter);
+app.use("/tenants", tenantRouter);
 
 
 app.get("/", (req, res) => {

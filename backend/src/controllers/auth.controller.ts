@@ -12,8 +12,8 @@ export const createAccount = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
     try {
-        const { email, password } = req.body;
-        const result = await authService.loginService(email, password);
+        const { username, password } = req.body;
+        const result = await authService.loginService(username, password);
         res.json(result);
     } catch (error: any) {
         res.status(401).json({ error: error.message });
