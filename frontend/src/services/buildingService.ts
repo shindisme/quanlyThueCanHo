@@ -13,6 +13,12 @@ export interface BuildingData {
   thumbnail_url: string | null;
   created_at: string;
   _count?: { apartments: number };
+  manager_id?: number | null;
+  manager?: {
+    id: number;
+    username: string;
+    role: string;
+  } | null;
 }
 
 export interface BuildingPagination {
@@ -48,6 +54,7 @@ export async function createBuilding(data: {
   description?: string;
   branch_name: string;
   thumbnail_url?: string | null;
+  manager_id?: number | null;
 }) {
   const res = await api.post("/buildings", data);
   return res.data;

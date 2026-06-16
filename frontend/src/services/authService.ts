@@ -6,11 +6,15 @@ export interface LoginResponse {
 }
 export interface UserData {
   id: number;
-  email: string;
-  phone: string | null;
+  username: string;
   role: string;
   status: string;
   created_at: string;
+  managed_buildings?: Array<{
+    id: number;
+    branch_name: string;
+    address_new: string;
+  }>;
 }
 
 export async function login(email: string, password: string): Promise<LoginResponse> {
@@ -24,9 +28,8 @@ export async function getAllUsers(): Promise<UserData[]> {
 }
 
 export async function createUser(data: {
-  email: string;
+  username: string;
   role: string;
-  phone?: string;
 }) {
   const res = await api.post("/auth/create-user", data);
   return res.data;
@@ -34,7 +37,7 @@ export async function createUser(data: {
 
 export async function updateUser(
   id: number,
-  data: { email?: string; phone?: string; role?: string }
+  data: { username?: string; role?: string }
 ) {
   const res = await api.put(`/auth/users/${id}`, data);
   return res.data;

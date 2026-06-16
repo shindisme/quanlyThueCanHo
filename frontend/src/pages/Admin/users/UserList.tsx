@@ -25,7 +25,7 @@ export default function UserList() {
   const [saving, setSaving] = useState(false);
 
   // Form state
-  const [formData, setFormData] = useState({ email: "", role: "TENANT", phone: "" });
+  const [formData, setFormData] = useState({ username: "", role: "TENANT" });
 
   useEffect(() => {
     fetchUsers();
@@ -45,18 +45,17 @@ export default function UserList() {
 
   const filtered = users.filter((u) => {
     const term = removeVietnameseTones(search);
-    const emailNorm = removeVietnameseTones(u.email);
-    const roleNorm = removeVietnameseTones(u.role);
-    const phoneNorm = removeVietnameseTones(u.phone || "");
-    return emailNorm.includes(term) || roleNorm.includes(term) || phoneNorm.includes(term);
+    const usernameNorm = removeVietnameseTones(u.username || "");
+    const roleNorm = removeVietnameseTones(u.role || "");
+    return usernameNorm.includes(term) || roleNorm.includes(term);
   });
 
   const { items: sortedUsers, requestSort, getSortIcon } = useSort(filtered);
 
   // Thêm user mới
   async function handleCreate() {
-    if (!formData.email) {
-      toast.error("Vui lòng nhập email");
+    if (!formData.username) {
+      toast.error("Vui lòng nhập tên tài khoản");
       return;
     }
     setSaving(true);
@@ -64,7 +63,7 @@ export default function UserList() {
       await authService.createUser(formData);
       toast.success("Đã tạo tài khoản mới (mật khẩu mặc định: 123456)");
       setShowForm(false);
-      setFormData({ email: "", role: "TENANT", phone: "" });
+      setFormData({ username: "", role: "TENANT" });
       fetchUsers();
     } catch (error: any) {
       toast.error(error.response?.data?.error || "Tạo tài khoản thất bại");
@@ -91,7 +90,7 @@ export default function UserList() {
     if (!resetItem) return;
     try {
       await authService.resetPassword(resetItem.id);
-      toast.success(`Đã đặt lại mật khẩu cho tài khoản "${resetItem.email}" về mặc định "123456"`);
+      toast.success(`Đã đặt lại mật khẩu cho tài khoản "${resetItem.username}" về mặc định "123456"`);
       setResetItem(null);
     } catch {
       toast.error("Đặt lại mật khẩu thất bại");
@@ -148,11 +147,8 @@ export default function UserList() {
                 <th onClick={() => requestSort("id")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                   ID {getSortIcon("id")}
                 </th>
-                <th onClick={() => requestSort("email")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Email {getSortIcon("email")}
-                </th>
-                <th onClick={() => requestSort("phone")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  SĐT {getSortIcon("phone")}
+                <th onClick={() => requestSort("username")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Username {getSortIcon("username")}
                 </th>
                 <th onClick={() => requestSort("role")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                   Role {getSortIcon("role")}
@@ -167,8 +163,7 @@ export default function UserList() {
               {sortedUsers.map((user) => (
                 <tr key={user.id}>
                   <td className="text-gray-650">#{user.id}</td>
-                  <td className="font-semibold text-gray-800">{user.email}</td>
-                  <td className="text-gray-600">{maskPhone(user.phone || "")}</td>
+                  <td className="font-semibold text-gray-800">{user.username}</td>
                   <td>{getRoleBadge(user.role)}</td>
                   <td>
                     <Badge variant={user.status === "ACTIVE" ? "success" : "gray"}>
@@ -230,16 +225,16 @@ export default function UserList() {
         <div className="space-y-6">
           <div className="grid grid-cols-12 gap-6">
             <div className="col-span-12">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Username *</label>
               <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="user@dukihome.vn"
+                type="text"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                placeholder="VD: manager_q1"
                 className="premium-input rounded-xl"
               />
             </div>
-            <div className="col-span-12 sm:col-span-6">
+            <div className="col-span-12">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Role *</label>
               <select
                 value={formData.role}
@@ -250,16 +245,6 @@ export default function UserList() {
                 <option value="MANAGER">Quản lý (Manager)</option>
                 <option value="ADMIN">Quản trị viên (Admin)</option>
               </select>
-            </div>
-            <div className="col-span-12 sm:col-span-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Số điện thoại</label>
-              <input
-                type="text"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="0901234567"
-                className="premium-input rounded-xl"
-              />
             </div>
           </div>
           <p className="text-xs text-gray-400">Mật khẩu mặc định: 123456</p>
@@ -272,7 +257,7 @@ export default function UserList() {
         onClose={() => setDeleteItem(null)}
         onConfirm={handleDelete}
         title="Xóa tài khoản"
-        message={`Bạn có chắc chắn muốn xóa tài khoản "${deleteItem?.email}"?`}
+        message={`Bạn có chắc chắn muốn xóa tài khoản "${deleteItem?.username}"?`}
         confirmText="Xóa"
       />
 
@@ -282,7 +267,7 @@ export default function UserList() {
         onClose={() => setResetItem(null)}
         onConfirm={confirmResetPassword}
         title="Đặt lại mật khẩu"
-        message={`Bạn có chắc chắn muốn đặt lại mật khẩu cho tài khoản "${resetItem?.email}" về mặc định "123456" không?`}
+        message={`Bạn có chắc chắn muốn đặt lại mật khẩu cho tài khoản "${resetItem?.username}" về mặc định "123456" không?`}
         confirmText="Đặt lại"
       />
 
@@ -303,17 +288,23 @@ export default function UserList() {
               <span className="font-semibold text-gray-800">#{viewItem.id}</span>
             </div>
             <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Email:</span>
-              <span className="font-semibold text-gray-800">{viewItem.email}</span>
-            </div>
-            <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Số điện thoại:</span>
-              <span className="font-semibold text-gray-800">{viewItem.phone || "-"}</span>
+              <span className="text-gray-500 font-medium">Username:</span>
+              <span className="font-semibold text-gray-800">{viewItem.username}</span>
             </div>
             <div className="flex justify-between border-b pb-2 border-gray-100">
               <span className="text-gray-500 font-medium">Vai trò (Role):</span>
               <span>{getRoleBadge(viewItem.role)}</span>
             </div>
+            {viewItem.role === "MANAGER" && (
+              <div className="flex justify-between border-b pb-2 border-gray-100">
+                <span className="text-gray-500 font-medium">Tòa nhà quản lý:</span>
+                <span className="font-semibold text-gray-800 text-right">
+                  {viewItem.managed_buildings && viewItem.managed_buildings.length > 0
+                    ? viewItem.managed_buildings.map((b: any) => b.branch_name).join(", ")
+                    : "Chưa phân công"}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between border-b pb-2 border-gray-100">
               <span className="text-gray-500 font-medium">Trạng thái:</span>
               <Badge variant={viewItem.status === "ACTIVE" ? "success" : "gray"}>

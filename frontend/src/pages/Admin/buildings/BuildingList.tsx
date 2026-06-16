@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, MapPin, Layers, Home, MoreVertical, Pencil, Trash2, Loader2, Building2 } from "lucide-react";
+import { Plus, MapPin, Layers, Home, MoreVertical, Pencil, Trash2, Loader2, Building2, User } from "lucide-react";
 import PageHeader from "../../../components/ui/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
@@ -13,6 +13,8 @@ import { removeVietnameseTones } from "../../../utils/format";
 
 import * as buildingService from "../../../services/buildingService";
 import type { BuildingData } from "../../../services/buildingService";
+import * as authService from "../../../services/authService";
+import type { UserData } from "../../../services/authService";
 
 export default function BuildingList() {
   const navigate = useNavigate();
@@ -26,11 +28,40 @@ export default function BuildingList() {
   const [saving, setSaving] = useState(false);
 
   // State cho form inputs - khớp DB schema
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    address_old: string;
+    address_new: string;
+    total_floors: number;
+    description: string;
+    branch_name: string;
+    thumbnail_url: string;
+    manager_id: number | null;
+  }>({
     name: "", address_old: "", address_new: "", total_floors: 0,
-    description: "", branch_name: "", thumbnail_url: "",
+    description: "", branch_name: "", thumbnail_url: "", manager_id: null
   });
   const [uploading, setUploading] = useState(false);
+  const [managers, setManagers] = useState<UserData[]>([]);
+
+  useEffect(() => {
+    fetchManagers();
+  }, []);
+
+  async function fetchManagers() {
+    try {
+      const users = await authService.getAllUsers();
+      setManagers(users.filter(u => u.role === "MANAGER"));
+    } catch {
+      toast.error("Không thể tải danh sách người quản lý");
+    }
+  }
+
+  const availableManagers = managers.filter(m => {
+    if (!m.managed_buildings || m.managed_buildings.length === 0) return true;
+    if (editItem && m.managed_buildings.some(b => b.id === editItem.id)) return true;
+    return false;
+  });
 
   useEffect(() => {
     fetchBuildings();
@@ -78,7 +109,7 @@ export default function BuildingList() {
 
   function openAddForm() {
     setEditItem(null);
-    setFormData({ name: "", address_old: "", address_new: "", total_floors: 0, description: "", branch_name: "", thumbnail_url: "" });
+    setFormData({ name: "", address_old: "", address_new: "", total_floors: 0, description: "", branch_name: "", thumbnail_url: "", manager_id: null });
     setShowForm(true);
   }
 
@@ -92,6 +123,7 @@ export default function BuildingList() {
       description: building.description || "",
       branch_name: building.branch_name || "",
       thumbnail_url: building.thumbnail_url || "",
+      manager_id: building.manager_id || null,
     });
     setShowForm(true);
     setMenuOpen(null);
@@ -114,6 +146,7 @@ export default function BuildingList() {
       setShowForm(false);
       setEditItem(null);
       fetchBuildings();
+      fetchManagers(); // Refresh managers managed buildings status
     } catch (error: any) {
       toast.error(error.response?.data?.error || error.response?.data?.message || "Thao tác thất bại");
     } finally {
@@ -235,6 +268,12 @@ export default function BuildingList() {
                 </div>
 
                 <div className="space-y-2 text-sm text-gray-600">
+                  {building.manager && (
+                    <div className="flex items-center gap-2 text-primary-600 font-semibold mb-1">
+                      <User size={14} className="shrink-0" />
+                      <span>Quản lý: {building.manager.username}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <MapPin size={14} className="text-gray-400 shrink-0" />
                     <span className="truncate">{building.address_new || building.address_old}</span>
@@ -323,6 +362,21 @@ export default function BuildingList() {
                 placeholder="VD: Chi nhánh Quận 1"
                 className="premium-input rounded-xl"
               />
+            </div>
+            <div className="col-span-12">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Người quản lý (Manager)</label>
+              <select
+                value={formData.manager_id || ""}
+                onChange={(e) => setFormData({ ...formData, manager_id: e.target.value ? Number(e.target.value) : null })}
+                className="premium-select w-full rounded-xl"
+              >
+                <option value="">-- Chưa phân công --</option>
+                {availableManagers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.username}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="col-span-12">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Ảnh bìa tòa nhà</label>

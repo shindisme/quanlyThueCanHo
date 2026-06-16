@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { ArrowLeft, MapPin, Layers, Building2, Home, Pencil, Loader2, BedDouble, Bath, Plus } from "lucide-react";
+import { ArrowLeft, MapPin, Layers, Building2, Home, Pencil, Loader2, BedDouble, Bath, Plus, User } from "lucide-react";
 import Badge from "../../../components/ui/Badge";
 import Button from "../../../components/ui/Button";
 import Card from "../../../components/ui/Card";
@@ -11,6 +11,8 @@ import * as buildingService from "../../../services/buildingService";
 import * as apartmentService from "../../../services/apartmentService";
 import type { BuildingData } from "../../../services/buildingService";
 import type { ApartmentData } from "../../../services/apartmentService";
+import * as authService from "../../../services/authService";
+import type { UserData } from "../../../services/authService";
 
 export default function BuildingDetail() {
   const { id } = useParams();
@@ -22,7 +24,16 @@ export default function BuildingDetail() {
   const [showForm, setShowForm] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    address_old: string;
+    address_new: string;
+    total_floors: number;
+    description: string;
+    branch_name: string;
+    thumbnail_url: string;
+    manager_id: number | null;
+  }>({
     name: "",
     address_old: "",
     address_new: "",
@@ -30,6 +41,27 @@ export default function BuildingDetail() {
     description: "",
     branch_name: "",
     thumbnail_url: "",
+    manager_id: null,
+  });
+  const [managers, setManagers] = useState<UserData[]>([]);
+
+  useEffect(() => {
+    fetchManagers();
+  }, []);
+
+  async function fetchManagers() {
+    try {
+      const users = await authService.getAllUsers();
+      setManagers(users.filter(u => u.role === "MANAGER"));
+    } catch {
+      toast.error("Không thể tải danh sách người quản lý");
+    }
+  }
+
+  const availableManagers = managers.filter(m => {
+    if (!m.managed_buildings || m.managed_buildings.length === 0) return true;
+    if (building && m.managed_buildings.some(b => b.id === building.id)) return true;
+    return false;
   });
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -59,6 +91,7 @@ export default function BuildingDetail() {
       description: building.description || "",
       branch_name: building.branch_name || "",
       thumbnail_url: building.thumbnail_url || "",
+      manager_id: building.manager_id || null,
     });
     setShowForm(true);
   }
@@ -74,6 +107,7 @@ export default function BuildingDetail() {
       toast.success("Đã cập nhật tòa nhà");
       setShowForm(false);
       fetchData();
+      fetchManagers(); // Refresh manager details
     } catch (error: any) {
       toast.error(error.response?.data?.error || error.response?.data?.message || "Thao tác thất bại");
     } finally {
@@ -184,6 +218,12 @@ export default function BuildingDetail() {
               <Layers size={16} className="text-gray-400 shrink-0" />
               <span>{building.total_floors} tầng</span>
             </div>
+            {building.manager && (
+              <div className="flex items-center gap-2">
+                <User size={16} className="text-gray-400 shrink-0" />
+                <span>Người quản lý: <strong className="text-primary-600">{building.manager.username}</strong></span>
+              </div>
+            )}
           </div>
 
           {building.description && (
@@ -313,6 +353,21 @@ export default function BuildingDetail() {
                 placeholder="VD: Chi nhánh Quận 1"
                 className="premium-input rounded-xl"
               />
+            </div>
+            <div className="col-span-12">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Người quản lý (Manager)</label>
+              <select
+                value={formData.manager_id || ""}
+                onChange={(e) => setFormData({ ...formData, manager_id: e.target.value ? Number(e.target.value) : null })}
+                className="premium-select w-full rounded-xl"
+              >
+                <option value="">-- Chưa phân công --</option>
+                {availableManagers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.username}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="col-span-12">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Ảnh bìa tòa nhà</label>

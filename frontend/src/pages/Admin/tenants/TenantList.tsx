@@ -119,16 +119,14 @@ export default function TenantList() {
       return;
     }
 
-    // 1. Tạo tài khoản user cho Tenant
     const cleanCCCD = formCitizenId.trim();
     const last6Digits = cleanCCCD.slice(-6);
     const username = `YH${last6Digits}`;
-    const tenantEmail = `${username}@yukihouse.vn`; // email để đăng nhập
+    const tenantEmail = `${username}@yukihouse.vn`;
 
     const storedUsers = localStorage.getItem("custom-users");
     let currentUsers = storedUsers ? JSON.parse(storedUsers) : [...mockUsers];
 
-    // Check if user already exists
     let existingUser = currentUsers.find((u: any) => u.email === tenantEmail);
     let newUserId = existingUser ? existingUser.id : Date.now();
 
@@ -137,7 +135,7 @@ export default function TenantList() {
         id: newUserId,
         email: tenantEmail,
         phone: "-",
-        password_hash: "$mock_hash", // mock bcrypt
+        password_hash: "$mock_hash",
         role: "TENANT",
         status: "ACTIVE",
         created_at: new Date().toISOString(),
@@ -151,7 +149,7 @@ export default function TenantList() {
     const storedTenants = localStorage.getItem("custom-tenants");
     let currentTenants = storedTenants ? JSON.parse(storedTenants) : [...mockTenants];
 
-    const newTenantId = Date.now() + 1; // unique ID
+    const newTenantId = Date.now() + 1;
     const newTenant = {
       id: newTenantId,
       user_id: newUserId,
@@ -159,7 +157,7 @@ export default function TenantList() {
       citizen_id: formCitizenId,
       date_of_birth: formDob || null,
       address: formAddress || null,
-      is_verified: true, // Auto-verified when added by admin
+      is_verified: true,
       created_at: new Date().toISOString()
     };
 

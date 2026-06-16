@@ -77,7 +77,7 @@ model User {
   tenant        Tenant?
   notifications Notification[]
   chat_sessions ChatConversation[]
-  buildings     Building[]
+  managed_buildings     Building[]
 
   @@map("users")
 }
@@ -117,7 +117,7 @@ model Occupant {
 
 model Building {
   id               Int            @id @default(autoincrement())
-  admin_id         Int?
+  manager_id       Int?           @map("admin_id")
   branch_name      String
   address_old      String
   address_new      String
@@ -129,7 +129,7 @@ model Building {
   created_at       DateTime       @default(now())
 
   apartments Apartment[]
-  admin      User?                 @relation(fields: [admin_id], references: [id])
+  manager      User?                 @relation(fields: [manager_id], references: [id])
 
   @@map("buildings")
 }
