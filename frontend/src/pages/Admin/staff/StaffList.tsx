@@ -60,7 +60,6 @@ export default function StaffList() {
     }
   }
 
-  // Lọc theo quyền của Manager: chỉ hiển thị nhân viên thuộc tòa nhà quản lý
   const displayStaff = (() => {
     if (role === "MANAGER" && managerBuildingId) {
       return staffList.filter((s) => s.building_id === managerBuildingId);
@@ -68,7 +67,6 @@ export default function StaffList() {
     return staffList;
   })();
 
-  // Lọc theo thanh tìm kiếm và bộ lọc dropdown
   const filtered = displayStaff.filter((s) => {
     const term = removeVietnameseTones(search);
     const nameNorm = removeVietnameseTones(s.full_name);
@@ -217,7 +215,7 @@ export default function StaffList() {
         }
       />
 
-      <div className="flex flex-col md:flex-row gap-3">
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
         <SearchInput
           value={search}
           onChange={(v) => {
@@ -225,44 +223,42 @@ export default function StaffList() {
             setCurrentPage(1);
           }}
           placeholder="Tìm theo họ tên hoặc SĐT..."
-          className="max-w-md flex-1"
+          className="max-w-md w-full sm:w-72"
         />
 
-        <div className="flex flex-wrap gap-2.5">
+        <select
+          value={positionFilter}
+          onChange={(e) => {
+            setPositionFilter(e.target.value);
+            setCurrentPage(1);
+          }}
+          className="px-3 py-2 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500 h-10 w-full sm:w-44"
+        >
+          <option value="">Tất cả chức vụ</option>
+          {uniquePositions.map((pos) => (
+            <option key={pos} value={pos}>
+              {pos}
+            </option>
+          ))}
+        </select>
+
+        {role !== "MANAGER" && (
           <select
-            value={positionFilter}
+            value={buildingFilter}
             onChange={(e) => {
-              setPositionFilter(e.target.value);
+              setBuildingFilter(e.target.value ? Number(e.target.value) : "");
               setCurrentPage(1);
             }}
-            className="px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500"
+            className="px-3 py-2 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500 h-10 w-full sm:w-48"
           >
-            <option value="">Tất cả chức vụ</option>
-            {uniquePositions.map((pos) => (
-              <option key={pos} value={pos}>
-                {pos}
+            <option value="">Tất cả tòa nhà</option>
+            {buildings.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.branch_name}
               </option>
             ))}
           </select>
-
-          {role !== "MANAGER" && (
-            <select
-              value={buildingFilter}
-              onChange={(e) => {
-                setBuildingFilter(e.target.value ? Number(e.target.value) : "");
-                setCurrentPage(1);
-              }}
-              className="px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500"
-            >
-              <option value="">Tất cả tòa nhà</option>
-              {buildings.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.branch_name}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
+        )}
       </div>
 
       <DataTable columns={columns} data={paginated} />
