@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import * as buildingService from "../services/building.service.js";
+import { imagekit } from "@/config/imagekit.js";
 
 export const create = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -10,6 +11,16 @@ export const create = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
+        let imageUrl = "";
+        if (req.file) {
+            const uploadResponse = await imagekit.upload({
+                file: req.file.buffer.toString("base64"),
+                fileName: `${Date.now()}_${req.file.originalname}`,
+                folder: "/buildings"
+            });
+            imageUrl = uploadResponse.url;
+        }
+
         const data = await buildingService.createBuildingService({
             address_old,
             address_new,
@@ -18,7 +29,7 @@ export const create = async (req: Request, res: Response): Promise<void> => {
             total_floors: Number(total_floors),
             branch_name,
             assigned_staff: staff_id ? { connect: { id: Number(staff_id) } } : undefined
-        });
+        }, imageUrl);
 
         res.status(201).json({
             ...data,
@@ -62,21 +73,49 @@ export const getById = async (req: Request, res: Response): Promise<void> => {
 };
 
 export const update = async (req: Request, res: Response): Promise<void> => {
-    const { name, staff_id, ...updateData } = req.body;
+    try {
+        const buildingId = Number(req.params.id);
+        const { name, staff_id, ...updateData } = req.body;
 
-    const prismaUpdateData: any = {
-        ...updateData
-    };
+        const oldBuilding = await buildingService.getBuildingByIdService(buildingId);
+        let newImageUrl = oldBuilding?.thumbnail_url;
 
-    if (staff_id !== undefined) {
-        prismaUpdateData.assigned_staff = staff_id ? { connect: { id: Number(staff_id) } } : { disconnect: true };
+        if (req.file) {
+            if (oldBuilding?.thumbnail_url) {
+                const oldFilePath = oldBuilding.thumbnail_url.split(".io/").pop()?.split("/").slice(1).join("/");
+                if (oldFilePath) {
+                    await imagekit.deleteFile(oldFilePath).catch(err => console.log("Lỗi xóa ảnh cũ:", err));
+                }
+            }
+
+            const uploadResponse = await imagekit.upload({
+                file: req.file.buffer.toString("base64"),
+                fileName: `${Date.now()}_${req.file.originalname}`,
+                folder: "/buildings"
+            });
+            newImageUrl = uploadResponse.url;
+        }
+
+        const prismaUpdateData: any = {
+            ...updateData,
+            thumbnail_url: newImageUrl 
+        };
+
+        if (staff_id !== undefined) {
+            prismaUpdateData.assigned_staff = staff_id
+                ? { connect: { id: Number(staff_id) } }
+                : { disconnect: true };
+        }
+
+        const data = await buildingService.updateBuildingService(buildingId, prismaUpdateData);
+
+        res.json({
+            ...data,
+            name: data.branch_name
+        });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
     }
-
-    const data = await buildingService.updateBuildingService(Number(req.params.id), prismaUpdateData);
-    res.json({
-        ...data,
-        name: data.branch_name
-    });
 };
 
 export const remove = async (req: Request, res: Response): Promise<void> => {

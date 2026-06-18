@@ -1,9 +1,12 @@
 import { prisma } from "../config/database.js";
 import { Prisma, BuildingStatus } from "@prisma/client";
 
-export const createBuildingService = async (data: Prisma.BuildingCreateInput) => {
+export const createBuildingService = async (data: any, imageUrl: string) => {
     return await prisma.building.create({
-        data,
+        data: {
+            ...data,
+            thumbnail_url: imageUrl,
+        }
     });
 };
 
@@ -22,9 +25,9 @@ export const getAllBuildingsService = async (filters: {
 
     if (filters.search) {
         whereClause.OR = [
-            { branch_name: { contains: filters.search } },
-            { address_old: { contains: filters.search } },
-            { address_new: { contains: filters.search } },
+            { branch_name: { contains: filters.search, mode: 'insensitive' } },
+            { address_old: { contains: filters.search, mode: 'insensitive' } },
+            { address_new: { contains: filters.search, mode: 'insensitive' } },
         ];
     }
 
@@ -40,7 +43,6 @@ export const getAllBuildingsService = async (filters: {
         };
     }
 
-
     const [buildings, total] = await prisma.$transaction([
         prisma.building.findMany({
             where: whereClause,
@@ -49,9 +51,7 @@ export const getAllBuildingsService = async (filters: {
             orderBy: { created_at: "desc" },
             include: {
                 _count: {
-                    select: {
-                        apartments: true
-                    }
+                    select: { apartments: true }
                 },
                 assigned_staff: {
                     select: {

@@ -19,11 +19,14 @@ export const getSchedules = async (request: Request, response: Response) => {
 export const confirmSchedules = async (request: Request, response: Response) => {
     try {
         const id = Number(request.params.id);
-        const { status } = request.body;
+        if (isNaN(id)) return response.status(400).json({ error: "ID không hợp lệ" });
+
         await scheduleService.confirmScheduleService(id);
-        response.json({ message: "Xác nhận đặt lịch thành công" });
+
+        response.json({ success: true, message: "Xác nhận đặt lịch thành công" });
     } catch (error: any) {
-        response.status(400).json({ error: error.message });
+        const errorMessage = error.message || "Lỗi hệ thống";
+        response.status(400).json({ success: false, error: errorMessage });
     }
 };
 

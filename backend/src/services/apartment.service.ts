@@ -1,18 +1,36 @@
 import { prisma } from "../config/database.js";
 import { Prisma } from "@prisma/client";
 
-export const createApartmentService = async (data: {
-    building_id: number;
-    floor: number;
-    room_number: string;
-    area: number;
-    bedrooms: number;
-    bathrooms: number;
-    rental_price: number;
-    description?: string;
-    status?: any;
-}) => {
-    return await prisma.apartment.create({ data });
+export const createApartmentWithImagesService = async (
+    data: any,
+    imageUrls: string[]
+) => {
+    return await prisma.$transaction(async (tx) => {
+        const apartment = await tx.apartment.create({
+            data: {
+                building_id: Number(data.building_id),
+                floor: Number(data.floor),
+                room_number: data.room_number,
+                area: Number(data.area),
+                bedrooms: Number(data.bedrooms),
+                bathrooms: Number(data.bathrooms),
+                rental_price: Number(data.rental_price),
+                description: data.description,
+                status: data.status
+            }
+        });
+
+        if (imageUrls.length > 0) {
+            await tx.apartmentImage.createMany({
+                data: imageUrls.map((url, index) => ({
+                    apartment_id: apartment.id,
+                    image_url: url,
+                    is_thumbnail: index === 0
+                }))
+            });
+        }
+        return apartment;
+    });
 };
 
 export const getAllApartmentsService = async (filters: {
@@ -68,7 +86,10 @@ export const getAllApartmentsService = async (filters: {
 export const getApartmentByIdService = async (id: number) => {
     return await prisma.apartment.findUnique({
         where: { id },
-        include: { building: true },
+        include: {
+            building: true,
+            images: true
+        },
     });
 };
 

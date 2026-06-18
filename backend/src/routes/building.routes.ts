@@ -1,11 +1,13 @@
 import { Router } from "express";
 import { getAll, getById, create, update, remove } from "../controllers/building.controller.js";
+import { upload } from "../middleware/upload.js";
 
 const router = Router();
+
 router.get("/", getAll);
 router.get("/:id", getById);
-router.post("/", create);
-router.put("/:id", update);
+router.post("/", upload.single("image"), create);
+router.put("/:id", upload.single("image"), update);
 router.delete("/:id", remove);
 
 export default router;
