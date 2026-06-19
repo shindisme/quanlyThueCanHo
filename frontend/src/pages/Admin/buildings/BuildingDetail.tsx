@@ -13,6 +13,15 @@ import type { ApartmentData } from "../../../services/apartmentService";
 
 import BuildingModifyModal from "./components/BuildingModifyModal";
 
+function getApartmentThumbnail(apt: any): string {
+  if (apt && apt.images && Array.isArray(apt.images) && apt.images.length > 0) {
+    const thumb = apt.images.find((img: any) => img.is_thumbnail);
+    if (thumb) return thumb.image_url;
+    return apt.images[0].image_url;
+  }
+  return "";
+}
+
 export default function BuildingDetail() {
   const { id } = useParams();
   const [building, setBuilding] = useState<BuildingData | null>(null);
@@ -170,9 +179,13 @@ export default function BuildingDetail() {
               className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3 block"
             >
               <Card className="hover:shadow-card-hover transition-shadow cursor-pointer h-full">
-                <div className="w-full h-28 bg-gray-100 rounded-xl mb-3 flex items-center justify-center">
-                  <Home size={24} className="text-gray-300" />
-                </div>
+                {getApartmentThumbnail(apt) ? (
+                  <img src={getApartmentThumbnail(apt)} className="w-full h-28 rounded-xl mb-3 object-cover" alt="" />
+                ) : (
+                  <div className="w-full h-28 bg-gray-100 rounded-xl mb-3 flex items-center justify-center">
+                    <Home size={24} className="text-gray-300" />
+                  </div>
+                )}
                 <div className="flex items-start justify-between mb-1">
                   <p className="font-semibold text-gray-800 text-sm">
                     P.{apt.room_number} - T{apt.floor}

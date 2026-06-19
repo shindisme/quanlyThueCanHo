@@ -13,7 +13,7 @@ import type {
   SenderType,
 } from "../constants/enums";
 
-// User - nguoi dung he thong
+// User 
 export interface User {
   id: number;
   email: string;
@@ -23,13 +23,11 @@ export interface User {
   status: UserStatus;
   created_at: string;
   updated_at: string;
-  // Lien ket
   tenant_profile?: Tenant;
-  // Cho Manager - toa nha dang quan ly
   managedBuildingId?: number;
 }
 
-// Tenant - nguoi thue
+// Tenant 
 export interface Tenant {
   id: number;
   user_id: number | null;
@@ -46,7 +44,7 @@ export interface Tenant {
   maintenance_requests?: MaintenanceRequest[];
 }
 
-// Building - toa nha (khớp DB schema)
+// Building 
 export interface Building {
   id: number;
   name: string;
@@ -64,7 +62,7 @@ export interface Building {
   _count?: { apartments: number };
 }
 
-// Apartment - can ho (khớp DB schema)
+// Apartment 
 export interface Apartment {
   id: number;
   building_id: number;
@@ -77,22 +75,21 @@ export interface Apartment {
   description: string | null;
   status: ApartmentStatus;
   created_at: string;
-  // Lien ket
   building?: Building;
   images?: ApartmentImage[];
   contracts?: RentalContract[];
 }
 
-// ApartmentImage - anh can ho
+// ApartmentImage 
 export interface ApartmentImage {
   id: number;
   apartment_id: number;
   image_url: string;
   is_thumbnail: boolean;
-  created_at: string;
+  created_at?: string;
 }
 
-// RentalContract - hop dong thue
+// RentalContract 
 export interface RentalContract {
   id: number;
   apartment_id: number;
@@ -113,7 +110,7 @@ export interface RentalContract {
   invoices?: Invoice[];
 }
 
-// Invoice - hoa don
+// Invoice 
 export interface Invoice {
   id: number;
   invoice_code: string;
@@ -131,7 +128,7 @@ export interface Invoice {
   payments?: Payment[];
 }
 
-// InvoiceItem - chi tiet hoa don
+// InvoiceItem
 export interface InvoiceItem {
   id: number;
   invoice_id: number;
@@ -142,7 +139,7 @@ export interface InvoiceItem {
   description: string | null;
 }
 
-// Payment - thanh toan
+// Payment
 export interface Payment {
   id: number;
   invoice_id: number;
@@ -151,11 +148,10 @@ export interface Payment {
   amount: number;
   status: PaymentStatus;
   paid_at: string;
-  // Lien ket
   invoice?: Invoice;
 }
 
-// UtilityReading - chi so dien nuoc (khớp DB schema)
+// UtilityReading 
 export interface UtilityReading {
   id: number;
   apartment_id: number;
@@ -167,11 +163,10 @@ export interface UtilityReading {
   water_new: number;
   recorded_by: number;
   created_at: string;
-  // Lien ket
   apartment?: Apartment;
 }
 
-// MaintenanceRequest - yeu cau sua chua
+// MaintenanceRequest 
 export interface MaintenanceRequest {
   id: number;
   tenant_id: number;
@@ -183,12 +178,11 @@ export interface MaintenanceRequest {
   status: RequestStatus;
   created_at: string;
   updated_at: string;
-  // Lien ket
   tenant?: Tenant;
   apartment?: Apartment;
 }
 
-// ViewingSchedule - lich xem phong
+// ViewingSchedule 
 export interface ViewingSchedule {
   id: number;
   apartment_id: number;
@@ -198,11 +192,10 @@ export interface ViewingSchedule {
   schedule_time: string;
   status: ScheduleStatus;
   created_at: string;
-  // Lien ket
   apartment?: Apartment;
 }
 
-// Notification - thong bao
+// Notification
 export interface Notification {
   id: number;
   user_id: number;
@@ -213,7 +206,7 @@ export interface Notification {
   created_at: string;
 }
 
-// ChatSession - phien chat AI
+// ChatSession
 export interface ChatSession {
   id: number;
   user_id: number | null;
@@ -221,7 +214,7 @@ export interface ChatSession {
   messages?: ChatbotMessage[];
 }
 
-// ChatbotMessage - tin nhan chat
+// ChatbotMessage
 export interface ChatbotMessage {
   id: number;
   conversation_id: number;
@@ -265,7 +258,6 @@ export interface Staff {
   phone: string | null;
   position: string;
   created_at: string;
-  // Lien ket
   user?: User;
   building?: Building;
 }

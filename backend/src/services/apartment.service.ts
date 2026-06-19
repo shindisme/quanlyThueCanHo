@@ -67,7 +67,7 @@ export const getAllApartmentsService = async (filters: {
             skip,
             take: limit,
             orderBy: { floor: "asc" },
-            include: { 
+            include: {
                 building: true,
                 images: true
             },

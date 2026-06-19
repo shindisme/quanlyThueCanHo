@@ -13,6 +13,10 @@ import { mockContracts } from "../../../data/contracts";
 import { mockTenants } from "../../../data/tenants";
 import { mockUsers } from "../../../data/users";
 
+import * as buildingService from "../../../services/buildingService";
+import type { BuildingData } from "../../../services/buildingService";
+import ApartmentModifyModal from "./components/ApartmentModifyModal";
+
 import { useAuthStore } from "../../../stores/auth.store";
 import { formatApartmentDisplay, formatDate } from "../../../utils/format";
 
@@ -23,6 +27,9 @@ export default function ApartmentDetail() {
   const [loading, setLoading] = useState(true);
   const [images, setImages] = useState<ApartmentImage[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  const [buildings, setBuildings] = useState<BuildingData[]>([]);
+  const [showModifyModal, setShowModifyModal] = useState(false);
 
   const [contracts, setContracts] = useState<any[]>([]);
   const [tenants, setTenants] = useState<any[]>([]);
@@ -104,9 +111,13 @@ export default function ApartmentDetail() {
   async function fetchData() {
     try {
       setLoading(true);
-      const data = await apartmentService.getApartmentById(Number(id));
-      setApartment(data);
-      setImages(data.images || []);
+      const [bRes, aptData] = await Promise.all([
+        buildingService.getAllBuildings(),
+        apartmentService.getApartmentById(Number(id))
+      ]);
+      setBuildings(bRes.data);
+      setApartment(aptData);
+      setImages(aptData.images || []);
     } catch {
       toast.error("Không thể tải dữ liệu");
     } finally {
@@ -210,9 +221,8 @@ export default function ApartmentDetail() {
                   <button
                     key={img.id}
                     onClick={() => handleSetThumbnail(img.id)}
-                    className={`w-16 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${
-                      img.is_thumbnail ? "border-primary-500 scale-102" : "border-gray-200 hover:border-gray-300"
-                    }`}
+                    className={`w-16 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${img.is_thumbnail ? "border-primary-500 scale-102" : "border-gray-200 hover:border-gray-300"
+                      }`}
                   >
                     <img src={img.image_url} className="w-full h-full object-cover" alt="" />
                   </button>
@@ -244,7 +254,7 @@ export default function ApartmentDetail() {
                 )}
               </div>
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setShowModifyModal(true)}>
               <Pencil size={14} /> Chỉnh sửa
             </Button>
           </div>
@@ -316,7 +326,7 @@ export default function ApartmentDetail() {
             <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
           </label>
         </div>
-        
+
         {images.length === 0 ? (
           <p className="text-sm text-gray-400 py-4 text-center">Chưa có hình ảnh nào cho căn hộ này.</p>
         ) : (
@@ -324,7 +334,7 @@ export default function ApartmentDetail() {
             {images.map((img) => (
               <div key={img.id} className="relative aspect-video rounded-xl overflow-hidden border border-gray-200 group shadow-sm">
                 <img src={img.image_url} className="w-full h-full object-cover" alt="" />
-                
+
                 {/* Badge thumbnail */}
                 {img.is_thumbnail && (
                   <span className="absolute top-1.5 left-1.5 bg-success-500 text-white text-[9px] px-1.5 py-0.5 rounded font-semibold shadow">
@@ -374,7 +384,7 @@ export default function ApartmentDetail() {
                   <p>Thời hạn thuê: <span className="font-medium">{formatDate(activeContract.start_date)} - {formatDate(activeContract.end_date)}</span></p>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <h4 className="font-semibold text-gray-750 text-xs uppercase tracking-wider">Người ở cùng ({occupants.length})</h4>
                 <div className="border border-gray-150 rounded-xl overflow-hidden">
@@ -450,6 +460,15 @@ export default function ApartmentDetail() {
           )}
         </Card>
       </div>
+
+      <ApartmentModifyModal
+        isOpen={showModifyModal}
+        onClose={() => setShowModifyModal(false)}
+        onSuccess={fetchData}
+        editItem={apartment}
+        buildings={buildings}
+        role={role}
+      />
     </div>
   );
 }

@@ -59,7 +59,7 @@ export const update = async (req: Request, res: Response) => {
         const newImageUrls = results.map(r => r.url);
 
         const { building_id, floor, room_number, area, bedrooms, bathrooms, rental_price, description, status } = req.body;
-        
+
         const updateData: any = {};
         if (building_id !== undefined) updateData.building_id = Number(building_id);
         if (floor !== undefined) updateData.floor = Number(floor);
