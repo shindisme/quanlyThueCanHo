@@ -37,32 +37,69 @@ export async function getAllBuildings(params?: {
 }): Promise<{ data: BuildingData[]; pagination: BuildingPagination }> {
   const res = await api.get<any>("/buildings", { params });
   if (res.data.data && res.data.pagination) {
-    return res.data;
+    const mappedData = res.data.data.map((b: any) => {
+      const staff = b.assigned_staff?.[0];
+      return {
+        ...b,
+        manager_id: staff ? staff.id : null,
+        manager: staff ? {
+          id: staff.id,
+          username: staff.user?.username || staff.full_name,
+          role: staff.user?.role || "MANAGER",
+        } : null
+      };
+    });
+    return {
+      ...res.data,
+      data: mappedData
+    };
   }
-  return { data: res.data, pagination: { total: res.data.length, page: 1, limit: 10, totalPages: 1 } };
+  const rawList = Array.isArray(res.data) ? res.data : [];
+  const mappedList = rawList.map((b: any) => {
+    const staff = b.assigned_staff?.[0];
+    return {
+      ...b,
+      manager_id: staff ? staff.id : null,
+      manager: staff ? {
+        id: staff.id,
+        username: staff.user?.username || staff.full_name,
+        role: staff.user?.role || "MANAGER",
+      } : null
+    };
+  });
+  return { data: mappedList, pagination: { total: mappedList.length, page: 1, limit: 10, totalPages: 1 } };
 }
 
 export async function getBuildingById(id: number): Promise<BuildingData> {
   const res = await api.get<BuildingData>(`/buildings/${id}`);
+  const b = res.data as any;
+  const staff = b.assigned_staff?.[0];
+  return {
+    ...b,
+    manager_id: staff ? staff.id : null,
+    manager: staff ? {
+      id: staff.id,
+      username: staff.user?.username || staff.full_name,
+      role: staff.user?.role || "MANAGER",
+    } : null
+  };
+}
+
+export async function createBuilding(data: FormData | any) {
+  const headers: Record<string, string> = {};
+  if (data instanceof FormData) {
+    headers["Content-Type"] = "multipart/form-data";
+  }
+  const res = await api.post("/buildings", data, { headers });
   return res.data;
 }
 
-export async function createBuilding(data: {
-  name: string;
-  address_old: string;
-  address_new: string;
-  total_floors: number;
-  description?: string;
-  branch_name: string;
-  thumbnail_url?: string | null;
-  manager_id?: number | null;
-}) {
-  const res = await api.post("/buildings", data);
-  return res.data;
-}
-
-export async function updateBuilding(id: number, data: Partial<BuildingData>) {
-  const res = await api.put(`/buildings/${id}`, data);
+export async function updateBuilding(id: number, data: FormData | any) {
+  const headers: Record<string, string> = {};
+  if (data instanceof FormData) {
+    headers["Content-Type"] = "multipart/form-data";
+  }
+  const res = await api.put(`/buildings/${id}`, data, { headers });
   return res.data;
 }
 

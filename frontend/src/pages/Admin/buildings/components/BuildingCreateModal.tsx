@@ -19,8 +19,9 @@ export default function BuildingCreateModal({
   onSuccess,
 }: BuildingCreateModalProps) {
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [managers, setManagers] = useState<UserData[]>([]);
+  const [staffList, setStaffList] = useState<any[]>([]);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
   const [formData, setFormData] = useState({
     name: "",
     address_old: "",
@@ -29,7 +30,7 @@ export default function BuildingCreateModal({
     description: "",
     branch_name: "",
     thumbnail_url: "",
-    manager_id: null as number | null,
+    staff_id: null as number | null,
   });
 
   useEffect(() => {
@@ -42,40 +43,35 @@ export default function BuildingCreateModal({
         description: "",
         branch_name: "",
         thumbnail_url: "",
-        manager_id: null,
+        staff_id: null,
       });
+      setThumbnailFile(null);
+      setPreviewUrl("");
       fetchManagers();
     }
   }, [isOpen]);
 
   async function fetchManagers() {
     try {
-      const users = await authService.getAllUsers();
-      setManagers(users.filter((u) => u.role === "MANAGER"));
+      const { getAllStaff } = await import("../../../../services/staffService");
+      const staffRes = await getAllStaff();
+      setStaffList(staffRes.data);
     } catch {
       toast.error("Không thể tải danh sách người quản lý");
     }
   }
 
-  const availableManagers = managers.filter((m) => {
-    if (!m.managed_buildings || m.managed_buildings.length === 0) return true;
+  const availableManagers = staffList.filter((m) => {
+    if (!m.building_id) return true;
     return false;
   });
 
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const { uploadImage } = await import("../../../../utils/upload");
-      const url = await uploadImage(file);
-      setFormData((prev) => ({ ...prev, thumbnail_url: url }));
-      toast.success("Tải ảnh lên thành công");
-    } catch {
-      toast.error("Không thể tải ảnh lên");
-    } finally {
-      setUploading(false);
+    if (file) {
+      setThumbnailFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      toast.success("Đã chọn ảnh");
     }
   }
 
@@ -86,7 +82,21 @@ export default function BuildingCreateModal({
     }
     setSaving(true);
     try {
-      await buildingService.createBuilding(formData);
+      const formDataToSend = new FormData();
+      formDataToSend.append("name", formData.name);
+      formDataToSend.append("branch_name", formData.branch_name);
+      formDataToSend.append("address_old", formData.address_old);
+      formDataToSend.append("address_new", formData.address_new);
+      formDataToSend.append("total_floors", String(formData.total_floors));
+      formDataToSend.append("description", formData.description || "");
+      if (formData.staff_id) {
+        formDataToSend.append("staff_id", String(formData.staff_id));
+      }
+      if (thumbnailFile) {
+        formDataToSend.append("image", thumbnailFile);
+      }
+
+      await buildingService.createBuilding(formDataToSend);
       toast.success("Đã thêm tòa nhà mới");
       onSuccess();
       onClose();
@@ -154,14 +164,14 @@ export default function BuildingCreateModal({
           <div className="col-span-12">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Quản lý bởi</label>
             <select
-              value={formData.manager_id || ""}
-              onChange={(e) => setFormData({ ...formData, manager_id: e.target.value ? Number(e.target.value) : null })}
+              value={formData.staff_id || ""}
+              onChange={(e) => setFormData({ ...formData, staff_id: e.target.value ? Number(e.target.value) : null })}
               className="premium-select w-full rounded-xl"
             >
               <option value="">-- Chưa phân công --</option>
-              {availableManagers.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.username}
+              {availableManagers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.full_name} ({s.user?.username || s.position})
                 </option>
               ))}
             </select>
@@ -169,12 +179,12 @@ export default function BuildingCreateModal({
           <div className="col-span-12">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Ảnh bìa tòa nhà</label>
             <div className="flex items-center gap-4">
-              {formData.thumbnail_url ? (
+              {previewUrl ? (
                 <div className="relative w-28 h-20 rounded-xl overflow-hidden border border-gray-200 shrink-0">
-                  <img src={formData.thumbnail_url} className="w-full h-full object-cover" alt="" />
+                  <img src={previewUrl} className="w-full h-full object-cover" alt="" />
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, thumbnail_url: "" })}
+                    onClick={() => { setThumbnailFile(null); setPreviewUrl(""); }}
                     className="absolute top-1 right-1 p-1 bg-red-650 hover:bg-red-700 text-white rounded-full text-[10px] shadow w-4 h-4 flex items-center justify-center cursor-pointer"
                   >
                     ✕
@@ -182,15 +192,9 @@ export default function BuildingCreateModal({
                 </div>
               ) : (
                 <label className="w-28 h-20 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-primary-500 hover:bg-primary-50/10 transition-colors shrink-0">
-                  {uploading ? (
-                    <Loader2 className="animate-spin text-primary-600" size={20} />
-                  ) : (
-                    <>
-                      <Plus className="text-gray-400" size={20} />
-                      <span className="text-[10px] text-gray-400 mt-1">Chọn ảnh</span>
-                    </>
-                  )}
-                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
+                  <Plus className="text-gray-400" size={20} />
+                  <span className="text-[10px] text-gray-400 mt-1">Chọn ảnh</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                 </label>
               )}
               <div className="text-xs text-gray-400">

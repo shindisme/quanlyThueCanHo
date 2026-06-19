@@ -64,27 +64,14 @@ export default function GuestApartmentDetail() {
         if (apt.images && apt.images.length > 0) {
           setImages(apt.images);
         } else {
-          const stored = localStorage.getItem(`apartment-${id}-images`);
-          if (stored) {
-            setImages(JSON.parse(stored));
-          } else {
-            const fallback = [
-              {
-                id: 1,
-                apartment_id: aptId,
-                image_url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
-                is_thumbnail: true
-              },
-              {
-                id: 2,
-                apartment_id: aptId,
-                image_url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
-                is_thumbnail: false
-              }
-            ];
-            localStorage.setItem(`apartment-${id}-images`, JSON.stringify(fallback));
-            setImages(fallback);
-          }
+          setImages([
+            {
+              id: 1,
+              apartment_id: aptId,
+              image_url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
+              is_thumbnail: true
+            }
+          ]);
         }
 
         if (apt.building_id) {
@@ -102,27 +89,14 @@ export default function GuestApartmentDetail() {
           const mockBld = mockBuildings.find((b) => b.id === mockApt.building_id);
           if (mockBld) setBuilding(mockBld as any);
 
-          const stored = localStorage.getItem(`apartment-${id}-images`);
-          if (stored) {
-            setImages(JSON.parse(stored));
-          } else {
-            const fallback = [
-              {
-                id: 1,
-                apartment_id: Number(id),
-                image_url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
-                is_thumbnail: true
-              },
-              {
-                id: 2,
-                apartment_id: Number(id),
-                image_url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
-                is_thumbnail: false
-              }
-            ];
-            localStorage.setItem(`apartment-${id}-images`, JSON.stringify(fallback));
-            setImages(fallback);
-          }
+          setImages([
+            {
+              id: 1,
+              apartment_id: Number(id),
+              image_url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
+              is_thumbnail: true
+            }
+          ]);
         } else {
           setApartment(null);
           setBuilding(null);

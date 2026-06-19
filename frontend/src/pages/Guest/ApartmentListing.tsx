@@ -11,17 +11,11 @@ import * as apartmentService from "../../services/apartmentService";
 import type { BuildingData } from "../../services/buildingService";
 import type { ApartmentData } from "../../services/apartmentService";
 
-function getApartmentThumbnail(aptId: number): string {
-  const stored = localStorage.getItem(`apartment-${aptId}-images`);
-  if (stored) {
-    try {
-      const images = JSON.parse(stored);
-      const thumb = images.find((img: any) => img.is_thumbnail);
-      if (thumb) return thumb.image_url;
-      if (images.length > 0) return images[0].image_url;
-    } catch {
-      // ignore
-    }
+function getApartmentThumbnail(apt: any): string {
+  if (apt && apt.images && Array.isArray(apt.images) && apt.images.length > 0) {
+    const thumb = apt.images.find((img: any) => img.is_thumbnail);
+    if (thumb) return thumb.image_url;
+    return apt.images[0].image_url;
   }
   return "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80";
 }
@@ -192,7 +186,7 @@ export default function GuestApartmentListing() {
                   >
                     <div className="w-full h-48 bg-gray-100 overflow-hidden relative">
                       <img
-                        src={getApartmentThumbnail(apt.id)}
+                        src={getApartmentThumbnail(apt)}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         alt="Ảnh căn hộ"
                       />

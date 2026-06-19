@@ -26,6 +26,8 @@ export default function ApartmentModifyModal({
   const [saving, setSaving] = useState(false);
   const [localThumbnail, setLocalThumbnail] = useState<string>("");
   const [localImages, setLocalImages] = useState<string[]>([]);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [detailFiles, setDetailFiles] = useState<(File | null)[]>([null, null, null, null]);
 
   const [formData, setFormData] = useState({
     room_number: "",
@@ -56,6 +58,8 @@ export default function ApartmentModifyModal({
       const details = editItem.images?.filter((img) => !img.is_thumbnail).map((img) => img.image_url) || [];
       setLocalThumbnail(thumbnail);
       setLocalImages(details);
+      setThumbnailFile(null);
+      setDetailFiles([null, null, null, null]);
     }
   }, [editItem, isOpen]);
 
@@ -63,6 +67,7 @@ export default function ApartmentModifyModal({
     const file = e.target.files?.[0];
     if (file) {
       setLocalThumbnail(URL.createObjectURL(file));
+      setThumbnailFile(file);
     }
   }
 
@@ -75,15 +80,26 @@ export default function ApartmentModifyModal({
         next[index] = url;
         return next;
       });
+      setDetailFiles((prev) => {
+        const next = [...prev];
+        next[index] = file;
+        return next;
+      });
     }
   }
 
   function removeThumbnail() {
     setLocalThumbnail("");
+    setThumbnailFile(null);
   }
 
   function removeDetailImage(index: number) {
     setLocalImages((prev) => {
+      const next = [...prev];
+      next.splice(index, 1);
+      return next;
+    });
+    setDetailFiles((prev) => {
       const next = [...prev];
       next.splice(index, 1);
       return next;
@@ -105,7 +121,28 @@ export default function ApartmentModifyModal({
     }
     setSaving(true);
     try {
-      await apartmentService.updateApartment(editItem.id, formData);
+      const formDataToSend = new FormData();
+      formDataToSend.append("room_number", formData.room_number);
+      formDataToSend.append("building_id", String(formData.building_id));
+      formDataToSend.append("floor", String(formData.floor));
+      formDataToSend.append("area", String(formData.area));
+      formDataToSend.append("bedrooms", String(formData.bedrooms));
+      formDataToSend.append("bathrooms", String(formData.bathrooms));
+      formDataToSend.append("rental_price", String(formData.rental_price));
+      formDataToSend.append("description", formData.description || "");
+      formDataToSend.append("status", formData.status);
+
+      if (thumbnailFile) {
+        formDataToSend.append("images", thumbnailFile);
+      }
+
+      detailFiles.forEach((file) => {
+        if (file) {
+          formDataToSend.append("images", file);
+        }
+      });
+
+      await apartmentService.updateApartment(editItem.id, formDataToSend);
       toast.success("Đã cập nhật căn hộ");
       onSuccess();
       onClose();

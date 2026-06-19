@@ -46,7 +46,7 @@ export const getById = async (req: Request, res: Response): Promise<void> => {
 export const update = async (req: Request, res: Response) => {
     try {
         const apartmentId = Number(req.params.id);
-        const files = req.files as Express.Multer.File[];
+        const files = (req.files as Express.Multer.File[]) || [];
 
         const uploadPromises = files.map(file =>
             imagekit.upload({
@@ -58,9 +58,22 @@ export const update = async (req: Request, res: Response) => {
         const results = await Promise.all(uploadPromises);
         const newImageUrls = results.map(r => r.url);
 
-        await apartmentService.updateApartmentService(apartmentId, newImageUrls);
+        const { building_id, floor, room_number, area, bedrooms, bathrooms, rental_price, description, status } = req.body;
+        
+        const updateData: any = {};
+        if (building_id !== undefined) updateData.building_id = Number(building_id);
+        if (floor !== undefined) updateData.floor = Number(floor);
+        if (room_number !== undefined) updateData.room_number = room_number;
+        if (area !== undefined) updateData.area = Number(area);
+        if (bedrooms !== undefined) updateData.bedrooms = Number(bedrooms);
+        if (bathrooms !== undefined) updateData.bathrooms = Number(bathrooms);
+        if (rental_price !== undefined) updateData.rental_price = Number(rental_price);
+        if (description !== undefined) updateData.description = description;
+        if (status !== undefined) updateData.status = status;
 
-        res.json({ message: "Cập nhật ảnh thành công" });
+        await apartmentService.updateApartmentService(apartmentId, updateData, newImageUrls);
+
+        res.json({ message: "Cập nhật căn hộ thành công" });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }

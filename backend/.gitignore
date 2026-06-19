@@ -6,3 +6,5 @@ package-lock.json
 
 .vscode/*
 /src/generated/prisma
+
+dist

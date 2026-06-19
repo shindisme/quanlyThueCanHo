@@ -67,7 +67,10 @@ export const getAllApartmentsService = async (filters: {
             skip,
             take: limit,
             orderBy: { floor: "asc" },
-            include: { building: true },
+            include: { 
+                building: true,
+                images: true
+            },
         }),
         prisma.apartment.count({ where: whereClause }),
     ]);
@@ -93,10 +96,28 @@ export const getApartmentByIdService = async (id: number) => {
     });
 };
 
-export const updateApartmentService = async (id: number, data: any) => {
-    return await prisma.apartment.update({
-        where: { id },
-        data,
+export const updateApartmentService = async (id: number, data: any, imageUrls: string[] = []) => {
+    return await prisma.$transaction(async (tx) => {
+        const apartment = await tx.apartment.update({
+            where: { id },
+            data,
+        });
+
+        if (imageUrls.length > 0) {
+            const existingImages = await tx.apartmentImage.findMany({
+                where: { apartment_id: id }
+            });
+
+            await tx.apartmentImage.createMany({
+                data: imageUrls.map((url, index) => ({
+                    apartment_id: id,
+                    image_url: url,
+                    is_thumbnail: existingImages.length === 0 && index === 0
+                }))
+            });
+        }
+
+        return apartment;
     });
 };
 

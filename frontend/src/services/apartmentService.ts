@@ -53,23 +53,21 @@ export async function getApartmentById(id: number): Promise<ApartmentData> {
   return res.data;
 }
 
-export async function createApartment(data: {
-  building_id: number;
-  room_number: string;
-  floor: number;
-  area: number;
-  bedrooms: number;
-  bathrooms: number;
-  rental_price: number;
-  description?: string;
-  status?: string;
-}) {
-  const res = await api.post("/apartments", data);
+export async function createApartment(data: FormData | any) {
+  const headers: Record<string, string> = {};
+  if (data instanceof FormData) {
+    headers["Content-Type"] = "multipart/form-data";
+  }
+  const res = await api.post("/apartments", data, { headers });
   return res.data;
 }
 
-export async function updateApartment(id: number, data: Partial<ApartmentData>) {
-  const res = await api.put(`/apartments/${id}`, data);
+export async function updateApartment(id: number, data: FormData | Partial<ApartmentData>) {
+  const headers: Record<string, string> = {};
+  if (data instanceof FormData) {
+    headers["Content-Type"] = "multipart/form-data";
+  }
+  const res = await api.put(`/apartments/${id}`, data, { headers });
   return res.data;
 }
 

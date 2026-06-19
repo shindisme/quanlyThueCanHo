@@ -99,33 +99,6 @@ export default function ApartmentDetail() {
   useEffect(() => {
     if (!id) return;
     fetchData();
-
-    // Load and sync images from localStorage
-    const key = `apartment-${id}-images`;
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      setImages(JSON.parse(stored));
-    } else {
-      // Pre-populate with beautiful default mock images
-      const initialMockImages: ApartmentImage[] = [
-        {
-          id: 1,
-          apartment_id: Number(id),
-          image_url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
-          is_thumbnail: true,
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 2,
-          apartment_id: Number(id),
-          image_url: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
-          is_thumbnail: false,
-          created_at: new Date().toISOString()
-        }
-      ];
-      localStorage.setItem(key, JSON.stringify(initialMockImages));
-      setImages(initialMockImages);
-    }
   }, [id]);
 
   async function fetchData() {
@@ -133,6 +106,7 @@ export default function ApartmentDetail() {
       setLoading(true);
       const data = await apartmentService.getApartmentById(Number(id));
       setApartment(data);
+      setImages(data.images || []);
     } catch {
       toast.error("Không thể tải dữ liệu");
     } finally {
@@ -146,21 +120,12 @@ export default function ApartmentDetail() {
 
     setUploading(true);
     try {
-      const { uploadImage } = await import("../../../utils/upload");
-      const url = await uploadImage(file);
-      
-      const newImg: ApartmentImage = {
-        id: Date.now(),
-        apartment_id: Number(id),
-        image_url: url,
-        is_thumbnail: images.length === 0, // set as thumbnail if it's the first image
-        created_at: new Date().toISOString()
-      };
+      const formDataToSend = new FormData();
+      formDataToSend.append("images", file);
 
-      const updated = [...images, newImg];
-      setImages(updated);
-      localStorage.setItem(`apartment-${id}-images`, JSON.stringify(updated));
+      await apartmentService.updateApartment(Number(id), formDataToSend);
       toast.success("Tải ảnh lên thành công");
+      await fetchData();
     } catch {
       toast.error("Không thể tải ảnh lên");
     } finally {
@@ -174,7 +139,6 @@ export default function ApartmentDetail() {
       is_thumbnail: img.id === imgId
     }));
     setImages(updated);
-    localStorage.setItem(`apartment-${id}-images`, JSON.stringify(updated));
     toast.success("Đã đặt làm ảnh đại diện");
   }
 
@@ -184,7 +148,6 @@ export default function ApartmentDetail() {
       updated[0].is_thumbnail = true;
     }
     setImages(updated);
-    localStorage.setItem(`apartment-${id}-images`, JSON.stringify(updated));
     toast.success("Đã xóa hình ảnh");
   }
 

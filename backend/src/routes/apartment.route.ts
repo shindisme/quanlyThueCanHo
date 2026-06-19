@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as apartmentController from "../controllers/apartment.controller.js";
-import { upload } from "../middleware/upload.js";
+import { upload } from "../middleware/upload.middleware.js";
 
 const router = Router();
 
