@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Briefcase, Eye, Pencil, Trash2, Loader2, User, Building } from "lucide-react";
+import { Plus, Briefcase, Eye, Pencil, Trash2, Loader2 } from "lucide-react";
 import PageHeader from "../../../components/ui/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
@@ -133,10 +133,7 @@ export default function StaffList() {
       render: (s) => {
         const bName = getBuildingName(s.building_id);
         return s.building_id ? (
-          <div className="flex items-center gap-1.5 font-medium text-primary-600">
-            <Building size={14} className="text-primary-500" />
-            <span>{bName}</span>
-          </div>
+          <span className="font-medium text-primary-600">{bName}</span>
         ) : (
           <span className="text-gray-450 italic text-xs">Chưa gán</span>
         );
@@ -148,10 +145,7 @@ export default function StaffList() {
       sortValue: (s) => s.user?.username || "",
       render: (s) =>
         s.user?.username ? (
-          <div className="flex items-center gap-1 text-gray-700">
-            <User size={13} className="text-gray-400" />
-            <span className="font-medium">@{s.user.username}</span>
-          </div>
+          <span className="font-medium text-gray-700">{s.user.username}</span>
         ) : (
           <span className="text-gray-400 italic text-xs">-</span>
         ),

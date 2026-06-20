@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { ChevronLeft, ChevronRight, X, Building2 } from "lucide-react";
+import { X, Building2 } from "lucide-react";
 import { useAuthStore } from "../../stores/auth.store";
 import { useSidebarStore } from "../../stores/sidebar.store";
 import { getSidebarMenu } from "../../constants/sidebar";
@@ -38,29 +38,7 @@ export default function Sidebar() {
           <X size={18} />
         </button>
 
-        {/* Nút thu gọn desktop */}
-        <button
-          onClick={toggle}
-          className={`hidden lg:flex p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 cursor-pointer transition-all duration-300 ease-in-out ${isOpen ? "opacity-100 w-auto" : "opacity-0 w-0 p-0 pointer-events-none"
-            }`}
-          title="Thu gọn sidebar"
-        >
-          <ChevronLeft size={16} />
-        </button>
       </div>
-
-      {/* Nút mở rộng khi sidebar collapsed */}
-      {!isOpen && (
-        <div className="hidden lg:flex justify-center py-3 border-b border-gray-100">
-          <button
-            onClick={toggle}
-            className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 cursor-pointer"
-            title="Mở rộng sidebar"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      )}
 
       {/* Menu */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto">

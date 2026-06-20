@@ -4,6 +4,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../stores/auth.store";
 import { useSidebarStore } from "../../stores/sidebar.store";
 import * as buildingService from "../../services/buildingService";
+import * as apartmentService from "../../services/apartmentService";
+import { formatApartmentDisplay } from "../../utils/format";
 
 function parseJwt(token: string) {
   try {
@@ -34,6 +36,10 @@ export default function Header() {
   const profileRef = useRef<HTMLDivElement>(null);
   const [managedBuildingName, setManagedBuildingName] = useState<string | null>(null);
 
+  // Lưu infor cho breadcrum toà nhà và căn hộ
+  const [dynamicBuildingName, setDynamicBuildingName] = useState<string | null>(null);
+  const [dynamicApartmentName, setDynamicApartmentName] = useState<string | null>(null);
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
@@ -56,12 +62,68 @@ export default function Header() {
             }
           }
         } catch (error) {
-          console.error("Error fetching managed building", error);
+          console.error("Lỗi tải danh sách tòa nhà", error);
         }
       }
     }
     fetchManagedBuilding();
   }, [role, token]);
+
+  // Lấy tên tòa nhà/căn hộ động Breadcrumb
+  useEffect(() => {
+    setDynamicBuildingName(null);
+    setDynamicApartmentName(null);
+
+    async function fetchDynamicNames() {
+      const parts = location.pathname.split("/").filter(Boolean);
+      const isBuildingDetail = location.pathname.includes("/buildings/") && parts.length > 2;
+      const isApartmentDetail = location.pathname.includes("/apartments/") && parts.length > 2;
+
+      if (isBuildingDetail) {
+        const idStr = parts[parts.length - 1];
+        const id = Number(idStr);
+        if (!isNaN(id)) {
+          try {
+            const b = await buildingService.getBuildingById(id);
+            if (b) {
+              setDynamicBuildingName(b.branch_name);
+            }
+          } catch (error) {
+            console.error("Lỗi lấy thông tin tòa nhà cho breadcrumb", error);
+            setDynamicBuildingName(null);
+          }
+        }
+      } else {
+        setDynamicBuildingName(null);
+      }
+
+      if (isApartmentDetail) {
+        const idStr = parts[parts.length - 1];
+        const id = Number(idStr);
+        if (!isNaN(id)) {
+          try {
+            const apt = await apartmentService.getApartmentById(id);
+            if (apt) {
+              const name = formatApartmentDisplay(
+                apt.room_number,
+                apt.floor,
+                role || undefined,
+                apt.building?.branch_name
+              );
+              setDynamicApartmentName(name);
+            }
+          } catch (error) {
+            console.error("Lỗi lấy thông tin căn hộ cho breadcrumb", error);
+            setDynamicApartmentName(null);
+          }
+        }
+      } else {
+        setDynamicApartmentName(null);
+      }
+    }
+
+    fetchDynamicNames();
+  }, [location.pathname, role]);
 
   const displayName = email?.split("@")[0] || "User";
   const roleLabel =
@@ -92,7 +154,15 @@ export default function Header() {
       home: "Trang chủ",
     };
 
-    return parts.slice(1).map((p) => labels[p] || p);
+    return parts.slice(1).map((p) => {
+      if (location.pathname.includes("/buildings/") && !isNaN(Number(p))) {
+        return dynamicBuildingName
+      }
+      if (location.pathname.includes("/apartments/") && !isNaN(Number(p))) {
+        return dynamicApartmentName;
+      }
+      return labels[p] || p;
+    });
   }
 
   function handleLogout() {
@@ -104,7 +174,7 @@ export default function Header() {
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 lg:px-6 shrink-0">
-      {/* ===== BÊN TRÁI: Hamburger + Breadcrumb ===== */}
+      {/* Left side */}
       <div className="flex items-center gap-3">
         {/* Hamburger */}
         <button
@@ -120,7 +190,7 @@ export default function Header() {
           <Menu size={20} />
         </button>
 
-        {/* Breadcrumb - ArchitectUI style */}
+        {/* Breadcrumb*/}
         {breadcrumbParts && breadcrumbParts.length > 0 && (
           <div className="hidden sm:flex items-center gap-1.5 text-sm">
             {breadcrumbParts.map((part, i) => (

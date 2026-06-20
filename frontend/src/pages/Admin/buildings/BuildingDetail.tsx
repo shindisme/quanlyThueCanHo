@@ -12,6 +12,7 @@ import type { BuildingData } from "../../../services/buildingService";
 import type { ApartmentData } from "../../../services/apartmentService";
 
 import BuildingModifyModal from "./components/BuildingModifyModal";
+import { formatApartmentDisplay } from "../../../utils/format";
 
 function getApartmentThumbnail(apt: any): string {
   if (apt && apt.images && Array.isArray(apt.images) && apt.images.length > 0) {
@@ -28,6 +29,7 @@ export default function BuildingDetail() {
   const [apartments, setApartments] = useState<ApartmentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModifyModal, setShowModifyModal] = useState(false);
+  const [selectedFloor, setSelectedFloor] = useState(1);
 
   useEffect(() => {
     if (!id) return;
@@ -124,13 +126,17 @@ export default function BuildingDetail() {
           </div>
 
           <div className="space-y-2 text-sm text-gray-600 mb-4">
-            <div className="flex items-center gap-2">
-              <MapPin size={16} className="text-gray-400 shrink-0" />
-              <span>{building.address_new || building.address_old}</span>
+            <div className="flex items-start gap-2">
+              <MapPin size={16} className="text-gray-400 shrink-0 mt-0.5" />
+              <span>Địa chỉ mới: <strong>{building.address_new}</strong></span>
+            </div>
+            <div className="flex items-start gap-2">
+              <MapPin size={16} className="text-gray-400 shrink-0 mt-0.5" />
+              <span>Địa chỉ cũ: <strong>{building.address_old}</strong></span>
             </div>
             <div className="flex items-center gap-2">
               <Layers size={16} className="text-gray-400 shrink-0" />
-              <span>{building.total_floors} tầng</span>
+              <span>Số tầng: <strong>{building.total_floors} tầng</strong></span>
             </div>
             {building.manager && (
               <div className="flex items-center gap-2">
@@ -160,7 +166,7 @@ export default function BuildingDetail() {
             </div>
             <div className="col-span-6 md:col-span-3 bg-primary-50 rounded-xl p-3 text-center">
               <p className="text-2xl font-bold text-primary-600">{occupancyRate}%</p>
-              <p className="text-xs text-gray-400">Lấp đầy</p>
+              <p className="text-xs text-gray-400">Đã cho thuê</p>
             </div>
           </div>
         </div>
@@ -168,11 +174,39 @@ export default function BuildingDetail() {
 
       {/* Danh sách căn hộ */}
       <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">
-          Danh sách căn hộ ({apartments.length})
-        </h3>
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-3">
+          <h3 className="text-lg font-semibold text-gray-800">
+            Danh sách căn hộ - Tầng {selectedFloor} ({apartments.filter((a) => a.floor === selectedFloor).length})
+          </h3>
+          <span className="text-sm text-gray-500 font-medium">Tổng số căn hộ: {apartments.length}</span>
+        </div>
+
+        {/* Bộ lọc tầng */}
+        <div className="bg-white rounded-2xl p-4 border border-gray-200 mb-6">
+          <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-2">
+            {Array.from({ length: building.total_floors }, (_, i) => i + 1).map((floor) => {
+              const floorApts = apartments.filter((a) => a.floor === floor);
+              const isSelected = selectedFloor === floor;
+              return (
+                <button
+                  key={floor}
+                  type="button"
+                  onClick={() => setSelectedFloor(floor)}
+                  className={`min-w-[125px] text-center px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                    isSelected
+                      ? "bg-primary-600 text-white shadow-sm"
+                      : "bg-gray-50 text-gray-650 hover:bg-gray-100 border border-gray-200"
+                  }`}
+                >
+                  Tầng {floor} ({floorApts.length})
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="grid grid-cols-12 gap-6">
-          {apartments.map((apt) => (
+          {apartments.filter((a) => a.floor === selectedFloor).map((apt) => (
             <Link
               key={apt.id}
               to={`/admin/apartments/${apt.id}`}
@@ -188,7 +222,7 @@ export default function BuildingDetail() {
                 )}
                 <div className="flex items-start justify-between mb-1">
                   <p className="font-semibold text-gray-800 text-sm">
-                    P.{apt.room_number} - T{apt.floor}
+                    {formatApartmentDisplay(apt.room_number, apt.floor)}
                   </p>
                   {getStatusBadge(apt.status)}
                 </div>
@@ -201,6 +235,12 @@ export default function BuildingDetail() {
               </Card>
             </Link>
           ))}
+          {apartments.filter((a) => a.floor === selectedFloor).length === 0 && (
+            <div className="col-span-12 text-center py-12 text-gray-500 bg-white rounded-2xl border border-gray-200">
+              <Home size={40} className="mx-auto mb-3 text-gray-300" />
+              Không có căn hộ nào ở tầng này
+            </div>
+          )}
         </div>
       </div>
 

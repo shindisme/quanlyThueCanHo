@@ -125,7 +125,7 @@ export default function Dashboard() {
     day: "numeric",
   });
 
-  // Tỷ lệ lấp đầy
+  // Tỷ lệ đã cho thuê
   const occupancyRate = Math.round((mockKPI.rentedApartments / mockKPI.totalApartments) * 100);
 
   return (
@@ -180,7 +180,7 @@ export default function Dashboard() {
       {/* ROW 2: Occupancy rate + KPI nhỏ - 12 cột */}
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 sm:col-span-6 lg:col-span-3">
-          <StatCard icon={Home} label="Tỷ lệ lấp đầy" value={`${occupancyRate}%`}
+          <StatCard icon={Home} label="Tỷ lệ đã cho thuê" value={`${occupancyRate}%`}
             iconColor="text-emerald-600" iconBg="bg-emerald-50" />
         </div>
         <div className="col-span-12 sm:col-span-6 lg:col-span-3">
@@ -259,7 +259,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-12 gap-6">
         {/* Occupancy bar chart */}
         <div className="col-span-12 lg:col-span-6">
-          <ChartCard title="Tỷ lệ lấp đầy theo tòa nhà" subtitle="Phần trăm (%)">
+          <ChartCard title="Tỷ lệ đã cho thuê theo tòa nhà" subtitle="Phần trăm (%)">
             <ResponsiveContainer width="100%" height={250} debounce={150}>
               <BarChart data={occupancyData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={false} />

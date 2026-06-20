@@ -8,16 +8,12 @@ interface TenantDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   tenant: Tenant | null;
-  phone: string;
-  email: string;
 }
 
 export default function TenantDetailModal({
   isOpen,
   onClose,
   tenant,
-  phone,
-  email,
 }: TenantDetailModalProps) {
   return (
     <Modal
@@ -35,11 +31,11 @@ export default function TenantDetailModal({
           </div>
           <div className="flex justify-between border-b pb-2 border-gray-100">
             <span className="text-gray-500 font-medium">Số điện thoại:</span>
-            <span className="font-semibold text-gray-800">{phone}</span>
+            <span className="font-semibold text-gray-800">{tenant.phone || "-"}</span>
           </div>
           <div className="flex justify-between border-b pb-2 border-gray-100">
             <span className="text-gray-500 font-medium">Email:</span>
-            <span className="font-semibold text-gray-800">{email}</span>
+            <span className="font-semibold text-gray-800">{tenant.email || "-"}</span>
           </div>
           <div className="flex justify-between border-b pb-2 border-gray-100">
             <span className="text-gray-500 font-medium">Số CCCD:</span>

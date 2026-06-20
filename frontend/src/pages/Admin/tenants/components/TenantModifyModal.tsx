@@ -23,6 +23,8 @@ export default function TenantModifyModal({
   const [formCitizenId, setFormCitizenId] = useState("");
   const [formDob, setFormDob] = useState("");
   const [formAddress, setFormAddress] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formPhone, setFormPhone] = useState("");
 
   useEffect(() => {
     if (editItem && isOpen) {
@@ -34,6 +36,8 @@ export default function TenantModifyModal({
           : ""
       );
       setFormAddress(editItem.address || "");
+      setFormEmail(editItem.email || "");
+      setFormPhone(editItem.phone || "");
     }
   }, [editItem, isOpen]);
 
@@ -48,6 +52,8 @@ export default function TenantModifyModal({
         citizen_id: formCitizenId,
         date_of_birth: formDob ? new Date(formDob).toISOString() : null,
         address: formAddress || null,
+        email: formEmail.trim() || null,
+        phone: formPhone.trim() || null,
       });
       toast.success("Đã cập nhật thông tin người thuê");
       onSuccess();
@@ -80,6 +86,12 @@ export default function TenantModifyModal({
           </div>
           <div className="col-span-12 sm:col-span-6">
             <Input label="Ngày sinh" type="date" value={formDob} onChange={(e) => setFormDob(e.target.value)} />
+          </div>
+          <div className="col-span-12 sm:col-span-6">
+            <Input label="Email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@example.com" />
+          </div>
+          <div className="col-span-12 sm:col-span-6">
+            <Input label="Số điện thoại" value={formPhone} onChange={(e) => setFormPhone(e.target.value)} placeholder="0901234567" />
           </div>
           <div className="col-span-12">
             <Input label="Địa chỉ" value={formAddress} onChange={(e) => setFormAddress(e.target.value)} placeholder="Địa chỉ thường trú" />

@@ -29,6 +29,7 @@ export default function TenantList() {
 
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showModifyModal, setShowModifyModal] = useState(false);
   const [editItem, setEditItem] = useState<Tenant | null>(null);
@@ -41,12 +42,17 @@ export default function TenantList() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentPage]);
 
   async function loadData() {
     try {
-      const res = await tenantService.getAllTenants();
+      const res = await tenantService.getAllTenants({ page: currentPage });
       setTenants(res.data);
+      if (res.data.length === 10) {
+        setTotalPages(currentPage + 1);
+      } else {
+        setTotalPages(currentPage);
+      }
     } catch {
       toast.error("Không thể tải danh sách người thuê");
     }
@@ -90,8 +96,7 @@ export default function TenantList() {
     return nameNorm.includes(term) || citizenNorm.includes(term);
   });
 
-  const totalPages = Math.ceil(filtered.length / pageSize);
-  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const paginated = filtered;
 
   // Xóa người thuê
   async function handleDelete() {
@@ -119,8 +124,8 @@ export default function TenantList() {
 
   const columns: Column<Tenant>[] = [
     { key: "name", label: "Họ tên", sortValue: (t) => t.full_name, render: (t) => <span className="font-medium">{t.full_name}</span> },
-    { key: "email", label: "Email", sortValue: (t) => getUserEmail(t.user_id), render: (t) => getUserEmail(t.user_id) },
-    { key: "phone", label: "Số điện thoại", sortValue: (t) => getUserPhone(t.user_id), render: (t) => maskPhone(getUserPhone(t.user_id)) },
+    { key: "email", label: "Email", sortValue: (t) => t.email || "", render: (t) => t.email || "-" },
+    { key: "phone", label: "Số điện thoại", sortValue: (t) => t.phone || "", render: (t) => t.phone ? maskPhone(t.phone) : "-" },
     { key: "citizen_id", label: "CCCD", sortValue: (t) => t.citizen_id, render: (t) => maskCCCD(t.citizen_id) },
     {
       key: "verified",
@@ -219,8 +224,6 @@ export default function TenantList() {
         isOpen={!!viewItem}
         onClose={() => setViewItem(null)}
         tenant={viewItem}
-        phone={viewItem ? getUserPhone(viewItem.user_id) : ""}
-        email={viewItem ? getUserEmail(viewItem.user_id) : ""}
       />
     </div>
   );

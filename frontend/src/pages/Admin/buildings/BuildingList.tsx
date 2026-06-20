@@ -5,6 +5,7 @@ import PageHeader from "../../../components/ui/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
 import Badge from "../../../components/ui/Badge";
+import Pagination from "../../../components/ui/Pagination";
 import { toast } from "sonner";
 
 import { removeVietnameseTones } from "../../../utils/format";
@@ -25,15 +26,26 @@ export default function BuildingList() {
   const [editItem, setEditItem] = useState<BuildingData | null>(null);
   const [deleteItem, setDeleteItem] = useState<BuildingData | null>(null);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 10;
+
   useEffect(() => {
     fetchBuildings();
-  }, []);
+  }, [currentPage, search]);
 
   async function fetchBuildings() {
     try {
       setLoading(true);
-      const result = await buildingService.getAllBuildings();
+      const result = await buildingService.getAllBuildings({
+        page: currentPage,
+        limit: pageSize,
+        search: search || undefined,
+      });
       setBuildings(result.data);
+      setTotalPages(result.pagination.totalPages);
+      setTotalCount(result.pagination.total);
     } catch {
       toast.error("Không thể tải danh sách tòa nhà");
     } finally {
@@ -41,16 +53,7 @@ export default function BuildingList() {
     }
   }
 
-  // Lọc theo từ khóa tìm kiếm (client-side)
-  const filtered = buildings.filter((b) => {
-    const term = removeVietnameseTones(search);
-    return (
-      removeVietnameseTones(b.name).includes(term) ||
-      removeVietnameseTones(b.address_old || "").includes(term) ||
-      removeVietnameseTones(b.address_new || "").includes(term) ||
-      removeVietnameseTones(b.branch_name || "").includes(term)
-    );
-  });
+  const filtered = buildings;
 
   async function handleDelete() {
     if (!deleteItem) return;
@@ -79,7 +82,7 @@ export default function BuildingList() {
         icon={Building2}
         title="Tòa nhà"
         subtitle="Quản lý danh sách tòa nhà"
-        count={buildings.length}
+        count={totalCount}
         actions={
           <Button onClick={() => setShowCreateModal(true)}>
             <Plus size={18} /> Thêm tòa nhà
@@ -90,7 +93,7 @@ export default function BuildingList() {
       {/* Tìm kiếm */}
       <SearchInput
         value={search}
-        onChange={setSearch}
+        onChange={(v) => { setSearch(v); setCurrentPage(1); }}
         placeholder="Tìm kiếm..."
         className="max-w-md"
       />
@@ -110,8 +113,6 @@ export default function BuildingList() {
                 <tr>
                   <th>Tên chi nhánh</th>
                   <th>Địa chỉ</th>
-                  <th>Số tầng</th>
-                  <th>Số căn hộ</th>
                   <th>Quản lý bởi</th>
                   <th>Trạng thái</th>
                   <th className="text-right">Chức năng</th>
@@ -126,12 +127,10 @@ export default function BuildingList() {
                       </div>
                     </td>
                     <td className="text-gray-600">
-                      <span className="block max-w-xs truncate" title={building.address_new || building.address_old}>
-                        {building.address_new || building.address_old}
+                      <span className="block max-w-xs truncate" title={building.address_new}>
+                        {building.address_new}
                       </span>
                     </td>
-                    <td className="text-gray-600 font-medium">{building.total_floors}</td>
-                    <td className="text-gray-600 font-medium">{building._count?.apartments ?? building.total_apartments} </td>
                     <td className="text-gray-700">
                       {building.manager ? (
                         <div className="flex items-center gap-1.5 font-medium text-primary-600">
@@ -169,6 +168,11 @@ export default function BuildingList() {
             </table>
           </div>
         </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
       )}
 
       {/* Modals */}

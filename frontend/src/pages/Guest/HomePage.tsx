@@ -45,16 +45,18 @@ export default function GuestHomePage() {
     }
 
     const storedIds = localStorage.getItem("featured-apartment-ids");
+    let currentFeaturedIds: number[] = [];
     if (storedIds) {
       try {
-        setFeaturedIds(JSON.parse(storedIds));
+        currentFeaturedIds = JSON.parse(storedIds);
+        setFeaturedIds(currentFeaturedIds);
       } catch { /* empty */ }
     }
 
     setLoading(true);
     Promise.all([
       buildingService.getAllBuildings({ limit: 100 }),
-      apartmentService.getAllApartments({ limit: 1000 })
+      apartmentService.getAllApartments({ limit: currentFeaturedIds.length > 0 ? 20 : 6 })
     ]).then(([bRes, aRes]) => {
       setBuildings(bRes.data);
       setApartments(aRes.data);
@@ -69,9 +71,9 @@ export default function GuestHomePage() {
   const featuredApartments = (() => {
     if (featuredIds.length > 0) {
       const filtered = apartments.filter((a) => featuredIds.includes(a.id) && ["available", "vacant", "AVAILABLE"].includes(a.status));
-      if (filtered.length > 0) return filtered.slice(0, 6);
+      if (filtered.length > 0) return filtered.slice(0, 4);
     }
-    return apartments.filter((a) => ["available", "vacant", "AVAILABLE"].includes(a.status)).slice(0, 6);
+    return apartments.filter((a) => ["available", "vacant", "AVAILABLE"].includes(a.status)).slice(0, 4);
   })();
 
   return (
@@ -172,7 +174,74 @@ export default function GuestHomePage() {
         </div>
       </section>
 
+      {/* FEATURED APARTMENTS */}
       <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div className="flex items-center justify-between mb-10">
+            <div>
+              <p className="text-xs font-semibold text-primary-600 uppercase tracking-wider mb-2">Căn hộ</p>
+              <h2 className="text-3xl font-bold text-gray-900">Căn hộ nổi bật</h2>
+              <p className="text-gray-500 mt-1">Các căn hộ đang sẵn sàng cho thuê</p>
+            </div>
+            <Link
+              to="/apartments"
+              className="text-primary-600 font-medium text-sm hover:text-primary-700 flex items-center gap-1 transition-colors"
+            >
+              Xem tất cả <ArrowRight size={16} />
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="animate-spin text-primary-600" size={32} />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+              {featuredApartments.map((apt) => {
+                const building = buildings.find((b) => b.id === apt.building_id);
+                return (
+                  <Link
+                    key={apt.id}
+                    to={`/apartments/${apt.id}`}
+                    className="bg-white rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 border border-gray-200 hover:border-primary-200 group block"
+                  >
+                    <div className="w-full h-48 bg-gray-100 overflow-hidden relative">
+                      <img
+                        src={getApartmentThumbnail(apt)}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
+                        alt="Ảnh căn hộ"
+                      />
+                      <span className="absolute top-3 left-3 text-xs px-2.5 py-1 rounded-full bg-success-500 text-white font-semibold">
+                        Còn trống
+                      </span>
+                    </div>
+                    <div className="p-5">
+                      <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors">
+                        {formatApartmentDisplay(apt.room_number, apt.floor, "ADMIN", building?.branch_name)}
+                      </h3>
+                      <div className="flex items-center gap-1.5 mt-1.5 text-xs text-gray-400">
+                        <MapPin size={12} />
+                        <span>{building?.address_new || building?.address_old}</span>
+                      </div>
+                      <p className="text-sm text-gray-500 mt-2 line-clamp-2">{apt.description}</p>
+                      <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100">
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                          <Maximize2 size={12} />
+                          <span>{apt.area} m²</span>
+                        </div>
+                        <span className="text-lg font-bold text-primary-600">{formatCurrency(apt.rental_price)}/tháng</span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* WHY CHOOSE US */}
+      <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
           <div className="text-center mb-14">
             <p className="text-xs font-semibold text-primary-600 uppercase tracking-wider mb-2">Tại sao chọn chúng tôi</p>
@@ -215,72 +284,6 @@ export default function GuestHomePage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* FEATURED APARTMENTS */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div className="flex items-center justify-between mb-10">
-            <div>
-              <p className="text-xs font-semibold text-primary-600 uppercase tracking-wider mb-2">Căn hộ</p>
-              <h2 className="text-3xl font-bold text-gray-900">Căn hộ nổi bật</h2>
-              <p className="text-gray-500 mt-1">Các căn hộ đang sẵn sàng cho thuê</p>
-            </div>
-            <Link
-              to="/apartments"
-              className="text-primary-600 font-medium text-sm hover:text-primary-700 flex items-center gap-1 transition-colors"
-            >
-              Xem tất cả <ArrowRight size={16} />
-            </Link>
-          </div>
-
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="animate-spin text-primary-600" size={32} />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredApartments.map((apt) => {
-                const building = buildings.find((b) => b.id === apt.building_id);
-                return (
-                  <Link
-                    key={apt.id}
-                    to={`/apartments/${apt.id}`}
-                    className="bg-white rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 border border-gray-200 hover:border-primary-200 group block"
-                  >
-                    <div className="w-full h-48 bg-gray-100 overflow-hidden relative">
-                      <img
-                        src={getApartmentThumbnail(apt)}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
-                        alt="Ảnh căn hộ"
-                      />
-                      <span className="absolute top-3 left-3 text-xs px-2.5 py-1 rounded-full bg-success-500 text-white font-semibold">
-                        Còn trống
-                      </span>
-                    </div>
-                    <div className="p-5">
-                      <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors">
-                        {formatApartmentDisplay(apt.room_number, apt.floor, "ADMIN", building?.branch_name)}
-                      </h3>
-                      <div className="flex items-center gap-1.5 mt-1.5 text-xs text-gray-400">
-                        <MapPin size={12} />
-                        <span>{building?.address_new || building?.address_old}</span>
-                      </div>
-                      <p className="text-sm text-gray-500 mt-2 line-clamp-2">{apt.description}</p>
-                      <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100">
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                          <Maximize2 size={12} />
-                          <span>{apt.area} m²</span>
-                        </div>
-                        <span className="text-lg font-bold text-primary-600">{formatCurrency(apt.rental_price)}/tháng</span>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
         </div>
       </section>
 

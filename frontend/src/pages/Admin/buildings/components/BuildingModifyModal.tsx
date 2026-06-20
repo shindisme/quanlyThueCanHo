@@ -70,6 +70,7 @@ export default function BuildingModifyModal({
   }
 
   const availableManagers = staffList.filter((m) => {
+    if (m.user?.role === "ADMIN") return false;
     if (!m.building_id) return true;
     if (editItem && m.building_id === editItem.id) return true;
     return false;

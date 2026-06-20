@@ -44,6 +44,8 @@ export default function ApartmentList() {
   const [featuredIds, setFeaturedIds] = useState<number[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const pageSize = 20;
 
   // Lấy danh sách tòa nhà 
@@ -80,8 +82,7 @@ export default function ApartmentList() {
   // Lấy danh sách căn hộ 
   useEffect(() => {
     fetchApartments();
-    setCurrentPage(1);
-  }, [filterBuilding, filterStatus]);
+  }, [currentPage, filterBuilding, filterStatus, search]);
 
   async function fetchApartments() {
     try {
@@ -89,9 +90,13 @@ export default function ApartmentList() {
       const result = await apartmentService.getAllApartments({
         building_id: filterBuilding,
         status: filterStatus || undefined,
-        limit: 1000,
+        search: search || undefined,
+        page: currentPage,
+        limit: pageSize,
       });
       setApartments(result.data);
+      setTotalPages(result.pagination.totalPages);
+      setTotalCount(result.pagination.total);
     } catch {
       toast.error("Không thể tải dữ liệu");
     } finally {
@@ -101,18 +106,6 @@ export default function ApartmentList() {
 
   // Lọc dữ liệu trên 
   const filtered = apartments.filter((apt) => {
-    if (search) {
-      const term = removeVietnameseTones(search);
-      const roomNorm = removeVietnameseTones(apt.room_number);
-      const descNorm = removeVietnameseTones(apt.description || "");
-      const buildingName = buildings.find((b) => b.id === apt.building_id)?.branch_name || "";
-      const bNameNorm = removeVietnameseTones(buildingName);
-
-      if (!roomNorm.includes(term) && !descNorm.includes(term) && !bNameNorm.includes(term)) {
-        return false;
-      }
-    }
-
     if (filterFeatured === "featured") {
       return featuredIds.includes(apt.id);
     }
@@ -125,14 +118,7 @@ export default function ApartmentList() {
 
   const { items: sortedApartments, requestSort, getSortIcon } = useSort(filtered);
 
-  // Phân trang 
-  const totalPages = Math.ceil(filtered.length / pageSize);
-  const paginatedApartments = sortedApartments.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
-
-  const totalCount = filtered.length;
+  const paginatedApartments = sortedApartments;
 
   function getStatusBadge(status: string) {
     const map: Record<string, { label: string; variant: string }> = {
@@ -182,13 +168,18 @@ export default function ApartmentList() {
         }
       />
       {/* Search + Filter */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <SearchInput value={search} onChange={(v) => { setSearch(v); setCurrentPage(1); }} placeholder="Tìm kiếm..." className="max-w-md" />
+      <div className="flex flex-col sm:flex-row gap-3 w-full">
+        <SearchInput
+          value={search}
+          onChange={(v) => { setSearch(v); setCurrentPage(1); }}
+          placeholder="Tìm kiếm..."
+          className="flex-1 min-w-0 w-full"
+        />
         {role !== "MANAGER" && (
           <select
             value={filterBuilding || ""}
             onChange={(e) => { setFilterBuilding(e.target.value ? Number(e.target.value) : undefined); setCurrentPage(1); }}
-            className="px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:border-primary-500"
+            className="flex-1 min-w-0 px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white focus:outline-none focus:border-primary-500 h-[42px]"
           >
             <option value="">Tất cả chi nhánh</option>
             {buildings.map((b) => (
@@ -199,7 +190,7 @@ export default function ApartmentList() {
         <select
           value={filterStatus}
           onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
-          className="px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:border-primary-500"
+          className="flex-1 min-w-0 px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white focus:outline-none focus:border-primary-500 h-[42px]"
         >
           <option value="">Tất cả trạng thái</option>
           <option value="AVAILABLE">Còn trống</option>
@@ -210,7 +201,7 @@ export default function ApartmentList() {
           <select
             value={filterFeatured}
             onChange={(e) => { setFilterFeatured(e.target.value); setCurrentPage(1); }}
-            className="px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:border-primary-500"
+            className="flex-1 min-w-0 px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white focus:outline-none focus:border-primary-500 h-[42px]"
           >
             <option value="">Tất cả nổi bật</option>
             <option value="featured">Nổi bật</option>

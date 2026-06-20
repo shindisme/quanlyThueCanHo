@@ -35,21 +35,40 @@ export default function GuestApartmentListing() {
   const [buildings, setBuildings] = useState<BuildingData[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Load buildings once on mount
   useEffect(() => {
-    setLoading(true);
-    Promise.all([
-      buildingService.getAllBuildings({ limit: 100 }),
-      apartmentService.getAllApartments({ limit: 1000 })
-    ]).then(([bRes, aRes]) => {
-      setBuildings(bRes.data);
-      setApartments(aRes.data);
+    buildingService.getAllBuildings({ limit: 100 }).then((res) => {
+      setBuildings(res.data);
+      if (res.data && res.data.length > 0) {
+        setBuildingFilter(String(res.data[0].id));
+      }
     }).catch(() => {
       setBuildings(mockBuildings);
-      setApartments(mockApartments as any);
-    }).finally(() => {
-      setLoading(false);
+      if (mockBuildings.length > 0) {
+        setBuildingFilter(String(mockBuildings[0].id));
+      }
     });
   }, []);
+
+  // Fetch apartments when selected building changes
+  useEffect(() => {
+    async function fetchApartmentsForBuilding() {
+      try {
+        setLoading(true);
+        const result = await apartmentService.getAllApartments({
+          building_id: buildingFilter ? Number(buildingFilter) : undefined,
+          limit: 200, // Load a reasonable number of apartments
+        });
+        setApartments(result.data);
+      } catch {
+        setApartments(mockApartments as any);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchApartmentsForBuilding();
+  }, [buildingFilter]);
 
   useEffect(() => {
     if (searchParamVal !== undefined) {
@@ -60,8 +79,9 @@ export default function GuestApartmentListing() {
   // Lay danh sach tang cua toa nha duoc chon
   const floors = (() => {
     if (!buildingFilter) return [];
-    const bApts = apartments.filter((a) => a.building_id === Number(buildingFilter));
-    return [...new Set(bApts.map((a) => a.floor))].sort((a, b) => a - b);
+    const building = buildings.find((b) => b.id === Number(buildingFilter));
+    if (!building) return [];
+    return Array.from({ length: building.total_floors }, (_, i) => i + 1);
   })();
 
   // Loc can ho
@@ -103,22 +123,22 @@ export default function GuestApartmentListing() {
         </div>
 
         {/* Bo loc */}
-        <div className="flex flex-wrap gap-3 mb-8">
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <div className="flex flex-col sm:flex-row gap-3 w-full mb-8">
+          <div className="relative flex-1 min-w-[200px] h-[42px]">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm kiếm..."
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 h-[42px] bg-white text-gray-800"
             />
           </div>
 
           <select
             value={priceFilter}
             onChange={(e) => setPriceFilter(e.target.value)}
-            className="px-4 py-3 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500"
+            className="flex-1 min-w-[150px] px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500 h-[42px]"
           >
             <option value="">Mức giá</option>
             <option value="low">Dưới 6 triệu</option>
@@ -132,7 +152,7 @@ export default function GuestApartmentListing() {
               setBuildingFilter(e.target.value);
               setFloorFilter(""); // Reset floor when building changes
             }}
-            className="px-4 py-3 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500"
+            className="flex-1 min-w-[150px] px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500 h-[42px]"
           >
             <option value="">Tất cả chi nhánh</option>
             {buildings.map((b) => (
@@ -146,7 +166,7 @@ export default function GuestApartmentListing() {
             value={floorFilter}
             onChange={(e) => setFloorFilter(e.target.value)}
             disabled={!buildingFilter}
-            className="px-4 py-3 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-400"
+            className="flex-1 min-w-[150px] px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-400 h-[42px]"
           >
             <option value="">Chọn tầng</option>
             {floors.map((floor) => (
@@ -157,7 +177,7 @@ export default function GuestApartmentListing() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-3 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500"
+            className="flex-1 min-w-[150px] px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500 h-[42px]"
           >
             <option value="">Tất cả trạng thái</option>
             <option value="AVAILABLE">Còn trống</option>

@@ -33,6 +33,8 @@ export interface Tenant {
   user_id: number | null;
   full_name: string;
   citizen_id: string;
+  email: string | null;
+  phone: string | null;
   date_of_birth: string | null;
   address: string | null;
   is_verified: boolean;
