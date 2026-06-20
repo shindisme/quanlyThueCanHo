@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import * as aiService from "../services/ai.service.js";
+import * as aiService from "../services/chatbot.service.js";
 
 export const handleChat = async (
     req: Request,
