@@ -8,10 +8,7 @@ import {
 } from "recharts";
 import { useAuthStore } from "../../../stores/auth.store";
 
-// ============================================================
-// MANAGER DASHBOARD - DashboardPack Style
-// ============================================================
-// Scope: 1 tòa nhà (không phải toàn hệ thống như Admin)
+// Dashboard của quản lý
 
 const mockKPI = {
   totalApartments: 200,
@@ -60,9 +57,8 @@ function StatCard({ icon: Icon, label, value, trend, trendValue, iconColor, icon
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">{label}</p>
           <p className="text-2xl font-bold text-gray-800">{value}</p>
           {trend && trendValue && (
-            <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${
-              trend === "up" ? "text-success-600" : "text-danger-600"
-            }`}>
+            <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${trend === "up" ? "text-success-600" : "text-danger-600"
+              }`}>
               {trend === "up" ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
               <span>{trendValue}</span>
             </div>
@@ -93,7 +89,6 @@ export default function ManagerDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome */}
       <div>
         <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{today}</p>
         <h1 className="text-2xl font-bold text-gray-800">
@@ -102,7 +97,7 @@ export default function ManagerDashboard() {
         <p className="text-sm text-gray-500 mt-1">Tổng quan tòa nhà bạn đang quản lý</p>
       </div>
 
-      {/* KPI Cards - 12 cột */}
+      {/*  KPI */}
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 sm:col-span-6 lg:col-span-4">
           <StatCard icon={Home} label="Tổng căn hộ" value={mockKPI.totalApartments}
@@ -133,9 +128,9 @@ export default function ManagerDashboard() {
         </div>
       </div>
 
-      {/* Charts + Tasks - 12 cột */}
+      {/* Biểu đồ và Công việc */}
       <div className="grid grid-cols-12 gap-6">
-        {/* Revenue area chart - chiếm 8 cột */}
+        {/* Biểu đồ doanh thu */}
         <div className="col-span-12 lg:col-span-8 bg-white rounded-lg border border-gray-200 p-5">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -163,7 +158,7 @@ export default function ManagerDashboard() {
           </ResponsiveContainer>
         </div>
 
-        {/* Apartment status pie - chiếm 4 cột */}
+        {/* Biểu đồ căn hộ */}
         <div className="col-span-12 lg:col-span-4 bg-white rounded-lg border border-gray-200 p-5">
           <h3 className="font-semibold text-gray-800 mb-1">Trạng thái căn hộ</h3>
           <p className="text-xs text-gray-400 mb-4">Tổng {mockKPI.totalApartments} căn</p>
@@ -192,7 +187,7 @@ export default function ManagerDashboard() {
         </div>
       </div>
 
-      {/* Upcoming tasks */}
+      {/* Công việc sắp tới */}
       <div className="bg-white rounded-lg border border-gray-200 p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
@@ -210,9 +205,8 @@ export default function ManagerDashboard() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-gray-700">{task.text}</p>
               </div>
-              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                task.urgent ? "bg-danger-50 text-danger-600" : "bg-gray-100 text-gray-500"
-              }`}>
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${task.urgent ? "bg-danger-50 text-danger-600" : "bg-gray-100 text-gray-500"
+                }`}>
                 {task.time}
               </span>
             </div>

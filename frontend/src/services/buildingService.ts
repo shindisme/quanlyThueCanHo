@@ -17,6 +17,7 @@ export interface BuildingData {
   manager?: {
     id: number;
     username: string;
+    fullName: string;
     role: string;
   } | null;
 }
@@ -45,6 +46,7 @@ export async function getAllBuildings(params?: {
         manager: staff ? {
           id: staff.id,
           username: staff.user?.username || staff.full_name,
+          fullName: staff.full_name,
           role: staff.user?.role || "MANAGER",
         } : null
       };
@@ -63,6 +65,7 @@ export async function getAllBuildings(params?: {
       manager: staff ? {
         id: staff.id,
         username: staff.user?.username || staff.full_name,
+        fullName: staff.full_name,
         role: staff.user?.role || "MANAGER",
       } : null
     };
@@ -80,6 +83,7 @@ export async function getBuildingById(id: number): Promise<BuildingData> {
     manager: staff ? {
       id: staff.id,
       username: staff.user?.username || staff.full_name,
+      fullName: staff.full_name,
       role: staff.user?.role || "MANAGER",
     } : null
   };

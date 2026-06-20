@@ -3,7 +3,6 @@ import { Send, Bot, User, Sparkles } from "lucide-react";
 import Card from "../../../components/ui/Card";
 import PageHeader from "../../../components/ui/PageHeader";
 
-// Tin nhan gia lap
 interface Message {
   id: number;
   text: string;
@@ -13,7 +12,6 @@ interface Message {
 
 import api from "../../../lib/api";
 
-// Cau hoi goi y
 const suggestedQuestions = [
   "Có bao nhiêu căn hộ trống?",
   "Địa chỉ tòa nhà Quận 1 ở đâu?",
@@ -21,7 +19,6 @@ const suggestedQuestions = [
   "Có phòng nào trống 2 phòng ngủ không?",
 ];
 
-// Tro ly AI - giao dien chat
 export default function AIAssistant() {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -35,7 +32,6 @@ export default function AIAssistant() {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Tự động cuộn xuống khi có tin nhắn mới
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -56,7 +52,6 @@ export default function AIAssistant() {
     setIsTyping(true);
 
     try {
-      // Gọi real API đến backend
       const res = await api.post<{ reply: string }>("/chat", { message: userText });
       const responseText = res.data?.reply || "Tôi chưa có câu trả lời cho vấn đề này.";
 
@@ -90,11 +85,10 @@ export default function AIAssistant() {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-200px)]">
-        {/* Sidebar goi y */}
         <Card className="lg:col-span-1 flex flex-col">
           <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
             <Sparkles size={16} className="text-primary-600" />
-            Goi y cau hoi
+            Gợi ý câu hỏi
           </h3>
           <div className="space-y-2">
             {suggestedQuestions.map((q, i) => (
@@ -111,7 +105,7 @@ export default function AIAssistant() {
 
         {/* Khung chat */}
         <Card className="lg:col-span-3 flex flex-col p-0 overflow-hidden">
-          {/* Tin nhan */}
+          {/* Tin nhắn */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((msg) => (
               <div
@@ -153,7 +147,6 @@ export default function AIAssistant() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* O nhap tin nhan */}
           <div className="border-t border-gray-200 p-4">
             <div className="flex gap-3">
               <input
@@ -161,7 +154,7 @@ export default function AIAssistant() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder="Nhap cau hoi cua ban..."
+                placeholder="Nhập câu hỏi của bạn..."
                 className="premium-input flex-1 px-4 py-3 rounded-xl"
               />
               <button

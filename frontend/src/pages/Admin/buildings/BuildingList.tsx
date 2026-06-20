@@ -77,7 +77,7 @@ export default function BuildingList() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
+      {/* Header */}
       <PageHeader
         icon={Building2}
         title="Tòa nhà"
@@ -98,7 +98,7 @@ export default function BuildingList() {
         className="max-w-md"
       />
 
-      {/* Danh sách list view  */}
+      {/* Danh sách */}
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-gray-500 bg-white rounded-lg border border-gray-200">
           <Building2 size={48} className="mx-auto mb-3 text-gray-300" />
@@ -135,7 +135,7 @@ export default function BuildingList() {
                       {building.manager ? (
                         <div className="flex items-center gap-1.5 font-medium text-primary-600">
                           <User size={13} />
-                          <span>{building.manager.username}</span>
+                          <span>{building.manager.fullName || building.manager.username}</span>
                         </div>
                       ) : (
                         <span className="text-gray-400 italic text-xs">Không</span>
@@ -170,12 +170,12 @@ export default function BuildingList() {
         </div>
       )}
 
-      {/* Pagination */}
+      {/* Phân trang */}
       {totalPages > 1 && (
         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
       )}
 
-      {/* Modals */}
+      {/* Modal */}
       <BuildingCreateModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}

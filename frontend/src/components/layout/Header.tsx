@@ -140,6 +140,7 @@ export default function Header() {
       buildings: "Tòa nhà",
       apartments: "Căn hộ",
       tenants: "Người thuê",
+      staff: "Nhân viên",
       contracts: "Hợp đồng",
       invoices: "Hóa đơn",
       payments: "Thanh toán",

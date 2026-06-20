@@ -19,18 +19,18 @@ interface LoginForm {
   password: string;
 }
 
-// Helper function to resolve email/actual DB credential identifier from user-friendly usernames
+// Tìm email từ tên đăng nhập
 function resolveEmailFromUsername(username: string): string {
   const clean = username.trim().toLowerCase();
 
-  // 1. Admin
+  // Admin
   if (clean === "admin") {
     return "admin@dukihome.vn";
   }
 
-  // 2. Managers (Dynamic matching based on district/branch name or building name suffixes)
+  // Quản lý
   if (clean.startsWith("manager")) {
-    const searchPart = clean.slice(7); // Extract the suffix part, e.g. "q1", "quan1", "thuduc"
+    const searchPart = clean.slice(7);
 
     const matchBuilding = mockBuildings.find((b) => {
       const bBranchClean = removeVietnameseTones(b.branch_name)

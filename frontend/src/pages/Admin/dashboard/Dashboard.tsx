@@ -67,9 +67,8 @@ function StatCard({ icon: Icon, label, value, trend, trendValue, iconColor, icon
           <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3">{label}</p>
           <p className="text-2xl font-bold text-gray-900 mb-1">{value}</p>
           {trend && trendValue && (
-            <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${
-              trend === "up" ? "text-success-600" : "text-danger-600"
-            }`}>
+            <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${trend === "up" ? "text-success-600" : "text-danger-600"
+              }`}>
               {trend === "up" ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
               <span>{trendValue}</span>
             </div>

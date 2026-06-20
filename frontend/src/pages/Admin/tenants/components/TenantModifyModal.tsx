@@ -55,7 +55,8 @@ export default function TenantModifyModal({
         email: formEmail.trim() || null,
         phone: formPhone.trim() || null,
       });
-      toast.success("Đã cập nhật thông tin người thuê");
+
+      toast.success("Đã cập nhật thông tin người thuê thành công");
       onSuccess();
       onClose();
     } catch (error: any) {

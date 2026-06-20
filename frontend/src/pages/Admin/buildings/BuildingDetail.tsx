@@ -141,7 +141,7 @@ export default function BuildingDetail() {
             {building.manager && (
               <div className="flex items-center gap-2">
                 <User size={16} className="text-gray-400 shrink-0" />
-                <span>Quản lý bởi: <strong className="text-primary-600">{building.manager.username}</strong></span>
+                <span>Quản lý bởi: <strong className="text-primary-600">{building.manager.fullName || building.manager.username}</strong></span>
               </div>
             )}
           </div>

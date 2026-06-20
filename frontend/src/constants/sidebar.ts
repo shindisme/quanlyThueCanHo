@@ -31,7 +31,7 @@ export interface SidebarGroup {
   items: SidebarItem[];
 }
 
-// Menu cho Admin
+// Menu Admin
 const adminMenu: SidebarGroup[] = [
   {
     items: [
@@ -69,7 +69,7 @@ const adminMenu: SidebarGroup[] = [
   },
 ];
 
-// Menu cho Manager - quan ly 1 toa nha
+// Menu Manager
 const managerMenu: SidebarGroup[] = [
   {
     items: [
@@ -103,7 +103,7 @@ const managerMenu: SidebarGroup[] = [
   },
 ];
 
-// Menu cho Tenant - nguoi thue
+// Menu Tenant
 const tenantMenu: SidebarGroup[] = [
   {
     items: [

@@ -2,8 +2,7 @@ import { Outlet } from "react-router-dom";
 import Sidebar from "../components/layout/Sidebar";
 import Header from "../components/layout/Header";
 
-// Layout cho Tenant Portal - cau truc giong AdminLayout
-// Menu sidebar se khac (hien thi menu cua Tenant)
+// Layout người thuê
 export default function TenantLayout() {
   return (
     <div className="flex h-screen overflow-hidden bg-background">

@@ -51,7 +51,7 @@ export default function UserList() {
 
   const { items: sortedUsers, requestSort, getSortIcon } = useSort(filtered);
 
-  // Xóa user
+  // Xóa
   async function handleDelete() {
     if (!deleteItem) return;
     try {
@@ -76,7 +76,7 @@ export default function UserList() {
     }
   }
 
-  // Map role → tiếng Việt + màu badge
+  // Get vai trò
   function getRoleBadge(role: string) {
     const map: Record<string, { label: string; variant: string }> = {
       ADMIN: { label: "Admin", variant: "danger" },
@@ -97,7 +97,7 @@ export default function UserList() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
+      {/* Header */}
       <PageHeader
         icon={UserCog}
         title="Tài khoản"
@@ -111,23 +111,23 @@ export default function UserList() {
         }
       />
 
-      {/* Search */}
+      {/* Tìm kiếm */}
       <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm..." className="max-w-md" />
 
-      {/* Bảng dữ liệu */}
+      {/* Bảng */}
       <div className="premium-table-container">
         <div className="overflow-x-auto">
           <table className="premium-table">
             <thead>
               <tr>
-                <th onClick={() => requestSort("id")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  ID {getSortIcon("id")}
+                <th className="select-none">
+                  STT
                 </th>
                 <th onClick={() => requestSort("username")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Username {getSortIcon("username")}
+                  Tên tài khoản {getSortIcon("username")}
                 </th>
                 <th onClick={() => requestSort("role")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Role {getSortIcon("role")}
+                  Vai trò {getSortIcon("role")}
                 </th>
                 <th onClick={() => requestSort("status")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                   Trạng thái {getSortIcon("status")}
@@ -136,9 +136,9 @@ export default function UserList() {
               </tr>
             </thead>
             <tbody>
-              {sortedUsers.map((user) => (
+              {sortedUsers.map((user, index) => (
                 <tr key={user.id}>
-                  <td className="text-gray-650">#{user.id}</td>
+                  <td className="text-gray-650">{index + 1}</td>
                   <td className="font-semibold text-gray-800">{user.username}</td>
                   <td>{getRoleBadge(user.role)}</td>
                   <td>
@@ -175,7 +175,7 @@ export default function UserList() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-gray-500">
+                  <td colSpan={5} className="text-center py-12 text-gray-500">
                     <UserCog size={48} className="mx-auto mb-3 text-gray-300" />
                     Không tìm thấy tài khoản nào
                   </td>

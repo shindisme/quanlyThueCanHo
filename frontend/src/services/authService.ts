@@ -10,11 +10,11 @@ export interface UserData {
   role: string;
   status: string;
   created_at: string;
-  managed_buildings?: Array<{
+  managed_building?: {
     id: number;
     branch_name: string;
     address_new: string;
-  }>;
+  } | null;
 }
 
 export async function login(email: string, password: string): Promise<LoginResponse> {

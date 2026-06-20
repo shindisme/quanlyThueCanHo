@@ -30,7 +30,7 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* Nút đóng mobile */}
+        {/* Nút đóng */}
         <button
           onClick={() => setMobileOpen(false)}
           className="lg:hidden p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 cursor-pointer"
@@ -51,7 +51,6 @@ export default function Sidebar() {
               </p>
             )}
 
-            {/* Đường kẻ phân cách khi sidebar thu gọn */}
             {group.title && !isOpen && (
               <hr className="my-2 border-gray-100 mx-2" />
             )}
@@ -86,7 +85,7 @@ export default function Sidebar() {
                     {item.label}
                   </span>
 
-                  {/* Badge (số thông báo) - Adminator hiển thị bên phải */}
+                  {/* Badge  */}
                   {item.badge !== undefined && item.badge > 0 && (
                     <span className={`ml-auto text-[10px] px-2 py-0.5 rounded-full bg-danger-100 text-danger-600 font-semibold transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden ${isOpen ? "opacity-100 max-w-[40px]" : "opacity-0 max-w-0 p-0 pointer-events-none"
                       }`}>
@@ -122,15 +121,12 @@ export default function Sidebar() {
         {sidebarContent}
       </aside>
 
-      {/* MOBILE SIDEBAR - Overlay */}
       {isMobileOpen && (
         <>
-          {/* Overlay đen mờ */}
           <div
             className="lg:hidden fixed inset-0 bg-black/40 z-40 animate-fade-in"
             onClick={() => setMobileOpen(false)}
           />
-          {/* Sidebar trượt từ trái (animate-slide-in-left) */}
           <aside className="lg:hidden fixed left-0 top-0 bottom-0 w-72 bg-white z-50 shadow-xl animate-slide-in-left">
             {sidebarContent}
           </aside>

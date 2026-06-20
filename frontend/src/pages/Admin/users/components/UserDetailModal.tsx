@@ -48,8 +48,8 @@ export default function UserDetailModal({ isOpen, onClose, user }: UserDetailMod
             <div className="flex justify-between border-b pb-2 border-gray-100">
               <span className="text-gray-500 font-medium">Tòa nhà quản lý:</span>
               <span className="font-semibold text-gray-800 text-right">
-                {user.managed_buildings && user.managed_buildings.length > 0
-                  ? user.managed_buildings.map((b: any) => b.branch_name).join(", ")
+                {user.managed_building
+                  ? user.managed_building.branch_name
                   : "Chưa phân công"}
               </span>
             </div>

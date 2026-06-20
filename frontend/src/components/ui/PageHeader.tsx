@@ -1,12 +1,7 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 
-// ============================================================
-// PAGE HEADER - ArchitectUI Style
-// ============================================================
-// Thanh tiêu đề trang: icon + title + subtitle + actions
-// Giống ArchitectUI Pro: card trắng bo tròn, icon gradient,
-// title lớn, subtitle nhỏ, actions bên phải
+
 
 interface PageHeaderProps {
   icon?: LucideIcon;
@@ -28,7 +23,7 @@ export default function PageHeader({
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 md:mb-10">
       <div className="flex items-center gap-4">
-        {/* Icon gradient tròn - ArchitectUI style */}
+        {/* Icon */}
         {Icon && (
           <div
             className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"

@@ -21,7 +21,7 @@ import TenantModifyModal from "./components/TenantModifyModal";
 import TenantDeleteModal from "./components/TenantDeleteModal";
 import TenantDetailModal from "./components/TenantDetailModal";
 
-// Trang danh sach nguoi thue
+// Danh sách người thuê
 export default function TenantList() {
   const { role, email } = useAuthStore();
   const currentUser = mockUsers.find((u) => u.email === email);
@@ -57,7 +57,7 @@ export default function TenantList() {
       toast.error("Không thể tải danh sách người thuê");
     }
 
-    // Load custom users
+    // Tải người dùng
     const storedUsers = localStorage.getItem("custom-users");
     if (storedUsers) {
       try {
@@ -70,9 +70,8 @@ export default function TenantList() {
     }
   }
 
-  // Lọc tenants theo building của manager trước khi tìm kiếm
+  // Lọc theo tòa nhà của quản lý
   const displayTenants = (() => {
-    // Load custom contracts to check apartments manager link
     const storedContracts = localStorage.getItem("custom-contracts");
     const currentContracts = storedContracts ? JSON.parse(storedContracts) : mockContracts;
 
@@ -88,7 +87,7 @@ export default function TenantList() {
     return tenants;
   })();
 
-  // Loc 
+  // Lọc
   const filtered = displayTenants.filter((t) => {
     const term = removeVietnameseTones(search);
     const nameNorm = removeVietnameseTones(t.full_name);
@@ -98,7 +97,7 @@ export default function TenantList() {
 
   const paginated = filtered;
 
-  // Xóa người thuê
+  // Xóa
   async function handleDelete() {
     if (!deleteItem) return;
     try {
@@ -111,7 +110,7 @@ export default function TenantList() {
     }
   }
 
-  // Lay email cua user lien ket voi tenant
+  // Lấy email liên kết
   function getUserEmail(userId: number | null): string {
     if (!userId) return "-";
     return users.find((u) => u.id === userId)?.email || "-";
@@ -124,8 +123,30 @@ export default function TenantList() {
 
   const columns: Column<Tenant>[] = [
     { key: "name", label: "Họ tên", sortValue: (t) => t.full_name, render: (t) => <span className="font-medium">{t.full_name}</span> },
-    { key: "email", label: "Email", sortValue: (t) => t.email || "", render: (t) => t.email || "-" },
     { key: "phone", label: "Số điện thoại", sortValue: (t) => t.phone || "", render: (t) => t.phone ? maskPhone(t.phone) : "-" },
+    {
+      key: "apartment",
+      label: "Căn hộ",
+      sortValue: (t) => {
+        const activeContract = t.contracts?.[0];
+        if (!activeContract || !activeContract.apartment) return "Chưa thuê";
+        return `${activeContract.apartment.building?.branch_name || ""} - P.${activeContract.apartment.room_number}`;
+      },
+      render: (t) => {
+        const activeContract = t.contracts?.[0];
+        if (!activeContract || !activeContract.apartment) {
+          return <span className="text-gray-400 italic text-xs">Chưa thuê</span>;
+        }
+        const apt = activeContract.apartment;
+        const bld = apt.building;
+        return (
+          <div className="text-xs">
+            <span className="font-semibold text-primary-600 block">{bld?.branch_name || "YuKi House"}</span>
+            <span className="text-gray-500">P.{apt.room_number} (Tầng {apt.floor})</span>
+          </div>
+        );
+      }
+    },
     { key: "citizen_id", label: "CCCD", sortValue: (t) => t.citizen_id, render: (t) => maskCCCD(t.citizen_id) },
     {
       key: "verified",

@@ -5,7 +5,7 @@ import TenantLayout from "../layouts/TenantLayout";
 import GuestLayout from "../layouts/GuestLayout";
 import RoleRoute from "./RoleRoute";
 
-// Admin pages
+// Trang Admin
 import AdminDashboard from "../pages/Admin/dashboard/Dashboard";
 import BuildingList from "../pages/Admin/buildings/BuildingList";
 import BuildingDetail from "../pages/Admin/buildings/BuildingDetail";
@@ -24,17 +24,17 @@ import SettingsPage from "../pages/Admin/settings/SettingsPage";
 import UserList from "../pages/Admin/users/UserList";
 import ReportDashboard from "../pages/Admin/reports/ReportDashboard";
 
-// Manager pages
+// Trang Manager
 import ManagerDashboard from "../pages/Manager/dashboard/Dashboard";
 
-// Tenant pages
+// Trang Tenant
 import TenantHome from "../pages/Tenant/home/Home";
 import TenantContracts from "../pages/Tenant/contracts/MyContracts";
 import TenantInvoices from "../pages/Tenant/invoices/MyInvoices";
 import TenantMaintenance from "../pages/Tenant/maintenance/MyMaintenance";
 import ProfilePage from "../pages/Tenant/profile/ProfilePage";
 
-// Guest pages
+// Trang Guest
 import GuestHomePage from "../pages/Guest/HomePage";
 import GuestApartmentListing from "../pages/Guest/ApartmentListing";
 import GuestApartmentDetail from "../pages/Guest/ApartmentDetail";
@@ -42,19 +42,19 @@ import GuestContact from "../pages/Guest/Contact";
 import GuestAbout from "../pages/Guest/About";
 
 const router = createBrowserRouter([
-  // Trang login mới
+  // Đăng nhập
   {
     path: "/system/login",
     element: <Login />,
   },
 
-  // Tự động chuyển hướng từ login cũ sang login mới
+  // Chuyển hướng
   {
     path: "/login",
     element: <Navigate to="/system/login" replace />,
   },
 
-  // Trang Guest công khai đặt ở gốc /
+  // Trang Guest
   {
     path: "/",
     element: <GuestLayout />,
@@ -68,7 +68,7 @@ const router = createBrowserRouter([
     ],
   },
 
-  // Admin routes - cần role ADMIN
+  // Admin routes 
   {
     path: "/admin",
     element: (
@@ -99,7 +99,7 @@ const router = createBrowserRouter([
     ],
   },
 
-  // Manager routes - cần role MANAGER
+  // Manager routes 
   {
     path: "/manager",
     element: (
@@ -125,7 +125,7 @@ const router = createBrowserRouter([
     ],
   },
 
-  // Tenant routes - cần role TENANT
+  // Tenant routes 
   {
     path: "/tenant",
     element: (

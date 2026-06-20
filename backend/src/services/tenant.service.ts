@@ -10,6 +10,7 @@ export const createTenant = async (data: any) => {
             citizen_id: data.citizen_id,
             address: data.address,
             date_of_birth: data.date_of_birth ? new Date(data.date_of_birth) : null,
+            user_id: data.user_id ? Number(data.user_id) : null,
         },
     });
 };
