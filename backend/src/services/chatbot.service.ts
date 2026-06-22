@@ -19,12 +19,12 @@ QUY TẮC PHẢN HỒI:
 export const processCustomerMessage = async (userMessage: string) => {
     try {
         const [aptResult, bldResult] = await Promise.all([
-            getAllApartmentsService({ limit: 30 }),
-            getAllBuildingsService({ limit: 30 }),
+            getAllApartmentsService({ limit: 100 }),
+            getAllBuildingsService({ limit: 5 }),
         ]);
 
         const buildingData = bldResult.data
-            .map(bld => `Tòa nhà: ${bld.branch_name || "N/A"}, Địa chỉ: ${bld.address_old || "N/A"}`)
+            .map(bld => `Tòa nhà: ${bld.branch_name || "N/A"}, Địa chỉ: ${bld.address_new || "N/A"}`)
             .join("\n");
 
         const apartmentData = aptResult.data

@@ -98,6 +98,7 @@ model Tenant {
   occupants   Occupant[]
   contracts   RentalContract[]
   maintenance MaintenanceRequest[]
+  reviews Review[]
 
   @@map("tenants")
 }
@@ -168,6 +169,7 @@ model Apartment {
   maintenance MaintenanceRequest[]
   viewings    ViewingSchedule[]
   utilities   UtilityReading[]
+  reviews Review[]
 
   @@map("apartments")
 }
@@ -333,4 +335,17 @@ model ChatbotMessage {
   conversation    ChatConversation @relation(fields: [conversation_id], references: [id])
 
   @@map("chatbot_messages")
+}
+model Review {
+  id           Int      @id @default(autoincrement())
+  apartment_id Int
+  tenant_id    Int      
+  rating       Int      
+  comment      String?  @db.Text
+  created_at   DateTime @default(now())
+
+  apartment    Apartment @relation(fields: [apartment_id], references: [id], onDelete: Cascade)
+  tenant       Tenant    @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
 }

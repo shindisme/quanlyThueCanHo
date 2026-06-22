@@ -1,19 +1,53 @@
 import { prisma } from "../config/database.js";
+import { sendViewingScheduleConfirmationEmail } from "./mail.service.js";
 
 const VALID_HOURS = [9, 11, 13, 15];
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const getApartmentLabel = (apartment: {
+    room_number: string;
+    floor: number;
+    building?: { branch_name: string } | null;
+}) => {
+    const roomLabel = `Phòng ${apartment.room_number}, tầng ${apartment.floor}`;
+    return apartment.building?.branch_name ? `${roomLabel}, ${apartment.building.branch_name}` : roomLabel;
+};
 
 export const bookViewingService = async (data: {
     apartment_id: number;
     guest_name: string;
     guest_phone: string;
-    guest_email: string;
+    guest_email?: string;
     schedule_time: string;
 }) => {
+    const guestEmail = data.guest_email?.trim();
+    if (!guestEmail) {
+        throw new Error("Vui lòng nhập email.");
+    }
+
+    if (!EMAIL_PATTERN.test(guestEmail)) {
+        throw new Error("Email không hợp lệ.");
+    }
+
     const requestedDate = new Date(data.schedule_time);
+    if (Number.isNaN(requestedDate.getTime())) {
+        throw new Error("Thời gian đặt lịch không hợp lệ.");
+    }
+
     const hour = requestedDate.getHours();
     if (!VALID_HOURS.includes(hour)) {
         throw new Error("Khung giờ không hợp lệ.");
     }
+
+    const apartment = await prisma.apartment.findUnique({
+        where: { id: data.apartment_id },
+        include: { building: true }
+    });
+
+    if (!apartment) {
+        throw new Error("Căn hộ không tồn tại.");
+    }
+
     const existingBooking = await prisma.viewingSchedule.findFirst({
         where: {
             apartment_id: data.apartment_id,
@@ -29,14 +63,32 @@ export const bookViewingService = async (data: {
         throw new Error("Khung giờ này đã có người đặt hoặc đang được giữ chỗ.");
     }
 
-    return await prisma.viewingSchedule.create({
+    const schedule = await prisma.viewingSchedule.create({
         data: {
-            ...data,
+            apartment_id: data.apartment_id,
+            guest_name: data.guest_name,
+            guest_phone: data.guest_phone,
+            guest_email: guestEmail,
             schedule_time: requestedDate,
             status: 'PENDING',
             temp_locked_until: new Date(Date.now() + 10 * 60000)
         }
     });
+
+    try {
+        await sendViewingScheduleConfirmationEmail({
+            to: guestEmail,
+            guestName: data.guest_name,
+            apartmentLabel: getApartmentLabel(apartment),
+            scheduleTime: requestedDate
+        });
+    } catch (error) {
+        console.error("Error sending viewing schedule confirmation email:", error);
+        await prisma.viewingSchedule.delete({ where: { id: schedule.id } }).catch(() => undefined);
+        throw new Error("Không thể gửi email xác nhận. Vui lòng thử lại sau.");
+    }
+
+    return schedule;
 };
 
 export const confirmScheduleService = async (id: number) => {
