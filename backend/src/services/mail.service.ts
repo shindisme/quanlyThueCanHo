@@ -1,0 +1,88 @@
+import nodemailer from "nodemailer";
+import type { Transporter } from "nodemailer";
+
+type ViewingScheduleConfirmationEmailData = {
+    to: string;
+    guestName: string;
+    apartmentLabel: string;
+    scheduleTime: Date;
+};
+
+let transporter: Transporter | null = null;
+
+const getRequiredEnv = (key: string) => {
+    const value = process.env[key];
+    if (!value) {
+        throw new Error(`Thiếu cấu hình gửi email: ${key}`);
+    }
+    return value;
+};
+
+const getTransporter = () => {
+    if (transporter) return transporter;
+
+    const port = Number(process.env.SMTP_PORT ?? 587);
+    if (Number.isNaN(port)) {
+        throw new Error("SMTP_PORT không hợp lệ");
+    }
+
+    transporter = nodemailer.createTransport({
+        host: getRequiredEnv("SMTP_HOST"),
+        port,
+        secure: (process.env.SMTP_SECURE ?? "false").toLowerCase() === "true",
+        auth: {
+            user: getRequiredEnv("SMTP_USER"),
+            pass: getRequiredEnv("SMTP_PASS")
+        }
+    });
+
+    return transporter;
+};
+
+const escapeHtml = (value: string) =>
+    value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+const formatScheduleTime = (date: Date) =>
+    new Intl.DateTimeFormat("vi-VN", {
+        dateStyle: "full",
+        timeStyle: "short",
+        timeZone: "Asia/Ho_Chi_Minh"
+    }).format(date);
+
+export const sendViewingScheduleConfirmationEmail = async (data: ViewingScheduleConfirmationEmailData) => {
+    const scheduleTime = formatScheduleTime(data.scheduleTime);
+    const guestName = escapeHtml(data.guestName);
+    const apartmentLabel = escapeHtml(data.apartmentLabel);
+
+    await getTransporter().sendMail({
+        from: getRequiredEnv("SMTP_FROM"),
+        to: data.to,
+        subject: "Xác nhận yêu cầu đặt lịch xem phòng",
+        text: [
+            `Xin chào ${data.guestName},`,
+            "",
+            "Hệ thống đã nhận yêu cầu đặt lịch xem phòng của bạn.",
+            `Căn hộ: ${data.apartmentLabel}`,
+            `Thời gian xem: ${scheduleTime}`,
+            "Trạng thái: Đang chờ quản trị viên xác nhận.",
+            "",
+            "Cảm ơn bạn đã quan tâm."
+        ].join("\n"),
+        html: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+                <h2 style="margin: 0 0 16px;">Xác nhận yêu cầu đặt lịch xem phòng</h2>
+                <p>Xin chào <strong>${guestName}</strong>,</p>
+                <p>Hệ thống đã nhận yêu cầu đặt lịch xem phòng của bạn.</p>
+                <p><strong>Căn hộ:</strong> ${apartmentLabel}</p>
+                <p><strong>Thời gian xem:</strong> ${escapeHtml(scheduleTime)}</p>
+                <p><strong>Trạng thái:</strong> Đang chờ quản trị viên xác nhận.</p>
+                <p>Cảm ơn bạn đã quan tâm.</p>
+            </div>
+        `
+    });
+};

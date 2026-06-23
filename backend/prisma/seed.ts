@@ -19,7 +19,7 @@ const apartmentTemplates = [
 async function main() {
     console.log("Đang bắt đầu seeding dữ liệu...");
     for (let bId = 1; bId <= 5; bId++) {
-        for (let floor = 1; floor <= 12; floor++) {
+        for (let floor = 1; floor <= 10; floor++) {
             for (const apt of apartmentTemplates) {
                 await prisma.apartment.create({
                     data: {
