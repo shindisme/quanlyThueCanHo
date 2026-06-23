@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, MapPin, Maximize2, Calendar, Phone, Mail, User, Loader2 } from "lucide-react";
+import { ArrowLeft, MapPin, Maximize2, Calendar, Phone, User, Loader2 } from "lucide-react";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 import Badge from "../../components/ui/Badge";
@@ -150,6 +150,7 @@ export default function GuestApartmentDetail() {
   };
 
   async function handleSubmitSchedule() {
+    if (!apartment) return;
     if (!scheduleForm.guest_name || !scheduleForm.guest_phone || !selectedDate || !selectedSlot) {
       toast.error("Vui lòng nhập họ tên, số điện thoại, chọn ngày và giờ xem phòng");
       return;

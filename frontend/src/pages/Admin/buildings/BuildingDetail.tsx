@@ -13,6 +13,7 @@ import type { ApartmentData } from "../../../services/apartmentService";
 
 import BuildingModifyModal from "./components/BuildingModifyModal";
 import { formatApartmentDisplay } from "../../../utils/format";
+import { useAuthStore } from "../../../stores/auth.store";
 
 function getApartmentThumbnail(apt: any): string {
   if (apt && apt.images && Array.isArray(apt.images) && apt.images.length > 0) {
@@ -25,6 +26,7 @@ function getApartmentThumbnail(apt: any): string {
 
 export default function BuildingDetail() {
   const { id } = useParams();
+  const { role } = useAuthStore();
   const [building, setBuilding] = useState<BuildingData | null>(null);
   const [apartments, setApartments] = useState<ApartmentData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,12 +41,15 @@ export default function BuildingDetail() {
   async function fetchData() {
     try {
       setLoading(true);
-      const [bData, aResult] = await Promise.all([
+      const [bData, aRes1, aRes2] = await Promise.all([
         buildingService.getBuildingById(Number(id)),
-        apartmentService.getAllApartments({ building_id: Number(id), limit: 200 }),
+        apartmentService.getAllApartments({ building_id: Number(id), limit: 100, page: 1 }),
+        apartmentService.getAllApartments({ building_id: Number(id), limit: 100, page: 2 }),
       ]);
       setBuilding(bData);
-      setApartments(aResult.data);
+      const combined = [...aRes1.data, ...aRes2.data];
+      const unique = combined.filter((a, index, self) => self.findIndex(t => t.id === a.id) === index);
+      setApartments(unique);
     } catch {
       toast.error("Không thể tải dữ liệu");
     } finally {
@@ -120,9 +125,11 @@ export default function BuildingDetail() {
                 </Badge>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setShowModifyModal(true)}>
-              <Pencil size={14} /> Chỉnh sửa
-            </Button>
+            {role === "ADMIN" && (
+              <Button variant="outline" size="sm" onClick={() => setShowModifyModal(true)}>
+                <Pencil size={14} /> Chỉnh sửa
+              </Button>
+            )}
           </div>
 
           <div className="space-y-2 text-sm text-gray-600 mb-4">

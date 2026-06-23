@@ -15,6 +15,76 @@ export default function ProfilePage() {
   const [confirmPass, setConfirmPass] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const [occupants, setOccupants] = useState<any[]>(() => {
+    if (!email) return [];
+    const stored = localStorage.getItem(`occupants-${email}`);
+    return stored ? JSON.parse(stored) : [];
+  });
+  const [showOccupantModal, setShowOccupantModal] = useState(false);
+  const [editOccupant, setEditOccupant] = useState<any | null>(null);
+  const [occupantForm, setOccupantForm] = useState({
+    name: "",
+    cccd: "",
+    dob: "",
+    phone: ""
+  });
+
+  const handleOpenOccupantForm = (occ: any | null) => {
+    setEditOccupant(occ);
+    if (occ) {
+      setOccupantForm({
+        name: occ.name || "",
+        cccd: occ.cccd || "",
+        dob: occ.dob || "",
+        phone: occ.phone || ""
+      });
+    } else {
+      setOccupantForm({
+        name: "",
+        cccd: "",
+        dob: "",
+        phone: ""
+      });
+    }
+    setShowOccupantModal(true);
+  };
+
+  const handleDeleteOccupant = (id: string) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa người ở cùng này?")) return;
+    const updated = occupants.filter((occ) => occ.id !== id);
+    setOccupants(updated);
+    if (email) {
+      localStorage.setItem(`occupants-${email}`, JSON.stringify(updated));
+    }
+    toast.success("Xóa người ở cùng thành công");
+  };
+
+  const handleSaveOccupant = () => {
+    if (!occupantForm.name || !occupantForm.cccd) {
+      toast.error("Vui lòng điền đầy đủ Họ tên và Số CCCD");
+      return;
+    }
+    let updated: any[];
+    if (editOccupant) {
+      updated = occupants.map((occ) =>
+        occ.id === editOccupant.id ? { ...occ, ...occupantForm } : occ
+      );
+      toast.success("Cập nhật thông tin thành công");
+    } else {
+      const newOcc = {
+        id: Date.now().toString(),
+        ...occupantForm
+      };
+      updated = [...occupants, newOcc];
+      toast.success("Khai báo người ở cùng thành công");
+    }
+    setOccupants(updated);
+    if (email) {
+      localStorage.setItem(`occupants-${email}`, JSON.stringify(updated));
+    }
+    setShowOccupantModal(false);
+  };
+
   const displayName = email?.split("@")[0] || "User";
   const roleLabel =
     role === "ADMIN" ? "Quản trị viên" :
@@ -172,7 +242,7 @@ export default function ProfilePage() {
             </table>
           </div>
 
-          {/* Modal khai báo/chỉnh sửa người ở cùng */}
+          {/* Modal*/}
           <Modal
             isOpen={showOccupantModal}
             onClose={() => setShowOccupantModal(false)}
@@ -186,28 +256,28 @@ export default function ProfilePage() {
           >
             <div className="space-y-4">
               <Input
-                label="Họ và tên *"
+                label="Họ và tên"
                 value={occupantForm.name}
-                onChange={(v) => setOccupantForm({ ...occupantForm, name: v })}
-                placeholder="Nguyễn Văn A"
+                onChange={(e) => setOccupantForm({ ...occupantForm, name: e.target.value })}
+                placeholder="Nhập họ và tên"
               />
               <Input
-                label="Số CCCD (Căn cước công dân) *"
+                label="Số CCCD (Căn cước công dân)"
                 value={occupantForm.cccd}
-                onChange={(v) => setOccupantForm({ ...occupantForm, cccd: v })}
-                placeholder="079200001234"
+                onChange={(e) => setOccupantForm({ ...occupantForm, cccd: e.target.value })}
+                placeholder="Nhập số CCCD"
               />
               <Input
                 label="Ngày sinh"
                 type="date"
                 value={occupantForm.dob}
-                onChange={(v) => setOccupantForm({ ...occupantForm, dob: v })}
+                onChange={(e) => setOccupantForm({ ...occupantForm, dob: e.target.value })}
               />
               <Input
                 label="Số điện thoại"
                 value={occupantForm.phone}
-                onChange={(v) => setOccupantForm({ ...occupantForm, phone: v })}
-                placeholder="0901234567"
+                onChange={(e) => setOccupantForm({ ...occupantForm, phone: e.target.value })}
+                placeholder="Nhập số điện thoại"
               />
             </div>
           </Modal>

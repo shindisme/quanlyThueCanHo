@@ -11,10 +11,7 @@ import {
   Zap,
   Bell,
   UserCog,
-  BarChart3,
   Settings,
-  ClipboardList,
-  User,
   Briefcase,
 } from "lucide-react";
 import type { Role } from "./enums";

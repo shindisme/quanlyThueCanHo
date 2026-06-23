@@ -8,16 +8,17 @@ import Badge from "../../../components/ui/Badge";
 import Pagination from "../../../components/ui/Pagination";
 import { toast } from "sonner";
 
-import { removeVietnameseTones } from "../../../utils/format";
 import * as buildingService from "../../../services/buildingService";
 import type { BuildingData } from "../../../services/buildingService";
 
 import BuildingCreateModal from "./components/BuildingCreateModal";
 import BuildingModifyModal from "./components/BuildingModifyModal";
 import BuildingDeleteModal from "./components/BuildingDeleteModal";
+import { useAuthStore } from "../../../stores/auth.store";
 
 export default function BuildingList() {
   const navigate = useNavigate();
+  const { role, managedBuildingId } = useAuthStore();
   const [buildings, setBuildings] = useState<BuildingData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -53,7 +54,9 @@ export default function BuildingList() {
     }
   }
 
-  const filtered = buildings;
+  const filtered = role === "MANAGER"
+    ? buildings.filter((b) => b.id === managedBuildingId)
+    : buildings;
 
   async function handleDelete() {
     if (!deleteItem) return;
@@ -84,9 +87,11 @@ export default function BuildingList() {
         subtitle="Quản lý danh sách tòa nhà"
         count={totalCount}
         actions={
-          <Button onClick={() => setShowCreateModal(true)}>
-            <Plus size={18} /> Thêm tòa nhà
-          </Button>
+          role === "ADMIN" && (
+            <Button onClick={() => setShowCreateModal(true)}>
+              <Plus size={18} /> Thêm tòa nhà
+            </Button>
+          )
         }
       />
 
@@ -152,14 +157,18 @@ export default function BuildingList() {
                           className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Xem chi tiết">
                           <Eye size={16} />
                         </button>
-                        <button onClick={() => { setEditItem(building); setShowModifyModal(true); }}
-                          className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Sửa">
-                          <Pencil size={16} />
-                        </button>
-                        <button onClick={() => setDeleteItem(building)}
-                          className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer" title="Xóa">
-                          <Trash2 size={16} />
-                        </button>
+                        {role === "ADMIN" && (
+                          <>
+                            <button onClick={() => { setEditItem(building); setShowModifyModal(true); }}
+                              className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Sửa">
+                              <Pencil size={16} />
+                            </button>
+                            <button onClick={() => setDeleteItem(building)}
+                              className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer" title="Xóa">
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

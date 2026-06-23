@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
-import { Loader2, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import * as buildingService from "../../../../services/buildingService";
-import * as authService from "../../../../services/authService";
-import type { UserData } from "../../../../services/authService";
 import { toast } from "sonner";
 
 interface BuildingCreateModalProps {

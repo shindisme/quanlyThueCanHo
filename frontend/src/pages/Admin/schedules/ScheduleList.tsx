@@ -3,11 +3,9 @@ import { CalendarDays, Check, X, Trash2, Loader2, Eye } from "lucide-react";
 import PageHeader from "../../../components/ui/PageHeader";
 import Badge from "../../../components/ui/Badge";
 import SearchInput from "../../../components/ui/SearchInput";
-import Button from "../../../components/ui/Button";
 import { toast } from "sonner";
 
 import { useAuthStore } from "../../../stores/auth.store";
-import { mockUsers } from "../../../data/users";
 import * as scheduleService from "../../../services/scheduleService";
 import type { ScheduleData } from "../../../services/scheduleService";
 
@@ -19,9 +17,7 @@ import ScheduleDeleteModal from "./components/ScheduleDeleteModal";
 import ScheduleDetailModal from "./components/ScheduleDetailModal";
 
 export default function ScheduleList() {
-  const { role, email } = useAuthStore();
-  const currentUser = mockUsers.find((u) => u.email === email);
-  const managerBuildingId = currentUser?.managedBuildingId;
+  const { role, managedBuildingId } = useAuthStore();
 
   const [schedules, setSchedules] = useState<ScheduleData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,9 +42,9 @@ export default function ScheduleList() {
   }
 
   const displaySchedules = (() => {
-    if (role === "MANAGER" && managerBuildingId) {
+    if (role === "MANAGER" && managedBuildingId) {
       return schedules.filter(
-        (s) => s.apartment?.building_id === managerBuildingId
+        (s) => s.apartment?.building_id === managedBuildingId
       );
     }
     return schedules;

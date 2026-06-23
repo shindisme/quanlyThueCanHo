@@ -22,7 +22,7 @@ import UtilityList from "../pages/Admin/utilities/UtilityList";
 import NotificationList from "../pages/Admin/notifications/NotificationList";
 import SettingsPage from "../pages/Admin/settings/SettingsPage";
 import UserList from "../pages/Admin/users/UserList";
-import ReportDashboard from "../pages/Admin/reports/ReportDashboard";
+// import ReportDashboard from "../pages/Admin/reports/ReportDashboard";
 
 // Trang Manager
 import ManagerDashboard from "../pages/Manager/dashboard/Dashboard";

@@ -87,7 +87,7 @@ export default function MyContracts() {
 
   const filtered = myContracts.filter((c) => {
     const term = removeVietnameseTones(search);
-    const code = `HD-${String(c.id).padStart(3, "0")}`;
+    const code = `HD-${String(c.id).padStart(5, "0")}`;
     const apt = apartments.find((a) => a.id === c.apartment_id);
     const room = apt ? apt.room_number : "";
     return removeVietnameseTones(code).includes(term) || removeVietnameseTones(room).includes(term);
@@ -115,7 +115,7 @@ export default function MyContracts() {
         {filtered.map((c) => {
           const apt = apartments.find((a) => a.id === c.apartment_id);
           const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
-          const code = `HD-${String(c.id).padStart(3, "0")}`;
+          const code = `HD-${String(c.id).padStart(5, "0")}`;
 
           return (
             <div key={c.id} className="premium-card p-5">
@@ -221,7 +221,7 @@ export default function MyContracts() {
           const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
           const tenantUser = tenant ? users.find((u) => u.id === tenant.user_id) : null;
 
-          const maxOcc = viewContractDoc.max_occupants || (apt ? apt.bedrooms * 2 : 2);
+          const maxOcc = viewContractDoc.max_occupants || (apt ? Math.max(2, apt.bedrooms * 2) : 2);
           const actOcc = viewContractDoc.actual_occupants || 1;
           const excess = actOcc > maxOcc ? actOcc - maxOcc : 0;
           const excessSurcharge = excess * 1000000;
@@ -258,7 +258,7 @@ export default function MyContracts() {
                     HỢP ĐỒNG THUÊ CĂN HỘ CHUNG CƯ
                   </h2>
                   <p className="text-xs text-gray-500 font-sans italic">
-                    Số: HD-{String(viewContractDoc.id).padStart(3, "0")}
+                    Số: HD-{String(viewContractDoc.id).padStart(5, "0")}
                   </p>
                 </div>
 

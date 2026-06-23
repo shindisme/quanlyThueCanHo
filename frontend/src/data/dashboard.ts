@@ -1,5 +1,5 @@
 import type { DashboardKPI, MonthlyRevenue } from "../types";
-export function getDashboardKPI(buildingId?: number): DashboardKPI {
+export function getDashboardKPI(_buildingId?: number): DashboardKPI {
   return {
     totalBuildings: 0,
     totalApartments: 0,

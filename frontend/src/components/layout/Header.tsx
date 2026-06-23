@@ -27,14 +27,14 @@ function parseJwt(token: string) {
 }
 
 export default function Header() {
-  const { email, role, token, logout } = useAuthStore();
+  const { email, role, token, logout, managedBuildingName: storeBuildingName } = useAuthStore();
   const { setMobileOpen, toggle } = useSidebarStore();
   const navigate = useNavigate();
   const location = useLocation();
 
   const [showProfile, setShowProfile] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
-  const [managedBuildingName, setManagedBuildingName] = useState<string | null>(null);
+  const [managedBuildingName, setManagedBuildingName] = useState<string | null>(storeBuildingName);
 
   // Lưu infor cho breadcrum toà nhà và căn hộ
   const [dynamicBuildingName, setDynamicBuildingName] = useState<string | null>(null);
@@ -51,14 +51,25 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
+    if (storeBuildingName) {
+      setManagedBuildingName(storeBuildingName);
+      return;
+    }
     async function fetchManagedBuilding() {
       if (role === "MANAGER" && token) {
         try {
           const decoded = parseJwt(token);
           if (decoded && decoded.userId) {
-            const result = await buildingService.getAllBuildings({ managerId: decoded.userId });
-            if (result.data && result.data.length > 0) {
-              setManagedBuildingName(result.data[0].branch_name);
+            const { getAllStaff } = await import("../../services/staffService");
+            const { getAllBuildings } = await import("../../services/buildingService");
+            const staffRes = await getAllStaff();
+            const currentStaff = staffRes.data.find((s) => s.user_id === decoded.userId);
+            if (currentStaff && currentStaff.building_id) {
+              const buildingsRes = await getAllBuildings();
+              const currentBld = buildingsRes.data.find((b) => b.id === currentStaff.building_id);
+              if (currentBld) {
+                setManagedBuildingName(currentBld.branch_name);
+              }
             }
           }
         } catch (error) {
@@ -67,7 +78,7 @@ export default function Header() {
       }
     }
     fetchManagedBuilding();
-  }, [role, token]);
+  }, [role, token, storeBuildingName]);
 
   // Lấy tên tòa nhà/căn hộ động Breadcrumb
   useEffect(() => {

@@ -15,17 +15,16 @@ import { mockUsers } from "../../data/users";
 import { removeVietnameseTones } from "../../utils/format";
 
 interface LoginForm {
-  email: string; // Used for binding username state in hook-form
+  email: string;
   password: string;
 }
 
-// Tìm email từ tên đăng nhập
 function resolveEmailFromUsername(username: string): string {
   const clean = username.trim().toLowerCase();
 
   // Admin
   if (clean === "admin") {
-    return "admin@dukihome.vn";
+    return "[EMAIL_ADDRESS]";
   }
 
   // Quản lý
@@ -36,10 +35,10 @@ function resolveEmailFromUsername(username: string): string {
       const bBranchClean = removeVietnameseTones(b.branch_name)
         .replace(/\s+/g, "")
         .toLowerCase()
-        .replace("chinhanh", ""); // Convert "Chi nhánh Quận 1" to "quan1"
+        .replace("chinhanh", "");
       const bNameClean = removeVietnameseTones(b.name)
         .replace(/\s+/g, "")
-        .toLowerCase(); // Convert "YuKi Tower A" to "yukitowera"
+        .toLowerCase();
 
       return (
         bBranchClean === searchPart ||
@@ -82,6 +81,25 @@ function resolveEmailFromUsername(username: string): string {
   return username;
 }
 
+function parseJwt(token: string) {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      window
+        .atob(base64)
+        .split("")
+        .map(function (c) {
+          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+        })
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
+
 export default function Login() {
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
@@ -101,7 +119,35 @@ export default function Login() {
     try {
       const resolvedEmail = resolveEmailFromUsername(data.email);
       const result = await login(resolvedEmail, data.password);
-      setAuth(result.token, result.role, resolvedEmail);
+
+      const decoded = parseJwt(result.token);
+      let managedBuildingId: number | null = null;
+      let managedBuildingName: string | null = null;
+
+      if (result.role === "MANAGER" && decoded && decoded.userId) {
+        try {
+          const { getAllStaff } = await import("../../services/staffService");
+          const { getAllBuildings } = await import("../../services/buildingService");
+
+          const staffRes = await getAllStaff();
+          const currentStaff = staffRes.data.find((s) => s.user_id === decoded.userId);
+
+          if (currentStaff && currentStaff.building_id) {
+            managedBuildingId = currentStaff.building_id;
+
+            // Get building name
+            const buildingsRes = await getAllBuildings();
+            const currentBld = buildingsRes.data.find((b) => b.id === managedBuildingId);
+            if (currentBld) {
+              managedBuildingName = currentBld.branch_name;
+            }
+          }
+        } catch (err) {
+          console.error("Lỗi khi lấy thông tin tòa nhà quản lý:", err);
+        }
+      }
+
+      setAuth(result.token, result.role, resolvedEmail, managedBuildingId, managedBuildingName);
       toast.success("Đăng nhập thành công!");
 
       switch (result.role) {

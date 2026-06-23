@@ -6,7 +6,7 @@ import { getSidebarMenu } from "../../constants/sidebar";
 
 export default function Sidebar() {
   const { role } = useAuthStore();
-  const { isOpen, toggle, isMobileOpen, setMobileOpen } = useSidebarStore();
+  const { isOpen, isMobileOpen, setMobileOpen } = useSidebarStore();
   const location = useLocation();
 
   if (!role) return null;

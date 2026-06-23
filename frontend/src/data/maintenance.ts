@@ -1,3 +1,3 @@
-import type { MaintenanceRequest, MaintenanceHistory } from "../types";
+import type { MaintenanceRequest } from "../types";
 export const mockMaintenanceRequests: MaintenanceRequest[] = [];
-export const mockMaintenanceHistory: MaintenanceHistory[] = [];
+export const mockMaintenanceHistory: any[] = [];

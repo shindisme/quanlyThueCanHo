@@ -6,8 +6,6 @@ import SearchInput from "../../../components/ui/SearchInput";
 import Badge from "../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../components/ui/DataTable";
 import Pagination from "../../../components/ui/Pagination";
-import { mockTenants } from "../../../data/tenants";
-import { mockUsers } from "../../../data/users";
 import { mockApartments } from "../../../data/apartments";
 import { mockContracts } from "../../../data/contracts";
 import { useAuthStore } from "../../../stores/auth.store";
@@ -23,9 +21,7 @@ import TenantDetailModal from "./components/TenantDetailModal";
 
 // Danh sách người thuê
 export default function TenantList() {
-  const { role, email } = useAuthStore();
-  const currentUser = mockUsers.find((u) => u.email === email);
-  const managerBuildingId = currentUser?.managedBuildingId;
+  const { role, managedBuildingId } = useAuthStore();
 
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -35,10 +31,8 @@ export default function TenantList() {
   const [editItem, setEditItem] = useState<Tenant | null>(null);
   const [deleteItem, setDeleteItem] = useState<Tenant | null>(null);
   const [viewItem, setViewItem] = useState<Tenant | null>(null);
-  const pageSize = 10;
 
   const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
@@ -56,18 +50,6 @@ export default function TenantList() {
     } catch {
       toast.error("Không thể tải danh sách người thuê");
     }
-
-    // Tải người dùng
-    const storedUsers = localStorage.getItem("custom-users");
-    if (storedUsers) {
-      try {
-        setUsers(JSON.parse(storedUsers));
-      } catch {
-        setUsers(mockUsers);
-      }
-    } else {
-      setUsers(mockUsers);
-    }
   }
 
   // Lọc theo tòa nhà của quản lý
@@ -75,9 +57,9 @@ export default function TenantList() {
     const storedContracts = localStorage.getItem("custom-contracts");
     const currentContracts = storedContracts ? JSON.parse(storedContracts) : mockContracts;
 
-    if (role === "MANAGER" && managerBuildingId) {
+    if (role === "MANAGER" && managedBuildingId) {
       const managerApartmentIds = mockApartments
-        .filter((a) => a.building_id === managerBuildingId)
+        .filter((a) => a.building_id === managedBuildingId)
         .map((a) => a.id);
       const managerTenantIds = currentContracts
         .filter((c: any) => managerApartmentIds.includes(c.apartment_id))
@@ -108,17 +90,6 @@ export default function TenantList() {
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Xóa người thuê thất bại");
     }
-  }
-
-  // Lấy email liên kết
-  function getUserEmail(userId: number | null): string {
-    if (!userId) return "-";
-    return users.find((u) => u.id === userId)?.email || "-";
-  }
-
-  function getUserPhone(userId: number | null): string {
-    if (!userId) return "-";
-    return users.find((u) => u.id === userId)?.phone || "-";
   }
 
   const columns: Column<Tenant>[] = [
@@ -223,8 +194,6 @@ export default function TenantList() {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onSuccess={loadData}
-        role={role}
-        managerBuildingId={managerBuildingId}
       />
 
       <TenantModifyModal

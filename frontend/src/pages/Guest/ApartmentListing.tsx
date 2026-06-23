@@ -55,11 +55,22 @@ export default function GuestApartmentListing() {
     async function fetchApartmentsForBuilding() {
       try {
         setLoading(true);
-        const result = await apartmentService.getAllApartments({
-          building_id: buildingFilter ? Number(buildingFilter) : undefined,
-          limit: 200, // Load a reasonable number of apartments
-        });
-        setApartments(result.data);
+        const bId = buildingFilter ? Number(buildingFilter) : undefined;
+        const [res1, res2] = await Promise.all([
+          apartmentService.getAllApartments({
+            building_id: bId,
+            limit: 100,
+            page: 1,
+          }),
+          apartmentService.getAllApartments({
+            building_id: bId,
+            limit: 100,
+            page: 2,
+          })
+        ]);
+        const combined = [...res1.data, ...res2.data];
+        const unique = combined.filter((a, index, self) => self.findIndex(t => t.id === a.id) === index);
+        setApartments(unique);
       } catch {
         setApartments(mockApartments as any);
       } finally {

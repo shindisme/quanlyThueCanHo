@@ -13,10 +13,9 @@ import * as buildingService from "../../../services/buildingService";
 import type { ApartmentData } from "../../../services/apartmentService";
 import type { BuildingData } from "../../../services/buildingService";
 import { useAuthStore } from "../../../stores/auth.store";
-import { mockUsers } from "../../../data/users";
 
 import { useSort } from "../../../hooks/useSort";
-import { formatApartmentDisplay, removeVietnameseTones } from "../../../utils/format";
+import { formatApartmentDisplay } from "../../../utils/format";
 
 import ApartmentCreateModal from "./components/ApartmentCreateModal";
 import ApartmentModifyModal from "./components/ApartmentModifyModal";
@@ -24,9 +23,7 @@ import ApartmentDeleteModal from "./components/ApartmentDeleteModal";
 
 export default function ApartmentList() {
   const navigate = useNavigate();
-  const { role, email } = useAuthStore();
-  const currentUser = mockUsers.find((u) => u.email === email);
-  const managerBuildingId = currentUser?.managedBuildingId;
+  const { role, managedBuildingId } = useAuthStore();
 
   const [apartments, setApartments] = useState<ApartmentData[]>([]);
   const [buildings, setBuildings] = useState<BuildingData[]>([]);
@@ -35,7 +32,7 @@ export default function ApartmentList() {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterFeatured, setFilterFeatured] = useState("");
   const [filterBuilding, setFilterBuilding] = useState<number | undefined>(
-    role === "MANAGER" ? managerBuildingId : undefined
+    role === "MANAGER" ? (managedBuildingId || undefined) : undefined
   );
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showModifyModal, setShowModifyModal] = useState(false);
@@ -313,7 +310,7 @@ export default function ApartmentList() {
         onSuccess={fetchApartments}
         buildings={buildings}
         role={role}
-        managerBuildingId={managerBuildingId}
+        managerBuildingId={managedBuildingId || undefined}
       />
 
       <ApartmentModifyModal

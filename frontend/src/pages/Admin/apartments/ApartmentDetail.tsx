@@ -17,8 +17,12 @@ import * as buildingService from "../../../services/buildingService";
 import type { BuildingData } from "../../../services/buildingService";
 import ApartmentModifyModal from "./components/ApartmentModifyModal";
 
+import * as contractService from "../../../services/contractService";
+import * as tenantService from "../../../services/tenantService";
+import * as authService from "../../../services/authService";
+
 import { useAuthStore } from "../../../stores/auth.store";
-import { formatApartmentDisplay, formatDate } from "../../../utils/format";
+import { formatApartmentDisplay, formatDate, maskCCCD } from "../../../utils/format";
 
 export default function ApartmentDetail() {
   const { role } = useAuthStore();
@@ -35,44 +39,6 @@ export default function ApartmentDetail() {
   const [tenants, setTenants] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [occupants, setOccupants] = useState<any[]>([]);
-
-  useEffect(() => {
-    // load contracts
-    const storedContracts = localStorage.getItem("custom-contracts");
-    if (storedContracts) {
-      try {
-        setContracts(JSON.parse(storedContracts));
-      } catch {
-        setContracts(mockContracts);
-      }
-    } else {
-      setContracts(mockContracts);
-    }
-
-    // load tenants
-    const storedTenants = localStorage.getItem("custom-tenants");
-    if (storedTenants) {
-      try {
-        setTenants(JSON.parse(storedTenants));
-      } catch {
-        setTenants(mockTenants);
-      }
-    } else {
-      setTenants(mockTenants);
-    }
-
-    // load users
-    const storedUsers = localStorage.getItem("custom-users");
-    if (storedUsers) {
-      try {
-        setUsers(JSON.parse(storedUsers));
-      } catch {
-        setUsers(mockUsers);
-      }
-    } else {
-      setUsers(mockUsers);
-    }
-  }, []);
 
   const activeContract = contracts.find(
     (c) => c.apartment_id === Number(id) && c.status === "ACTIVE"
@@ -111,13 +77,19 @@ export default function ApartmentDetail() {
   async function fetchData() {
     try {
       setLoading(true);
-      const [bRes, aptData] = await Promise.all([
+      const [bRes, aptData, contractsData, tenantsRes, usersData] = await Promise.all([
         buildingService.getAllBuildings(),
-        apartmentService.getApartmentById(Number(id))
+        apartmentService.getApartmentById(Number(id)),
+        contractService.getAllContracts().catch(() => mockContracts as any),
+        tenantService.getAllTenants({ limit: 1000 }).catch(() => ({ data: mockTenants })),
+        authService.getAllUsers().catch(() => mockUsers),
       ]);
       setBuildings(bRes.data);
       setApartment(aptData);
       setImages(aptData.images || []);
+      setContracts(contractsData);
+      setTenants(tenantsRes.data);
+      setUsers(usersData);
     } catch {
       toast.error("Không thể tải dữ liệu");
     } finally {
@@ -377,9 +349,9 @@ export default function ApartmentDetail() {
                   <span className="text-primary-700">{activeTenant.full_name}</span>
                 </p>
                 <div className="grid grid-cols-2 gap-2 text-xs text-gray-650">
-                  <p>Số CCCD: <span className="font-medium">{activeTenant.citizen_id}</span></p>
-                  <p>SĐT: <span className="font-medium">{activeTenantUser?.phone || "-"}</span></p>
-                  <p>Email: <span className="font-medium">{activeTenantUser?.email || "-"}</span></p>
+                  <p>Số CCCD: <span className="font-medium">{maskCCCD(activeTenant.citizen_id)}</span></p>
+                  <p>SĐT: <span className="font-medium">{activeTenantUser?.phone || activeTenant.phone || "-"}</span></p>
+                  <p>Email: <span className="font-medium">{activeTenantUser?.email || activeTenant.email || "-"}</span></p>
                   <p>Thời hạn thuê: <span className="font-medium">{formatDate(activeContract.start_date)} - {formatDate(activeContract.end_date)}</span></p>
                 </div>
               </div>
@@ -398,8 +370,8 @@ export default function ApartmentDetail() {
                     <tbody className="divide-y divide-gray-100 bg-white">
                       {occupants.map((occ) => (
                         <tr key={occ.id}>
-                          <td className="px-3 py-2 font-medium text-gray-850">{occ.name}</td>
-                          <td className="px-3 py-2 text-gray-600">{occ.cccd}</td>
+                          <td className="px-3 py-2 font-medium text-gray-855">{occ.name}</td>
+                          <td className="px-3 py-2 text-gray-600">{maskCCCD(occ.cccd)}</td>
                           <td className="px-3 py-2 text-gray-600">{occ.phone || "-"}</td>
                         </tr>
                       ))}
@@ -438,7 +410,7 @@ export default function ApartmentDetail() {
                     const tenant = tenants.find((t) => t.id === c.tenant_id);
                     return (
                       <tr key={c.id} className="hover:bg-gray-50">
-                        <td className="px-3 py-2.5 font-medium text-gray-700">HD-{String(c.id).padStart(3, "0")}</td>
+                        <td className="px-3 py-2.5 font-medium text-gray-700">HD-{String(c.id).padStart(5, "0")}</td>
                         <td className="px-3 py-2.5 text-gray-850 font-semibold">{tenant?.full_name || "-"}</td>
                         <td className="px-3 py-2.5 text-gray-600">
                           {formatDate(c.start_date)} - {formatDate(c.end_date)}

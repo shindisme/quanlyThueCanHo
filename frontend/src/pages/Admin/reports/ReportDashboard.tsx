@@ -23,23 +23,20 @@ const tenantGrowthData = [
 ];
 
 import { useAuthStore } from "../../../stores/auth.store";
-import { mockUsers } from "../../../data/users";
 import { mockBuildings } from "../../../data/buildings";
 
 // Trang bao cao thong ke
 export default function ReportDashboard() {
-  const { role, email } = useAuthStore();
-  const currentUser = mockUsers.find((u) => u.email === email);
-  const managerBuildingId = currentUser?.managedBuildingId;
+  const { role, managedBuildingId } = useAuthStore();
 
-  const revenueData = getMonthlyRevenueData();
-  const rawOccupancyData = getOccupancyData();
-  const contractData = getContractStatusData();
+  const revenueData = getMonthlyRevenueData() as any[];
+  const rawOccupancyData = getOccupancyData() as any[];
+  const contractData = getContractStatusData() as any[];
 
   const occupancyData = (() => {
-    if (role === "MANAGER" && managerBuildingId) {
-      const bldName = mockBuildings.find(b => b.id === managerBuildingId)?.name;
-      return rawOccupancyData.filter(d => d.name === bldName);
+    if (role === "MANAGER" && managedBuildingId) {
+      const bldName = mockBuildings.find(b => b.id === managedBuildingId)?.name;
+      return rawOccupancyData.filter((d: any) => d.name === bldName);
     }
     return rawOccupancyData;
   })();

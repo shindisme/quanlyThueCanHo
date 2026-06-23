@@ -17,6 +17,7 @@ import type {
 export interface User {
   id: number;
   email: string;
+  username?: string;
   phone: string | null;
   password_hash: string;
   role: Role;

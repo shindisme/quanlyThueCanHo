@@ -7,7 +7,6 @@ import Badge from "../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../components/ui/DataTable";
 import Pagination from "../../../components/ui/Pagination";
 import { useAuthStore } from "../../../stores/auth.store";
-import { mockUsers } from "../../../data/users";
 import { toast } from "sonner";
 import { removeVietnameseTones, maskPhone } from "../../../utils/format";
 import type { Staff } from "../../../types";
@@ -21,9 +20,7 @@ import StaffDeleteModal from "./components/StaffDeleteModal";
 import StaffDetailModal from "./components/StaffDetailModal";
 
 export default function StaffList() {
-  const { role, email } = useAuthStore();
-  const currentUser = mockUsers.find((u) => u.email === email);
-  const managerBuildingId = currentUser?.managedBuildingId;
+  const { role, managedBuildingId } = useAuthStore();
 
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [buildings, setBuildings] = useState<BuildingData[]>([]);
@@ -61,8 +58,8 @@ export default function StaffList() {
   }
 
   const displayStaff = (() => {
-    if (role === "MANAGER" && managerBuildingId) {
-      return staffList.filter((s) => s.building_id === managerBuildingId);
+    if (role === "MANAGER" && managedBuildingId) {
+      return staffList.filter((s) => s.building_id === managedBuildingId);
     }
     return staffList;
   })();
