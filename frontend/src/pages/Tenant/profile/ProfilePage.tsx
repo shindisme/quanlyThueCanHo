@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { User, Mail, Save, Plus, Pencil, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { User, Mail, Save, Plus, Pencil, Trash2, FileText } from "lucide-react";
 import Button from "../../../components/ui/Button";
 import PageHeader from "../../../components/ui/PageHeader";
 import Modal from "../../../components/ui/Modal";
@@ -7,13 +7,80 @@ import Input from "../../../components/ui/Input";
 import { useAuthStore } from "../../../stores/auth.store";
 import { changePassword } from "../../../services/authService";
 import { toast } from "sonner";
+import * as tenantService from "../../../services/tenantService";
+import * as contractService from "../../../services/contractService";
+import * as apartmentService from "../../../services/apartmentService";
+import * as buildingService from "../../../services/buildingService";
+import { formatCurrency, formatDate } from "../../../utils/format";
+
+function parseJwt(token: string) {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      window
+        .atob(base64)
+        .split("")
+        .map(function (c) {
+          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+        })
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
 
 export default function ProfilePage() {
-  const { email, role } = useAuthStore();
+  const { email, role, token } = useAuthStore();
   const [oldPass, setOldPass] = useState("");
   const [newPass, setNewPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const [userContract, setUserContract] = useState<any | null>(null);
+  const [apartmentInfo, setApartmentInfo] = useState<any | null>(null);
+  const [buildingInfo, setBuildingInfo] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (role === "TENANT" && email && token) {
+      async function loadTenantContract() {
+        try {
+          const decoded = parseJwt(token);
+          const userId = decoded?.userId;
+          if (!userId) return;
+
+          const tenantsRes = await tenantService.getAllTenants({ limit: 1000 });
+          const currentT = tenantsRes.data.find((t) => t.user_id === userId);
+          if (!currentT) return;
+
+          const contracts = await contractService.getAllContracts();
+          const activeContract = contracts.find((c) => c.tenant_id === currentT.id && c.status === "ACTIVE");
+
+          if (activeContract) {
+            setUserContract(activeContract);
+
+            // Load apartment and building details
+            const apartmentsRes = await apartmentService.getAllApartments({ limit: 1000 });
+            const apt = apartmentsRes.data.find((a) => a.id === activeContract.apartment_id);
+            if (apt) {
+              setApartmentInfo(apt);
+
+              const buildingsRes = await buildingService.getAllBuildings({ limit: 100 });
+              const bld = buildingsRes.data.find((b) => b.id === apt.building_id);
+              if (bld) {
+                setBuildingInfo(bld);
+              }
+            }
+          }
+        } catch (err) {
+          console.error("Lỗi khi tải thông tin hợp đồng cho Profile:", err);
+        }
+      }
+      loadTenantContract();
+    }
+  }, [email, role, token]);
 
   const [occupants, setOccupants] = useState<any[]>(() => {
     if (!email) return [];
@@ -179,6 +246,65 @@ export default function ProfilePage() {
           </Button>
         </div>
       </div>
+
+      {/* Thông tin hợp đồng đang thuê */}
+      {role === "TENANT" && userContract && (
+        <div className="premium-card p-6 space-y-4">
+          <div className="flex items-center gap-3 border-b pb-3 border-gray-155">
+            <div className="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center shrink-0">
+              <FileText size={20} className="text-primary-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-800">Thông tin hợp đồng đang thuê</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Chi tiết hợp đồng thuê căn hộ hiện tại của bạn</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm font-sans">
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Mã hợp đồng:</span>
+                <span className="font-semibold text-primary-600">HD-{String(userContract.id).padStart(5, "0")}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Chi nhánh / Tòa nhà:</span>
+                <span className="font-medium text-gray-800">{buildingInfo?.branch_name || "Yuki House"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Căn hộ:</span>
+                <span className="font-semibold text-gray-800">
+                  {apartmentInfo ? `Phòng ${apartmentInfo.floor}${apartmentInfo.room_number}` : "-"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Tiền thuê / tháng:</span>
+                <span className="font-bold text-[#3f6ad8]">{formatCurrency(userContract.monthly_rent)}</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Tiền đặt cọc:</span>
+                <span className="font-semibold text-gray-800">{formatCurrency(userContract.deposit_amount)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Ngày bắt đầu:</span>
+                <span className="font-medium text-gray-800">{formatDate(userContract.start_date)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Ngày kết thúc:</span>
+                <span className="font-medium text-gray-800">{formatDate(userContract.end_date)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Trạng thái hợp đồng:</span>
+                <span className="font-semibold text-green-600 bg-green-50 px-2.5 py-0.5 rounded-md text-xs">
+                  Đang hoạt động
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Khai báo người ở cùng */}
       {role === "TENANT" && (

@@ -11,6 +11,7 @@ export const createStaffService = async (data: any) => {
     return await prisma.staff.create({
         data: {
             user_id: data.user_id,
+            building_id: data.building_id,
             full_name: data.full_name,
             phone: data.phone,
             position: data.position
@@ -22,6 +23,7 @@ export const updateStaffService = async (id: number, data: any) => {
     return await prisma.staff.update({
         where: { id },
         data: {
+            building_id: data.building_id,
             full_name: data.full_name,
             phone: data.phone,
             position: data.position

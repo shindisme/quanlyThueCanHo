@@ -9,7 +9,7 @@ import * as authService from "../../../../services/authService";
 interface TenantCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (newTenantId?: number) => void;
 }
 
 export default function TenantCreateModal({
@@ -43,7 +43,7 @@ export default function TenantCreateModal({
         role: "TENANT",
       });
 
-      await tenantService.createTenant({
+      const tenant = await tenantService.createTenant({
         full_name: formFullName,
         citizen_id: formCitizenId,
         date_of_birth: formDob ? new Date(formDob).toISOString() : null,
@@ -63,7 +63,7 @@ export default function TenantCreateModal({
       setFormEmail("");
       setFormPhone("");
 
-      onSuccess();
+      onSuccess(tenant.id);
       onClose();
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Không thể tạo người thuê");

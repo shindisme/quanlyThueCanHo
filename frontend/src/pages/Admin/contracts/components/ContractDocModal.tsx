@@ -100,8 +100,8 @@ export default function ContractDocModal({
           <div className="bg-gray-50 p-4 sm:p-8 rounded-2xl overflow-y-auto max-h-[70vh] border border-gray-200">
             <div
               id="printable-contract-area"
-              className="bg-white p-6 sm:p-10 shadow-sm border border-gray-150 rounded-lg text-gray-800 font-serif leading-relaxed text-sm"
-              style={{ minHeight: "297mm" }}
+              className="bg-white p-6 sm:p-10 shadow-sm border border-gray-150 rounded-lg text-gray-800 leading-relaxed text-sm"
+              style={{ minHeight: "297mm", fontFamily: '"Times New Roman", Times, serif' }}
             >
               {/* Tiêu ngữ */}
               <div className="text-center space-y-1 mb-6">
@@ -153,7 +153,7 @@ export default function ContractDocModal({
                     <p>Ông/bà: <span className="font-semibold text-gray-800">{tenant?.full_name || "CHƯA XÁC ĐỊNH"}</span></p>
                     <p>Số CMND/CCCD: {tenant?.citizen_id || "Chưa cập nhật"}</p>
                     <p>Địa chỉ: {tenant?.address || "Chưa cập nhật"}</p>
-                    <p>Số điện thoại: {tenantUser?.phone || "Chưa cập nhật"}</p>
+                    <p>Số điện thoại: {tenant?.phone || tenantUser?.phone || "Chưa cập nhật"}</p>
                   </div>
                 </div>
 

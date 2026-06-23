@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Home, Loader2, Trash2, Plus } from "lucide-react";
+import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Home, Loader2, Trash2, Plus, Star } from "lucide-react";
 import Card from "../../../components/ui/Card";
 import Badge from "../../../components/ui/Badge";
 import Button from "../../../components/ui/Button";
@@ -23,6 +23,7 @@ import * as authService from "../../../services/authService";
 
 import { useAuthStore } from "../../../stores/auth.store";
 import { formatApartmentDisplay, formatDate, maskCCCD } from "../../../utils/format";
+import { getApartmentReviews } from "../../../services/reviewService";
 
 export default function ApartmentDetail() {
   const { role } = useAuthStore();
@@ -40,6 +41,10 @@ export default function ApartmentDetail() {
   const [users, setUsers] = useState<any[]>([]);
   const [occupants, setOccupants] = useState<any[]>([]);
 
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewMeta, setReviewMeta] = useState<any>({ averageRating: 0, totalReviews: 0, currentPage: 1, totalPages: 1 });
+  const [activeTab, setActiveTab] = useState<"tenant" | "tenantHistory" | "reviews">("tenant");
+
   const activeContract = contracts.find(
     (c) => c.apartment_id === Number(id) && c.status === "ACTIVE"
   );
@@ -49,6 +54,11 @@ export default function ApartmentDetail() {
   const activeTenantUser = activeTenant
     ? users.find((u) => u.id === activeTenant.user_id)
     : null;
+
+  const historyContracts = contracts.filter((c) => c.apartment_id === Number(id));
+  const tenantContracts = activeTenant
+    ? historyContracts.filter((c) => c.tenant_id === activeTenant.id)
+    : [];
 
   useEffect(() => {
     if (activeTenantUser?.email) {
@@ -67,8 +77,6 @@ export default function ApartmentDetail() {
     }
   }, [activeTenantUser]);
 
-  const historyContracts = contracts.filter((c) => c.apartment_id === Number(id));
-
   useEffect(() => {
     if (!id) return;
     fetchData();
@@ -77,12 +85,13 @@ export default function ApartmentDetail() {
   async function fetchData() {
     try {
       setLoading(true);
-      const [bRes, aptData, contractsData, tenantsRes, usersData] = await Promise.all([
+      const [bRes, aptData, contractsData, tenantsRes, usersData, reviewsRes] = await Promise.all([
         buildingService.getAllBuildings(),
         apartmentService.getApartmentById(Number(id)),
         contractService.getAllContracts().catch(() => mockContracts as any),
         tenantService.getAllTenants({ limit: 1000 }).catch(() => ({ data: mockTenants })),
         authService.getAllUsers().catch(() => mockUsers),
+        getApartmentReviews(Number(id)).catch(() => ({ data: [], meta: { averageRating: 0, totalReviews: 0, currentPage: 1, totalPages: 1 } })),
       ]);
       setBuildings(bRes.data);
       setApartment(aptData);
@@ -90,6 +99,8 @@ export default function ApartmentDetail() {
       setContracts(contractsData);
       setTenants(tenantsRes.data);
       setUsers(usersData);
+      setReviews(reviewsRes.data);
+      setReviewMeta(reviewsRes.meta);
     } catch {
       toast.error("Không thể tải dữ liệu");
     } finally {
@@ -337,100 +348,214 @@ export default function ApartmentDetail() {
         )}
       </Card>
 
-      {/* Người thuê và lịch sử hợp đồng */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <h3 className="font-semibold text-gray-800 mb-4 text-base">Người thuê hiện tại</h3>
-          {activeContract && activeTenant ? (
-            <div className="space-y-4 text-sm font-sans">
-              <div className="bg-primary-50/50 p-4 rounded-xl border border-primary-100/50 space-y-2">
-                <p className="font-semibold text-gray-800 flex justify-between">
-                  <span>Chủ hợp đồng:</span>
-                  <span className="text-primary-700">{activeTenant.full_name}</span>
-                </p>
-                <div className="grid grid-cols-2 gap-2 text-xs text-gray-650">
-                  <p>Số CCCD: <span className="font-medium">{maskCCCD(activeTenant.citizen_id)}</span></p>
-                  <p>SĐT: <span className="font-medium">{activeTenantUser?.phone || activeTenant.phone || "-"}</span></p>
-                  <p>Email: <span className="font-medium">{activeTenantUser?.email || activeTenant.email || "-"}</span></p>
-                  <p>Thời hạn thuê: <span className="font-medium">{formatDate(activeContract.start_date)} - {formatDate(activeContract.end_date)}</span></p>
-                </div>
+      {/* Tabs bottom panel */}
+      <Card className="p-0 overflow-hidden">
+        <div className="flex border-b border-gray-200 bg-gray-50/50">
+          <button
+            onClick={() => setActiveTab("tenant")}
+            className={`flex-1 py-3.5 text-center text-sm font-semibold border-b-2 cursor-pointer transition-all ${activeTab === "tenant"
+              ? "border-primary-600 text-primary-600 bg-white"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
+              }`}
+          >
+            Người thuê hiện tại {activeContract && <span className="ml-1.5 w-2 h-2 rounded-full bg-success-500 inline-block animate-pulse" />}
+          </button>
+          <button
+            onClick={() => setActiveTab("tenantHistory")}
+            className={`flex-1 py-3.5 text-center text-sm font-semibold border-b-2 cursor-pointer transition-all ${activeTab === "tenantHistory"
+              ? "border-primary-600 text-primary-600 bg-white"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
+              }`}
+          >
+            Lịch sử hợp đồng ({activeTenant ? tenantContracts.length : 0})
+          </button>
+          <button
+            onClick={() => setActiveTab("reviews")}
+            className={`flex-1 py-3.5 text-center text-sm font-semibold border-b-2 cursor-pointer transition-all ${activeTab === "reviews"
+              ? "border-primary-600 text-primary-600 bg-white"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
+              }`}
+          >
+            Đánh giá & Nhận xét ({reviewMeta.totalReviews || 0})
+          </button>
+        </div>
+
+        <div className="p-6">
+          {/* Tab 1: Tenant */}
+          {activeTab === "tenant" && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <h3 className="font-semibold text-gray-800 text-base">Thông tin người thuê</h3>
+                {activeContract && activeTenant ? (
+                  <div className="space-y-4 text-sm font-sans">
+                    <div className="bg-primary-50/50 p-4 rounded-xl border border-primary-100/50 space-y-2">
+                      <p className="font-semibold text-gray-800 flex justify-between">
+                        <span>Chủ hợp đồng:</span>
+                        <span className="text-primary-700">{activeTenant.full_name}</span>
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-650">
+                        <p>Số CCCD: <span className="font-medium">{maskCCCD(activeTenant.citizen_id)}</span></p>
+                        <p>SĐT: <span className="font-medium">{activeTenantUser?.phone || activeTenant.phone || "-"}</span></p>
+                        <p>Email: <span className="font-medium">{activeTenantUser?.email || activeTenant.email || "-"}</span></p>
+                        <p>Thời hạn thuê: <span className="font-medium">{formatDate(activeContract.start_date)} - {formatDate(activeContract.end_date)}</span></p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 py-6 text-center">Căn hộ hiện đang trống</p>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <h4 className="font-semibold text-gray-750 text-xs uppercase tracking-wider">Người ở cùng ({occupants.length})</h4>
-                <div className="border border-gray-150 rounded-xl overflow-hidden">
-                  <table className="min-w-full divide-y divide-gray-150 text-xs">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-650">Họ và tên</th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-650">CCCD</th>
-                        <th className="px-3 py-2 text-left font-semibold text-gray-650">SĐT</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 bg-white">
-                      {occupants.map((occ) => (
-                        <tr key={occ.id}>
-                          <td className="px-3 py-2 font-medium text-gray-855">{occ.name}</td>
-                          <td className="px-3 py-2 text-gray-600">{maskCCCD(occ.cccd)}</td>
-                          <td className="px-3 py-2 text-gray-600">{occ.phone || "-"}</td>
-                        </tr>
-                      ))}
-                      {occupants.length === 0 && (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-gray-800 text-base">Người ở cùng ({occupants.length})</h3>
+                {activeContract && activeTenant ? (
+                  <div className="border border-gray-150 rounded-xl overflow-hidden">
+                    <table className="min-w-full divide-y divide-gray-150 text-xs">
+                      <thead className="bg-gray-50">
                         <tr>
-                          <td colSpan={3} className="px-3 py-4 text-center text-gray-400">
-                            Chưa khai báo người ở cùng
-                          </td>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-650">Họ và tên</th>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-650">CCCD</th>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-650">SĐT</th>
                         </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 bg-white">
+                        {occupants.map((occ) => (
+                          <tr key={occ.id}>
+                            <td className="px-3 py-2 font-medium text-gray-855">{occ.name}</td>
+                            <td className="px-3 py-2 text-gray-650">{maskCCCD(occ.cccd)}</td>
+                            <td className="px-3 py-2 text-gray-650">{occ.phone || "-"}</td>
+                          </tr>
+                        ))}
+                        {occupants.length === 0 && (
+                          <tr>
+                            <td colSpan={3} className="px-3 py-4 text-center text-gray-400">
+                              Chưa khai báo người ở cùng
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 py-6 text-center">Chưa có người thuê hiện tại</p>
+                )}
               </div>
             </div>
-          ) : (
-            <p className="text-sm text-gray-400 py-6 text-center">Căn hộ hiện đang trống (chưa có hợp đồng thuê hiệu lực)</p>
           )}
-        </Card>
 
-        <Card>
-          <h3 className="font-semibold text-gray-800 mb-4 text-base">Lịch sử hợp đồng</h3>
-          {historyContracts.length > 0 ? (
-            <div className="overflow-x-auto rounded-xl border border-gray-150">
-              <table className="min-w-full divide-y divide-gray-150 text-xs">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Mã HĐ</th>
-                    <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Chủ hợp đồng</th>
-                    <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Thời hạn</th>
-                    <th className="px-3 py-2.5 text-right font-semibold text-gray-600">Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 bg-white">
-                  {historyContracts.map((c) => {
-                    const tenant = tenants.find((t) => t.id === c.tenant_id);
+          {/* Tab 2: Lịch sử */}
+          {activeTab === "tenantHistory" && (
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-800 text-base mb-2">Lịch sử hợp đồng thuê của người thuê hiện tại</h3>
+              {activeTenant ? (
+                tenantContracts.length > 0 ? (
+                  <div className="overflow-x-auto rounded-xl border border-gray-150">
+                    <table className="min-w-full divide-y divide-gray-150 text-xs">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Mã HĐ</th>
+                          <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Chủ hợp đồng</th>
+                          <th className="px-3 py-2.5 text-left font-semibold text-gray-600">Thời hạn</th>
+                          <th className="px-3 py-2.5 text-right font-semibold text-gray-600">Trạng thái</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 bg-white">
+                        {tenantContracts.map((c) => (
+                          <tr key={c.id} className="hover:bg-gray-50">
+                            <td className="px-3 py-2.5 font-medium text-gray-700">HD-{String(c.id).padStart(5, "0")}</td>
+                            <td className="px-3 py-2.5 text-gray-850 font-semibold">{activeTenant.full_name}</td>
+                            <td className="px-3 py-2.5 text-gray-600">
+                              {formatDate(c.start_date)} - {formatDate(c.end_date)}
+                            </td>
+                            <td className="px-3 py-2.5 text-right">
+                              <Badge variant={c.status === "ACTIVE" ? "success" : c.status === "ENDED" ? "gray" : "danger"}>
+                                {c.status === "ACTIVE" ? "Hiệu lực" : c.status === "ENDED" ? "Đã kết thúc" : "Thanh lý"}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 py-6 text-center">Không có lịch sử hợp đồng nào khác với người thuê này</p>
+                )
+              ) : (
+                <p className="text-sm text-gray-400 py-6 text-center">Chưa có người thuê hiện tại</p>
+              )}
+            </div>
+          )}
+
+          {/* Tab 3: Đánh giá & Nhận xét */}
+          {activeTab === "reviews" && (
+            <div className="space-y-6">
+              {/* Summary Stats */}
+              <div className="flex flex-col sm:flex-row items-center gap-6 bg-gray-50 p-5 rounded-2xl border border-gray-150">
+                <div className="text-center sm:border-r border-gray-200 sm:pr-8 shrink-0">
+                  <p className="text-5xl font-black text-amber-500 mb-1">{reviewMeta.averageRating || "0.0"}</p>
+                  <div className="flex justify-center gap-1 mb-2">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        size={16}
+                        className={
+                          s <= Math.round(reviewMeta.averageRating || 0)
+                            ? "fill-amber-400 text-amber-400"
+                            : "text-gray-300"
+                        }
+                      />
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-400 font-medium">Trung bình {reviewMeta.totalReviews || 0} đánh giá</p>
+                </div>
+                <div className="flex-1 space-y-2 w-full text-xs">
+                  {[5, 4, 3, 2, 1].map((stars) => {
+                    const count = reviews.filter((r) => r.rating === stars).length;
+                    const percent = reviewMeta.totalReviews > 0 ? (count / reviewMeta.totalReviews) * 100 : 0;
                     return (
-                      <tr key={c.id} className="hover:bg-gray-50">
-                        <td className="px-3 py-2.5 font-medium text-gray-700">HD-{String(c.id).padStart(5, "0")}</td>
-                        <td className="px-3 py-2.5 text-gray-850 font-semibold">{tenant?.full_name || "-"}</td>
-                        <td className="px-3 py-2.5 text-gray-600">
-                          {formatDate(c.start_date)} - {formatDate(c.end_date)}
-                        </td>
-                        <td className="px-3 py-2.5 text-right">
-                          <Badge variant={c.status === "ACTIVE" ? "success" : c.status === "ENDED" ? "gray" : "danger"}>
-                            {c.status === "ACTIVE" ? "Hiệu lực" : c.status === "ENDED" ? "Đã kết thúc" : "Thanh lý"}
-                          </Badge>
-                        </td>
-                      </tr>
+                      <div key={stars} className="flex items-center gap-3">
+                        <span className="w-8 text-gray-500 font-semibold">{stars} sao</span>
+                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-amber-400 rounded-full" style={{ width: `${percent}%` }} />
+                        </div>
+                        <span className="w-6 text-gray-400 text-right">{count}</span>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
+                </div>
+              </div>
+
+              {/* Review Comments list */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-gray-800 text-sm">Ý kiến của khách hàng ({reviews.length})</h4>
+                <div className="divide-y divide-gray-100">
+                  {reviews.map((r) => (
+                    <div key={r.id} className="py-4 first:pt-0 last:pb-0 space-y-1.5 font-sans">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-gray-800 text-sm">{r.tenant?.full_name || "Người thuê ẩn danh"}</span>
+                        <span className="text-xs text-gray-400">{new Date(r.created_at).toLocaleDateString("vi-VN")}</span>
+                      </div>
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            size={12}
+                            className={s <= r.rating ? "fill-amber-400 text-amber-400" : "text-gray-300"}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-xs sm:text-sm text-gray-600 leading-normal">{r.comment || "Không có nội dung nhận xét."}</p>
+                    </div>
+                  ))}
+                  {reviews.length === 0 && (
+                    <p className="text-sm text-gray-400 py-6 text-center">Chưa có đánh giá hay phản hồi nào cho căn hộ này</p>
+                  )}
+                </div>
+              </div>
             </div>
-          ) : (
-            <p className="text-sm text-gray-400 py-6 text-center">Không có lịch sử hợp đồng nào cho căn hộ này</p>
           )}
-        </Card>
-      </div>
+        </div>
+      </Card>
 
       <ApartmentModifyModal
         isOpen={showModifyModal}

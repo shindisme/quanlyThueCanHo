@@ -55,7 +55,7 @@ export default function TenantDetailModal({
             <div className="flex justify-between border-b pb-2 border-gray-100">
               <span className="text-gray-500 font-medium">Căn hộ đang thuê:</span>
               <span className="font-semibold text-gray-800 text-right">
-                {tenant.contracts[0].apartment.building?.branch_name || "YuKi House"} - Phòng {tenant.contracts[0].apartment.room_number} (Tầng {tenant.contracts[0].apartment.floor})
+                {tenant.contracts[0].apartment.building?.branch_name || "YuKi House"} - Phòng {tenant.contracts[0].apartment.floor}{tenant.contracts[0].apartment.room_number}
               </span>
             </div>
           )}

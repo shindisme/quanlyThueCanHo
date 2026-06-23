@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Plus, Users, Eye, Pencil, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import PageHeader from "../../../components/ui/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
@@ -13,6 +14,9 @@ import type { Tenant } from "../../../types";
 import { toast } from "sonner";
 import { removeVietnameseTones, maskPhone, maskCCCD } from "../../../utils/format";
 import * as tenantService from "../../../services/tenantService";
+import * as contractService from "../../../services/contractService";
+import * as apartmentService from "../../../services/apartmentService";
+import * as buildingService from "../../../services/buildingService";
 
 import TenantCreateModal from "./components/TenantCreateModal";
 import TenantModifyModal from "./components/TenantModifyModal";
@@ -22,6 +26,7 @@ import TenantDetailModal from "./components/TenantDetailModal";
 // Danh sách người thuê
 export default function TenantList() {
   const { role, managedBuildingId } = useAuthStore();
+  const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -33,6 +38,9 @@ export default function TenantList() {
   const [viewItem, setViewItem] = useState<Tenant | null>(null);
 
   const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [contracts, setContracts] = useState<any[]>([]);
+  const [apartments, setApartments] = useState<any[]>([]);
+  const [buildings, setBuildings] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
@@ -47,6 +55,16 @@ export default function TenantList() {
       } else {
         setTotalPages(currentPage);
       }
+
+      // Load contracts, apartments and buildings to associate them client-side
+      const [cRes, aptRes, bRes] = await Promise.all([
+        contractService.getAllContracts().catch(() => mockContracts as any),
+        apartmentService.getAllApartments({ limit: 100 }).catch(() => ({ data: mockApartments })),
+        buildingService.getAllBuildings({ limit: 100 }).catch(() => ({ data: [] }))
+      ]);
+      setContracts(cRes);
+      setApartments(aptRes.data);
+      setBuildings(bRes.data);
     } catch {
       toast.error("Không thể tải danh sách người thuê");
     }
@@ -54,14 +72,11 @@ export default function TenantList() {
 
   // Lọc theo tòa nhà của quản lý
   const displayTenants = (() => {
-    const storedContracts = localStorage.getItem("custom-contracts");
-    const currentContracts = storedContracts ? JSON.parse(storedContracts) : mockContracts;
-
     if (role === "MANAGER" && managedBuildingId) {
       const managerApartmentIds = mockApartments
         .filter((a) => a.building_id === managedBuildingId)
         .map((a) => a.id);
-      const managerTenantIds = currentContracts
+      const managerTenantIds = contracts
         .filter((c: any) => managerApartmentIds.includes(c.apartment_id))
         .map((c: any) => c.tenant_id);
       return tenants.filter((t) => managerTenantIds.includes(t.id));
@@ -69,8 +84,32 @@ export default function TenantList() {
     return tenants;
   })();
 
-  // Lọc
-  const filtered = displayTenants.filter((t) => {
+  // Gắn thông tin hợp đồng và căn hộ vào người thuê để hiển thị cột căn hộ
+  const displayTenantsWithContracts = displayTenants.map((t) => {
+    const tenantContracts = contracts.filter((c) => c.tenant_id === t.id);
+    const activeContract = tenantContracts.find((c) => c.status === "ACTIVE") || tenantContracts[0];
+
+    if (activeContract) {
+      const apt = apartments.find((a) => a.id === activeContract.apartment_id);
+      const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
+      return {
+        ...t,
+        contracts: [
+          {
+            ...activeContract,
+            apartment: apt ? {
+              ...apt,
+              building: bld,
+            } : undefined,
+          },
+        ],
+      };
+    }
+    return { ...t, contracts: [] };
+  });
+
+  // Lọc tìm kiếm
+  const filtered = displayTenantsWithContracts.filter((t) => {
     const term = removeVietnameseTones(search);
     const nameNorm = removeVietnameseTones(t.full_name);
     const citizenNorm = removeVietnameseTones(t.citizen_id);
@@ -113,7 +152,7 @@ export default function TenantList() {
         return (
           <div className="text-xs">
             <span className="font-semibold text-primary-600 block">{bld?.branch_name || "YuKi House"}</span>
-            <span className="text-gray-500">P.{apt.room_number} (Tầng {apt.floor})</span>
+            <span className="text-gray-500">P.{apt.floor}{apt.room_number}</span>
           </div>
         );
       }
@@ -193,7 +232,12 @@ export default function TenantList() {
       <TenantCreateModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onSuccess={loadData}
+        onSuccess={(newTenantId) => {
+          loadData();
+          if (newTenantId) {
+            navigate("/admin/contracts", { state: { openCreateModal: true, tenantId: newTenantId } });
+          }
+        }}
       />
 
       <TenantModifyModal

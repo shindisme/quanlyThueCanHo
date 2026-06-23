@@ -41,8 +41,6 @@ export default function ApartmentList() {
   const [featuredIds, setFeaturedIds] = useState<number[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
   const pageSize = 20;
 
   // Lấy danh sách tòa nhà 
@@ -76,24 +74,18 @@ export default function ApartmentList() {
     localStorage.setItem("featured-apartment-ids", JSON.stringify(updated));
   }
 
-  // Lấy danh sách căn hộ 
   useEffect(() => {
     fetchApartments();
-  }, [currentPage, filterBuilding, filterStatus, search]);
+  }, [filterBuilding]);
 
   async function fetchApartments() {
     try {
       setLoading(true);
       const result = await apartmentService.getAllApartments({
         building_id: filterBuilding,
-        status: filterStatus || undefined,
-        search: search || undefined,
-        page: currentPage,
-        limit: pageSize,
+        limit: 100,
       });
       setApartments(result.data);
-      setTotalPages(result.pagination.totalPages);
-      setTotalCount(result.pagination.total);
     } catch {
       toast.error("Không thể tải dữ liệu");
     } finally {
@@ -101,13 +93,27 @@ export default function ApartmentList() {
     }
   }
 
-  // Lọc dữ liệu trên 
   const filtered = apartments.filter((apt) => {
-    if (filterFeatured === "featured") {
-      return featuredIds.includes(apt.id);
+    if (search) {
+      const s = search.toLowerCase();
+      const roomMatch = apt.room_number.toLowerCase().includes(s);
+      const floorMatch = `tầng ${apt.floor}`.includes(s) || String(apt.floor).includes(s);
+      const buildingName = buildings.find((b) => b.id === apt.building_id)?.branch_name.toLowerCase() || "";
+      const buildingMatch = buildingName.includes(s);
+      if (!roomMatch && !floorMatch && !buildingMatch) {
+        return false;
+      }
     }
-    if (filterFeatured === "non-featured") {
-      return !featuredIds.includes(apt.id);
+
+    if (filterStatus && apt.status !== filterStatus) {
+      return false;
+    }
+
+    if (filterFeatured === "featured" && !featuredIds.includes(apt.id)) {
+      return false;
+    }
+    if (filterFeatured === "non-featured" && featuredIds.includes(apt.id)) {
+      return false;
     }
 
     return true;
@@ -115,7 +121,13 @@ export default function ApartmentList() {
 
   const { items: sortedApartments, requestSort, getSortIcon } = useSort(filtered);
 
-  const paginatedApartments = sortedApartments;
+  const totalCount = filtered.length;
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  const paginatedApartments = sortedApartments.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   function getStatusBadge(status: string) {
     const map: Record<string, { label: string; variant: string }> = {

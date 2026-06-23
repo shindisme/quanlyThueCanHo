@@ -13,6 +13,8 @@ import {
   UserCog,
   Settings,
   Briefcase,
+  User,
+  ClipboardList,
 } from "lucide-react";
 import type { Role } from "./enums";
 
@@ -107,23 +109,23 @@ const tenantMenu: SidebarGroup[] = [
       { label: "Trang chủ", path: "/tenant/home", icon: Home },
     ],
   },
-  // {
-  //   title: "Cá nhân",
-  //   items: [
-  //     { label: "Hợp đồng của tôi", path: "/tenant/contracts", icon: ClipboardList },
-  //     { label: "Hoá đơn", path: "/tenant/invoices", icon: Receipt },
-  //     { label: "Thanh toán", path: "/tenant/payments", icon: CreditCard },
-  //     { label: "Điện nước", path: "/tenant/utilities", icon: Zap },
-  //   ],
-  // },
-  // {
-  //   title: "Hỗ trợ",
-  //   items: [
-  //     { label: "Yêu cầu sửa chữa", path: "/tenant/maintenance", icon: Wrench },
-  //     { label: "Thông báo", path: "/tenant/notifications", icon: Bell },
-  //     { label: "Hồ sơ cá nhân", path: "/tenant/profile", icon: User },
-  //   ],
-  // },
+  {
+    title: "Cá nhân",
+    items: [
+      { label: "Hợp đồng của tôi", path: "/tenant/contracts", icon: ClipboardList },
+      { label: "Hoá đơn", path: "/tenant/invoices", icon: Receipt },
+      { label: "Thanh toán", path: "/tenant/payments", icon: CreditCard },
+      { label: "Điện nước", path: "/tenant/utilities", icon: Zap },
+    ],
+  },
+  {
+    title: "Hỗ trợ",
+    items: [
+      { label: "Yêu cầu sửa chữa", path: "/tenant/maintenance", icon: Wrench },
+      { label: "Thông báo", path: "/tenant/notifications", icon: Bell },
+      { label: "Hồ sơ cá nhân", path: "/tenant/profile", icon: User },
+    ],
+  },
 ];
 
 // Lay menu theo role nguoi dung

@@ -36,6 +36,52 @@ export default function Header() {
   const profileRef = useRef<HTMLDivElement>(null);
   const [managedBuildingName, setManagedBuildingName] = useState<string | null>(storeBuildingName);
 
+  const [userFullName, setUserFullName] = useState<string>(
+    role === "ADMIN" ? "Quản trị viên" : role === "MANAGER" ? "Quản lý" : "Người thuê"
+  );
+  const [accountUsername, setAccountUsername] = useState<string>(
+    email?.split("@")[0] || "User"
+  );
+
+  useEffect(() => {
+    if (!token) return;
+    const decoded = parseJwt(token);
+    if (!decoded || !decoded.userId) return;
+
+    async function loadUserProfile() {
+      try {
+        if (role === "MANAGER") {
+          const { getAllStaff } = await import("../../services/staffService");
+          const staffRes = await getAllStaff();
+          const currentStaff = staffRes.data.find((s) => s.user_id === decoded.userId);
+          if (currentStaff) {
+            setUserFullName(currentStaff.full_name);
+            if (currentStaff.user?.username) {
+              setAccountUsername(currentStaff.user.username);
+            }
+          }
+        } else if (role === "TENANT") {
+          const { getAllTenants } = await import("../../services/tenantService");
+          const tenantsRes = await getAllTenants({ limit: 1000 });
+          const currentTenant = tenantsRes.data.find((t) => t.user_id === decoded.userId);
+          if (currentTenant) {
+            setUserFullName(currentTenant.full_name);
+            if (currentTenant.user?.username) {
+              setAccountUsername(currentTenant.user.username);
+            }
+          }
+        } else if (role === "ADMIN") {
+          setUserFullName("Quản trị viên");
+          setAccountUsername("admin");
+        }
+      } catch (err) {
+        console.error("Lỗi khi tải thông tin chi tiết người dùng:", err);
+      }
+    }
+
+    loadUserProfile();
+  }, [token, role]);
+
   // Lưu infor cho breadcrum toà nhà và căn hộ
   const [dynamicBuildingName, setDynamicBuildingName] = useState<string | null>(null);
   const [dynamicApartmentName, setDynamicApartmentName] = useState<string | null>(null);
@@ -136,7 +182,6 @@ export default function Header() {
     fetchDynamicNames();
   }, [location.pathname, role]);
 
-  const displayName = email?.split("@")[0] || "User";
   const roleLabel =
     role === "ADMIN" ? "Quản trị viên"
       : role === "MANAGER" ? (managedBuildingName ? `Quản lý: ${managedBuildingName}` : "Quản lý")
@@ -253,7 +298,7 @@ export default function Header() {
             </div>
 
             <div className="hidden sm:block text-left">
-              <p className="text-sm font-medium text-gray-800 leading-tight">{displayName}</p>
+              <p className="text-sm font-medium text-gray-800 leading-tight">{userFullName}</p>
               <p className="text-[11px] text-gray-400">{roleLabel}</p>
             </div>
             <ChevronDown size={14} className="text-gray-400 hidden sm:block" />
@@ -265,8 +310,8 @@ export default function Header() {
               style={{ boxShadow: "var(--shadow-dropdown)" }}>
               {/* User info  */}
               <div className="px-4 py-3 border-b border-gray-100">
-                <p className="text-sm font-semibold text-gray-800">{displayName}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{email}</p>
+                <p className="text-sm font-semibold text-gray-800">{userFullName}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{accountUsername}</p>
               </div>
 
               {/* Menu items */}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Plus, Loader2, FileText, Eye, Calendar } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import PageHeader from "../../../components/ui/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
@@ -30,7 +31,8 @@ import ContractDetailModal from "./components/ContractDetailModal";
 import ContractDocModal from "./components/ContractDocModal";
 
 export default function ContractList() {
-  const { role, managedBuildingId } = useAuthStore();
+  const { role, managedBuildingId, email } = useAuthStore();
+  const location = useLocation();
 
   const [contracts, setContracts] = useState<RentalContract[]>([]);
   const [buildings, setBuildings] = useState<BuildingData[]>([]);
@@ -50,10 +52,22 @@ export default function ContractList() {
   const [selectedDocContract, setSelectedDocContract] = useState<RentalContract | null>(null);
   const [selectedExtendContract, setSelectedExtendContract] = useState<RentalContract | null>(null);
   const [extendEndDate, setExtendEndDate] = useState("");
+  const [initialTenantId, setInitialTenantId] = useState<number | undefined>();
 
   useEffect(() => {
     loadAllData();
   }, []);
+
+  useEffect(() => {
+    if (location.state && (location.state as any).openCreateModal) {
+      const stateObj = location.state as any;
+      if (stateObj.tenantId) {
+        setInitialTenantId(Number(stateObj.tenantId));
+      }
+      setShowCreateModal(true);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   async function loadAllData() {
     try {
@@ -113,13 +127,22 @@ export default function ContractList() {
     }
   }
 
-  // Filter based on role (MANAGER only sees their assigned building)
   const displayContracts = (() => {
     if (role === "MANAGER" && managedBuildingId) {
       const buildingApartmentIds = apartments
         .filter((a) => a.building_id === managedBuildingId)
         .map((a) => a.id);
       return contracts.filter((c) => buildingApartmentIds.includes(c.apartment_id));
+    }
+    if (role === "TENANT") {
+      const currentUser = users.find((u) => u.username === email);
+      const currentTenant = currentUser
+        ? tenants.find((t) => t.user_id === currentUser.id)
+        : null;
+      if (currentTenant) {
+        return contracts.filter((c) => c.tenant_id === currentTenant.id);
+      }
+      return [];
     }
     return contracts;
   })();
@@ -191,9 +214,11 @@ export default function ContractList() {
         count={filteredContracts.length}
         iconColor="linear-gradient(135deg, #10B981, #34D399)"
         actions={
-          <Button onClick={() => setShowCreateModal(true)}>
-            <Plus size={18} /> Tạo hợp đồng
-          </Button>
+          role !== "TENANT" && (
+            <Button onClick={() => setShowCreateModal(true)}>
+              <Plus size={18} /> Tạo hợp đồng
+            </Button>
+          )
         }
       />
 
@@ -283,7 +308,7 @@ export default function ContractList() {
                           >
                             <FileText size={16} />
                           </button>
-                          {c.status === "ACTIVE" && (
+                          {c.status === "ACTIVE" && role !== "TENANT" && (
                             <button
                               onClick={() => {
                                 setSelectedExtendContract(c);
@@ -329,6 +354,7 @@ export default function ContractList() {
         currentUser={{ id: 1 }}
         role={role}
         managerBuildingId={managedBuildingId || undefined}
+        initialTenantId={initialTenantId}
       />
 
       {/* Contract Detail Modal */}

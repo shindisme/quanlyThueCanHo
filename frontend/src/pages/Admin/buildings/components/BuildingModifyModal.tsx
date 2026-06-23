@@ -68,6 +68,8 @@ export default function BuildingModifyModal({
   }
 
   const availableManagers = staffList.filter((m) => {
+    const isManager = m.position === "Quản lý" || m.user?.role === "MANAGER";
+    if (!isManager) return false;
     if (m.user?.role === "ADMIN") return false;
     if (!m.building_id) return true;
     if (editItem && m.building_id === editItem.id) return true;

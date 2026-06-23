@@ -48,7 +48,10 @@ export const resetPassword = async (req: Request, res: Response) => {
 };
 
 export const changePassword = async (req: Request, res: Response) => {
-    const userId = req.user.userId;
+    const userId = req.user?.id;
+    if (!userId) {
+        return res.status(401).json({ message: "Vui lòng đăng nhập để đổi mật khẩu" });
+    }
     await authService.changePasswordService(userId, req.body.oldPass, req.body.newPass);
     res.json({ message: "Đổi mật khẩu thành công" });
 };

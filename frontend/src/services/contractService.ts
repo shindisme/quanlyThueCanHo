@@ -26,6 +26,39 @@ export async function getAllContracts(params?: {
 }): Promise<RentalContract[]> {
   let contracts = getMigratedContracts();
 
+  try {
+    const { getAllTenants } = await import("./tenantService");
+    const tRes = await getAllTenants({ limit: 1000 });
+    const dbTenants = tRes.data;
+
+    const storedTenants = localStorage.getItem("custom-tenants");
+    const { mockTenants } = await import("../data/tenants");
+    const localTenants: any[] = storedTenants ? JSON.parse(storedTenants) : mockTenants;
+
+    let changed = false;
+    contracts = contracts.map((c) => {
+      const localT = localTenants.find((lt) => lt.id === c.tenant_id);
+      if (localT) {
+        const dbT = dbTenants.find(
+          (dt) =>
+            dt.citizen_id === localT.citizen_id ||
+            dt.full_name.toLowerCase().trim() === localT.full_name.toLowerCase().trim()
+        );
+        if (dbT && dbT.id !== c.tenant_id) {
+          c.tenant_id = dbT.id;
+          changed = true;
+        }
+      }
+      return c;
+    });
+
+    if (changed) {
+      localStorage.setItem("custom-contracts", JSON.stringify(contracts));
+    }
+  } catch (err) {
+    console.error("Lỗi đồng bộ ID người thuê:", err);
+  }
+
   if (params?.buildingId) {
     const storedApts = localStorage.getItem("custom-apartments");
     const { mockApartments } = await import("../data/apartments");

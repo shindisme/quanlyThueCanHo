@@ -17,10 +17,7 @@ export default function MaintenanceKanban() {
 
   return (
     <div className="p-6 font-sans">
-      <h2 className="text-xl font-bold mb-4">Yêu cầu sửa chữa ({displayRequests.length})</h2>
-      <div className="bg-white p-8 text-center text-gray-500 rounded-xl border border-gray-200">
-        Tính năng Kanban yêu cầu sửa chữa đang được hoàn thiện.
-      </div>
+
     </div>
   );
 }

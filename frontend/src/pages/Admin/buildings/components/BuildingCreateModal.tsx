@@ -60,6 +60,8 @@ export default function BuildingCreateModal({
   }
 
   const availableManagers = staffList.filter((m) => {
+    const isManager = m.position === "Quản lý" || m.user?.role === "MANAGER";
+    if (!isManager) return false;
     if (m.user?.role === "ADMIN") return false;
     if (!m.building_id) return true;
     return false;

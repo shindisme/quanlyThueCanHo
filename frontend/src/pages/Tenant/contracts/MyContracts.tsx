@@ -1,84 +1,87 @@
 import { useState, useEffect } from "react";
-import { FileText } from "lucide-react";
+import { FileText, Star } from "lucide-react";
 import Badge from "../../../components/ui/Badge";
 import SearchInput from "../../../components/ui/SearchInput";
 import PageHeader from "../../../components/ui/PageHeader";
 import Modal from "../../../components/ui/Modal";
 import Button from "../../../components/ui/Button";
+import { toast } from "sonner";
 
 import { useAuthStore } from "../../../stores/auth.store";
-import { mockBuildings } from "../../../data/buildings";
-import { mockApartments } from "../../../data/apartments";
-import { mockTenants } from "../../../data/tenants";
-import { mockUsers } from "../../../data/users";
-import { mockContracts } from "../../../data/contracts";
 import * as buildingService from "../../../services/buildingService";
 import * as apartmentService from "../../../services/apartmentService";
+import * as tenantService from "../../../services/tenantService";
+import * as contractService from "../../../services/contractService";
 import { formatApartmentDisplay, formatCurrency, formatDate, removeVietnameseTones, numberToVietnameseWords } from "../../../utils/format";
 import type { RentalContract, Tenant } from "../../../types";
 
+function parseJwt(token: string) {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      window
+        .atob(base64)
+        .split("")
+        .map(function (c) {
+          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+        })
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
+
 export default function MyContracts() {
-  const { email } = useAuthStore();
+  const { token } = useAuthStore();
   const [search, setSearch] = useState("");
 
   const [contracts, setContracts] = useState<RentalContract[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
   const [buildings, setBuildings] = useState<any[]>([]);
   const [apartments, setApartments] = useState<any[]>([]);
 
   const [viewContractDoc, setViewContractDoc] = useState<RentalContract | null>(null);
 
+  // Review states
+  const [reviewContractItem, setReviewContractItem] = useState<RentalContract | null>(null);
+  const [rating, setRating] = useState<number>(5);
+  const [comment, setComment] = useState<string>("");
+  const [submittingReview, setSubmittingReview] = useState<boolean>(false);
+
   useEffect(() => {
     buildingService.getAllBuildings({ limit: 100 }).then((res) => {
       setBuildings(res.data);
     }).catch(() => {
-      setBuildings(mockBuildings);
+      toast.error("Không thể tải danh sách tòa nhà");
     });
 
     apartmentService.getAllApartments({ limit: 1000 }).then((res) => {
       setApartments(res.data);
     }).catch(() => {
-      setApartments(mockApartments as any);
+      toast.error("Không thể tải danh sách căn hộ");
     });
 
-    const storedTenants = localStorage.getItem("custom-tenants");
-    if (storedTenants) {
-      try {
-        setTenants(JSON.parse(storedTenants));
-      } catch {
-        setTenants(mockTenants);
-      }
-    } else {
-      setTenants(mockTenants);
-    }
+    tenantService.getAllTenants({ limit: 1000 }).then((res) => {
+      setTenants(res.data);
+    }).catch(() => {
+      toast.error("Không thể tải danh sách người thuê");
+    });
 
-    const storedContracts = localStorage.getItem("custom-contracts");
-    if (storedContracts) {
-      try {
-        setContracts(JSON.parse(storedContracts));
-      } catch {
-        setContracts(mockContracts);
-      }
-    } else {
-      setContracts(mockContracts);
-    }
-
-    const storedUsers = localStorage.getItem("custom-users");
-    if (storedUsers) {
-      try {
-        setUsers(JSON.parse(storedUsers));
-      } catch {
-        setUsers(mockUsers);
-      }
-    } else {
-      setUsers(mockUsers);
-    }
+    contractService.getAllContracts().then((data) => {
+      setContracts(data);
+    }).catch(() => {
+      toast.error("Không thể tải danh sách hợp đồng");
+    });
   }, []);
 
-  const currentUser = users.find((u) => u.email === email);
-  const currentTenant = currentUser
-    ? tenants.find((t) => t.user_id === currentUser.id)
+  const decoded = token ? parseJwt(token) : null;
+  const userId = decoded?.userId;
+
+  const currentTenant = userId
+    ? tenants.find((t) => t.user_id === userId)
     : null;
 
   const myContracts = currentTenant
@@ -104,7 +107,7 @@ export default function MyContracts() {
       <PageHeader
         icon={FileText}
         title="Hợp đồng của tôi"
-        subtitle="Xem lại các hợp đồng thuê căn hộ của bạn"
+        subtitle="Xem các hợp đồng thuê căn hộ của bạn"
         count={filtered.length}
         iconColor="linear-gradient(135deg, #10B981, #34D399)"
       />
@@ -140,6 +143,15 @@ export default function MyContracts() {
                   >
                     <FileText size={14} /> Xem HĐ
                   </button>
+                  {c.status === "ENDED" && (
+                    <button
+                      type="button"
+                      onClick={() => setReviewContractItem(c)}
+                      className="p-1 px-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white cursor-pointer flex items-center gap-1 text-xs font-semibold transition-colors"
+                    >
+                      <Star size={14} className="fill-white" /> Đánh giá
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -219,7 +231,6 @@ export default function MyContracts() {
           const tenant = tenants.find((t) => t.id === viewContractDoc.tenant_id);
           const apt = apartments.find((a) => a.id === viewContractDoc.apartment_id);
           const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
-          const tenantUser = tenant ? users.find((u) => u.id === tenant.user_id) : null;
 
           const maxOcc = viewContractDoc.max_occupants || (apt ? Math.max(2, apt.bedrooms * 2) : 2);
           const actOcc = viewContractDoc.actual_occupants || 1;
@@ -240,8 +251,8 @@ export default function MyContracts() {
             <div className="bg-gray-50 p-4 sm:p-8 rounded-2xl overflow-y-auto max-h-[70vh] border border-gray-200">
               <div
                 id="printable-contract-area"
-                className="bg-white p-6 sm:p-10 shadow-sm border border-gray-150 rounded-lg text-gray-800 font-serif leading-relaxed text-sm"
-                style={{ minHeight: "297mm" }}
+                className="bg-white p-6 sm:p-10 shadow-sm border border-gray-150 rounded-lg text-gray-800 leading-relaxed text-sm"
+                style={{ minHeight: "297mm", fontFamily: '"Times New Roman", Times, serif' }}
               >
                 {/* Tiêu ngữ */}
                 <div className="text-center space-y-1 mb-6">
@@ -293,7 +304,7 @@ export default function MyContracts() {
                       <p>Ông/bà: <span className="font-semibold text-gray-800">{tenant?.full_name || "CHƯA XÁC ĐỊNH"}</span></p>
                       <p>Số CMND/CCCD: {tenant?.citizen_id || "Chưa cập nhật"}</p>
                       <p>Địa chỉ: {tenant?.address || "Chưa cập nhật"}</p>
-                      <p>Số điện thoại: {tenantUser?.phone || "Chưa cập nhật"}</p>
+                      <p>Số điện thoại: {tenant?.phone || "Chưa cập nhật"}</p>
                     </div>
                   </div>
 
@@ -492,6 +503,97 @@ export default function MyContracts() {
             </div>
           );
         })()}
+      </Modal>
+
+      {/* Review Modal */}
+      <Modal
+        isOpen={!!reviewContractItem}
+        onClose={() => setReviewContractItem(null)}
+        title="Đánh giá căn hộ"
+        size="md"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setReviewContractItem(null)}>
+              Hủy
+            </Button>
+            <Button
+              isLoading={submittingReview}
+              onClick={async () => {
+                if (!reviewContractItem) return;
+                setSubmittingReview(true);
+                try {
+                  const { createReview } = await import("../../../services/reviewService");
+                  await createReview({
+                    apartment_id: reviewContractItem.apartment_id,
+                    rating,
+                    comment,
+                  });
+                  toast.success("Cảm ơn bạn đã gửi đánh giá cho căn hộ!");
+                  setReviewContractItem(null);
+                  setComment("");
+                  setRating(5);
+                } catch (error: any) {
+                  toast.error(error.response?.data?.message || error.message || "Đánh giá thất bại. Vui lòng thử lại sau.");
+                } finally {
+                  setSubmittingReview(false);
+                }
+              }}
+            >
+              Gửi đánh giá
+            </Button>
+          </>
+        }
+      >
+        {reviewContractItem && (
+          <div className="space-y-4 font-sans text-xs sm:text-sm">
+            <p className="text-gray-500">
+              Hãy chia sẻ trải nghiệm của bạn tại căn hộ này sau khi kết thúc hợp đồng thuê.
+            </p>
+
+            <div className="flex flex-col items-center gap-2 py-4">
+              <span className="text-sm font-semibold text-gray-700">Điểm đánh giá:</span>
+              <div className="flex gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    className="focus:outline-none transition-transform hover:scale-110 cursor-pointer"
+                  >
+                    <Star
+                      size={32}
+                      className={
+                        star <= rating ? "fill-amber-400 text-amber-400" : "text-gray-300"
+                      }
+                    />
+                  </button>
+                ))}
+              </div>
+              <span className="text-xs text-amber-600 font-bold mt-1">
+                {rating === 5
+                  ? "Tuyệt vời (5/5)"
+                  : rating === 4
+                    ? "Tốt (4/5)"
+                    : rating === 3
+                      ? "Bình thường (3/5)"
+                      : rating === 2
+                        ? "Tạm được (2/5)"
+                        : "Kém (1/5)"}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="font-semibold text-gray-700">Ý kiến nhận xét:</label>
+              <textarea
+                rows={4}
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Nhập nội dung nhận xét của bạn về căn hộ, dịch vụ, quản lý..."
+                className="premium-input rounded-xl resize-none text-xs"
+              />
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

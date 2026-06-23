@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, MapPin, Maximize2, Calendar, Phone, User, Loader2 } from "lucide-react";
+import { ArrowLeft, MapPin, Maximize2, Calendar, Phone, User, Loader2, Star, Mail } from "lucide-react";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 import Badge from "../../components/ui/Badge";
@@ -15,6 +15,7 @@ import * as apartmentService from "../../services/apartmentService";
 import * as buildingService from "../../services/buildingService";
 import type { ApartmentData } from "../../services/apartmentService";
 import type { BuildingData } from "../../services/buildingService";
+import { getApartmentReviews } from "../../services/reviewService";
 
 interface BookedSlot {
   apartmentId: number;
@@ -42,13 +43,17 @@ export default function GuestApartmentDetail() {
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlot, setSelectedSlot] = useState("");
 
-  // Form đặt lịch - controlled inputs
+  // Form đặt lịch 
   const [scheduleForm, setScheduleForm] = useState({
     guest_name: "",
     guest_phone: "",
+    guest_email: "",
     schedule_time: "",
     note: ""
   });
+
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewMeta, setReviewMeta] = useState<any>({ averageRating: 0, totalReviews: 0 });
 
   useEffect(() => {
     if (!id) return;
@@ -79,6 +84,15 @@ export default function GuestApartmentDetail() {
           setBuilding(bld);
         } else if (apt.building) {
           setBuilding(apt.building as any);
+        }
+
+        // Load reviews
+        try {
+          const revs = await getApartmentReviews(aptId);
+          setReviews(revs.data);
+          setReviewMeta(revs.meta);
+        } catch (e) {
+          console.error("Error loading reviews:", e);
         }
       } catch (error) {
         console.error("Error fetching apartment from API, falling back to mock:", error);
@@ -151,8 +165,8 @@ export default function GuestApartmentDetail() {
 
   async function handleSubmitSchedule() {
     if (!apartment) return;
-    if (!scheduleForm.guest_name || !scheduleForm.guest_phone || !selectedDate || !selectedSlot) {
-      toast.error("Vui lòng nhập họ tên, số điện thoại, chọn ngày và giờ xem phòng");
+    if (!scheduleForm.guest_name || !scheduleForm.guest_phone || !scheduleForm.guest_email || !selectedDate || !selectedSlot) {
+      toast.error("Vui lòng nhập đầy đủ thông tin: họ tên, số điện thoại, email, ngày và giờ xem phòng");
       return;
     }
     setSaving(true);
@@ -164,6 +178,7 @@ export default function GuestApartmentDetail() {
           ? `${scheduleForm.guest_name} [Ghi chú: ${scheduleForm.note}]`
           : scheduleForm.guest_name,
         guest_phone: scheduleForm.guest_phone,
+        guest_email: scheduleForm.guest_email,
         schedule_time: combinedTime,
       });
 
@@ -179,7 +194,7 @@ export default function GuestApartmentDetail() {
 
       toast.success("Đã gửi yêu cầu đặt lịch xem phòng thành công!");
       setShowScheduleForm(false);
-      setScheduleForm({ guest_name: "", guest_phone: "", schedule_time: "", note: "" });
+      setScheduleForm({ guest_name: "", guest_phone: "", guest_email: "", schedule_time: "", note: "" });
       setSelectedDate("");
       setSelectedSlot("");
     } catch (error: any) {
@@ -289,6 +304,53 @@ export default function GuestApartmentDetail() {
               <h3 className="font-semibold text-gray-800 mb-3">Mô tả</h3>
               <p className="text-sm text-gray-600 leading-relaxed">{apartment.description}</p>
             </Card>
+
+            {/* Đánh giá & Nhận xét */}
+            <Card>
+              <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <span>Đánh giá & Nhận xét</span>
+                {reviewMeta.totalReviews > 0 && (
+                  <span className="text-xs bg-amber-100 text-amber-800 font-semibold px-2 py-0.5 rounded-full">
+                    {reviewMeta.averageRating}★ ({reviewMeta.totalReviews})
+                  </span>
+                )}
+              </h3>
+
+              {reviews.length > 0 ? (
+                <div className="divide-y divide-gray-150 space-y-4">
+                  {reviews.map((r) => (
+                    <div key={r.id} className="pt-4 first:pt-0 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-gray-700 text-sm">
+                          {r.tenant?.full_name || "Khách hàng Yuki House"}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {new Date(r.created_at).toLocaleDateString("vi-VN")}
+                        </span>
+                      </div>
+
+                      <div className="flex gap-0.5">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            size={14}
+                            className={
+                              s <= r.rating ? "fill-amber-400 text-amber-400" : "text-gray-200"
+                            }
+                          />
+                        ))}
+                      </div>
+
+                      <p className="text-sm text-gray-650 leading-relaxed">
+                        {r.comment || "Không có nội dung nhận xét."}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 text-center py-4">Chưa có đánh giá nào cho căn hộ này.</p>
+              )}
+            </Card>
           </div>
 
           {/* Cot phai - Dat lich xem phong */}
@@ -342,6 +404,16 @@ export default function GuestApartmentDetail() {
                 <input type="tel" value={scheduleForm.guest_phone}
                   onChange={(e) => setScheduleForm({ ...scheduleForm, guest_phone: e.target.value })}
                   placeholder="0901234567" className="premium-input rounded-xl pl-10! text-xs" />
+              </div>
+            </div>
+
+            <div className="col-span-12">
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email *</label>
+              <div className="relative">
+                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input type="email" value={scheduleForm.guest_email}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, guest_email: e.target.value })}
+                  placeholder="example@gmail.com" className="premium-input rounded-xl pl-10! text-xs" />
               </div>
             </div>
 

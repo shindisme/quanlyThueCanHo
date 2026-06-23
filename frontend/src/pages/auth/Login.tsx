@@ -9,76 +9,13 @@ import { useAuthStore } from "../../stores/auth.store";
 import { login } from "../../services/authService";
 import Button from "../../components/ui/Button";
 
-import { mockBuildings } from "../../data/buildings";
-import { mockTenants } from "../../data/tenants";
-import { mockUsers } from "../../data/users";
-import { removeVietnameseTones } from "../../utils/format";
-
 interface LoginForm {
   email: string;
   password: string;
 }
 
 function resolveEmailFromUsername(username: string): string {
-  const clean = username.trim().toLowerCase();
-
-  // Admin
-  if (clean === "admin") {
-    return "[EMAIL_ADDRESS]";
-  }
-
-  // Quản lý
-  if (clean.startsWith("manager")) {
-    const searchPart = clean.slice(7);
-
-    const matchBuilding = mockBuildings.find((b) => {
-      const bBranchClean = removeVietnameseTones(b.branch_name)
-        .replace(/\s+/g, "")
-        .toLowerCase()
-        .replace("chinhanh", "");
-      const bNameClean = removeVietnameseTones(b.name)
-        .replace(/\s+/g, "")
-        .toLowerCase();
-
-      return (
-        bBranchClean === searchPart ||
-        bBranchClean.replace("quan", "q") === searchPart ||
-        bNameClean.includes(searchPart)
-      );
-    });
-
-    if (matchBuilding) {
-      const storedUsers = localStorage.getItem("custom-users");
-      const userList = storedUsers ? JSON.parse(storedUsers) : mockUsers;
-      const matchedManager = userList.find(
-        (u: any) => u.role === "MANAGER" && u.managedBuildingId === matchBuilding.id
-      );
-      if (matchedManager) {
-        return matchedManager.email;
-      }
-    }
-  }
-
-  const storedTenants = localStorage.getItem("custom-tenants");
-  const tenantList = storedTenants ? JSON.parse(storedTenants) : mockTenants;
-
-  let targetTenant = null;
-
-  if (clean.startsWith("yh")) {
-    const last6 = clean.slice(2);
-    targetTenant = tenantList.find((t: any) => t.citizen_id.endsWith(last6));
-  }
-
-  if (targetTenant) {
-    const storedUsers = localStorage.getItem("custom-users");
-    const userList = storedUsers ? JSON.parse(storedUsers) : mockUsers;
-    const linkedUser = userList.find((u: any) => u.id === targetTenant.user_id);
-    if (linkedUser) {
-      return linkedUser.email;
-    }
-  }
-
-  return username;
+  return username.trim();
 }
 
 function parseJwt(token: string) {
