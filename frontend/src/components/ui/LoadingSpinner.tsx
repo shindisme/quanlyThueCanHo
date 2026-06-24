@@ -1,4 +1,3 @@
-// Loading spinner cho trang thai dang tai du lieu
 interface LoadingSpinnerProps {
   size?: number;
   className?: string;

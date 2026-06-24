@@ -1,7 +1,7 @@
-import { cn } from "../../lib/utils";
+import * as React from "react"
+import { cn } from "../../lib/utils"
 
-// Hien thi ky tu dau cua ten khi khong co anh
-interface AvatarProps {
+export interface AvatarProps {
   src?: string | null;
   name: string;
   size?: "sm" | "md" | "lg";
@@ -12,34 +12,64 @@ const sizeStyles = {
   sm: "w-8 h-8 text-xs",
   md: "w-10 h-10 text-sm",
   lg: "w-12 h-12 text-base",
-};
-
-export default function Avatar({ src, name, size = "md", className }: AvatarProps) {
-  if (src) {
-    return (
-      <img
-        src={src}
-        alt={name}
-        className={cn(
-          "rounded-lg object-cover",
-          sizeStyles[size],
-          className
-        )}
-      />
-    );
-  }
-
-  return (
-    <div
-      className={cn(
-        "rounded-lg bg-gray-200 text-gray-400 border border-gray-300 flex items-center justify-center overflow-hidden",
-        sizeStyles[size],
-        className
-      )}
-    >
-      <svg viewBox="0 0 24 24" className="w-2/3 h-2/3" fill="currentColor">
-        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-      </svg>
-    </div>
-  );
 }
+
+export const Avatar = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "relative flex shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white",
+      className
+    )}
+    {...props}
+  />
+))
+Avatar.displayName = "Avatar"
+
+export const AvatarImage = React.forwardRef<
+  HTMLImageElement,
+  React.ImgHTMLAttributes<HTMLImageElement>
+>(({ className, alt, ...props }, ref) => (
+  <img
+    ref={ref}
+    className={cn("aspect-square h-full w-full object-cover", className)}
+    alt={alt}
+    {...props}
+  />
+))
+AvatarImage.displayName = "AvatarImage"
+
+export const AvatarFallback = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "flex h-full w-full items-center justify-center bg-gray-100 text-gray-500 font-medium",
+      className
+    )}
+    {...props}
+  />
+))
+AvatarFallback.displayName = "AvatarFallback"
+
+export default function DefaultAvatar({ src, name, size = "md", className }: AvatarProps) {
+  return (
+    <Avatar className={cn(sizeStyles[size], className)}>
+      {src ? (
+        <AvatarImage src={src} alt={name} />
+      ) : (
+        <AvatarFallback>
+          <svg viewBox="0 0 24 24" className="w-2/3 h-2/3 text-gray-400" fill="currentColor">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+          </svg>
+        </AvatarFallback>
+      )}
+    </Avatar>
+  )
+}
+

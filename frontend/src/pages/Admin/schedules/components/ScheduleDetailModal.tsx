@@ -2,7 +2,7 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Badge from "../../../../components/ui/Badge";
 import type { ScheduleData } from "../../../../services/scheduleService";
-import { formatApartmentDisplay } from "../../../../utils/format";
+import { formatApartmentDisplay, parseGuestName } from "../../../../utils/format";
 import { mockBuildings } from "../../../../data/buildings";
 
 interface ScheduleDetailModalProps {
@@ -10,6 +10,7 @@ interface ScheduleDetailModalProps {
   onClose: () => void;
   schedule: ScheduleData | null;
   role: string | null;
+  buildings?: any[];
 }
 
 export default function ScheduleDetailModal({
@@ -17,6 +18,7 @@ export default function ScheduleDetailModal({
   onClose,
   schedule,
   role,
+  buildings = [],
 }: ScheduleDetailModalProps) {
   function getStatusBadge(status: string) {
     const map: Record<string, { label: string; variant: string }> = {
@@ -37,13 +39,20 @@ export default function ScheduleDetailModal({
       footer={<Button onClick={onClose}>Đóng</Button>}
     >
       {schedule && (() => {
-        const building = mockBuildings.find((b) => b.id === schedule.apartment?.building_id);
+        const building = buildings.find((b) => b.id === schedule.apartment?.building_id) || mockBuildings.find((b) => b.id === schedule.apartment?.building_id);
+        const { name: guestName, note: guestNote } = parseGuestName(schedule.guest_name);
         return (
           <div className="space-y-4 font-sans text-sm">
             <div className="flex justify-between border-b pb-2 border-gray-100">
               <span className="text-gray-500 font-medium">Họ và tên khách:</span>
-              <span className="font-semibold text-gray-800">{schedule.guest_name}</span>
+              <span className="font-semibold text-gray-800">{guestName}</span>
             </div>
+            {guestNote && (
+              <div className="flex justify-between border-b pb-2 border-gray-100">
+                <span className="text-gray-500 font-medium">Ghi chú:</span>
+                <span className="font-semibold text-amber-600">{guestNote}</span>
+              </div>
+            )}
             <div className="flex justify-between border-b pb-2 border-gray-100">
               <span className="text-gray-500 font-medium">Số điện thoại:</span>
               <span className="font-semibold text-gray-800">{schedule.guest_phone}</span>

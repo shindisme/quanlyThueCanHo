@@ -11,9 +11,19 @@ import Button from "../../../components/ui/Button";
 import { useAuthStore } from "../../../stores/auth.store";
 import * as scheduleService from "../../../services/scheduleService";
 import type { ScheduleData } from "../../../services/scheduleService";
+import * as buildingService from "../../../services/buildingService";
+
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../../../components/ui/Table";
 
 import { useSort } from "../../../hooks/useSort";
-import { formatApartmentDisplay, removeVietnameseTones, maskPhone } from "../../../utils/format";
+import { formatApartmentDisplay, removeVietnameseTones, maskPhone, parseGuestName } from "../../../utils/format";
 import { mockBuildings } from "../../../data/buildings";
 
 import ScheduleDeleteModal from "./components/ScheduleDeleteModal";
@@ -30,6 +40,7 @@ export default function ScheduleList() {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
+  const [buildings, setBuildings] = useState<any[]>([]);
   const itemsPerPage = 10;
 
   // Email modal states
@@ -45,17 +56,18 @@ export default function ScheduleList() {
 
   useEffect(() => {
     if (!emailItem) return;
-    const building = mockBuildings.find(b => b.id === emailItem.apartment?.building_id);
+    const building = buildings.find(b => b.id === emailItem.apartment?.building_id) || mockBuildings.find(b => b.id === emailItem.apartment?.building_id);
     const roomNumber = emailItem.apartment?.room_number || "";
     const floor = emailItem.apartment?.floor || "";
     const buildingName = building?.branch_name || building?.name || "Yuki House";
     const aptLabel = roomNumber ? `Căn hộ P.${floor}${roomNumber} tại chi nhánh ${buildingName}` : "căn hộ";
     const timeStr = new Date(emailItem.schedule_time).toLocaleString("vi-VN");
+    const cleanGuestName = parseGuestName(emailItem.guest_name).name;
 
     if (emailTemplate === "confirm") {
       setEmailSubject(`[Yuki House] Xác nhận lịch xem phòng ${aptLabel}`);
       setEmailBody(
-        `Kính gửi anh/chị ${emailItem.guest_name},\n\n` +
+        `Kính gửi anh/chị ${cleanGuestName},\n\n` +
         `Yuki House xin trân trọng xác nhận lịch hẹn xem phòng của anh/chị:\n` +
         `- Căn hộ: ${aptLabel}\n` +
         `- Thời gian: ${timeStr}\n\n` +
@@ -65,7 +77,7 @@ export default function ScheduleList() {
     } else if (emailTemplate === "cancel") {
       setEmailSubject(`[Yuki House] Thông báo hủy lịch xem phòng ${aptLabel}`);
       setEmailBody(
-        `Kính gửi anh/chị ${emailItem.guest_name},\n\n` +
+        `Kính gửi anh/chị ${cleanGuestName},\n\n` +
         `Rất tiếc Yuki House phải thông báo hủy lịch hẹn xem phòng của anh/chị:\n` +
         `- Căn hộ: ${aptLabel}\n` +
         `- Thời gian dự kiến: ${timeStr}\n\n` +
@@ -76,7 +88,7 @@ export default function ScheduleList() {
     } else {
       setEmailSubject(`[Yuki House] Nhắc nhở lịch xem phòng ${aptLabel}`);
       setEmailBody(
-        `Kính gửi anh/chị ${emailItem.guest_name},\n\n` +
+        `Kính gửi anh/chị ${cleanGuestName},\n\n` +
         `Yuki House xin nhắc nhở lịch hẹn xem phòng của anh/chị sắp tới:\n` +
         `- Căn hộ: ${aptLabel}\n` +
         `- Thời gian: ${timeStr}\n\n` +
@@ -88,6 +100,7 @@ export default function ScheduleList() {
 
   useEffect(() => {
     fetchSchedules();
+    fetchBuildings();
   }, []);
 
   async function fetchSchedules() {
@@ -102,6 +115,15 @@ export default function ScheduleList() {
     }
   }
 
+  async function fetchBuildings() {
+    try {
+      const bRes = await buildingService.getAllBuildings({ limit: 100 });
+      setBuildings(bRes.data || []);
+    } catch (err) {
+      console.error("Lỗi khi tải danh sách tòa nhà:", err);
+    }
+  }
+
   const displaySchedules = (() => {
     if (role === "MANAGER" && managedBuildingId) {
       return schedules.filter(
@@ -113,7 +135,8 @@ export default function ScheduleList() {
 
   const filtered = displaySchedules.filter((s) => {
     const term = removeVietnameseTones(search);
-    const nameNorm = removeVietnameseTones(s.guest_name);
+    const cleanGuestName = parseGuestName(s.guest_name).name;
+    const nameNorm = removeVietnameseTones(cleanGuestName);
     const phoneNorm = removeVietnameseTones(s.guest_phone);
     const roomNorm = removeVietnameseTones(s.apartment?.room_number || "");
     return (
@@ -210,125 +233,123 @@ export default function ScheduleList() {
       <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm..." className="max-w-md" />
 
       {/* Bảng */}
-      <div className="premium-table-container">
-        <div className="overflow-x-auto">
-          <table className="premium-table">
-            <thead>
-              <tr>
-                <th onClick={() => requestSort("guest_name")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Khách {getSortIcon("guest_name")}
-                </th>
-                <th onClick={() => requestSort("guest_phone")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  SĐT {getSortIcon("guest_phone")}
-                </th>
-                <th onClick={() => requestSort("apartment_id")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Căn hộ {getSortIcon("apartment_id")}
-                </th>
-                <th onClick={() => requestSort("guest_email" as any)} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Email {getSortIcon("guest_email" as any)}
-                </th>
-                <th onClick={() => requestSort("schedule_time")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Thời gian {getSortIcon("schedule_time")}
-                </th>
-                <th onClick={() => requestSort("status")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Trạng thái {getSortIcon("status")}
-                </th>
-                <th className="text-right">Chức năng</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedSchedules.map((s) => (
-                <tr key={s.id}>
-                  <td className="font-semibold text-gray-800">{s.guest_name}</td>
-                  <td className="text-gray-650">{maskPhone(s.guest_phone)}</td>
-                  <td className="text-gray-600">
-                    {s.apartment ? (
-                      <span className="font-medium text-primary-600">
-                        {formatApartmentDisplay(
-                          s.apartment.room_number,
-                          s.apartment.floor,
-                          role || undefined,
-                          mockBuildings.find((b) => b.id === s.apartment?.building_id)?.branch_name
-                        )}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">#{s.apartment_id}</span>
+      <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+        <Table className="compact">
+          <TableHeader>
+            <TableRow>
+              <TableHead onClick={() => requestSort("guest_name")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                Khách {getSortIcon("guest_name")}
+              </TableHead>
+              <TableHead onClick={() => requestSort("apartment_id")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                Căn hộ {getSortIcon("apartment_id")}
+              </TableHead>
+              <TableHead onClick={() => requestSort("guest_phone")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                SĐT {getSortIcon("guest_phone")}
+              </TableHead>
+              <TableHead onClick={() => requestSort("guest_email" as any)} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                Email {getSortIcon("guest_email" as any)}
+              </TableHead>
+              <TableHead onClick={() => requestSort("schedule_time")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                Thời gian {getSortIcon("schedule_time")}
+              </TableHead>
+              <TableHead onClick={() => requestSort("status")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                Trạng thái {getSortIcon("status")}
+              </TableHead>
+              <TableHead className="text-right">Chức năng</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedSchedules.map((s) => (
+              <TableRow key={s.id}>
+                <TableCell className="font-semibold text-gray-800">{parseGuestName(s.guest_name).name}</TableCell>
+                <TableCell className="text-gray-650">
+                  {s.apartment ? (
+                    <span className="font-medium text-primary-600">
+                      {formatApartmentDisplay(
+                        s.apartment.room_number,
+                        s.apartment.floor,
+                        role || undefined,
+                        buildings.find((b) => b.id === s.apartment?.building_id)?.branch_name || mockBuildings.find((b) => b.id === s.apartment?.building_id)?.branch_name
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">#{s.apartment_id}</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-gray-600">{maskPhone(s.guest_phone)}</TableCell>
+                <TableCell className="text-gray-650 font-medium">
+                  {s.guest_email || "-"}
+                </TableCell>
+                <TableCell className="text-gray-600">
+                  {new Date(s.schedule_time).toLocaleString("vi-VN")}
+                </TableCell>
+                <TableCell>{getStatusBadge(s.status)}</TableCell>
+                <TableCell>
+                  <div className="flex items-center justify-end gap-1">
+                    <button
+                      onClick={() => setViewItem(s)}
+                      className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
+                      title="Xem chi tiết"
+                    >
+                      <Eye size={16} />
+                    </button>
+                    {s.guest_email && (
+                      <button
+                        onClick={() => {
+                          setEmailItem(s);
+                          if (s.status === "PENDING") {
+                            setEmailTemplate("confirm");
+                          } else if (s.status === "CANCELLED") {
+                            setEmailTemplate("cancel");
+                          } else {
+                            setEmailTemplate("reminder");
+                          }
+                        }}
+                        className="p-2 rounded-lg text-gray-400 hover:text-blue-650 hover:bg-blue-50 cursor-pointer"
+                        title="Gửi Email"
+                      >
+                        <Mail size={16} />
+                      </button>
                     )}
-                  </td>
-                  <td className="text-gray-650 font-medium">
-                    {s.guest_email || "-"}
-                  </td>
-                  <td className="text-gray-600">
-                    {new Date(s.schedule_time).toLocaleString("vi-VN")}
-                  </td>
-                  <td>{getStatusBadge(s.status)}</td>
-                  <td>
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => setViewItem(s)}
-                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
-                        title="Xem chi tiết"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      {s.guest_email && (
+                    {s.status === "PENDING" && (
+                      <>
                         <button
-                          onClick={() => {
-                            setEmailItem(s);
-                            if (s.status === "PENDING") {
-                              setEmailTemplate("confirm");
-                            } else if (s.status === "CANCELLED") {
-                              setEmailTemplate("cancel");
-                            } else {
-                              setEmailTemplate("reminder");
-                            }
-                          }}
-                          className="p-2 rounded-lg text-gray-400 hover:text-blue-650 hover:bg-blue-50 cursor-pointer"
-                          title="Gửi Email"
+                          onClick={() => handleConfirm(s.id)}
+                          className="p-2 rounded-lg text-green-600 hover:bg-green-50 cursor-pointer"
+                          title="Xác nhận"
                         >
-                          <Mail size={16} />
+                          <Check size={16} />
                         </button>
-                      )}
-                      {s.status === "PENDING" && (
-                        <>
-                          <button
-                            onClick={() => handleConfirm(s.id)}
-                            className="p-2 rounded-lg text-green-600 hover:bg-green-50 cursor-pointer"
-                            title="Xác nhận"
-                          >
-                            <Check size={16} />
-                          </button>
-                          <button
-                            onClick={() => handleCancel(s.id)}
-                            className="p-2 rounded-lg text-amber-600 hover:bg-amber-50 cursor-pointer"
-                            title="Hủy"
-                          >
-                            <X size={16} />
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={() => setDeleteItem(s)}
-                        className="p-2 rounded-lg text-gray-400 hover:text-red-650 hover:bg-red-55/60 cursor-pointer"
-                        title="Xóa"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="text-center py-12 text-gray-500">
-                    <CalendarDays size={48} className="mx-auto mb-3 text-gray-300" />
-                    Chưa có lịch xem phòng nào
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                        <button
+                          onClick={() => handleCancel(s.id)}
+                          className="p-2 rounded-lg text-amber-600 hover:bg-amber-50 cursor-pointer"
+                          title="Hủy"
+                        >
+                          <X size={16} />
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => setDeleteItem(s)}
+                      className="p-2 rounded-lg text-gray-400 hover:text-red-650 hover:bg-red-55/60 cursor-pointer"
+                      title="Xóa"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+            {filtered.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-12 text-gray-500">
+                  <CalendarDays size={48} className="mx-auto mb-3 text-gray-300" />
+                  Chưa có lịch xem phòng nào
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       {/* Pagination */}
@@ -351,6 +372,7 @@ export default function ScheduleList() {
         onClose={() => setViewItem(null)}
         schedule={viewItem}
         role={role}
+        buildings={buildings}
       />
 
       {/* Send Email Modal */}
@@ -400,7 +422,7 @@ export default function ScheduleList() {
               <input
                 type="text"
                 disabled
-                value={`${emailItem.guest_name} (${emailItem.guest_email})`}
+                value={`${parseGuestName(emailItem.guest_name).name} (${emailItem.guest_email})`}
                 className="premium-input rounded-xl bg-gray-50 text-gray-500 disabled:opacity-80"
               />
             </div>

@@ -191,75 +191,8 @@ body {
 }
 
 
-/* Card Styles */
-.premium-card {
-  background-color: var(--color-surface);
-  border-radius: var(--radius-lg);
-  border: 1px solid rgba(229, 231, 235, 0.8);
-  box-shadow: var(--shadow-card);
-  transition: all 200ms ease;
-}
 
-.premium-card:hover {
-  box-shadow: var(--shadow-card-hover);
-}
-
-/* Table Styles */
-.premium-table-container {
-  background-color: var(--color-surface);
-  border-radius: var(--radius-lg);
-  border: 1px solid rgba(229, 231, 235, 0.8);
-  box-shadow: var(--shadow-card);
-  overflow: hidden;
-}
-
-.premium-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 800px;
-}
-
-.overflow-x-auto {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.premium-table th {
-  text-align: left;
-  padding: 20px 32px;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--color-gray-500);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  background-color: rgba(249, 250, 251, 0.9);
-  border-bottom: 1px solid rgba(229, 231, 235, 0.8);
-  user-select: none;
-}
-
-.premium-table td {
-  padding: 24px 32px;
-  font-size: 15px;
-  color: var(--color-gray-700);
-  font-weight: 500;
-  vertical-align: middle;
-  border-bottom: 1px solid rgba(243, 244, 246, 0.8);
-}
-
-.premium-table tr:last-child td {
-  border-bottom: 0;
-}
-
-.premium-table tbody tr {
-  transition: all 150ms ease;
-}
-
-.premium-table tbody tr:hover {
-  background-color: var(--color-primary-50);
-  cursor: pointer;
-}
-
-/* Global Form Utilities (Shadcn-like) */
+/* Global Form Utilities */
 .premium-input,
 .premium-select,
 select {

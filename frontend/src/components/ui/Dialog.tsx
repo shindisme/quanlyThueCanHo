@@ -1,0 +1,192 @@
+import { createContext, useContext, useState, useCallback, useEffect, forwardRef } from "react"
+import type { ReactNode, ComponentProps } from "react"
+import { createPortal } from "react-dom"
+import { X } from "lucide-react"
+import { cn } from "../../lib/utils"
+
+interface DialogContextValue {
+  open: boolean
+  setOpen: (open: boolean) => void
+}
+
+const DialogContext = createContext<DialogContextValue | null>(null)
+
+function useDialog() {
+  const context = useContext(DialogContext)
+  if (!context) {
+    throw new Error("Dialog components must be rendered within <Dialog />")
+  }
+  return context
+}
+
+interface DialogProps {
+  children: ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+export function Dialog({ children, open: externalOpen, onOpenChange }: DialogProps) {
+  const [localOpen, setLocalOpen] = useState(false)
+  const isControlled = externalOpen !== undefined
+  const open = isControlled ? externalOpen : localOpen
+
+  const setOpen = useCallback(
+    (newOpen: boolean) => {
+      if (!isControlled) {
+        setLocalOpen(newOpen)
+      }
+      onOpenChange?.(newOpen)
+    },
+    [isControlled, onOpenChange]
+  )
+
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+    return () => {
+      document.body.style.overflow = ""
+    }
+  }, [open])
+
+  return (
+    <DialogContext.Provider value={{ open, setOpen }}>
+      {children}
+    </DialogContext.Provider>
+  )
+}
+
+type DialogTriggerProps = ComponentProps<"button">
+
+export const DialogTrigger = forwardRef<HTMLButtonElement, DialogTriggerProps>(
+  ({ className, children, ...props }, ref) => {
+    const { open, setOpen } = useDialog()
+    return (
+      <button
+        ref={ref}
+        type="button"
+        onClick={() => setOpen(!open)}
+        className={cn("cursor-pointer focus:outline-none", className)}
+        {...props}
+      >
+        {children}
+      </button>
+    )
+  }
+)
+DialogTrigger.displayName = "DialogTrigger"
+
+interface DialogContentProps extends ComponentProps<"div"> {
+  size?: "sm" | "md" | "lg" | "xl"
+}
+
+const sizeStyles = {
+  sm: "max-w-md",
+  md: "max-w-lg",
+  lg: "max-w-2xl",
+  xl: "max-w-4xl",
+}
+
+export const DialogContent = forwardRef<HTMLDivElement, DialogContentProps>(
+  ({ className, children, size = "md", ...props }, ref) => {
+    const { open, setOpen } = useDialog()
+
+    useEffect(() => {
+      function handleKeyDown(e: KeyboardEvent) {
+        if (e.key === "Escape") setOpen(false)
+      }
+      if (open) {
+        document.addEventListener("keydown", handleKeyDown)
+      }
+      return () => document.removeEventListener("keydown", handleKeyDown)
+    }, [open, setOpen])
+
+    if (!open) return null
+
+    return createPortal(
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 font-sans">
+        <div
+          className="absolute inset-0 bg-black/40 animate-fade-in"
+          onClick={() => setOpen(false)}
+        />
+        
+        <div
+          ref={ref}
+          className={cn(
+            "relative w-full bg-white rounded-xl shadow-2xl animate-scale-in max-h-[90vh] flex flex-col overflow-hidden border border-gray-200",
+            sizeStyles[size],
+            className
+          )}
+          {...props}
+        >
+          <button
+            onClick={() => setOpen(false)}
+            className="absolute right-4 top-4 p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer z-10"
+          >
+            <X size={20} />
+          </button>
+          
+          <div className="overflow-y-auto p-6 md:p-8 flex-1">
+            {children}
+          </div>
+        </div>
+      </div>,
+      document.body
+    )
+  }
+)
+DialogContent.displayName = "DialogContent"
+
+export function DialogHeader({
+  className,
+  ...props
+}: ComponentProps<"div">) {
+  return (
+    <div
+      className={cn("flex flex-col space-y-1.5 text-center sm:text-left mb-4", className)}
+      {...props}
+    />
+  )
+}
+DialogHeader.displayName = "DialogHeader"
+
+export function DialogFooter({
+  className,
+  ...props
+}: ComponentProps<"div">) {
+  return (
+    <div
+      className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-6 gap-2", className)}
+      {...props}
+    />
+  )
+}
+DialogFooter.displayName = "DialogFooter"
+
+export const DialogTitle = forwardRef<
+  HTMLHeadingElement,
+  ComponentProps<"h2">
+>(({ className, ...props }, ref) => (
+  <h2
+    ref={ref}
+    className={cn("text-lg font-bold text-gray-900 leading-none", className)}
+    {...props}
+  />
+))
+DialogTitle.displayName = "DialogTitle"
+
+export const DialogDescription = forwardRef<
+  HTMLParagraphElement,
+  ComponentProps<"p">
+>(({ className, ...props }, ref) => (
+  <p
+    ref={ref}
+    className={cn("text-sm text-gray-500 mt-1", className)}
+    {...props}
+  />
+))
+DialogDescription.displayName = "DialogDescription"
+
+

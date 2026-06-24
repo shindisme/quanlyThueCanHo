@@ -133,3 +133,18 @@ export function numberToVietnameseWords(num: number): string {
   
   return result.trim().replace(/\s+/g, " ");
 }
+
+export function parseGuestName(fullName: string): { name: string; note: string } {
+  if (!fullName) return { name: "", note: "" };
+  const match = fullName.match(/(.*?)\s*\[Ghi chú:\s*(.*?)\]/i);
+  if (match) {
+    return {
+      name: match[1].trim(),
+      note: match[2].trim(),
+    };
+  }
+  return {
+    name: fullName.trim(),
+    note: "",
+  };
+}

@@ -1,11 +1,25 @@
 import { Bell, Menu, LogOut, User, ChevronDown, Settings } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../stores/auth.store";
 import { useSidebarStore } from "../../stores/sidebar.store";
 import * as buildingService from "../../services/buildingService";
 import * as apartmentService from "../../services/apartmentService";
 import { formatApartmentDisplay } from "../../utils/format";
+import Avatar from "../ui/Avatar";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "../ui/DropdownMenu";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "../ui/Breadcrumb";
 
 function parseJwt(token: string) {
   try {
@@ -32,8 +46,6 @@ export default function Header() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [showProfile, setShowProfile] = useState(false);
-  const profileRef = useRef<HTMLDivElement>(null);
   const [managedBuildingName, setManagedBuildingName] = useState<string | null>(storeBuildingName);
 
   const [userFullName, setUserFullName] = useState<string>(
@@ -86,15 +98,7 @@ export default function Header() {
   const [dynamicBuildingName, setDynamicBuildingName] = useState<string | null>(null);
   const [dynamicApartmentName, setDynamicApartmentName] = useState<string | null>(null);
 
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
-        setShowProfile(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+
 
   useEffect(() => {
     if (storeBuildingName) {
@@ -249,19 +253,25 @@ export default function Header() {
 
         {/* Breadcrumb*/}
         {breadcrumbParts && breadcrumbParts.length > 0 && (
-          <div className="hidden sm:flex items-center gap-1.5 text-sm">
-            {breadcrumbParts.map((part, i) => (
-              <span key={i} className="flex items-center gap-1.5">
-                {i > 0 && <span className="text-gray-300">/</span>}
-                <span className={i === breadcrumbParts.length - 1
-                  ? "text-gray-800 font-medium"
-                  : "text-gray-400"
-                }>
-                  {part}
-                </span>
-              </span>
-            ))}
-          </div>
+          <Breadcrumb className="hidden sm:block">
+            <BreadcrumbList>
+              {breadcrumbParts.map((part, i) => {
+                const isLast = i === breadcrumbParts.length - 1;
+                return (
+                  <Fragment key={i}>
+                    {i > 0 && <BreadcrumbSeparator />}
+                    <BreadcrumbItem>
+                      {isLast ? (
+                        <BreadcrumbPage>{part}</BreadcrumbPage>
+                      ) : (
+                        <span className="text-gray-400">{part}</span>
+                      )}
+                    </BreadcrumbItem>
+                  </Fragment>
+                );
+              })}
+            </BreadcrumbList>
+          </Breadcrumb>
         )}
       </div>
 
@@ -286,68 +296,53 @@ export default function Header() {
         <div className="hidden sm:block w-px h-8 bg-gray-200 mx-2" />
 
         {/* USER DROPDOWN */}
-        <div ref={profileRef} className="relative">
-          <button
-            onClick={() => setShowProfile(!showProfile)}
-            className="flex items-center gap-2.5 p-1.5 pr-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-          >
-            <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center shrink-0 bg-gray-200 text-gray-400 border border-gray-300">
-              <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-              </svg>
-            </div>
-
+        <DropdownMenu>
+          <DropdownMenuTrigger className="flex items-center gap-2.5 p-1.5 pr-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer text-left">
+            <Avatar name={userFullName} className="w-9 h-9 border border-gray-300 shrink-0" />
             <div className="hidden sm:block text-left">
               <p className="text-sm font-medium text-gray-800 leading-tight">{userFullName}</p>
               <p className="text-[11px] text-gray-400">{roleLabel}</p>
             </div>
             <ChevronDown size={14} className="text-gray-400 hidden sm:block" />
-          </button>
+          </DropdownMenuTrigger>
 
-          {/* Dropdown menu */}
-          {showProfile && (
-            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg border border-gray-200 z-50 py-1 animate-scale-in"
-              style={{ boxShadow: "var(--shadow-dropdown)" }}>
-              {/* User info  */}
-              <div className="px-4 py-3 border-b border-gray-100">
-                <p className="text-sm font-semibold text-gray-800">{userFullName}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{accountUsername}</p>
-              </div>
-
-              {/* Menu items */}
-              <div className="py-1">
-                <button
-                  onClick={() => { setShowProfile(false); navigate(`/${role?.toLowerCase()}/profile`); }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors"
-                >
-                  <User size={16} className="text-gray-400" />
-                  Hồ sơ cá nhân
-                </button>
-                {role === "ADMIN" && (
-                  <button
-                    onClick={() => { setShowProfile(false); navigate("/admin/settings"); }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors"
-                  >
-                    <Settings size={16} className="text-gray-400" />
-                    Cài đặt
-                  </button>
-                )}
-              </div>
-
-              <hr className="border-gray-100" />
-
-              <div className="py-1">
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-danger-600 hover:bg-danger-50 cursor-pointer transition-colors"
-                >
-                  <LogOut size={16} />
-                  Đăng xuất
-                </button>
-              </div>
+          <DropdownMenuContent className="w-56 mt-2">
+            {/* User info */}
+            <div className="px-3 py-2 border-b border-gray-100 mb-1">
+              <p className="text-sm font-semibold text-gray-800">{userFullName}</p>
+              <p className="text-xs text-gray-400 mt-0.5">{accountUsername}</p>
             </div>
-          )}
-        </div>
+
+            {/* Menu items */}
+            <DropdownMenuItem
+              onClick={() => navigate(`/${role?.toLowerCase()}/profile`)}
+              className="gap-3 px-3 py-2"
+            >
+              <User size={16} className="text-gray-400" />
+              Hồ sơ cá nhân
+            </DropdownMenuItem>
+
+            {role === "ADMIN" && (
+              <DropdownMenuItem
+                onClick={() => navigate("/admin/settings")}
+                className="gap-3 px-3 py-2"
+              >
+                <Settings size={16} className="text-gray-400" />
+                Cài đặt
+              </DropdownMenuItem>
+            )}
+
+            <div className="h-px bg-gray-100 my-1" />
+
+            <DropdownMenuItem
+              onClick={handleLogout}
+              className="gap-3 px-3 py-2 text-danger-600 hover:bg-danger-50 hover:text-danger-700"
+            >
+              <LogOut size={16} />
+              Đăng xuất
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

@@ -1,6 +1,5 @@
 import { Inbox } from "lucide-react";
 
-// Hien thi khi khong co du lieu
 interface EmptyStateProps {
   title?: string;
   description?: string;

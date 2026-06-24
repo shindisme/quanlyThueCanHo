@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
+import Select from "../../../../components/ui/Select";
 import * as buildingService from "../../../../services/buildingService";
 import { toast } from "sonner";
 
@@ -163,19 +164,16 @@ export default function BuildingCreateModal({
             />
           </div>
           <div className="col-span-12">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Quản lý bởi</label>
-            <select
+            <Select
+              label="Quản lý bởi"
               value={formData.staff_id || ""}
               onChange={(e) => setFormData({ ...formData, staff_id: e.target.value ? Number(e.target.value) : null })}
-              className="premium-select w-full rounded-xl"
-            >
-              <option value="">-- Chưa phân công --</option>
-              {availableManagers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.full_name} ({s.user?.username || s.position})
-                </option>
-              ))}
-            </select>
+              placeholder="-- Chưa phân công --"
+              options={availableManagers.map((s) => ({
+                value: String(s.id),
+                label: `${s.full_name} (${s.user?.username || s.position})`,
+              }))}
+            />
           </div>
           <div className="col-span-12">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Ảnh bìa tòa nhà</label>

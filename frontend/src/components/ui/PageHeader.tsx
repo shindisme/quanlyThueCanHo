@@ -26,7 +26,7 @@ export default function PageHeader({
         {/* Icon */}
         {Icon && (
           <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm"
+            className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
             style={{ background: iconColor }}
           >
             <Icon size={24} className="text-white" />

@@ -98,7 +98,7 @@ export const update = async (req: Request, res: Response): Promise<void> => {
 
         const prismaUpdateData: any = {
             ...updateData,
-            thumbnail_url: newImageUrl 
+            thumbnail_url: newImageUrl
         };
 
         if (staff_id !== undefined) {

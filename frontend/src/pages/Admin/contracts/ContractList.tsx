@@ -29,6 +29,14 @@ import type { BuildingData } from "../../../services/buildingService";
 import ContractCreateModal from "./components/ContractCreateModal";
 import ContractDetailModal from "./components/ContractDetailModal";
 import ContractDocModal from "./components/ContractDocModal";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../../../components/ui/Table";
 
 export default function ContractList() {
   const { role, managedBuildingId, email } = useAuthStore();
@@ -238,96 +246,94 @@ export default function ContractList() {
           <p className="text-sm text-gray-400 mt-1">Thử tìm kiếm với từ khóa khác</p>
         </div>
       ) : (
-        <div className="premium-table-container font-sans">
-          <div className="overflow-x-auto">
-            <table className="premium-table">
-              <thead>
-                <tr>
-                  <th>Mã HĐ</th>
-                  <th>Người thuê</th>
-                  <th>Căn hộ</th>
-                  <th>Thời hạn</th>
-                  <th>Tiền thuê/tháng</th>
-                  <th>Trạng thái</th>
-                  <th className="text-right">Chức năng</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedContracts.map((c) => {
-                  const tenantObj = tenants.find((t) => t.id === c.tenant_id);
-                  const aptObj = apartments.find((a) => a.id === c.apartment_id);
-                  const buildingObj = aptObj ? buildings.find((b) => b.id === aptObj.building_id) : null;
-                  const code = `HD-${String(c.id).padStart(5, "0")}`;
+        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm font-sans mt-6">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Mã HĐ</TableHead>
+                <TableHead>Người thuê</TableHead>
+                <TableHead>Căn hộ</TableHead>
+                <TableHead>Thời hạn</TableHead>
+                <TableHead>Tiền thuê/tháng</TableHead>
+                <TableHead>Trạng thái</TableHead>
+                <TableHead className="text-right">Chức năng</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedContracts.map((c) => {
+                const tenantObj = tenants.find((t) => t.id === c.tenant_id);
+                const aptObj = apartments.find((a) => a.id === c.apartment_id);
+                const buildingObj = aptObj ? buildings.find((b) => b.id === aptObj.building_id) : null;
+                const code = `HD-${String(c.id).padStart(5, "0")}`;
 
-                  return (
-                    <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="font-semibold text-primary-600">
-                        {code}
-                      </td>
-                      <td className="text-gray-800">
-                        <span className="font-medium block">{tenantObj?.full_name || "Chưa xác định"}</span>
-                        <span className="text-xs text-gray-400">{tenantObj?.phone || ""}</span>
-                      </td>
-                      <td className="text-gray-700 text-xs">
-                        <span className="font-semibold text-primary-600 block">
-                          {buildingObj?.branch_name || "Yuki House"}
-                        </span>
-                        <span>
-                          {aptObj ? formatApartmentDisplay(aptObj.room_number, aptObj.floor) : "-"}
-                        </span>
-                      </td>
-                      <td className="text-gray-600 text-xs space-y-0.5">
-                        <div className="flex items-center gap-1">
-                          <span className="text-gray-400">Từ:</span>
-                          <span className="font-medium text-gray-800">{formatDate(c.start_date)}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-gray-400">Đến:</span>
-                          <span className="font-medium text-gray-800">{formatDate(c.end_date)}</span>
-                        </div>
-                      </td>
-                      <td className="font-semibold text-gray-800">
-                        {formatCurrency(c.monthly_rent)}
-                      </td>
-                      <td>
-                        {getStatusBadge(c.status)}
-                      </td>
-                      <td>
-                        <div className="flex items-center justify-end gap-1">
+                return (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-semibold text-primary-600">
+                      {code}
+                    </TableCell>
+                    <TableCell className="text-gray-800">
+                      <span className="font-medium block">{tenantObj?.full_name || "Chưa xác định"}</span>
+                      <span className="text-xs text-gray-400">{tenantObj?.phone || ""}</span>
+                    </TableCell>
+                    <TableCell className="text-gray-700 text-xs">
+                      <span className="font-semibold text-primary-600 block">
+                        {buildingObj?.branch_name || "Yuki House"}
+                      </span>
+                      <span>
+                        {aptObj ? formatApartmentDisplay(aptObj.room_number, aptObj.floor) : "-"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-gray-650 text-xs space-y-0.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-400">Từ:</span>
+                        <span className="font-medium text-gray-800">{formatDate(c.start_date)}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-400">Đến:</span>
+                        <span className="font-medium text-gray-800">{formatDate(c.end_date)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-semibold text-gray-800">
+                      {formatCurrency(c.monthly_rent)}
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(c.status)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => setSelectedDetailContract(c)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
+                          title="Xem chi tiết"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          onClick={() => setSelectedDocContract(c)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-blue-650 hover:bg-blue-50 cursor-pointer"
+                          title="Xem văn bản hợp đồng"
+                        >
+                          <FileText size={16} />
+                        </button>
+                        {c.status === "ACTIVE" && role !== "TENANT" && (
                           <button
-                            onClick={() => setSelectedDetailContract(c)}
-                            className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
-                            title="Xem chi tiết"
+                            onClick={() => {
+                              setSelectedExtendContract(c);
+                              setExtendEndDate("");
+                            }}
+                            className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer"
+                            title="Gia hạn"
                           >
-                            <Eye size={16} />
+                            <Calendar size={16} />
                           </button>
-                          <button
-                            onClick={() => setSelectedDocContract(c)}
-                            className="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 cursor-pointer"
-                            title="Xem văn bản hợp đồng"
-                          >
-                            <FileText size={16} />
-                          </button>
-                          {c.status === "ACTIVE" && role !== "TENANT" && (
-                            <button
-                              onClick={() => {
-                                setSelectedExtendContract(c);
-                                setExtendEndDate("");
-                              }}
-                              className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer"
-                              title="Gia hạn"
-                            >
-                              <Calendar size={16} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
       )}
 

@@ -1,7 +1,6 @@
 import Modal from "./Modal";
 import Button from "./Button";
 
-// Dialog xac nhan truoc khi thuc hien hanh dong nguy hiem (xoa, huy...)
 interface ConfirmDialogProps {
   isOpen: boolean;
   onClose: () => void;

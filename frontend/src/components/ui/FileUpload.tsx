@@ -2,7 +2,6 @@ import { cn } from "../../lib/utils";
 import { Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
 
-// Component upload file - ho tro keo tha va chon nhieu file
 interface FileUploadProps {
   onFilesSelected: (files: File[]) => void;
   accept?: string;
@@ -46,7 +45,6 @@ export default function FileUpload({
 
   return (
     <div className={cn("w-full", className)}>
-      {/* Vung keo tha */}
       <div
         onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
         onDragLeave={() => setIsDragging(false)}
@@ -78,7 +76,6 @@ export default function FileUpload({
         className="hidden"
       />
 
-      {/* Xem truoc anh da chon */}
       {previews.length > 0 && (
         <div className="flex flex-wrap gap-3 mt-4">
           {previews.map((url, index) => (

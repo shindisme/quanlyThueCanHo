@@ -43,7 +43,7 @@ export default function SearchInput({
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}
         placeholder={placeholder}
-        className="premium-input w-full !pl-10 !pr-4 py-2.5 rounded-xl text-sm bg-white text-gray-800 placeholder:text-gray-400"
+        className="flex h-10 w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 py-2.5 text-sm text-gray-850 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all"
       />
     </div>
   );

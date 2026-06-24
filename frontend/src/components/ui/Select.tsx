@@ -1,13 +1,13 @@
-import { cn } from "../../lib/utils";
-import type { SelectHTMLAttributes } from "react";
-import { forwardRef } from "react";
+import { forwardRef } from "react"
+import type { ComponentProps } from "react"
+import { cn } from "../../lib/utils"
 
-interface SelectOption {
+export interface SelectOption {
   value: string;
   label: string;
 }
 
-interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+export interface SelectProps extends ComponentProps<"select"> {
   label?: string;
   error?: string;
   options: SelectOption[];
@@ -19,11 +19,11 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
     const selectId = id || label?.toLowerCase().replace(/\s/g, "-");
 
     return (
-      <div className="w-full">
+      <div className="w-full font-sans">
         {label && (
           <label
             htmlFor={selectId}
-            className="block text-sm font-medium text-gray-700 mb-1.5"
+            className="block text-sm font-semibold text-gray-700 mb-1.5"
           >
             {label}
           </label>
@@ -32,7 +32,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ref={ref}
           id={selectId}
           className={cn(
-            "flex h-10 w-full items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors",
+            "flex h-10 w-full items-center justify-between rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors shadow-sm",
             error && "border-danger-500 focus:ring-danger-500",
             className
           )}
@@ -57,4 +57,6 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
 
 Select.displayName = "Select";
 
+export { Select };
 export default Select;
+

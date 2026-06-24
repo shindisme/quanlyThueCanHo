@@ -4,6 +4,14 @@ import EmptyState from "./EmptyState";
 import LoadingSpinner from "./LoadingSpinner";
 import { useSort } from "../../hooks/useSort";
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "./Table";
 
 export interface Column<T> {
   key: string;
@@ -21,6 +29,7 @@ interface DataTableProps<T> {
   emptyMessage?: string;
   onRowClick?: (item: T) => void;
   className?: string;
+  density?: "normal" | "compact";
 }
 
 export default function DataTable<T extends { id: number | string }>({
@@ -30,6 +39,7 @@ export default function DataTable<T extends { id: number | string }>({
   emptyMessage,
   onRowClick,
   className,
+  density = "normal",
 }: DataTableProps<T>) {
   const customExtractors = useMemo(() => {
     const extractors: Record<string, (item: T) => any> = {};
@@ -65,51 +75,50 @@ export default function DataTable<T extends { id: number | string }>({
   }
 
   return (
-    <div className={cn("premium-table-container", className)}>
-      <div className="overflow-x-auto">
-        <table className="premium-table">
-          <thead>
-            <tr>
-              {columns.map((col) => {
-                const isSortable = col.sortable !== false && col.key !== "actions";
-                return (
-                  <th
-                    key={col.key}
-                    onClick={() => isSortable && requestSort(col.key)}
-                    className={cn(
-                      isSortable && "cursor-pointer select-none hover:bg-gray-100 transition-colors",
-                      col.className
-                    )}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      {col.label}
-                      {isSortable && getSortIconComponent(col.key)}
-                    </div>
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {sortedData.map((item) => (
-              <tr
-                key={item.id}
-                onClick={() => onRowClick?.(item)}
-                className={cn(
-                  onRowClick && "cursor-pointer hover:bg-primary-50/20!"
-                )}
-              >
-                {columns.map((col) => (
-                  <td key={col.key} className={cn(col.className)}>
-                    {col.render(item)}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className={cn("border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm", className)}>
+      <Table className={cn(density === "compact" && "[&_td]:p-2 [&_td]:text-xs [&_th]:h-8 [&_th]:px-3")}>
+        <TableHeader>
+          <TableRow>
+            {columns.map((col) => {
+              const isSortable = col.sortable !== false && col.key !== "actions";
+              return (
+                <TableHead
+                  key={col.key}
+                  onClick={() => isSortable && requestSort(col.key)}
+                  className={cn(
+                    isSortable && "cursor-pointer select-none hover:bg-gray-100 transition-colors",
+                    col.className
+                  )}
+                >
+                  <div className="flex items-center gap-1.5">
+                    {col.label}
+                    {isSortable && getSortIconComponent(col.key)}
+                  </div>
+                </TableHead>
+              );
+            })}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sortedData.map((item) => (
+            <TableRow
+              key={item.id}
+              onClick={() => onRowClick?.(item)}
+              className={cn(
+                onRowClick && "cursor-pointer hover:bg-primary-50/20!"
+              )}
+            >
+              {columns.map((col) => (
+                <TableCell key={col.key} className={cn(col.className)}>
+                  {col.render(item)}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
+
 

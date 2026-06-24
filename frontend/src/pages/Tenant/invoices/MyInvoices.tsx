@@ -3,6 +3,14 @@ import { Receipt } from "lucide-react";
 import Badge from "../../../components/ui/Badge";
 import SearchInput from "../../../components/ui/SearchInput";
 import PageHeader from "../../../components/ui/PageHeader";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../../../components/ui/Table";
 
 const mockInvoices = [
   {
@@ -22,29 +30,42 @@ const mockInvoices = [
   },
 ];
 
-import { useSort } from "../../../hooks/useSort";
-import { removeVietnameseTones } from "../../../utils/format";
+type SortKey = "invoice_code" | "billing_month" | "rent" | "electricity" | "water" | "service_fee" | "total" | "status";
 
 export default function MyInvoices() {
   const [search, setSearch] = useState("");
+  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: "asc" | "desc" } | null>(null);
 
-  const filtered = mockInvoices.filter((inv) => {
-    const term = removeVietnameseTones(search);
-    const codeNorm = removeVietnameseTones(inv.invoice_code);
-    const monthNorm = removeVietnameseTones(inv.billing_month);
-    return codeNorm.includes(term) || monthNorm.includes(term);
-  });
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(val);
+  };
 
-  const { items: sortedInvoices, requestSort, getSortIcon } = useSort(filtered, null, {
-    billing_month: (inv) => {
-      const [m, y] = inv.billing_month.split("/");
-      return Number(y) * 12 + Number(m);
+  const getSortIcon = (key: SortKey) => {
+    if (!sortConfig || sortConfig.key !== key) return "↕";
+    return sortConfig.direction === "asc" ? "↑" : "↓";
+  };
+
+  const requestSort = (key: SortKey) => {
+    let direction: "asc" | "desc" = "asc";
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
     }
-  });
+    setSortConfig({ key, direction });
+  };
 
-  function formatCurrency(amount: number) {
-    return new Intl.NumberFormat("vi-VN").format(amount) + " đ";
-  }
+  const filteredInvoices = mockInvoices.filter(
+    (inv) =>
+      inv.invoice_code.toLowerCase().includes(search.toLowerCase()) ||
+      inv.billing_month.includes(search)
+  );
+
+  const sortedInvoices = [...filteredInvoices].sort((a, b) => {
+    if (!sortConfig) return 0;
+    const { key, direction } = sortConfig;
+    if (a[key] < b[key]) return direction === "asc" ? -1 : 1;
+    if (a[key] > b[key]) return direction === "asc" ? 1 : -1;
+    return 0;
+  });
 
   function getStatusBadge(status: string) {
     if (status === "PAID") return <Badge variant="success">Đã thanh toán</Badge>;
@@ -65,53 +86,51 @@ export default function MyInvoices() {
       <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm..." className="max-w-md" />
 
       {/* Bảng hóa đơn */}
-      <div className="premium-table-container">
-        <div className="overflow-x-auto">
-          <table className="premium-table">
-            <thead>
-              <tr>
-                <th onClick={() => requestSort("invoice_code")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Mã HĐ {getSortIcon("invoice_code")}
-                </th>
-                <th onClick={() => requestSort("billing_month")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Tháng {getSortIcon("billing_month")}
-                </th>
-                <th onClick={() => requestSort("rent")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Tiền thuê {getSortIcon("rent")}
-                </th>
-                <th onClick={() => requestSort("electricity")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Điện {getSortIcon("electricity")}
-                </th>
-                <th onClick={() => requestSort("water")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Nước {getSortIcon("water")}
-                </th>
-                <th onClick={() => requestSort("service_fee")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Dịch vụ {getSortIcon("service_fee")}
-                </th>
-                <th onClick={() => requestSort("total")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Tổng {getSortIcon("total")}
-                </th>
-                <th onClick={() => requestSort("status")} className="text-center cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Trạng thái {getSortIcon("status")}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedInvoices.map((inv) => (
-                <tr key={inv.id}>
-                  <td className="font-semibold text-primary-600">{inv.invoice_code}</td>
-                  <td className="text-gray-650">{inv.billing_month}</td>
-                  <td className="text-gray-600 text-right">{formatCurrency(inv.rent)}</td>
-                  <td className="text-gray-600 text-right">{formatCurrency(inv.electricity)}</td>
-                  <td className="text-gray-600 text-right">{formatCurrency(inv.water)}</td>
-                  <td className="text-gray-600 text-right">{formatCurrency(inv.service_fee)}</td>
-                  <td className="font-bold text-gray-800 text-right">{formatCurrency(inv.total)}</td>
-                  <td className="text-center">{getStatusBadge(inv.status)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead onClick={() => requestSort("invoice_code")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                Mã HĐ {getSortIcon("invoice_code")}
+              </TableHead>
+              <TableHead onClick={() => requestSort("billing_month")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                Tháng {getSortIcon("billing_month")}
+              </TableHead>
+              <TableHead onClick={() => requestSort("rent")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                Tiền thuê {getSortIcon("rent")}
+              </TableHead>
+              <TableHead onClick={() => requestSort("electricity")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                Điện {getSortIcon("electricity")}
+              </TableHead>
+              <TableHead onClick={() => requestSort("water")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                Nước {getSortIcon("water")}
+              </TableHead>
+              <TableHead onClick={() => requestSort("service_fee")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                Dịch vụ {getSortIcon("service_fee")}
+              </TableHead>
+              <TableHead onClick={() => requestSort("total")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                Tổng {getSortIcon("total")}
+              </TableHead>
+              <TableHead onClick={() => requestSort("status")} className="text-center cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                Trạng thái {getSortIcon("status")}
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedInvoices.map((inv) => (
+              <TableRow key={inv.id}>
+                <TableCell className="font-semibold text-primary-600">{inv.invoice_code}</TableCell>
+                <TableCell className="text-gray-650">{inv.billing_month}</TableCell>
+                <TableCell className="text-gray-600 text-right">{formatCurrency(inv.rent)}</TableCell>
+                <TableCell className="text-gray-600 text-right">{formatCurrency(inv.electricity)}</TableCell>
+                <TableCell className="text-gray-600 text-right">{formatCurrency(inv.water)}</TableCell>
+                <TableCell className="text-gray-600 text-right">{formatCurrency(inv.service_fee)}</TableCell>
+                <TableCell className="font-bold text-gray-800 text-right">{formatCurrency(inv.total)}</TableCell>
+                <TableCell className="text-center">{getStatusBadge(inv.status)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

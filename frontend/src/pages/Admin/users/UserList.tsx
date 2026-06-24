@@ -11,6 +11,14 @@ import type { UserData } from "../../../services/authService";
 
 import { useSort } from "../../../hooks/useSort";
 import { removeVietnameseTones } from "../../../utils/format";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../../../components/ui/Table";
 
 import UserCreateModal from "./components/UserCreateModal";
 import UserDeleteModal from "./components/UserDeleteModal";
@@ -115,75 +123,71 @@ export default function UserList() {
       <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm..." className="max-w-md" />
 
       {/* Bảng */}
-      <div className="premium-table-container">
-        <div className="overflow-x-auto">
-          <table className="premium-table">
-            <thead>
-              <tr>
-                <th className="select-none">
-                  STT
-                </th>
-                <th onClick={() => requestSort("username")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Tên tài khoản {getSortIcon("username")}
-                </th>
-                <th onClick={() => requestSort("role")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Vai trò {getSortIcon("role")}
-                </th>
-                <th onClick={() => requestSort("status")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Trạng thái {getSortIcon("status")}
-                </th>
-                <th className="text-right">Chức năng</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedUsers.map((user, index) => (
-                <tr key={user.id}>
-                  <td className="text-gray-650">{index + 1}</td>
-                  <td className="font-semibold text-gray-800">{user.username}</td>
-                  <td>{getRoleBadge(user.role)}</td>
-                  <td>
-                    <Badge variant={user.status === "ACTIVE" ? "success" : "gray"}>
-                      {user.status === "ACTIVE" ? "Hoạt động" : "Tạm khóa"}
-                    </Badge>
-                  </td>
-                  <td>
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => setViewItem(user)}
-                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
-                        title="Xem chi tiết"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button
-                        onClick={() => setResetItem(user)}
-                        className="p-2 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 cursor-pointer"
-                        title="Đặt lại mật khẩu"
-                      >
-                        <RotateCcw size={16} />
-                      </button>
-                      <button
-                        onClick={() => setDeleteItem(user)}
-                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
-                        title="Xóa"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="text-center py-12 text-gray-500">
-                    <UserCog size={48} className="mx-auto mb-3 text-gray-300" />
-                    Không tìm thấy tài khoản nào
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-16">STT</TableHead>
+              <TableHead onClick={() => requestSort("username")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                Tên tài khoản {getSortIcon("username")}
+              </TableHead>
+              <TableHead onClick={() => requestSort("role")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                Vai trò {getSortIcon("role")}
+              </TableHead>
+              <TableHead onClick={() => requestSort("status")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                Trạng thái {getSortIcon("status")}
+              </TableHead>
+              <TableHead className="text-right">Chức năng</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedUsers.map((user, index) => (
+              <TableRow key={user.id}>
+                <TableCell className="text-gray-650">{index + 1}</TableCell>
+                <TableCell className="font-semibold text-gray-800">{user.username}</TableCell>
+                <TableCell>{getRoleBadge(user.role)}</TableCell>
+                <TableCell>
+                  <Badge variant={user.status === "ACTIVE" ? "success" : "gray"}>
+                    {user.status === "ACTIVE" ? "Hoạt động" : "Tạm khóa"}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center justify-end gap-1">
+                    <button
+                      onClick={() => setViewItem(user)}
+                      className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
+                      title="Xem chi tiết"
+                    >
+                      <Eye size={16} />
+                    </button>
+                    <button
+                      onClick={() => setResetItem(user)}
+                      className="p-2 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 cursor-pointer"
+                      title="Đặt lại mật khẩu"
+                    >
+                      <RotateCcw size={16} />
+                    </button>
+                    <button
+                      onClick={() => setDeleteItem(user)}
+                      className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                      title="Xóa"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+            {filtered.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-12 text-gray-500">
+                  <UserCog size={48} className="mx-auto mb-3 text-gray-300" />
+                  Không tìm thấy tài khoản nào
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       {/* Modals */}

@@ -7,6 +7,7 @@ import SearchInput from "../../../components/ui/SearchInput";
 import Badge from "../../../components/ui/Badge";
 import Pagination from "../../../components/ui/Pagination";
 import { toast } from "sonner";
+import Select from "../../../components/ui/Select";
 
 import * as buildingService from "../../../services/buildingService";
 import type { BuildingData } from "../../../services/buildingService";
@@ -15,6 +16,14 @@ import BuildingCreateModal from "./components/BuildingCreateModal";
 import BuildingModifyModal from "./components/BuildingModifyModal";
 import BuildingDeleteModal from "./components/BuildingDeleteModal";
 import { useAuthStore } from "../../../stores/auth.store";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../../../components/ui/Table";
 
 export default function BuildingList() {
   const navigate = useNavigate();
@@ -27,6 +36,8 @@ export default function BuildingList() {
   const [editItem, setEditItem] = useState<BuildingData | null>(null);
   const [deleteItem, setDeleteItem] = useState<BuildingData | null>(null);
 
+  const [status, setStatus] = useState<string>("");
+
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -34,7 +45,7 @@ export default function BuildingList() {
 
   useEffect(() => {
     fetchBuildings();
-  }, [currentPage, search]);
+  }, [currentPage, search, status]);
 
   async function fetchBuildings() {
     try {
@@ -43,6 +54,7 @@ export default function BuildingList() {
         page: currentPage,
         limit: pageSize,
         search: search || undefined,
+        status: status || undefined,
       });
       setBuildings(result.data);
       setTotalPages(result.pagination.totalPages);
@@ -95,13 +107,25 @@ export default function BuildingList() {
         }
       />
 
-      {/* Tìm kiếm */}
-      <SearchInput
-        value={search}
-        onChange={(v) => { setSearch(v); setCurrentPage(1); }}
-        placeholder="Tìm kiếm..."
-        className="max-w-md"
-      />
+      {/* Tìm kiếm & Bộ lọc */}
+      <div className="flex flex-col sm:flex-row gap-4 items-center">
+        <SearchInput
+          value={search}
+          onChange={(v) => { setSearch(v); setCurrentPage(1); }}
+          placeholder="Tìm kiếm theo tên, địa chỉ..."
+          className="w-full sm:max-w-md"
+        />
+        {/* <Select
+          value={status}
+          onChange={(e) => { setStatus(e.target.value); setCurrentPage(1); }}
+          className="w-full sm:w-48"
+          placeholder="Tất cả trạng thái"
+          options={[
+            { value: "ACTIVE", label: "Đang hoạt động" },
+            { value: "INACTIVE", label: "Tạm ngưng" },
+          ]}
+        /> */}
+      </div>
 
       {/* Danh sách */}
       {filtered.length === 0 ? (
@@ -111,71 +135,69 @@ export default function BuildingList() {
           <p className="text-sm text-gray-400 mt-1">Thử tìm kiếm với từ khóa khác</p>
         </div>
       ) : (
-        <div className="premium-table-container">
-          <div className="overflow-x-auto">
-            <table className="premium-table">
-              <thead>
-                <tr>
-                  <th>Tên chi nhánh</th>
-                  <th>Địa chỉ</th>
-                  <th>Quản lý bởi</th>
-                  <th>Trạng thái</th>
-                  <th className="text-right">Chức năng</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((building) => (
-                  <tr key={building.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="font-semibold text-primary-600">
-                      <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/admin/buildings/${building.id}`)}>
-                        <span>{building.branch_name}</span>
+        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Tên chi nhánh</TableHead>
+                <TableHead>Địa chỉ</TableHead>
+                <TableHead>Quản lý bởi</TableHead>
+                <TableHead>Trạng thái</TableHead>
+                <TableHead className="text-right">Chức năng</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((building) => (
+                <TableRow key={building.id}>
+                  <TableCell className="font-semibold text-primary-600">
+                    <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/admin/buildings/${building.id}`)}>
+                      <span>{building.branch_name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-gray-600">
+                    <span className="block max-w-xs truncate" title={building.address_new}>
+                      {building.address_new}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-gray-700">
+                    {building.manager ? (
+                      <div className="flex items-center gap-1.5 font-medium text-primary-600">
+                        <User size={13} />
+                        <span>{building.manager.fullName || building.manager.username}</span>
                       </div>
-                    </td>
-                    <td className="text-gray-600">
-                      <span className="block max-w-xs truncate" title={building.address_new}>
-                        {building.address_new}
-                      </span>
-                    </td>
-                    <td className="text-gray-700">
-                      {building.manager ? (
-                        <div className="flex items-center gap-1.5 font-medium text-primary-600">
-                          <User size={13} />
-                          <span>{building.manager.fullName || building.manager.username}</span>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 italic text-xs">Không</span>
+                    ) : (
+                      <span className="text-gray-400 italic text-xs">Không</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={building.status === "ACTIVE" ? "success" : "gray"}>
+                      {building.status === "ACTIVE" ? "Hoạt động" : "Ngừng"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      <button onClick={() => navigate(`/admin/buildings/${building.id}`)}
+                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Xem chi tiết">
+                        <Eye size={16} />
+                      </button>
+                      {role === "ADMIN" && (
+                        <>
+                          <button onClick={() => { setEditItem(building); setShowModifyModal(true); }}
+                            className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Sửa">
+                            <Pencil size={16} />
+                          </button>
+                          <button onClick={() => setDeleteItem(building)}
+                            className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer" title="Xóa">
+                            <Trash2 size={16} />
+                          </button>
+                        </>
                       )}
-                    </td>
-                    <td>
-                      <Badge variant={building.status === "ACTIVE" ? "success" : "gray"}>
-                        {building.status === "ACTIVE" ? "Hoạt động" : "Ngừng"}
-                      </Badge>
-                    </td>
-                    <td>
-                      <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => navigate(`/admin/buildings/${building.id}`)}
-                          className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Xem chi tiết">
-                          <Eye size={16} />
-                        </button>
-                        {role === "ADMIN" && (
-                          <>
-                            <button onClick={() => { setEditItem(building); setShowModifyModal(true); }}
-                              className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Sửa">
-                              <Pencil size={16} />
-                            </button>
-                            <button onClick={() => setDeleteItem(building)}
-                              className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer" title="Xóa">
-                              <Trash2 size={16} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
 
