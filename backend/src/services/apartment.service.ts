@@ -1,6 +1,44 @@
 import { prisma } from "../config/database.js";
 import { Prisma } from "@prisma/client";
 
+const apartmentImageSelect = {
+    id: true,
+    apartment_id: true,
+    image_url: true,
+    is_thumbnail: true
+} satisfies Prisma.ApartmentImageSelect;
+
+const apartmentBuildingSelect = {
+    id: true,
+    branch_name: true,
+    address_old: true,
+    address_new: true,
+    total_floors: true
+} satisfies Prisma.BuildingSelect;
+
+const apartmentSelect = {
+    id: true,
+    building_id: true,
+    room_number: true,
+    floor: true,
+    area: true,
+    bedrooms: true,
+    bathrooms: true,
+    rental_price: true,
+    description: true,
+    status: true,
+    building: {
+        select: apartmentBuildingSelect
+    },
+    images: {
+        select: apartmentImageSelect,
+        orderBy: [
+            { is_thumbnail: "desc" },
+            { id: "asc" }
+        ]
+    }
+} satisfies Prisma.ApartmentSelect;
+
 export const createApartmentWithImagesService = async (
     data: any,
     imageUrls: string[]
@@ -67,10 +105,7 @@ export const getAllApartmentsService = async (filters: {
             skip,
             take: limit,
             orderBy: { floor: "asc" },
-            include: {
-                building: true,
-                images: true
-            },
+            select: apartmentSelect,
         }),
         prisma.apartment.count({ where: whereClause }),
     ]);
@@ -89,10 +124,7 @@ export const getAllApartmentsService = async (filters: {
 export const getApartmentByIdService = async (id: number) => {
     return await prisma.apartment.findUnique({
         where: { id },
-        include: {
-            building: true,
-            images: true
-        },
+        select: apartmentSelect,
     });
 };
 

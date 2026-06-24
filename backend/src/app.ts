@@ -35,7 +35,7 @@ app.use("/utility-readings", utilityReadingRouter);
 app.use("/invoices", invoiceRouter);
 app.use("/payments", paymentRouter);
 app.use("/notifications", notificationRouter);
-
+app.use("/contracts", contractRouter);
 app.get("/", (req, res) => {
     res.json({ message: "API hệ thống quản lý thuê căn hộ đang hoạt động ổn định!" });
 });
