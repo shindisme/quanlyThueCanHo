@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { ContractStatus } from "@prisma/client";
 import * as contractService from "../services/contract.service.js";
 
 const hasValue = (value: unknown) => value !== undefined && value !== null && value !== "";
@@ -22,6 +23,86 @@ const sendError = (res: Response, error: any, fallbackMessage: string) => {
         success: false,
         message: error?.message || fallbackMessage
     });
+};
+
+const parseOptionalNumber = (value: unknown) => {
+    const rawValue = Array.isArray(value) ? value[0] : value;
+
+    if (rawValue === undefined || rawValue === null || rawValue === "") {
+        return undefined;
+    }
+
+    const parsed = Number(rawValue);
+    return Number.isFinite(parsed) ? parsed : Number.NaN;
+};
+
+const parseRequiredNumber = (value: unknown) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : Number.NaN;
+};
+
+const isContractStatus = (value: unknown): value is ContractStatus => {
+    return value === ContractStatus.ACTIVE || value === ContractStatus.ENDED;
+};
+
+export const getAll = async (req: Request, res: Response) => {
+    try {
+        const actor = getActor(req);
+        if (!actor) {
+            return res.status(401).json({ success: false, message: "Vui lòng đăng nhập" });
+        }
+
+        const status = req.query.status;
+        if (status !== undefined && !isContractStatus(status)) {
+            return res.status(400).json({ success: false, message: "Trạng thái hợp đồng không hợp lệ" });
+        }
+
+        const tenantId = parseOptionalNumber(req.query.tenant_id ?? req.query.tenantId);
+        const apartmentId = parseOptionalNumber(req.query.apartment_id ?? req.query.apartmentId);
+        const buildingId = parseOptionalNumber(req.query.building_id ?? req.query.buildingId);
+        const page = parseOptionalNumber(req.query.page);
+        const limit = parseOptionalNumber(req.query.limit);
+
+        if ([tenantId, apartmentId, buildingId, page, limit].some((value) => Number.isNaN(value))) {
+            return res.status(400).json({ success: false, message: "Tham số lọc không hợp lệ" });
+        }
+
+        const result = await contractService.getContractsService({
+            status,
+            tenant_id: tenantId,
+            apartment_id: apartmentId,
+            building_id: buildingId,
+            search: req.query.search as string | undefined,
+            page,
+            limit
+        }, actor);
+
+        res.json({
+            success: true,
+            ...result
+        });
+    } catch (error: any) {
+        sendError(res, error, "Lỗi khi lấy danh sách hợp đồng");
+    }
+};
+
+export const getById = async (req: Request, res: Response) => {
+    try {
+        const actor = getActor(req);
+        if (!actor) {
+            return res.status(401).json({ success: false, message: "Vui lòng đăng nhập" });
+        }
+
+        const id = parseRequiredNumber(req.params.id);
+        if (Number.isNaN(id)) {
+            return res.status(400).json({ success: false, message: "Mã hợp đồng không hợp lệ" });
+        }
+
+        const data = await contractService.getContractByIdService(id, actor);
+        res.json({ success: true, data });
+    } catch (error: any) {
+        sendError(res, error, "Lỗi khi lấy chi tiết hợp đồng");
+    }
 };
 
 export const create = async (req: Request, res: Response) => {
