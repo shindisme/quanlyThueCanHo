@@ -13,6 +13,7 @@ import utilityReadingRouter from "./routes/utility-reading.routes.js";
 import invoiceRouter from "./routes/invoice.routes.js";
 import paymentRouter from "./routes/payment.routes.js";
 import notificationRouter from "./routes/notification.routes.js";
+import contractRouter from "./routes/contract.routes.js";
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.use("/schedules", scheduleRouter);
 app.use("/chat", chatbotRouter);
 app.use("/tenants", tenantRouter);
 app.use("/staff", staffRouter);
+app.use("/contracts", contractRouter);
 app.use("/reviews", review);
 app.use("/utility-readings", utilityReadingRouter);
 app.use("/invoices", invoiceRouter);

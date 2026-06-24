@@ -124,10 +124,10 @@ export default function GuestApartmentDetail() {
   }, [id]);
 
   useEffect(() => {
-    if (searchParams.get("book") === "true") {
+    if (searchParams.get("book") === "true" && apartment && apartment.status !== "RENTED") {
       setShowScheduleForm(true);
     }
-  }, [searchParams]);
+  }, [searchParams, apartment]);
 
   if (loading) {
     return (
@@ -165,6 +165,10 @@ export default function GuestApartmentDetail() {
 
   async function handleSubmitSchedule() {
     if (!apartment) return;
+    if (apartment.status === "RENTED") {
+      toast.error("Căn hộ đã được thuê, không thể đặt lịch xem phòng!");
+      return;
+    }
     if (!scheduleForm.guest_name || !scheduleForm.guest_phone || !scheduleForm.guest_email || !selectedDate || !selectedSlot) {
       toast.error("Vui lòng nhập đầy đủ thông tin: họ tên, số điện thoại, email, ngày và giờ xem phòng");
       return;
@@ -215,7 +219,7 @@ export default function GuestApartmentDetail() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Cot trai - Thong tin chi tiet */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className={`${apartment.status === "RENTED" ? "lg:col-span-3" : "lg:col-span-2"} space-y-6`}>
             {/* Hinh anh */}
             {images.length > 0 ? (
               <div className="flex flex-col gap-2">
@@ -354,18 +358,20 @@ export default function GuestApartmentDetail() {
           </div>
 
           {/* Cot phai - Dat lich xem phong */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-24">
-              <h3 className="font-semibold text-gray-800 mb-4">Đặt lịch xem phòng</h3>
-              <p className="text-sm text-gray-500 mb-4 leading-relaxed">
-                Không cần đăng ký tài khoản. Chỉ cần để lại thông tin liên hệ, chúng tôi sẽ liên lạc và hẹn giờ trực tiếp với bạn.
-              </p>
-              <Button className="w-full" onClick={() => setShowScheduleForm(true)}>
-                <Calendar size={18} />
-                Đặt lịch ngay
-              </Button>
-            </Card>
-          </div>
+          {apartment.status !== "RENTED" && (
+            <div className="lg:col-span-1">
+              <Card className="sticky top-24">
+                <h3 className="font-semibold text-gray-800 mb-4">Đặt lịch xem phòng</h3>
+                <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+                  Không cần đăng ký tài khoản. Chỉ cần để lại thông tin liên hệ, chúng tôi sẽ liên lạc và hẹn giờ trực tiếp với bạn.
+                </p>
+                <Button className="w-full" onClick={() => setShowScheduleForm(true)}>
+                  <Calendar size={18} />
+                  Đặt lịch ngay
+                </Button>
+              </Card>
+            </div>
+          )}
         </div>
       </div>
 
