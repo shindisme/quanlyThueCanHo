@@ -3,6 +3,27 @@ import * as contractService from "../services/contract.service.js";
 
 const hasValue = (value: unknown) => value !== undefined && value !== null && value !== "";
 
+const getActor = (req: Request): contractService.ContractActor | null => {
+    const userId = req.user?.id;
+
+    if (!userId || !req.user?.role) {
+        return null;
+    }
+
+    return {
+        userId,
+        role: req.user.role
+    };
+};
+
+const sendError = (res: Response, error: any, fallbackMessage: string) => {
+    const statusCode = error?.statusCode || 400;
+    res.status(statusCode).json({
+        success: false,
+        message: error?.message || fallbackMessage
+    });
+};
+
 export const create = async (req: Request, res: Response) => {
     try {
         const requiredFields = [
@@ -30,10 +51,7 @@ export const create = async (req: Request, res: Response) => {
             data: contract
         });
     } catch (error: any) {
-        res.status(400).json({
-            success: false,
-            message: error.message || "Lỗi khi tạo hợp đồng"
-        });
+        sendError(res, error, "Lỗi khi tạo hợp đồng");
     }
 };
 
@@ -62,9 +80,37 @@ export const extend = async (req: Request, res: Response) => {
             }
         });
     } catch (error: any) {
-        res.status(400).json({
-            success: false,
-            message: error.message || "Lỗi khi gia hạn hợp đồng"
+        sendError(res, error, "Lỗi khi gia hạn hợp đồng");
+    }
+};
+
+export const end = async (req: Request, res: Response) => {
+    try {
+        const actor = getActor(req);
+        if (!actor) {
+            return res.status(401).json({ success: false, message: "Vui lòng đăng nhập" });
+        }
+
+        const id = Number(req.params.id);
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({ success: false, message: "Mã hợp đồng không hợp lệ" });
+        }
+
+        const result = await contractService.endContractService(id, actor, req.body?.end_date);
+        res.json({
+            success: true,
+            message: "Hợp đồng đã được kết thúc thành công",
+            data: {
+                id: result.contract.id,
+                old_status: result.old_status,
+                new_status: result.new_status,
+                end_date: result.contract.end_date,
+                ended_at: result.ended_at,
+                apartment_status: result.apartment_status,
+                contract: result.contract
+            }
         });
+    } catch (error: any) {
+        sendError(res, error, "Lỗi khi kết thúc hợp đồng");
     }
 };
