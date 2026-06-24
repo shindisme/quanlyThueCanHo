@@ -2,6 +2,14 @@ import { prisma } from "../config/database.js";
 import { Prisma } from "@prisma/client";
 
 export const createTenant = async (data: any) => {
+    const existing = await prisma.tenant.findUnique({
+        where: { phone: data.phone }
+    });
+    
+    if (existing) {
+        throw new Error("Số điện thoại này đã tồn tại trong hệ thống.");
+    }
+
     return await prisma.tenant.create({
         data: {
             full_name: data.full_name,

@@ -13,6 +13,7 @@ import utilityReadingRouter from "./routes/utility-reading.routes.js";
 import invoiceRouter from "./routes/invoice.routes.js";
 import paymentRouter from "./routes/payment.routes.js";
 import notificationRouter from "./routes/notification.routes.js";
+import contractRouter from "./routes/contract.routes.js";
 
 const app = express();
 
@@ -33,7 +34,7 @@ app.use("/utility-readings", utilityReadingRouter);
 app.use("/invoices", invoiceRouter);
 app.use("/payments", paymentRouter);
 app.use("/notifications", notificationRouter);
-
+app.use("/contracts", contractRouter);
 app.get("/", (req, res) => {
     res.json({ message: "API hệ thống quản lý thuê căn hộ đang hoạt động ổn định!" });
 });
