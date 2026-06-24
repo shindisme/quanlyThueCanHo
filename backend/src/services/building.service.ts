@@ -1,5 +1,49 @@
 import { prisma } from "../config/database.js";
-import { Prisma, BuildingStatus } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+
+const normalizePagination = (page = 1, limit = 10) => {
+    const pageValue = Number.isFinite(page) ? Math.trunc(page) : 1;
+    const limitValue = Number.isFinite(limit) ? Math.trunc(limit) : 10;
+    const normalizedPage = Math.max(1, pageValue);
+    const normalizedLimit = Math.min(100, Math.max(1, limitValue));
+
+    return {
+        page: normalizedPage,
+        limit: normalizedLimit,
+        skip: (normalizedPage - 1) * normalizedLimit
+    };
+};
+
+const staffSummarySelect = {
+    id: true,
+    full_name: true,
+    phone: true,
+    user: {
+        select: {
+            username: true,
+            role: true
+        }
+    }
+} satisfies Prisma.StaffSelect;
+
+const buildingSummarySelect = {
+    id: true,
+    branch_name: true,
+    address_old: true,
+    address_new: true,
+    description: true,
+    status: true,
+    total_floors: true,
+    total_apartments: true,
+    thumbnail_url: true,
+    created_at: true,
+    _count: {
+        select: { apartments: true }
+    },
+    assigned_staff: {
+        select: staffSummarySelect
+    }
+} satisfies Prisma.BuildingSelect;
 
 export const createBuildingService = async (data: any, imageUrl: string) => {
     return await prisma.building.create({
@@ -17,9 +61,7 @@ export const getAllBuildingsService = async (filters: {
     limit?: number;
     staffId?: number;
 }) => {
-    const page = filters.page || 1;
-    const limit = filters.limit || 10;
-    const skip = (page - 1) * limit;
+    const pagination = normalizePagination(filters.page, filters.limit);
 
     const whereClause: Prisma.BuildingWhereInput = {};
 
@@ -46,28 +88,10 @@ export const getAllBuildingsService = async (filters: {
     const [buildings, total] = await prisma.$transaction([
         prisma.building.findMany({
             where: whereClause,
-            skip,
-            take: limit,
+            skip: pagination.skip,
+            take: pagination.limit,
             orderBy: { created_at: "desc" },
-            include: {
-                _count: {
-                    select: { apartments: true }
-                },
-                assigned_staff: {
-                    select: {
-                        id: true,
-                        full_name: true,
-                        phone: true,
-                        user: {
-                            select: {
-                                username: true,
-                                role: true
-                            }
-                        }
-                    }
-                },
-                apartments: true
-            }
+            select: buildingSummarySelect
         }),
         prisma.building.count({ where: whereClause }),
     ]);
@@ -76,9 +100,9 @@ export const getAllBuildingsService = async (filters: {
         data: buildings,
         pagination: {
             total,
-            page,
-            limit,
-            totalPages: Math.ceil(total / limit),
+            page: pagination.page,
+            limit: pagination.limit,
+            totalPages: Math.ceil(total / pagination.limit),
         },
     };
 };
@@ -86,22 +110,7 @@ export const getAllBuildingsService = async (filters: {
 export const getBuildingByIdService = async (id: number) => {
     return await prisma.building.findUnique({
         where: { id },
-        include: {
-            apartments: true,
-            assigned_staff: {
-                select: {
-                    id: true,
-                    full_name: true,
-                    phone: true,
-                    user: {
-                        select: {
-                            username: true,
-                            role: true
-                        }
-                    }
-                }
-            }
-        },
+        select: buildingSummarySelect,
     });
 };
 
