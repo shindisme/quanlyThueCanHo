@@ -1,8 +1,8 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { X, Building2 } from "lucide-react";
-import { useAuthStore } from "../../stores/auth.store";
-import { useSidebarStore } from "../../stores/sidebar.store";
-import { getSidebarMenu } from "../../constants/sidebar";
+import { useAuthStore } from "../stores/auth.store";
+import { useSidebarStore } from "../stores/sidebar.store";
+import { getSidebarMenu } from "../constants/sidebar";
 
 export default function Sidebar() {
   const { role } = useAuthStore();

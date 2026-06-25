@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Bot, X, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
-import api from "../../lib/api";
+import api from "../../../lib/api";
 
 interface Message {
   id: number;
@@ -90,7 +90,7 @@ export default function GuestChatbox() {
         time: "Vừa xong",
       };
       setMessages((prev) => [...prev, botMessage]);
-    } catch (error) {
+    } catch {
       const errorMessage: Message = {
         id: messages.length + 2,
         text: "Xin lỗi, hệ thống trợ lý ảo đang bận hoặc gặp sự cố kết nối. Vui lòng thử lại sau.",

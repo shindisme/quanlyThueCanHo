@@ -1,15 +1,13 @@
-import { useState, useEffect } from "react";
-import { Plus } from "lucide-react";
-import Modal from "../../../../components/ui/Modal";
-import Button from "../../../../components/ui/Button";
-import Select from "../../../../components/ui/Select";
-import * as buildingService from "../../../../services/buildingService";
-import { toast } from "sonner";
+import { Plus } from "lucide-react"
+import Modal from "../../../../components/ui/Modal"
+import Button from "../../../../components/ui/Button"
+import Select from "../../../../components/ui/Select"
+import { useBuildingCreate } from "../../../../hooks/useBuildingCreate"
 
 interface BuildingCreateModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
+  isOpen: boolean
+  onClose: () => void
+  onSuccess: () => void
 }
 
 export default function BuildingCreateModal({
@@ -17,97 +15,19 @@ export default function BuildingCreateModal({
   onClose,
   onSuccess,
 }: BuildingCreateModalProps) {
-  const [saving, setSaving] = useState(false);
-  const [staffList, setStaffList] = useState<any[]>([]);
-  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>("");
-  const [formData, setFormData] = useState({
-    name: "",
-    address_old: "",
-    address_new: "",
-    total_floors: 0,
-    description: "",
-    branch_name: "",
-    thumbnail_url: "",
-    staff_id: null as number | null,
-  });
-
-  useEffect(() => {
-    if (isOpen) {
-      setFormData({
-        name: "",
-        address_old: "",
-        address_new: "",
-        total_floors: 0,
-        description: "",
-        branch_name: "",
-        thumbnail_url: "",
-        staff_id: null,
-      });
-      setThumbnailFile(null);
-      setPreviewUrl("");
-      fetchManagers();
-    }
-  }, [isOpen]);
-
-  async function fetchManagers() {
-    try {
-      const { getAllStaff } = await import("../../../../services/staffService");
-      const staffRes = await getAllStaff();
-      setStaffList(staffRes.data);
-    } catch {
-      toast.error("Không thể tải danh sách người quản lý");
-    }
-  }
-
-  const availableManagers = staffList.filter((m) => {
-    const isManager = m.position === "Quản lý" || m.user?.role === "MANAGER";
-    if (!isManager) return false;
-    if (m.user?.role === "ADMIN") return false;
-    if (!m.building_id) return true;
-    return false;
-  });
-
-  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      setThumbnailFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-      toast.success("Đã chọn ảnh");
-    }
-  }
-
-  async function handleSave() {
-    if (!formData.name || !formData.address_old || !formData.address_new || !formData.branch_name) {
-      toast.error("Vui lòng nhập tên chi nhánh/tòa nhà, địa chỉ cũ và địa chỉ mới");
-      return;
-    }
-    setSaving(true);
-    try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("name", formData.name);
-      formDataToSend.append("branch_name", formData.branch_name);
-      formDataToSend.append("address_old", formData.address_old);
-      formDataToSend.append("address_new", formData.address_new);
-      formDataToSend.append("total_floors", String(formData.total_floors));
-      formDataToSend.append("description", formData.description || "");
-      if (formData.staff_id) {
-        formDataToSend.append("staff_id", String(formData.staff_id));
-      }
-      if (thumbnailFile) {
-        formDataToSend.append("image", thumbnailFile);
-      }
-
-      await buildingService.createBuilding(formDataToSend);
-      toast.success("Đã thêm tòa nhà mới");
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || error.response?.data?.message || "Thao tác thất bại");
-    } finally {
-      setSaving(false);
-    }
-  }
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    onSubmit,
+    errors,
+    saving,
+    availableManagers,
+    previewUrl,
+    handleImageUpload,
+    handleRemoveImage,
+    staffIdValue,
+  } = useBuildingCreate({ isOpen, onClose, onSuccess })
 
   return (
     <Modal
@@ -118,63 +38,83 @@ export default function BuildingCreateModal({
       footer={
         <>
           <Button variant="outline" onClick={onClose}>Hủy</Button>
-          <Button onClick={handleSave} isLoading={saving}>Thêm mới</Button>
+          <Button onClick={handleSubmit(onSubmit)} isLoading={saving}>Thêm mới</Button>
         </>
       }
     >
       <div className="space-y-6">
         <div className="grid grid-cols-12 gap-6">
+          {/* branch_name */}
           <div className="col-span-12">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên chi nhánh/tòa nhà *</label>
             <input
               type="text"
-              value={formData.branch_name}
-              onChange={(e) => setFormData({ ...formData, branch_name: e.target.value, name: e.target.value })}
+              {...register("branch_name")}
               placeholder="VD: Chi nhánh Quận 1"
-              className="premium-input rounded-xl"
+              className={`premium-input rounded-xl ${errors.branch_name ? "border-danger-500 focus:ring-danger-500" : ""}`}
             />
+            {errors.branch_name && (
+              <p className="mt-1 text-xs text-danger-500">{errors.branch_name.message}</p>
+            )}
           </div>
+
+          {/* address_old */}
           <div className="col-span-12 sm:col-span-6">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Địa chỉ cũ *</label>
             <input
               type="text"
-              value={formData.address_old}
-              onChange={(e) => setFormData({ ...formData, address_old: e.target.value })}
+              {...register("address_old")}
               placeholder="VD: 123 Nguyễn Huệ, Quận 1"
-              className="premium-input rounded-xl"
+              className={`premium-input rounded-xl ${errors.address_old ? "border-danger-500 focus:ring-danger-500" : ""}`}
             />
+            {errors.address_old && (
+              <p className="mt-1 text-xs text-danger-500">{errors.address_old.message}</p>
+            )}
           </div>
+
+          {/* address_new */}
           <div className="col-span-12 sm:col-span-6">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Địa chỉ mới *</label>
             <input
               type="text"
-              value={formData.address_new}
-              onChange={(e) => setFormData({ ...formData, address_new: e.target.value })}
+              {...register("address_new")}
               placeholder="VD: 123 Nguyễn Huệ, Phường Bến Nghé, Quận 1"
-              className="premium-input rounded-xl"
+              className={`premium-input rounded-xl ${errors.address_new ? "border-danger-500 focus:ring-danger-500" : ""}`}
             />
+            {errors.address_new && (
+              <p className="mt-1 text-xs text-danger-500">{errors.address_new.message}</p>
+            )}
           </div>
+
+          {/* total_floors */}
           <div className="col-span-12">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Số tầng *</label>
             <input
               type="number"
-              value={formData.total_floors || ""}
-              onChange={(e) => setFormData({ ...formData, total_floors: Number(e.target.value) })}
-              className="premium-input rounded-xl"
+              {...register("total_floors", { valueAsNumber: true })}
+              className={`premium-input rounded-xl ${errors.total_floors ? "border-danger-500 focus:ring-danger-500" : ""}`}
             />
+            {errors.total_floors && (
+              <p className="mt-1 text-xs text-danger-500">{errors.total_floors.message}</p>
+            )}
           </div>
+
+          {/* staff_id */}
           <div className="col-span-12">
             <Select
               label="Quản lý bởi"
-              value={formData.staff_id || ""}
-              onChange={(e) => setFormData({ ...formData, staff_id: e.target.value ? Number(e.target.value) : null })}
+              value={staffIdValue || ""}
+              onChange={(e) => setValue("staff_id", e.target.value ? Number(e.target.value) : null)}
               placeholder="-- Chưa phân công --"
               options={availableManagers.map((s) => ({
                 value: String(s.id),
                 label: `${s.full_name} (${s.user?.username || s.position})`,
               }))}
+              error={errors.staff_id?.message}
             />
           </div>
+
+          {/* image bìa */}
           <div className="col-span-12">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Ảnh bìa tòa nhà</label>
             <div className="flex items-center gap-4">
@@ -183,7 +123,7 @@ export default function BuildingCreateModal({
                   <img src={previewUrl} className="w-full h-full object-cover" alt="" />
                   <button
                     type="button"
-                    onClick={() => { setThumbnailFile(null); setPreviewUrl(""); }}
+                    onClick={handleRemoveImage}
                     className="absolute top-1 right-1 p-1 bg-red-650 hover:bg-red-700 text-white rounded-full text-[10px] shadow w-4 h-4 flex items-center justify-center cursor-pointer"
                   >
                     ✕
@@ -202,11 +142,12 @@ export default function BuildingCreateModal({
               </div>
             </div>
           </div>
+
+          {/* description */}
           <div className="col-span-12">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Mô tả</label>
             <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              {...register("description")}
               rows={3}
               placeholder="Mô tả ngắn gọn về tòa nhà..."
               className="premium-input rounded-xl resize-none"
@@ -215,5 +156,5 @@ export default function BuildingCreateModal({
         </div>
       </div>
     </Modal>
-  );
+  )
 }

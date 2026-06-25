@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Loader2, Building2, User, Eye, Pencil, Trash2 } from "lucide-react";
 import PageHeader from "../../../components/ui/PageHeader";
@@ -7,7 +7,7 @@ import SearchInput from "../../../components/ui/SearchInput";
 import Badge from "../../../components/ui/Badge";
 import Pagination from "../../../components/ui/Pagination";
 import { toast } from "sonner";
-import Select from "../../../components/ui/Select";
+
 
 import * as buildingService from "../../../services/buildingService";
 import type { BuildingData } from "../../../services/buildingService";
@@ -36,20 +36,15 @@ export default function BuildingList() {
   const [editItem, setEditItem] = useState<BuildingData | null>(null);
   const [deleteItem, setDeleteItem] = useState<BuildingData | null>(null);
 
-  const [status, setStatus] = useState<string>("");
+  const [status] = useState<string>("");
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const pageSize = 10;
 
-  useEffect(() => {
-    fetchBuildings();
-  }, [currentPage, search, status]);
-
-  async function fetchBuildings() {
+  const fetchBuildings = useCallback(async () => {
     try {
-      setLoading(true);
       const result = await buildingService.getAllBuildings({
         page: currentPage,
         limit: pageSize,
@@ -64,7 +59,34 @@ export default function BuildingList() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [currentPage, search, status, pageSize]);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const result = await buildingService.getAllBuildings({
+          page: currentPage,
+          limit: pageSize,
+          search: search || undefined,
+          status: status || undefined,
+        });
+        if (active) {
+          setBuildings(result.data);
+          setTotalPages(result.pagination.totalPages);
+          setTotalCount(result.pagination.total);
+        }
+      } catch {
+        toast.error("Không thể tải danh sách tòa nhà");
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+    load();
+    return () => { active = false; };
+  }, [currentPage, search, status, pageSize]);
 
   const filtered = role === "MANAGER"
     ? buildings.filter((b) => b.id === managedBuildingId)
@@ -77,8 +99,9 @@ export default function BuildingList() {
       toast.success(`Đã xóa tòa nhà "${deleteItem.name}"`);
       setDeleteItem(null);
       fetchBuildings();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Xóa thất bại");
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || "Xóa thất bại");
     }
   }
 

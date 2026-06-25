@@ -1,11 +1,41 @@
-import * as React from "react"
+import type { ComponentProps } from "react"
 import { cn } from "../../lib/utils"
 
-export interface AvatarProps {
-  src?: string | null;
-  name: string;
-  size?: "sm" | "md" | "lg";
-  className?: string;
+function DefaultAvatar({ className, ref, ...props }: ComponentProps<"div">) {
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function AvatarImage({ className, ref, alt, ...props }: ComponentProps<"img">) {
+  return (
+    <img
+      ref={ref}
+      className={cn("aspect-square h-full w-full object-cover", className)}
+      alt={alt}
+      {...props}
+    />
+  )
+}
+
+function AvatarFallback({ className, ref, ...props }: ComponentProps<"div">) {
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "flex h-full w-full items-center justify-center bg-gray-100 text-gray-500 font-medium",
+        className
+      )}
+      {...props}
+    />
+  )
 }
 
 const sizeStyles = {
@@ -14,52 +44,16 @@ const sizeStyles = {
   lg: "w-12 h-12 text-base",
 }
 
-export const Avatar = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "relative flex shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-white",
-      className
-    )}
-    {...props}
-  />
-))
-Avatar.displayName = "Avatar"
+interface DefaultAvatarProps {
+  src?: string | null
+  name: string
+  size?: "sm" | "md" | "lg"
+  className?: string
+}
 
-export const AvatarImage = React.forwardRef<
-  HTMLImageElement,
-  React.ImgHTMLAttributes<HTMLImageElement>
->(({ className, alt, ...props }, ref) => (
-  <img
-    ref={ref}
-    className={cn("aspect-square h-full w-full object-cover", className)}
-    alt={alt}
-    {...props}
-  />
-))
-AvatarImage.displayName = "AvatarImage"
-
-export const AvatarFallback = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "flex h-full w-full items-center justify-center bg-gray-100 text-gray-500 font-medium",
-      className
-    )}
-    {...props}
-  />
-))
-AvatarFallback.displayName = "AvatarFallback"
-
-export default function DefaultAvatar({ src, name, size = "md", className }: AvatarProps) {
+function Avatar({ src, name, size = "md", className }: DefaultAvatarProps) {
   return (
-    <Avatar className={cn(sizeStyles[size], className)}>
+    <DefaultAvatar className={cn(sizeStyles[size], className)}>
       {src ? (
         <AvatarImage src={src} alt={name} />
       ) : (
@@ -69,7 +63,14 @@ export default function DefaultAvatar({ src, name, size = "md", className }: Ava
           </svg>
         </AvatarFallback>
       )}
-    </Avatar>
+    </DefaultAvatar>
   )
 }
 
+export {
+  DefaultAvatar,
+  AvatarImage,
+  AvatarFallback,
+}
+
+export default Avatar

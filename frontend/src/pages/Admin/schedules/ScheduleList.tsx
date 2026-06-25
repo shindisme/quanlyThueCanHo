@@ -12,6 +12,7 @@ import { useAuthStore } from "../../../stores/auth.store";
 import * as scheduleService from "../../../services/scheduleService";
 import type { ScheduleData } from "../../../services/scheduleService";
 import * as buildingService from "../../../services/buildingService";
+import type { BuildingData } from "../../../services/buildingService";
 
 import {
   Table,
@@ -24,7 +25,6 @@ import {
 
 import { useSort } from "../../../hooks/useSort";
 import { formatApartmentDisplay, removeVietnameseTones, maskPhone, parseGuestName } from "../../../utils/format";
-import { mockBuildings } from "../../../data/buildings";
 
 import ScheduleDeleteModal from "./components/ScheduleDeleteModal";
 import ScheduleDetailModal from "./components/ScheduleDetailModal";
@@ -40,7 +40,7 @@ export default function ScheduleList() {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const [buildings, setBuildings] = useState<any[]>([]);
+  const [buildings, setBuildings] = useState<BuildingData[]>([]);
   const itemsPerPage = 10;
 
   // Email modal states
@@ -50,21 +50,16 @@ export default function ScheduleList() {
   const [emailBody, setEmailBody] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search]);
-
-  useEffect(() => {
-    if (!emailItem) return;
-    const building = buildings.find(b => b.id === emailItem.apartment?.building_id) || mockBuildings.find(b => b.id === emailItem.apartment?.building_id);
-    const roomNumber = emailItem.apartment?.room_number || "";
-    const floor = emailItem.apartment?.floor || "";
+  const initEmailContent = (item: ScheduleData, template: "confirm" | "cancel" | "reminder", bldList: BuildingData[]) => {
+    const building = bldList.find(b => b.id === item.apartment?.building_id);
+    const roomNumber = item.apartment?.room_number || "";
+    const floor = item.apartment?.floor || "";
     const buildingName = building?.branch_name || building?.name || "Yuki House";
     const aptLabel = roomNumber ? `Căn hộ P.${floor}${roomNumber} tại chi nhánh ${buildingName}` : "căn hộ";
-    const timeStr = new Date(emailItem.schedule_time).toLocaleString("vi-VN");
-    const cleanGuestName = parseGuestName(emailItem.guest_name).name;
+    const timeStr = new Date(item.schedule_time).toLocaleString("vi-VN");
+    const cleanGuestName = parseGuestName(item.guest_name).name;
 
-    if (emailTemplate === "confirm") {
+    if (template === "confirm") {
       setEmailSubject(`[Yuki House] Xác nhận lịch xem phòng ${aptLabel}`);
       setEmailBody(
         `Kính gửi anh/chị ${cleanGuestName},\n\n` +
@@ -74,7 +69,7 @@ export default function ScheduleList() {
         `Nhân viên hỗ trợ sẽ đón anh/chị tại sảnh tòa nhà trước giờ hẹn 5 phút. Nếu cần hỗ trợ thêm hoặc muốn thay đổi lịch hẹn, vui lòng liên hệ hotline: 0901000001.\n\n` +
         `Trân trọng,\nBan quản lý Yuki House`
       );
-    } else if (emailTemplate === "cancel") {
+    } else if (template === "cancel") {
       setEmailSubject(`[Yuki House] Thông báo hủy lịch xem phòng ${aptLabel}`);
       setEmailBody(
         `Kính gửi anh/chị ${cleanGuestName},\n\n` +
@@ -96,7 +91,7 @@ export default function ScheduleList() {
         `Trân trọng,\nBan quản lý Yuki House`
       );
     }
-  }, [emailItem, emailTemplate]);
+  };
 
   useEffect(() => {
     fetchSchedules();
@@ -168,8 +163,9 @@ export default function ScheduleList() {
       }
 
       fetchSchedules();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Xác nhận thất bại");
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || "Xác nhận thất bại");
     }
   }
 
@@ -185,8 +181,9 @@ export default function ScheduleList() {
       }
 
       fetchSchedules();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Hủy thất bại");
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || "Hủy thất bại");
     }
   }
 
@@ -197,19 +194,26 @@ export default function ScheduleList() {
       toast.success("Đã xóa lịch");
       setDeleteItem(null);
       fetchSchedules();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Xóa thất bại");
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || "Xóa thất bại");
     }
   }
 
   function getStatusBadge(status: string) {
-    const map: Record<string, { label: string; variant: string }> = {
-      PENDING: { label: "Chờ xác nhận", variant: "warning" },
-      CONFIRMED: { label: "Đã xác nhận", variant: "success" },
-      CANCELLED: { label: "Đã hủy", variant: "gray" },
+    const variantMap: Record<string, "warning" | "success" | "gray" | "info"> = {
+      PENDING: "warning",
+      CONFIRMED: "success",
+      CANCELLED: "gray",
     };
-    const s = map[status] || { label: status, variant: "gray" };
-    return <Badge variant={s.variant as any}>{s.label}</Badge>;
+    const variant = variantMap[status] || "gray";
+    const labelMap: Record<string, string> = {
+      PENDING: "Chờ xác nhận",
+      CONFIRMED: "Đã xác nhận",
+      CANCELLED: "Đã hủy",
+    };
+    const label = labelMap[status] || status;
+    return <Badge variant={variant}>{label}</Badge>;
   }
 
   if (loading) {
@@ -246,8 +250,8 @@ export default function ScheduleList() {
               <TableHead onClick={() => requestSort("guest_phone")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 SĐT {getSortIcon("guest_phone")}
               </TableHead>
-              <TableHead onClick={() => requestSort("guest_email" as any)} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Email {getSortIcon("guest_email" as any)}
+              <TableHead onClick={() => requestSort("guest_email")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                Email {getSortIcon("guest_email")}
               </TableHead>
               <TableHead onClick={() => requestSort("schedule_time")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 Thời gian {getSortIcon("schedule_time")}
@@ -269,7 +273,7 @@ export default function ScheduleList() {
                         s.apartment.room_number,
                         s.apartment.floor,
                         role || undefined,
-                        buildings.find((b) => b.id === s.apartment?.building_id)?.branch_name || mockBuildings.find((b) => b.id === s.apartment?.building_id)?.branch_name
+                        buildings.find((b) => b.id === s.apartment?.building_id)?.branch_name
                       )}
                     </span>
                   ) : (
@@ -297,13 +301,9 @@ export default function ScheduleList() {
                       <button
                         onClick={() => {
                           setEmailItem(s);
-                          if (s.status === "PENDING") {
-                            setEmailTemplate("confirm");
-                          } else if (s.status === "CANCELLED") {
-                            setEmailTemplate("cancel");
-                          } else {
-                            setEmailTemplate("reminder");
-                          }
+                          const initialTemplate = s.status === "PENDING" ? "confirm" : s.status === "CANCELLED" ? "cancel" : "reminder";
+                          setEmailTemplate(initialTemplate);
+                          initEmailContent(s, initialTemplate, buildings);
                         }}
                         className="p-2 rounded-lg text-gray-400 hover:text-blue-650 hover:bg-blue-50 cursor-pointer"
                         title="Gửi Email"
@@ -435,7 +435,10 @@ export default function ScheduleList() {
                     type="radio"
                     name="emailTemplate"
                     checked={emailTemplate === "confirm"}
-                    onChange={() => setEmailTemplate("confirm")}
+                    onChange={() => {
+                      setEmailTemplate("confirm");
+                      if (emailItem) initEmailContent(emailItem, "confirm", buildings);
+                    }}
                     className="w-4 h-4 text-primary-600 focus:ring-primary-500"
                   />
                   Xác nhận đặt lịch
@@ -445,7 +448,10 @@ export default function ScheduleList() {
                     type="radio"
                     name="emailTemplate"
                     checked={emailTemplate === "cancel"}
-                    onChange={() => setEmailTemplate("cancel")}
+                    onChange={() => {
+                      setEmailTemplate("cancel");
+                      if (emailItem) initEmailContent(emailItem, "cancel", buildings);
+                    }}
                     className="w-4 h-4 text-primary-600 focus:ring-primary-500"
                   />
                   Hủy đặt lịch
@@ -455,7 +461,10 @@ export default function ScheduleList() {
                     type="radio"
                     name="emailTemplate"
                     checked={emailTemplate === "reminder"}
-                    onChange={() => setEmailTemplate("reminder")}
+                    onChange={() => {
+                      setEmailTemplate("reminder");
+                      if (emailItem) initEmailContent(emailItem, "reminder", buildings);
+                    }}
                     className="w-4 h-4 text-primary-600 focus:ring-primary-500"
                   />
                   Gửi lời nhắc nhở

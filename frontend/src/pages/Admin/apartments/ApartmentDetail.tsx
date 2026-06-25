@@ -1,156 +1,44 @@
-import { useParams, Link } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Home, Loader2, Trash2, Plus, Star } from "lucide-react";
-import Card from "../../../components/ui/Card";
-import Badge from "../../../components/ui/Badge";
-import Button from "../../../components/ui/Button";
-import { toast } from "sonner";
-
-import * as apartmentService from "../../../services/apartmentService";
-import type { ApartmentData } from "../../../services/apartmentService";
-import type { ApartmentImage } from "../../../types";
-import { mockContracts } from "../../../data/contracts";
-import { mockTenants } from "../../../data/tenants";
-import { mockUsers } from "../../../data/users";
-
-import * as buildingService from "../../../services/buildingService";
-import type { BuildingData } from "../../../services/buildingService";
-import ApartmentModifyModal from "./components/ApartmentModifyModal";
-
-import * as contractService from "../../../services/contractService";
-import * as tenantService from "../../../services/tenantService";
-import * as authService from "../../../services/authService";
-
-import { useAuthStore } from "../../../stores/auth.store";
-import { formatApartmentDisplay, formatDate, maskCCCD } from "../../../utils/format";
-import { getApartmentReviews } from "../../../services/reviewService";
+import { Link } from "react-router-dom"
+import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Home, Loader2, Trash2, Plus, Star } from "lucide-react"
+import Card from "../../../components/ui/Card"
+import Badge, { type BadgeVariant } from "../../../components/ui/Badge"
+import Button from "../../../components/ui/Button"
+import ApartmentModifyModal from "./components/ApartmentModifyModal"
+import { useAuthStore } from "../../../stores/auth.store"
+import { formatApartmentDisplay, formatDate, maskCCCD } from "../../../utils/format"
+import { useApartmentDetail } from "../../../hooks/useApartmentDetail"
 
 export default function ApartmentDetail() {
-  const { role } = useAuthStore();
-  const { id } = useParams();
-  const [apartment, setApartment] = useState<ApartmentData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [images, setImages] = useState<ApartmentImage[]>([]);
-  const [uploading, setUploading] = useState(false);
-
-  const [buildings, setBuildings] = useState<BuildingData[]>([]);
-  const [showModifyModal, setShowModifyModal] = useState(false);
-
-  const [contracts, setContracts] = useState<any[]>([]);
-  const [tenants, setTenants] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [occupants, setOccupants] = useState<any[]>([]);
-
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [reviewMeta, setReviewMeta] = useState<any>({ averageRating: 0, totalReviews: 0, currentPage: 1, totalPages: 1 });
-  const [activeTab, setActiveTab] = useState<"tenant" | "tenantHistory" | "reviews">("tenant");
-
-  const activeContract = contracts.find(
-    (c) => c.apartment_id === Number(id) && c.status === "ACTIVE"
-  );
-  const activeTenant = activeContract
-    ? tenants.find((t) => t.id === activeContract.tenant_id)
-    : null;
-  const activeTenantUser = activeTenant
-    ? users.find((u) => u.id === activeTenant.user_id)
-    : null;
-
-  const historyContracts = contracts.filter((c) => c.apartment_id === Number(id));
-  const tenantContracts = activeTenant
-    ? historyContracts.filter((c) => c.tenant_id === activeTenant.id)
-    : [];
-
-  useEffect(() => {
-    if (activeTenantUser?.email) {
-      const stored = localStorage.getItem(`occupants-${activeTenantUser.email}`);
-      if (stored) {
-        try {
-          setOccupants(JSON.parse(stored));
-        } catch {
-          setOccupants([]);
-        }
-      } else {
-        setOccupants([]);
-      }
-    } else {
-      setOccupants([]);
-    }
-  }, [activeTenantUser]);
-
-  useEffect(() => {
-    if (!id) return;
-    fetchData();
-  }, [id]);
-
-  async function fetchData() {
-    try {
-      setLoading(true);
-      const [bRes, aptData, contractsData, tenantsRes, usersData, reviewsRes] = await Promise.all([
-        buildingService.getAllBuildings(),
-        apartmentService.getApartmentById(Number(id)),
-        contractService.getAllContracts().catch(() => mockContracts as any),
-        tenantService.getAllTenants({ limit: 1000 }).catch(() => ({ data: mockTenants })),
-        authService.getAllUsers().catch(() => mockUsers),
-        getApartmentReviews(Number(id)).catch(() => ({ data: [], meta: { averageRating: 0, totalReviews: 0, currentPage: 1, totalPages: 1 } })),
-      ]);
-      setBuildings(bRes.data);
-      setApartment(aptData);
-      setImages(aptData.images || []);
-      setContracts(contractsData);
-      setTenants(tenantsRes.data);
-      setUsers(usersData);
-      setReviews(reviewsRes.data);
-      setReviewMeta(reviewsRes.meta);
-    } catch {
-      toast.error("Không thể tải dữ liệu");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("images", file);
-
-      await apartmentService.updateApartment(Number(id), formDataToSend);
-      toast.success("Tải ảnh lên thành công");
-      await fetchData();
-    } catch {
-      toast.error("Không thể tải ảnh lên");
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  function handleSetThumbnail(imgId: number) {
-    const updated = images.map((img) => ({
-      ...img,
-      is_thumbnail: img.id === imgId
-    }));
-    setImages(updated);
-    toast.success("Đã đặt làm ảnh đại diện");
-  }
-
-  function handleDeleteImage(imgId: number) {
-    const updated = images.filter((img) => img.id !== imgId);
-    if (images.find((img) => img.id === imgId)?.is_thumbnail && updated.length > 0) {
-      updated[0].is_thumbnail = true;
-    }
-    setImages(updated);
-    toast.success("Đã xóa hình ảnh");
-  }
+  const { role } = useAuthStore()
+  const {
+    apartment,
+    loading,
+    images,
+    uploading,
+    buildings,
+    showModifyModal,
+    setShowModifyModal,
+    occupants,
+    reviews,
+    reviewMeta,
+    activeTab,
+    setActiveTab,
+    activeContract,
+    activeTenant,
+    activeTenantUser,
+    tenantContracts,
+    fetchData,
+    handleImageUpload,
+    handleSetThumbnail,
+    handleDeleteImage,
+  } = useApartmentDetail()
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="animate-spin text-primary-600" size={32} />
       </div>
-    );
+    )
   }
 
   if (!apartment) {
@@ -161,21 +49,21 @@ export default function ApartmentDetail() {
           Quay lại danh sách
         </Link>
       </div>
-    );
+    )
   }
 
   function formatPrice(price: number) {
-    return new Intl.NumberFormat("vi-VN").format(price) + " đ";
+    return new Intl.NumberFormat("vi-VN").format(price) + " đ"
   }
 
   function getStatusBadge(status: string) {
-    const map: Record<string, { label: string; variant: string }> = {
+    const map: Record<string, { label: string; variant: BadgeVariant }> = {
       AVAILABLE: { label: "Còn trống", variant: "success" },
       RENTED: { label: "Đang thuê", variant: "info" },
       MAINTENANCE: { label: "Bảo trì", variant: "warning" },
-    };
-    const s = map[status] || { label: status, variant: "gray" };
-    return <Badge variant={s.variant as any}>{s.label}</Badge>;
+    }
+    const s = map[status] || { label: status, variant: "gray" }
+    return <Badge variant={s.variant}>{s.label}</Badge>
   }
 
   return (
@@ -204,8 +92,9 @@ export default function ApartmentDetail() {
                   <button
                     key={img.id}
                     onClick={() => handleSetThumbnail(img.id)}
-                    className={`w-16 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${img.is_thumbnail ? "border-primary-500 scale-102" : "border-gray-200 hover:border-gray-300"
-                      }`}
+                    className={`w-16 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${
+                      img.is_thumbnail ? "border-primary-500 scale-102" : "border-gray-200 hover:border-gray-300"
+                    }`}
                   >
                     <img src={img.image_url} className="w-full h-full object-cover" alt="" />
                   </button>
@@ -353,28 +242,31 @@ export default function ApartmentDetail() {
         <div className="flex border-b border-gray-200 bg-gray-50/50">
           <button
             onClick={() => setActiveTab("tenant")}
-            className={`flex-1 py-3.5 text-center text-sm font-semibold border-b-2 cursor-pointer transition-all ${activeTab === "tenant"
-              ? "border-primary-600 text-primary-600 bg-white"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
-              }`}
+            className={`flex-1 py-3.5 text-center text-sm font-semibold border-b-2 cursor-pointer transition-all ${
+              activeTab === "tenant"
+                ? "border-primary-600 text-primary-600 bg-white"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
+            }`}
           >
             Người thuê hiện tại {activeContract && <span className="ml-1.5 w-2 h-2 rounded-full bg-success-500 inline-block animate-pulse" />}
           </button>
           <button
             onClick={() => setActiveTab("tenantHistory")}
-            className={`flex-1 py-3.5 text-center text-sm font-semibold border-b-2 cursor-pointer transition-all ${activeTab === "tenantHistory"
-              ? "border-primary-600 text-primary-600 bg-white"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
-              }`}
+            className={`flex-1 py-3.5 text-center text-sm font-semibold border-b-2 cursor-pointer transition-all ${
+              activeTab === "tenantHistory"
+                ? "border-primary-600 text-primary-600 bg-white"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
+            }`}
           >
             Lịch sử hợp đồng ({activeTenant ? tenantContracts.length : 0})
           </button>
           <button
             onClick={() => setActiveTab("reviews")}
-            className={`flex-1 py-3.5 text-center text-sm font-semibold border-b-2 cursor-pointer transition-all ${activeTab === "reviews"
-              ? "border-primary-600 text-primary-600 bg-white"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
-              }`}
+            className={`flex-1 py-3.5 text-center text-sm font-semibold border-b-2 cursor-pointer transition-all ${
+              activeTab === "reviews"
+                ? "border-primary-600 text-primary-600 bg-white"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
+            }`}
           >
             Đánh giá & Nhận xét ({reviewMeta.totalReviews || 0})
           </button>
@@ -510,8 +402,8 @@ export default function ApartmentDetail() {
                 </div>
                 <div className="flex-1 space-y-2 w-full text-xs">
                   {[5, 4, 3, 2, 1].map((stars) => {
-                    const count = reviews.filter((r) => r.rating === stars).length;
-                    const percent = reviewMeta.totalReviews > 0 ? (count / reviewMeta.totalReviews) * 100 : 0;
+                    const count = reviews.filter((r) => r.rating === stars).length
+                    const percent = reviewMeta.totalReviews > 0 ? (count / reviewMeta.totalReviews) * 100 : 0
                     return (
                       <div key={stars} className="flex items-center gap-3">
                         <span className="w-8 text-gray-500 font-semibold">{stars} sao</span>
@@ -520,7 +412,7 @@ export default function ApartmentDetail() {
                         </div>
                         <span className="w-6 text-gray-400 text-right">{count}</span>
                       </div>
-                    );
+                    )
                   })}
                 </div>
               </div>
@@ -566,5 +458,5 @@ export default function ApartmentDetail() {
         role={role}
       />
     </div>
-  );
+  )
 }

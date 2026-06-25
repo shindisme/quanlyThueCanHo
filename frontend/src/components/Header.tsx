@@ -1,25 +1,25 @@
 import { Bell, Menu, LogOut, User, ChevronDown, Settings } from "lucide-react";
 import { Fragment, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuthStore } from "../../stores/auth.store";
-import { useSidebarStore } from "../../stores/sidebar.store";
-import * as buildingService from "../../services/buildingService";
-import * as apartmentService from "../../services/apartmentService";
-import { formatApartmentDisplay } from "../../utils/format";
-import Avatar from "../ui/Avatar";
+import { useAuthStore } from "../stores/auth.store";
+import { useSidebarStore } from "../stores/sidebar.store";
+import * as buildingService from "../services/buildingService";
+import * as apartmentService from "../services/apartmentService";
+import { formatApartmentDisplay } from "../utils/format";
+import Avatar from "./ui/Avatar";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-} from "../ui/DropdownMenu";
+} from "./ui/DropdownMenu";
 import {
   Breadcrumb,
   BreadcrumbList,
   BreadcrumbItem,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "../ui/Breadcrumb";
+} from "./ui/Breadcrumb";
 
 function parseJwt(token: string) {
   try {
@@ -63,7 +63,7 @@ export default function Header() {
     async function loadUserProfile() {
       try {
         if (role === "MANAGER") {
-          const { getAllStaff } = await import("../../services/staffService");
+          const { getAllStaff } = await import("../services/staffService");
           const staffRes = await getAllStaff();
           const currentStaff = staffRes.data.find((s) => s.user_id === decoded.userId);
           if (currentStaff) {
@@ -73,7 +73,7 @@ export default function Header() {
             }
           }
         } else if (role === "TENANT") {
-          const { getAllTenants } = await import("../../services/tenantService");
+          const { getAllTenants } = await import("../services/tenantService");
           const tenantsRes = await getAllTenants({ limit: 1000 });
           const currentTenant = tenantsRes.data.find((t) => t.user_id === decoded.userId);
           if (currentTenant) {
@@ -110,8 +110,8 @@ export default function Header() {
         try {
           const decoded = parseJwt(token);
           if (decoded && decoded.userId) {
-            const { getAllStaff } = await import("../../services/staffService");
-            const { getAllBuildings } = await import("../../services/buildingService");
+            const { getAllStaff } = await import("../services/staffService");
+            const { getAllBuildings } = await import("../services/buildingService");
             const staffRes = await getAllStaff();
             const currentStaff = staffRes.data.find((s) => s.user_id === decoded.userId);
             if (currentStaff && currentStaff.building_id) {

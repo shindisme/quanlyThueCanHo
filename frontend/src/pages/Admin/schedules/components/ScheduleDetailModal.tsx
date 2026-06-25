@@ -3,14 +3,14 @@ import Button from "../../../../components/ui/Button";
 import Badge from "../../../../components/ui/Badge";
 import type { ScheduleData } from "../../../../services/scheduleService";
 import { formatApartmentDisplay, parseGuestName } from "../../../../utils/format";
-import { mockBuildings } from "../../../../data/buildings";
+import type { BuildingData } from "../../../../services/buildingService";
 
 interface ScheduleDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   schedule: ScheduleData | null;
   role: string | null;
-  buildings?: any[];
+  buildings?: BuildingData[];
 }
 
 export default function ScheduleDetailModal({
@@ -21,13 +21,13 @@ export default function ScheduleDetailModal({
   buildings = [],
 }: ScheduleDetailModalProps) {
   function getStatusBadge(status: string) {
-    const map: Record<string, { label: string; variant: string }> = {
+    const map: Record<string, { label: string; variant: "success" | "warning" | "gray" | "info" | "danger" }> = {
       PENDING: { label: "Chờ xác nhận", variant: "warning" },
       CONFIRMED: { label: "Đã xác nhận", variant: "success" },
       CANCELLED: { label: "Đã hủy", variant: "gray" },
     };
     const s = map[status] || { label: status, variant: "gray" };
-    return <Badge variant={s.variant as any}>{s.label}</Badge>;
+    return <Badge variant={s.variant}>{s.label}</Badge>;
   }
 
   return (
@@ -39,7 +39,7 @@ export default function ScheduleDetailModal({
       footer={<Button onClick={onClose}>Đóng</Button>}
     >
       {schedule && (() => {
-        const building = buildings.find((b) => b.id === schedule.apartment?.building_id) || mockBuildings.find((b) => b.id === schedule.apartment?.building_id);
+        const building = buildings.find((b) => b.id === schedule.apartment?.building_id);
         const { name: guestName, note: guestNote } = parseGuestName(schedule.guest_name);
         return (
           <div className="space-y-4 font-sans text-sm">
