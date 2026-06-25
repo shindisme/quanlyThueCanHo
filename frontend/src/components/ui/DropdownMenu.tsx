@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useRef, useCallback, useEffect, forwardRef } from "react"
+import { createContext, useContext, useState, useRef, useCallback, useEffect } from "react"
 import type { RefObject, ReactNode, ComponentProps } from "react"
 import { cn } from "../../lib/utils"
 
@@ -69,42 +69,36 @@ function DropdownMenu({ children, open: externalOpen, onOpenChange }: DropdownMe
 
 type DropdownMenuTriggerProps = ComponentProps<"button">
 
-const DropdownMenuTrigger = forwardRef<HTMLButtonElement, DropdownMenuTriggerProps>(
-  ({ className, children, ...props }, ref) => {
-    const { open, setOpen, triggerRef } = useDropdownMenu()
+function DropdownMenuTrigger({ className, children, ref, ...props }: DropdownMenuTriggerProps) {
+  const { open, setOpen, triggerRef } = useDropdownMenu()
 
-    const handleRef = (node: HTMLButtonElement | null) => {
-      triggerRef.current = node
-      if (typeof ref === "function") ref(node)
-      else if (ref) ref.current = node
-    }
-
-    return (
-      <button
-        ref={handleRef}
-        type="button"
-        onClick={() => setOpen(!open)}
-        className={cn("cursor-pointer focus:outline-none", className)}
-        {...props}
-      >
-        {children}
-      </button>
-    )
+  const handleRef = (node: HTMLButtonElement | null) => {
+    triggerRef.current = node
+    if (typeof ref === "function") ref(node)
+    else if (ref) (ref as React.MutableRefObject<HTMLButtonElement | null>).current = node
   }
-)
-DropdownMenuTrigger.displayName = "DropdownMenuTrigger"
 
-const DropdownMenuContent = forwardRef<
-  HTMLDivElement,
-  ComponentProps<"div">
->((({ className, children, ...props }, ref) => {
+  return (
+    <button
+      ref={handleRef}
+      type="button"
+      onClick={() => setOpen(!open)}
+      className={cn("cursor-pointer focus:outline-none", className)}
+      {...props}
+    >
+      {children}
+    </button>
+  )
+}
+
+function DropdownMenuContent({ className, children, ref, ...props }: ComponentProps<"div">) {
   const { open, contentRef } = useDropdownMenu()
   if (!open) return null
 
   const handleRef = (node: HTMLDivElement | null) => {
     contentRef.current = node
     if (typeof ref === "function") ref(node)
-    else if (ref) ref.current = node
+    else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node
   }
 
   return (
@@ -119,13 +113,9 @@ const DropdownMenuContent = forwardRef<
       {children}
     </div>
   )
-}))
-DropdownMenuContent.displayName = "DropdownMenuContent"
+}
 
-const DropdownMenuItem = forwardRef<
-  HTMLDivElement,
-  ComponentProps<"div"> & { disabled?: boolean }
->(({ className, disabled, ...props }, ref) => {
+function DropdownMenuItem({ className, disabled, ref, ...props }: ComponentProps<"div"> & { disabled?: boolean }) {
   const { setOpen } = useDropdownMenu()
 
   return (
@@ -144,8 +134,11 @@ const DropdownMenuItem = forwardRef<
       {...props}
     />
   )
-})
-DropdownMenuItem.displayName = "DropdownMenuItem"
+}
 
-export { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem }
-
+export {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+}

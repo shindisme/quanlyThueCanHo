@@ -3,7 +3,7 @@ export type Role = "ADMIN" | "MANAGER" | "STAFF" | "TENANT";
 
 export type UserStatus = "ACTIVE" | "INACTIVE" | "BANNED";
 
-export type BuildingStatus = "ACTIVE" | "MAINTENANCE";
+export type BuildingStatus = "ACTIVE" | "INACTIVE";
 
 export type ApartmentStatus = "AVAILABLE" | "RENTED" | "MAINTENANCE";
 
@@ -36,6 +36,11 @@ export const APARTMENT_STATUS_LABELS: Record<ApartmentStatus, string> = {
   AVAILABLE: "Còn trống",
   RENTED: "Đang thuê",
   MAINTENANCE: "Bảo trì",
+};
+
+export const BUILDING_STATUS_LABELS: Record<BuildingStatus, string> = {
+  ACTIVE: "Hoạt động",
+  INACTIVE: "Ngưng hoạt động",
 };
 
 export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {

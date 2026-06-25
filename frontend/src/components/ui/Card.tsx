@@ -1,97 +1,83 @@
-import { forwardRef } from "react"
 import type { ReactNode, ComponentProps } from "react"
 import { cn } from "../../lib/utils"
 
-const CardContainer = forwardRef<
-  HTMLDivElement,
-  ComponentProps<"div">
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "border border-gray-200/80 bg-white rounded-xl shadow-sm hover:shadow transition-all duration-200",
-      className
-    )}
-    {...props}
-  />
-))
-CardContainer.displayName = "Card"
+function Card({ className, ref, ...props }: ComponentProps<"div">) {
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "border border-gray-200/80 bg-white rounded-xl shadow-sm hover:shadow transition-all duration-200",
+        className
+      )}
+      {...props}
+    />
+  )
+}
 
-const CardHeader = forwardRef<
-  HTMLDivElement,
-  ComponentProps<"div">
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-5 border-b border-gray-100", className)}
-    {...props}
-  />
-))
-CardHeader.displayName = "CardHeader"
+function CardHeader({ className, ref, ...props }: ComponentProps<"div">) {
+  return (
+    <div
+      ref={ref}
+      className={cn("flex flex-col space-y-1.5 p-5 border-b border-gray-100", className)}
+      {...props}
+    />
+  )
+}
 
-const CardTitle = forwardRef<
-  HTMLParagraphElement,
-  ComponentProps<"h3">
->(({ className, ...props }, ref) => (
-  <h3
-    ref={ref}
-    className={cn("font-semibold text-gray-800 leading-none tracking-tight", className)}
-    {...props}
-  />
-))
-CardTitle.displayName = "CardTitle"
+function CardTitle({ className, ref, ...props }: ComponentProps<"h3">) {
+  return (
+    <h3
+      ref={ref}
+      className={cn("font-semibold text-gray-800 leading-none tracking-tight", className)}
+      {...props}
+    />
+  )
+}
 
-const CardDescription = forwardRef<
-  HTMLParagraphElement,
-  ComponentProps<"p">
->(({ className, ...props }, ref) => (
-  <p
-    ref={ref}
-    className={cn("text-xs text-gray-400 mt-0.5", className)}
-    {...props}
-  />
-))
-CardDescription.displayName = "CardDescription"
+function CardDescription({ className, ref, ...props }: ComponentProps<"p">) {
+  return (
+    <p
+      ref={ref}
+      className={cn("text-xs text-gray-400 mt-0.5", className)}
+      {...props}
+    />
+  )
+}
 
-const CardContent = forwardRef<
-  HTMLDivElement,
-  ComponentProps<"div">
->(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-5 pt-0", className)} {...props} />
-))
-CardContent.displayName = "CardContent"
+function CardContent({ className, ref, ...props }: ComponentProps<"div">) {
+  return <div ref={ref} className={cn("p-5 pt-0", className)} {...props} />
+}
 
-const CardFooter = forwardRef<
-  HTMLDivElement,
-  ComponentProps<"div">
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("flex items-center p-5 pt-0", className)}
-    {...props}
-  />
-))
-CardFooter.displayName = "CardFooter"
+function CardFooter({ className, ref, ...props }: ComponentProps<"div">) {
+  return (
+    <div
+      ref={ref}
+      className={cn("flex items-center p-5 pt-0", className)}
+      {...props}
+    />
+  )
+}
 
-interface OldCardProps {
+interface DefaultCardProps extends ComponentProps<"div"> {
   children: ReactNode
-  className?: string
   padding?: boolean
   title?: string
   subtitle?: string
   action?: ReactNode
 }
 
-export default function Card({
+function DefaultCard({
   children,
   className,
   padding = true,
   title,
   subtitle,
   action,
-}: OldCardProps) {
+  ref,
+  ...props
+}: DefaultCardProps) {
   return (
-    <CardContainer className={className}>
+    <Card ref={ref} className={className} {...props}>
       {title && (
         <div className={cn("flex items-center justify-between", padding ? "mb-4" : "px-5 py-4 border-b border-gray-100")}>
           <div>
@@ -104,9 +90,17 @@ export default function Card({
       <div className={cn(padding && "p-5", title && "pt-0")}>
         {children}
       </div>
-    </CardContainer>
+    </Card>
   )
 }
 
-export { CardContainer as Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
+export {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+}
 
+export default DefaultCard

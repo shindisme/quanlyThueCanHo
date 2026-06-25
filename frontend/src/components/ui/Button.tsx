@@ -1,4 +1,3 @@
-import { forwardRef } from "react"
 import type { ComponentProps } from "react"
 import { cn } from "../../lib/utils"
 
@@ -14,7 +13,7 @@ type ButtonVariant =
 
 type ButtonSize = "default" | "sm" | "md" | "lg" | "icon"
 
-interface ButtonProps extends ComponentProps<"button"> {
+export interface ButtonProps extends ComponentProps<"button"> {
   variant?: ButtonVariant
   size?: ButtonSize
   isLoading?: boolean
@@ -39,34 +38,38 @@ const sizeStyles: Record<ButtonSize, string> = {
   icon: "h-10 w-10",
 }
 
-const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "default", size = "default", isLoading = false, children, disabled, ...props }, ref) => {
-    return (
-      <button
-        ref={ref}
-        className={cn(
-          "inline-flex items-center justify-center gap-2 rounded-md transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2",
-          "disabled:opacity-50 disabled:cursor-not-allowed",
-          variantStyles[variant],
-          sizeStyles[size],
-          className
-        )}
-        disabled={disabled || isLoading}
-        {...props}
-      >
-        {isLoading && (
-          <svg className="animate-spin h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-        )}
-        {children}
-      </button>
-    )
-  }
-)
-Button.displayName = "Button"
+export function Button({
+  className,
+  variant = "default",
+  size = "default",
+  isLoading = false,
+  children,
+  disabled,
+  ref,
+  ...props
+}: ButtonProps) {
+  return (
+    <button
+      ref={ref}
+      className={cn(
+        "inline-flex items-center justify-center gap-2 rounded-md transition-colors duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2",
+        "disabled:opacity-50 disabled:cursor-not-allowed",
+        variantStyles[variant],
+        sizeStyles[size],
+        className
+      )}
+      disabled={disabled || isLoading}
+      {...props}
+    >
+      {isLoading && (
+        <svg className="animate-spin h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+      )}
+      {children}
+    </button>
+  )
+}
 
 export default Button
-export type { ButtonProps }
-

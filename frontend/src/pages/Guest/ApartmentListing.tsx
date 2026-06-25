@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Search, Loader2 } from "lucide-react";
 import Badge from "../../components/ui/Badge";
-import { mockApartments } from "../../data/apartments";
-import { mockBuildings } from "../../data/buildings";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../constants/enums";
 import { formatCurrency, formatApartmentDisplay, removeVietnameseTones } from "../../utils/format";
 import * as buildingService from "../../services/buildingService";
@@ -11,9 +9,11 @@ import * as apartmentService from "../../services/apartmentService";
 import type { BuildingData } from "../../services/buildingService";
 import type { ApartmentData } from "../../services/apartmentService";
 
-function getApartmentThumbnail(apt: any): string {
+import type { ApartmentImage } from "../../types";
+
+function getApartmentThumbnail(apt: ApartmentData): string {
   if (apt && apt.images && Array.isArray(apt.images) && apt.images.length > 0) {
-    const thumb = apt.images.find((img: any) => img.is_thumbnail);
+    const thumb = (apt.images as ApartmentImage[]).find((img) => img.is_thumbnail);
     if (thumb) return thumb.image_url;
     return apt.images[0].image_url;
   }
@@ -25,6 +25,11 @@ export default function GuestApartmentListing() {
   const searchParamVal = searchParams.get("search") || "";
 
   const [search, setSearch] = useState(searchParamVal);
+  const [prevSearchParamVal, setPrevSearchParamVal] = useState(searchParamVal);
+  if (searchParamVal !== prevSearchParamVal) {
+    setSearch(searchParamVal);
+    setPrevSearchParamVal(searchParamVal);
+  }
   const [priceFilter, setPriceFilter] = useState("");
   const [buildingFilter, setBuildingFilter] = useState("");
   const [floorFilter, setFloorFilter] = useState("");
@@ -43,10 +48,7 @@ export default function GuestApartmentListing() {
         setBuildingFilter(String(res.data[0].id));
       }
     }).catch(() => {
-      setBuildings(mockBuildings);
-      if (mockBuildings.length > 0) {
-        setBuildingFilter(String(mockBuildings[0].id));
-      }
+      setBuildings([]);
     });
   }, []);
 
@@ -72,7 +74,7 @@ export default function GuestApartmentListing() {
         const unique = combined.filter((a, index, self) => self.findIndex(t => t.id === a.id) === index);
         setApartments(unique);
       } catch {
-        setApartments(mockApartments as any);
+        setApartments([]);
       } finally {
         setLoading(false);
       }
@@ -80,12 +82,6 @@ export default function GuestApartmentListing() {
 
     fetchApartmentsForBuilding();
   }, [buildingFilter]);
-
-  useEffect(() => {
-    if (searchParamVal !== undefined) {
-      setSearch(searchParamVal);
-    }
-  }, [searchParamVal]);
 
   // Lay danh sach tang cua toa nha duoc chon
   const floors = (() => {

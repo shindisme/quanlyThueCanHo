@@ -1,7 +1,7 @@
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Badge from "../../../../components/ui/Badge";
-import type { RentalContract, Tenant } from "../../../../types";
+import type { RentalContract, Tenant, User as UserType } from "../../../../types";
 import type { BuildingData } from "../../../../services/buildingService";
 import type { ApartmentData } from "../../../../services/apartmentService";
 import {
@@ -18,7 +18,7 @@ interface ContractDetailModalProps {
   buildings: BuildingData[];
   apartments: ApartmentData[];
   tenants: Tenant[];
-  users: any[];
+  users: UserType[];
   role: string | null;
 }
 

@@ -1,8 +1,7 @@
 import { Outlet } from "react-router-dom";
-import Sidebar from "../components/layout/Sidebar";
-import Header from "../components/layout/Header";
+import Sidebar from "../components/Sidebar";
+import Header from "../components/Header";
 
-// Layout người thuê
 export default function TenantLayout() {
   return (
     <div className="flex h-screen overflow-hidden bg-background">

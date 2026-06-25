@@ -5,8 +5,6 @@ import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 import Badge from "../../components/ui/Badge";
 import Modal from "../../components/ui/Modal";
-import { mockApartments } from "../../data/apartments";
-import { mockBuildings } from "../../data/buildings";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../constants/enums";
 import { formatCurrency, formatApartmentDisplay } from "../../utils/format";
 import { toast } from "sonner";
@@ -16,6 +14,8 @@ import * as buildingService from "../../services/buildingService";
 import type { ApartmentData } from "../../services/apartmentService";
 import type { BuildingData } from "../../services/buildingService";
 import { getApartmentReviews } from "../../services/reviewService";
+import type { ReviewData } from "../../services/reviewService";
+import type { ApartmentImage } from "../../types";
 
 interface BookedSlot {
   apartmentId: number;
@@ -39,7 +39,7 @@ export default function GuestApartmentDetail() {
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [images, setImages] = useState<any[]>([]);
+  const [images, setImages] = useState<ApartmentImage[]>([]);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlot, setSelectedSlot] = useState("");
 
@@ -52,8 +52,8 @@ export default function GuestApartmentDetail() {
     note: ""
   });
 
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [reviewMeta, setReviewMeta] = useState<any>({ averageRating: 0, totalReviews: 0 });
+  const [reviews, setReviews] = useState<ReviewData[]>([]);
+  const [reviewMeta, setReviewMeta] = useState<{ averageRating: number; totalReviews: number }>({ averageRating: 0, totalReviews: 0 });
 
   useEffect(() => {
     if (!id) return;
@@ -83,7 +83,7 @@ export default function GuestApartmentDetail() {
           const bld = await buildingService.getBuildingById(apt.building_id);
           setBuilding(bld);
         } else if (apt.building) {
-          setBuilding(apt.building as any);
+          setBuilding(apt.building as unknown as BuildingData);
         }
 
         // Load reviews
@@ -94,40 +94,22 @@ export default function GuestApartmentDetail() {
         } catch (e) {
           console.error("Error loading reviews:", e);
         }
-      } catch (error) {
-        console.error("Error fetching apartment from API, falling back to mock:", error);
-        // Fallback to mock data
-        const mockApt = mockApartments.find((a) => a.id === Number(id));
-        if (mockApt) {
-          setApartment(mockApt as any);
-          const mockBld = mockBuildings.find((b) => b.id === mockApt.building_id);
-          if (mockBld) setBuilding(mockBld as any);
 
-          setImages([
-            {
-              id: 1,
-              apartment_id: Number(id),
-              image_url: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
-              is_thumbnail: true
-            }
-          ]);
-        } else {
-          setApartment(null);
-          setBuilding(null);
+        if (searchParams.get("book") === "true" && apt.status !== "RENTED") {
+          setShowScheduleForm(true);
         }
+      } catch (error) {
+        console.error("Error fetching apartment:", error);
+        toast.error("Không tìm thấy căn hộ hoặc lỗi tải dữ liệu");
+        setApartment(null);
+        setBuilding(null);
       } finally {
         setLoading(false);
       }
     }
 
     loadData();
-  }, [id]);
-
-  useEffect(() => {
-    if (searchParams.get("book") === "true" && apartment && apartment.status !== "RENTED") {
-      setShowScheduleForm(true);
-    }
-  }, [searchParams, apartment]);
+  }, [id, searchParams]);
 
   if (loading) {
     return (
@@ -201,8 +183,9 @@ export default function GuestApartmentDetail() {
       setScheduleForm({ guest_name: "", guest_phone: "", guest_email: "", schedule_time: "", note: "" });
       setSelectedDate("");
       setSelectedSlot("");
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Gửi yêu cầu thất bại");
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || "Gửi yêu cầu thất bại");
     } finally {
       setSaving(false);
     }

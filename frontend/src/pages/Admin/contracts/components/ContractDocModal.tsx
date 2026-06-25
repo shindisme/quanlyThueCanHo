@@ -1,6 +1,6 @@
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
-import type { RentalContract, Tenant } from "../../../../types";
+import type { RentalContract, Tenant, User as UserType } from "../../../../types";
 import type { BuildingData } from "../../../../services/buildingService";
 import type { ApartmentData } from "../../../../services/apartmentService";
 import {
@@ -17,7 +17,7 @@ interface ContractDocModalProps {
   buildings: BuildingData[];
   apartments: ApartmentData[];
   tenants: Tenant[];
-  users: any[];
+  users: UserType[];
   role: string | null;
 }
 
@@ -94,7 +94,7 @@ export default function ContractDocModal({
           return Math.max(1, Math.round(years * 10) / 10);
         })();
 
-        const signedDate = new Date(contract.signedAt || contract.created_at || Date.now());
+        const signedDate = new Date(contract.signedAt || contract.created_at || "2026-06-25");
 
         return (
           <div className="bg-gray-50 p-4 sm:p-8 rounded-2xl overflow-y-auto max-h-[70vh] border border-gray-200">
@@ -135,7 +135,7 @@ export default function ContractDocModal({
                     <p>Ông/bà: <span className="font-semibold text-gray-800">BAN QUẢN LÝ CĂN HỘ DỊCH VỤ YUKI HOUSE (Đại diện)</span></p>
                     <p>Số CMND/CCCD/Mã số thuế: 079200000001</p>
                     <p>Địa chỉ: {bld?.address_new || bld?.address_old || "Hệ thống tòa nhà Yuki House"}</p>
-                    <p>Điện thoại: {(bld as any)?.phone || "0901000001"}</p>
+                    <p>Điện thoại: {(bld as unknown as { phone?: string })?.phone || "0901000001"}</p>
                     <p>
                       Là chủ cho thuê hợp pháp căn hộ chung cư số:{" "}
                       <span className="font-semibold text-gray-800">

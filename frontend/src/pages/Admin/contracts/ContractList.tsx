@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Plus, Loader2, FileText, Eye, Calendar } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import PageHeader from "../../../components/ui/PageHeader";
@@ -10,11 +10,6 @@ import Modal from "../../../components/ui/Modal";
 import { toast } from "sonner";
 
 import { useAuthStore } from "../../../stores/auth.store";
-import { mockBuildings } from "../../../data/buildings";
-import { mockApartments } from "../../../data/apartments";
-import { mockTenants } from "../../../data/tenants";
-import { mockUsers } from "../../../data/users";
-import { mockContracts } from "../../../data/contracts";
 
 import * as buildingService from "../../../services/buildingService";
 import * as apartmentService from "../../../services/apartmentService";
@@ -23,8 +18,9 @@ import * as authService from "../../../services/authService";
 import * as contractService from "../../../services/contractService";
 
 import { formatCurrency, formatDate, removeVietnameseTones, formatApartmentDisplay } from "../../../utils/format";
-import type { RentalContract, Tenant, Apartment } from "../../../types";
+import type { RentalContract, Tenant, User } from "../../../types";
 import type { BuildingData } from "../../../services/buildingService";
+import type { ApartmentData } from "../../../services/apartmentService";
 
 import ContractCreateModal from "./components/ContractCreateModal";
 import ContractDetailModal from "./components/ContractDetailModal";
@@ -38,20 +34,24 @@ import {
   TableCell,
 } from "../../../components/ui/Table";
 
+interface LocationState {
+  openCreateModal?: boolean;
+  tenantId?: string | number;
+}
+
 export default function ContractList() {
   const { role, managedBuildingId, email } = useAuthStore();
   const location = useLocation();
 
   const [contracts, setContracts] = useState<RentalContract[]>([]);
   const [buildings, setBuildings] = useState<BuildingData[]>([]);
-  const [apartments, setApartments] = useState<Apartment[]>([]);
+  const [apartments, setApartments] = useState<ApartmentData[]>([]);
   const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const pageSize = 10;
 
   // Modals state
@@ -62,78 +62,80 @@ export default function ContractList() {
   const [extendEndDate, setExtendEndDate] = useState("");
   const [initialTenantId, setInitialTenantId] = useState<number | undefined>();
 
-  useEffect(() => {
-    loadAllData();
-  }, []);
-
-  useEffect(() => {
-    if (location.state && (location.state as any).openCreateModal) {
-      const stateObj = location.state as any;
-      if (stateObj.tenantId) {
-        setInitialTenantId(Number(stateObj.tenantId));
-      }
-      setShowCreateModal(true);
-      window.history.replaceState({}, document.title);
-    }
-  }, [location]);
-
-  async function loadAllData() {
-    try {
-      setLoading(true);
-
-      // Load buildings
-      try {
-        const bRes = await buildingService.getAllBuildings({ limit: 100 });
-        setBuildings(bRes.data);
-      } catch {
-        setBuildings(mockBuildings as any);
-      }
-
-      // Load apartments
-      try {
-        const pages = [1, 2, 3, 4, 5, 6, 7];
-        const resList = await Promise.all(
-          pages.map((p) => apartmentService.getAllApartments({ limit: 100, page: p }))
-        );
-        const combined = resList.flatMap((r) => r.data);
-        const unique = combined.filter((a, index, self) => self.findIndex(t => t.id === a.id) === index);
-        setApartments(unique as any);
-      } catch {
-        setApartments(mockApartments as any);
-      }
-
-      // Load tenants
-      try {
-        const tRes = await tenantService.getAllTenants({ limit: 1000 });
-        setTenants(tRes.data);
-      } catch {
-        setTenants(mockTenants);
-      }
-
-      // Load users
-      try {
-        const uRes = await authService.getAllUsers();
-        setUsers(uRes);
-      } catch {
-        setUsers(mockUsers);
-      }
-
-      await fetchContracts();
-    } catch {
-      toast.error("Không thể tải dữ liệu hợp đồng");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function fetchContracts() {
+  const fetchContracts = useCallback(async () => {
     try {
       const data = await contractService.getAllContracts();
       setContracts(data);
     } catch {
-      setContracts(mockContracts as any);
+      setContracts([]);
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    const loadAllData = async () => {
+      try {
+        // Load buildings
+        try {
+          const bRes = await buildingService.getAllBuildings({ limit: 100 });
+          setBuildings(bRes.data);
+        } catch {
+          setBuildings([]);
+        }
+
+        // Load apartments
+        try {
+          const pages = [1, 2, 3, 4, 5, 6, 7];
+          const resList = await Promise.all(
+            pages.map((p) => apartmentService.getAllApartments({ limit: 100, page: p }))
+          );
+          const combined = resList.flatMap((r) => r.data);
+          const unique = combined.filter((a, index, self) => self.findIndex(t => t.id === a.id) === index);
+          setApartments(unique);
+        } catch {
+          setApartments([]);
+        }
+
+        // Load tenants
+        try {
+          const tRes = await tenantService.getAllTenants({ limit: 1000 });
+          setTenants(tRes.data);
+        } catch {
+          setTenants([]);
+        }
+
+        // Load users
+        try {
+          const uRes = await authService.getAllUsers();
+          setUsers(uRes as unknown as User[]);
+        } catch {
+          setUsers([]);
+        }
+
+        await fetchContracts();
+      } catch {
+        toast.error("Không thể tải dữ liệu hợp đồng");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAllData();
+  }, [fetchContracts]);
+
+  useEffect(() => {
+    if (location.state) {
+      const stateObj = location.state as LocationState;
+      if (stateObj.openCreateModal) {
+        setTimeout(() => {
+          if (stateObj.tenantId) {
+            setInitialTenantId(Number(stateObj.tenantId));
+          }
+          setShowCreateModal(true);
+        }, 0);
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location]);
 
   const displayContracts = (() => {
     if (role === "MANAGER" && managedBuildingId) {
@@ -177,9 +179,7 @@ export default function ContractList() {
     return filteredContracts.slice(start, end);
   })();
 
-  useEffect(() => {
-    setTotalPages(Math.max(1, Math.ceil(filteredContracts.length / pageSize)));
-  }, [filteredContracts.length]);
+  const totalPages = Math.max(1, Math.ceil(filteredContracts.length / pageSize));
 
   async function handleExtendContract() {
     if (!selectedExtendContract || !extendEndDate) {
@@ -217,26 +217,21 @@ export default function ContractList() {
       {/* Header */}
       <PageHeader
         icon={FileText}
-        title="Hợp đồng"
-        subtitle="Quản lý danh sách hợp đồng cho thuê"
+        title="Hợp đồng thuê"
+        subtitle="Quản lý thông tin hợp đồng thuê căn hộ"
         count={filteredContracts.length}
-        iconColor="linear-gradient(135deg, #10B981, #34D399)"
+        iconColor="linear-gradient(135deg, #EF4444, #F87171)"
         actions={
-          role !== "TENANT" && (
+          role !== "TENANT" ? (
             <Button onClick={() => setShowCreateModal(true)}>
               <Plus size={18} /> Tạo hợp đồng
             </Button>
-          )
+          ) : undefined
         }
       />
 
       {/* Filter and Search */}
-      <SearchInput
-        value={search}
-        onChange={(v) => { setSearch(v); setCurrentPage(1); }}
-        placeholder="Tìm theo mã hợp đồng, tên khách hoặc số phòng..."
-        className="max-w-md"
-      />
+      <SearchInput value={search} onChange={(v) => { setSearch(v); setCurrentPage(1); }} placeholder="Tìm kiếm theo mã, khách, phòng..." className="max-w-md" />
 
       {/* Table list */}
       {paginatedContracts.length === 0 ? (
@@ -246,59 +241,38 @@ export default function ContractList() {
           <p className="text-sm text-gray-400 mt-1">Thử tìm kiếm với từ khóa khác</p>
         </div>
       ) : (
-        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm font-sans mt-6">
-          <Table>
+        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+          <Table className="compact">
             <TableHeader>
               <TableRow>
                 <TableHead>Mã HĐ</TableHead>
                 <TableHead>Người thuê</TableHead>
                 <TableHead>Căn hộ</TableHead>
+                <TableHead>Giá thuê</TableHead>
                 <TableHead>Thời hạn</TableHead>
-                <TableHead>Tiền thuê/tháng</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead className="text-right">Chức năng</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedContracts.map((c) => {
-                const tenantObj = tenants.find((t) => t.id === c.tenant_id);
-                const aptObj = apartments.find((a) => a.id === c.apartment_id);
-                const buildingObj = aptObj ? buildings.find((b) => b.id === aptObj.building_id) : null;
+                const tenant = tenants.find((t) => t.id === c.tenant_id);
+                const apt = apartments.find((a) => a.id === c.apartment_id);
+                const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
                 const code = `HD-${String(c.id).padStart(5, "0")}`;
+                const tenantName = tenant ? tenant.full_name : "-";
+                const aptDisplay = apt ? formatApartmentDisplay(apt.room_number, apt.floor, role || undefined, bld?.branch_name) : `-`;
 
                 return (
                   <TableRow key={c.id}>
-                    <TableCell className="font-semibold text-primary-600">
-                      {code}
+                    <TableCell className="font-semibold text-gray-800">{code}</TableCell>
+                    <TableCell className="text-gray-650 font-medium">{tenantName}</TableCell>
+                    <TableCell className="text-primary-600 font-semibold">{aptDisplay}</TableCell>
+                    <TableCell className="text-gray-600">{formatCurrency(c.monthly_rent)}</TableCell>
+                    <TableCell className="text-xs text-gray-500 font-medium">
+                      {formatDate(c.start_date)} - {formatDate(c.end_date)}
                     </TableCell>
-                    <TableCell className="text-gray-800">
-                      <span className="font-medium block">{tenantObj?.full_name || "Chưa xác định"}</span>
-                      <span className="text-xs text-gray-400">{tenantObj?.phone || ""}</span>
-                    </TableCell>
-                    <TableCell className="text-gray-700 text-xs">
-                      <span className="font-semibold text-primary-600 block">
-                        {buildingObj?.branch_name || "Yuki House"}
-                      </span>
-                      <span>
-                        {aptObj ? formatApartmentDisplay(aptObj.room_number, aptObj.floor) : "-"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-gray-650 text-xs space-y-0.5">
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-400">Từ:</span>
-                        <span className="font-medium text-gray-800">{formatDate(c.start_date)}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-gray-400">Đến:</span>
-                        <span className="font-medium text-gray-800">{formatDate(c.end_date)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-semibold text-gray-800">
-                      {formatCurrency(c.monthly_rent)}
-                    </TableCell>
-                    <TableCell>
-                      {getStatusBadge(c.status)}
-                    </TableCell>
+                    <TableCell>{getStatusBadge(c.status)}</TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
                         <button
@@ -310,8 +284,8 @@ export default function ContractList() {
                         </button>
                         <button
                           onClick={() => setSelectedDocContract(c)}
-                          className="p-2 rounded-lg text-gray-400 hover:text-blue-650 hover:bg-blue-50 cursor-pointer"
-                          title="Xem văn bản hợp đồng"
+                          className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
+                          title="Tải/In hợp đồng"
                         >
                           <FileText size={16} />
                         </button>
@@ -355,7 +329,7 @@ export default function ContractList() {
           toast.success("Tạo hợp đồng thành công!");
         }}
         buildings={buildings}
-        apartments={apartments as any}
+        apartments={apartments}
         tenants={tenants}
         currentUser={{ id: 1 }}
         role={role}
@@ -370,7 +344,7 @@ export default function ContractList() {
           onClose={() => setSelectedDetailContract(null)}
           contract={selectedDetailContract}
           buildings={buildings}
-          apartments={apartments as any}
+          apartments={apartments}
           tenants={tenants}
           users={users}
           role={role}
@@ -384,7 +358,7 @@ export default function ContractList() {
           onClose={() => setSelectedDocContract(null)}
           contract={selectedDocContract}
           buildings={buildings}
-          apartments={apartments as any}
+          apartments={apartments}
           tenants={tenants}
           users={users}
           role={role}

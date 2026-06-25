@@ -1,29 +1,24 @@
-import { useState, useEffect } from "react";
-import Modal from "../../../../components/ui/Modal";
-import Button from "../../../../components/ui/Button";
-import Input from "../../../../components/ui/Input";
-import * as apartmentService from "../../../../services/apartmentService";
-import type { ApartmentData } from "../../../../services/apartmentService";
-import type { BuildingData } from "../../../../services/buildingService";
-import type { Tenant } from "../../../../types";
-import { formatCurrency } from "../../../../utils/format";
-import { toast } from "sonner";
-import { createContract } from "../../../../services/contractService";
-import * as authService from "../../../../services/authService";
-import * as tenantService from "../../../../services/tenantService";
+import Modal from "../../../../components/ui/Modal"
+import Button from "../../../../components/ui/Button"
+import Input from "../../../../components/ui/Input"
+import type { ApartmentData } from "../../../../services/apartmentService"
+import type { BuildingData } from "../../../../services/buildingService"
+import type { Tenant } from "../../../../types"
+import { formatCurrency } from "../../../../utils/format"
+import { useContractCreate } from "../../../../hooks/useContractCreate"
 
 interface ContractCreateModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSuccess: () => void;
-  buildings: BuildingData[];
-  apartments: ApartmentData[];
-  tenants: Tenant[];
-  currentUser: any;
-  role: string | null;
-  managerBuildingId?: number;
-  initialTenantId?: number;
-  initialBuildingId?: number;
+  isOpen: boolean
+  onClose: () => void
+  onSuccess: () => void
+  buildings: BuildingData[]
+  apartments: ApartmentData[]
+  tenants: Tenant[]
+  currentUser: { id: number }
+  role: string | null
+  managerBuildingId?: number
+  initialTenantId?: number
+  initialBuildingId?: number
 }
 
 export default function ContractCreateModal({
@@ -39,197 +34,35 @@ export default function ContractCreateModal({
   initialTenantId,
   initialBuildingId,
 }: ContractCreateModalProps) {
-  const [selectedTenantId, setSelectedTenantId] = useState<number | "">("");
-  const [selectedFormBuilding, setSelectedFormBuilding] = useState<number | undefined>();
-  const [selectedFormFloor, setSelectedFormFloor] = useState<number | undefined>();
-  const [selectedFormApartment, setSelectedFormApartment] = useState<number | undefined>();
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [monthlyRent, setMonthlyRent] = useState<number>(0);
-  const [depositAmount, setDepositAmount] = useState<number>(0);
-  const [actualOccupants, setActualOccupants] = useState<number | "">(1);
-  const [maxOccupants, setMaxOccupants] = useState<number>(2);
-  const [prevApartmentId, setPrevApartmentId] = useState<number | undefined>();
-
-  // States for new tenant creation flow
-  const [isNewTenant, setIsNewTenant] = useState(false);
-  const [newTenantName, setNewTenantName] = useState("");
-  const [newTenantCCCD, setNewTenantCCCD] = useState("");
-  const [newTenantDob, setNewTenantDob] = useState("");
-  const [newTenantEmail, setNewTenantEmail] = useState("");
-  const [newTenantPhone, setNewTenantPhone] = useState("");
-  const [newTenantAddress, setNewTenantAddress] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  const [buildingApartments, setBuildingApartments] = useState<ApartmentData[]>([]);
-
-  // Initialize values
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedTenantId(initialTenantId || "");
-      setSelectedFormBuilding(initialBuildingId || (role === "MANAGER" ? managerBuildingId : undefined));
-      setSelectedFormFloor(undefined);
-      setSelectedFormApartment(undefined);
-      setStartDate("");
-      setEndDate("");
-      setActualOccupants(1);
-      setIsNewTenant(false);
-      setNewTenantName("");
-      setNewTenantCCCD("");
-      setNewTenantDob("");
-      setNewTenantEmail("");
-      setNewTenantPhone("");
-      setNewTenantAddress("");
-      setSaving(false);
-      setPrevApartmentId(undefined);
-    }
-  }, [isOpen, initialTenantId, initialBuildingId, role, managerBuildingId]);
-
-  // Fetch building apartments dynamically to bypass limit issues
-  useEffect(() => {
-    if (selectedFormBuilding) {
-      Promise.all([
-        apartmentService.getAllApartments({ building_id: selectedFormBuilding, limit: 100, page: 1 }),
-        apartmentService.getAllApartments({ building_id: selectedFormBuilding, limit: 100, page: 2 })
-      ]).then(([res1, res2]) => {
-        const combined = [...res1.data, ...res2.data];
-        const unique = combined.filter((a, index, self) => self.findIndex(t => t.id === a.id) === index);
-        setBuildingApartments(unique);
-      }).catch(() => {
-        toast.error("Không thể tải danh sách căn hộ của tòa nhà");
-      });
-    } else {
-      setBuildingApartments([]);
-    }
-  }, [selectedFormBuilding]);
-
-  // Dynamic occupant-based rent pricing and security deposit auto-filling
-  useEffect(() => {
-    if (selectedFormApartment) {
-      const apt = buildingApartments.find((a) => a.id === selectedFormApartment) || apartments.find((a) => a.id === selectedFormApartment);
-      if (apt) {
-        const calculatedMax = Math.max(2, apt.bedrooms * 2);
-        setMaxOccupants(calculatedMax);
-
-        const occupantsCount = actualOccupants === "" ? 1 : Number(actualOccupants);
-        const extraPeople = occupantsCount > calculatedMax ? occupantsCount - calculatedMax : 0;
-        const baseRent = Number(apt.rental_price);
-        const calculatedRent = baseRent + extraPeople * 1000000;
-        setMonthlyRent(calculatedRent);
-
-        // Reset deposit default only when apartment changes
-        if (selectedFormApartment !== prevApartmentId) {
-          setDepositAmount(baseRent);
-          setPrevApartmentId(selectedFormApartment);
-        }
-      }
-    } else {
-      setMonthlyRent(0);
-      setDepositAmount(0);
-      setMaxOccupants(2);
-      setPrevApartmentId(undefined);
-    }
-  }, [selectedFormApartment, actualOccupants, buildingApartments, apartments, prevApartmentId]);
-
-  const formFloors = (() => {
-    if (!selectedFormBuilding) return [];
-    const buildingApts = buildingApartments.filter(
-      (a) => ["available", "vacant", "AVAILABLE"].includes(a.status)
-    );
-    const floors = buildingApts.map((a) => a.floor);
-    return [...new Set(floors)].sort((a, b) => a - b);
-  })();
-
-  const formApartments = (() => {
-    if (!selectedFormBuilding || !selectedFormFloor) return [];
-    return buildingApartments.filter(
-      (a) =>
-        a.building_id === selectedFormBuilding &&
-        a.floor === selectedFormFloor &&
-        ["available", "vacant", "AVAILABLE"].includes(a.status)
-    );
-  })();
-  async function handleSaveContract() {
-    if (!selectedTenantId && !isNewTenant) {
-      toast.error("Vui lòng chọn người thuê hoặc khai báo người thuê mới.");
-      return;
-    }
-    if (isNewTenant && (!newTenantName || !newTenantCCCD)) {
-      toast.error("Vui lòng nhập đầy đủ Họ tên và số CCCD cho người thuê mới.");
-      return;
-    }
-    if (!selectedFormApartment || !startDate || !endDate) {
-      toast.error("Vui lòng nhập đầy đủ: căn hộ, ngày bắt đầu và ngày kết thúc.");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      let finalTenantId: number;
-
-      if (isNewTenant) {
-        // Tự động tạo tài khoản người thuê mới
-        const cleanCCCD = newTenantCCCD.trim();
-        const last6Digits = cleanCCCD.slice(-6);
-        const username = `YH${last6Digits}`;
-        const defaultEmail = `${username}@yukihouse.vn`;
-        const finalEmail = newTenantEmail.trim() || defaultEmail;
-        const finalPhone = newTenantPhone.trim() || null;
-
-        const userRes = await authService.createUser({
-          username,
-          role: "TENANT",
-        });
-
-        const tenant = await tenantService.createTenant({
-          full_name: newTenantName,
-          citizen_id: newTenantCCCD,
-          date_of_birth: newTenantDob ? new Date(newTenantDob).toISOString() : null,
-          address: newTenantAddress || null,
-          email: finalEmail,
-          phone: finalPhone,
-          user_id: userRes.userId,
-        });
-
-        finalTenantId = tenant.id;
-        toast.success(`Đã tự động tạo tài khoản "${username}" cho người thuê mới!`);
-      } else {
-        finalTenantId = Number(selectedTenantId);
-      }
-
-      const newContract = {
-        tenant_id: finalTenantId,
-        apartment_id: Number(selectedFormApartment),
-        start_date: startDate,
-        end_date: endDate,
-        monthly_rent: monthlyRent,
-        deposit_amount: depositAmount,
-        status: "ACTIVE",
-        contractFile: null,
-        signedAt: new Date().toISOString().split("T")[0],
-        createdBy: currentUser?.id || 1,
-        actual_occupants: Number(actualOccupants) || 1,
-        max_occupants: maxOccupants,
-      };
-
-      await createContract(newContract as any);
-
-      // Cập nhật trạng thái căn hộ thành RENTED
-      try {
-        await apartmentService.updateApartment(Number(selectedFormApartment), { status: "RENTED" });
-        toast.success("Đã tạo hợp đồng và cập nhật trạng thái căn hộ thành 'Đang thuê'!");
-      } catch {
-        toast.success("Đã tạo hợp đồng thành công!");
-      }
-
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Không thể tạo hợp đồng");
-    } finally {
-      setSaving(false);
-    }
-  }
+  const {
+    register,
+    handleFormSubmit,
+    setValue,
+    errors,
+    saving,
+    isNewTenant,
+    tenantIdValue,
+    buildingIdValue,
+    floorValue,
+    apartmentIdValue,
+    actualOccupantsValue,
+    monthlyRentValue,
+    depositAmountValue,
+    maxOccupants,
+    formFloors,
+    formApartments,
+    buildingApartments,
+  } = useContractCreate({
+    isOpen,
+    onClose,
+    onSuccess,
+    currentUser,
+    role,
+    managerBuildingId,
+    initialTenantId,
+    initialBuildingId,
+    apartments,
+  })
 
   return (
     <Modal
@@ -240,7 +73,7 @@ export default function ContractCreateModal({
       footer={
         <>
           <Button variant="outline" onClick={onClose}>Hủy</Button>
-          <Button onClick={handleSaveContract} isLoading={saving}>Tạo hợp đồng</Button>
+          <Button onClick={handleFormSubmit} isLoading={saving}>Tạo hợp đồng</Button>
         </>
       }
     >
@@ -252,9 +85,8 @@ export default function ContractCreateModal({
               <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                 <input
                   type="radio"
-                  name="tenantType"
                   checked={!isNewTenant}
-                  onChange={() => setIsNewTenant(false)}
+                  onChange={() => setValue("is_new_tenant", false)}
                   className="w-4 h-4 text-primary-600 focus:ring-primary-500"
                 />
                 Chọn người thuê có sẵn
@@ -262,9 +94,8 @@ export default function ContractCreateModal({
               <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                 <input
                   type="radio"
-                  name="tenantType"
                   checked={isNewTenant}
-                  onChange={() => setIsNewTenant(true)}
+                  onChange={() => setValue("is_new_tenant", true)}
                   className="w-4 h-4 text-primary-600 focus:ring-primary-500"
                 />
                 Thêm người thuê mới & Tạo tài khoản
@@ -272,67 +103,72 @@ export default function ContractCreateModal({
             </div>
 
             {!isNewTenant ? (
-              <select
-                value={selectedTenantId}
-                onChange={(e) => setSelectedTenantId(e.target.value ? Number(e.target.value) : "")}
-                className="premium-select w-full rounded-xl"
-              >
-                <option value="">Chọn người thuê</option>
-                {tenants.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.full_name} ({t.citizen_id})
-                  </option>
-                ))}
-              </select>
+              <div>
+                <select
+                  value={tenantIdValue || ""}
+                  onChange={(e) => setValue("tenant_id", e.target.value ? Number(e.target.value) : null)}
+                  className={`premium-select w-full rounded-xl ${errors.tenant_id ? "border-danger-500 focus:ring-danger-500/20" : ""}`}
+                >
+                  <option value="">Chọn người thuê</option>
+                  {tenants.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.full_name} ({t.citizen_id})
+                    </option>
+                  ))}
+                </select>
+                {errors.tenant_id && (
+                  <p className="mt-1 text-xs text-danger-500">{errors.tenant_id.message}</p>
+                )}
+              </div>
             ) : (
               <div className="grid grid-cols-12 gap-4 bg-gray-50/50 p-4 rounded-xl border border-gray-150">
                 <div className="col-span-12">
                   <Input
                     label="Họ tên *"
-                    value={newTenantName}
-                    onChange={(e) => setNewTenantName(e.target.value)}
                     placeholder="VD: Nguyễn Văn A"
+                    {...register("new_tenant_name")}
+                    error={errors.new_tenant_name?.message}
                   />
                 </div>
                 <div className="col-span-12 sm:col-span-6">
                   <Input
                     label="Số CCCD *"
-                    value={newTenantCCCD}
-                    onChange={(e) => setNewTenantCCCD(e.target.value)}
-                    placeholder="VD: 079200001234"
+                    placeholder="VD: Nhập "
+                    {...register("new_tenant_cccd")}
+                    error={errors.new_tenant_cccd?.message}
                   />
                 </div>
                 <div className="col-span-12 sm:col-span-6">
                   <Input
                     label="Ngày sinh"
                     type="date"
-                    value={newTenantDob}
-                    onChange={(e) => setNewTenantDob(e.target.value)}
+                    {...register("new_tenant_dob")}
+                    error={errors.new_tenant_dob?.message}
                   />
                 </div>
                 <div className="col-span-12 sm:col-span-6">
                   <Input
                     label="Email"
                     type="email"
-                    value={newTenantEmail}
-                    onChange={(e) => setNewTenantEmail(e.target.value)}
                     placeholder="VD: tenant@gmail.com"
+                    {...register("new_tenant_email")}
+                    error={errors.new_tenant_email?.message}
                   />
                 </div>
                 <div className="col-span-12 sm:col-span-6">
                   <Input
                     label="Số điện thoại"
-                    value={newTenantPhone}
-                    onChange={(e) => setNewTenantPhone(e.target.value)}
                     placeholder="VD: 0901234567"
+                    {...register("new_tenant_phone")}
+                    error={errors.new_tenant_phone?.message}
                   />
                 </div>
                 <div className="col-span-12">
                   <Input
                     label="Địa chỉ"
-                    value={newTenantAddress}
-                    onChange={(e) => setNewTenantAddress(e.target.value)}
                     placeholder="VD: 123 Đường ABC, Quận 1"
+                    {...register("new_tenant_address")}
+                    error={errors.new_tenant_address?.message}
                   />
                 </div>
               </div>
@@ -343,14 +179,14 @@ export default function ContractCreateModal({
             <div className="col-span-12 sm:col-span-6">
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Chi nhánh *</label>
               <select
-                value={selectedFormBuilding || ""}
+                value={buildingIdValue || ""}
                 onChange={(e) => {
-                  setSelectedFormBuilding(e.target.value ? Number(e.target.value) : undefined);
-                  setSelectedFormFloor(undefined);
-                  setSelectedFormApartment(undefined);
+                  setValue("building_id", e.target.value ? Number(e.target.value) : (undefined as unknown as number))
+                  setValue("floor", undefined as unknown as number)
+                  setValue("apartment_id", undefined as unknown as number)
                 }}
                 disabled={role === "MANAGER"}
-                className="premium-select w-full rounded-xl disabled:bg-gray-50 disabled:text-gray-500"
+                className={`premium-select w-full rounded-xl disabled:bg-gray-50 disabled:text-gray-500 ${errors.building_id ? "border-danger-500 focus:ring-danger-500/20" : ""}`}
               >
                 <option value="">Chọn chi nhánh</option>
                 {buildings.map((b) => (
@@ -359,113 +195,128 @@ export default function ContractCreateModal({
                   </option>
                 ))}
               </select>
+              {errors.building_id && (
+                <p className="mt-1 text-xs text-danger-500">{errors.building_id.message}</p>
+              )}
             </div>
           )}
 
           <div className="col-span-12 sm:col-span-6">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Tầng *</label>
             <select
-              value={selectedFormFloor || ""}
+              value={floorValue || ""}
               onChange={(e) => {
-                setSelectedFormFloor(e.target.value ? Number(e.target.value) : undefined);
-                setSelectedFormApartment(undefined);
+                setValue("floor", e.target.value ? Number(e.target.value) : (undefined as unknown as number))
+                setValue("apartment_id", undefined as unknown as number)
               }}
-              disabled={!selectedFormBuilding}
-              className="premium-select w-full rounded-xl disabled:bg-gray-50 disabled:text-gray-500"
+              disabled={!buildingIdValue}
+              className={`premium-select w-full rounded-xl disabled:bg-gray-50 disabled:text-gray-500 ${errors.floor ? "border-danger-500 focus:ring-danger-500/20" : ""}`}
             >
               <option value="">Chọn tầng</option>
               {formFloors.map((floor) => (
                 <option key={floor} value={floor}>Tầng {floor}</option>
               ))}
             </select>
+            {errors.floor && (
+              <p className="mt-1 text-xs text-danger-500">{errors.floor.message}</p>
+            )}
           </div>
 
           <div className="col-span-12 sm:col-span-6">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Căn hộ *</label>
             <select
-              value={selectedFormApartment || ""}
-              onChange={(e) => setSelectedFormApartment(e.target.value ? Number(e.target.value) : undefined)}
-              disabled={!selectedFormFloor}
-              className="premium-select w-full rounded-xl disabled:bg-gray-50 disabled:text-gray-500"
+              value={apartmentIdValue || ""}
+              onChange={(e) => setValue("apartment_id", e.target.value ? Number(e.target.value) : (undefined as unknown as number))}
+              disabled={!floorValue}
+              className={`premium-select w-full rounded-xl disabled:bg-gray-50 disabled:text-gray-500 ${errors.apartment_id ? "border-danger-500 focus:ring-danger-500/20" : ""}`}
             >
               <option value="">Chọn căn hộ</option>
               {formApartments.map((a) => (
                 <option key={a.id} value={a.id}>P.{a.room_number} ({a.area}m²)</option>
               ))}
             </select>
+            {errors.apartment_id && (
+              <p className="mt-1 text-xs text-danger-500">{errors.apartment_id.message}</p>
+            )}
           </div>
 
           <div className="col-span-12 sm:col-span-6">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngày bắt đầu *</label>
             <input
               type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="premium-input rounded-xl"
+              {...register("start_date")}
+              className={`premium-input rounded-xl ${errors.start_date ? "border-danger-500 focus:ring-danger-500/20" : ""}`}
             />
+            {errors.start_date && (
+              <p className="mt-1 text-xs text-danger-500">{errors.start_date.message}</p>
+            )}
           </div>
           <div className="col-span-12 sm:col-span-6">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngày kết thúc *</label>
             <input
               type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="premium-input rounded-xl"
+              {...register("end_date")}
+              className={`premium-input rounded-xl ${errors.end_date ? "border-danger-500 focus:ring-danger-500/20" : ""}`}
             />
+            {errors.end_date && (
+              <p className="mt-1 text-xs text-danger-500">{errors.end_date.message}</p>
+            )}
           </div>
 
           <div className="col-span-12">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Số lượng người ở thực tế {selectedFormApartment ? `(Tối đa: ${maxOccupants} người)` : ""} *
+              Số lượng người ở thực tế {apartmentIdValue ? `(Tối đa: ${maxOccupants} người)` : ""} *
             </label>
             <input
               type="number"
               min={1}
-              value={actualOccupants}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === "") {
-                  setActualOccupants("");
-                } else {
-                  setActualOccupants(Math.max(1, Number(val)));
-                }
-              }}
-              className="premium-input rounded-xl"
+              value={actualOccupantsValue || ""}
+              {...register("actual_occupants", { valueAsNumber: true })}
+              className={`premium-input rounded-xl ${errors.actual_occupants ? "border-danger-500 focus:ring-danger-500/20" : ""}`}
             />
+            {errors.actual_occupants && (
+              <p className="mt-1 text-xs text-danger-500">{errors.actual_occupants.message}</p>
+            )}
           </div>
 
           <div className="col-span-12 sm:col-span-6">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Tiền thuê/tháng (VND) *</label>
             <input
               type="number"
-              value={monthlyRent}
-              onChange={(e) => setMonthlyRent(Number(e.target.value))}
-              className="premium-input rounded-xl"
+              value={monthlyRentValue || 0}
+              {...register("monthly_rent", { valueAsNumber: true })}
+              className={`premium-input rounded-xl ${errors.monthly_rent ? "border-danger-500 focus:ring-danger-500/20" : ""}`}
             />
-            {selectedFormApartment && (() => {
-              const apt = buildingApartments.find((a) => a.id === selectedFormApartment) || apartments.find((a) => a.id === selectedFormApartment);
-              const occupantsCount = actualOccupants === "" ? 1 : Number(actualOccupants);
+            {errors.monthly_rent && (
+              <p className="mt-1 text-xs text-danger-500">{errors.monthly_rent.message}</p>
+            )}
+            {apartmentIdValue && (() => {
+              const apt = buildingApartments.find((a) => a.id === apartmentIdValue) || apartments.find((a) => a.id === apartmentIdValue)
+              const occupantsCount = Number(actualOccupantsValue) || 1
               if (apt && occupantsCount > maxOccupants) {
                 return (
                   <span className="text-[11px] text-amber-600 font-semibold mt-1 block">
                     (Phụ thu {formatCurrency((occupantsCount - maxOccupants) * 1000000)} do quá số người ở quy định)
                   </span>
-                );
+                )
               }
-              return null;
+              return null
             })()}
           </div>
           <div className="col-span-12 sm:col-span-6">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Tiền cọc (VND) *</label>
             <input
               type="number"
-              value={depositAmount}
-              onChange={(e) => setDepositAmount(Number(e.target.value))}
-              className="premium-input rounded-xl"
+              value={depositAmountValue || 0}
+              {...register("deposit_amount", { valueAsNumber: true })}
+              className={`premium-input rounded-xl ${errors.deposit_amount ? "border-danger-500 focus:ring-danger-500/20" : ""}`}
             />
+            {errors.deposit_amount && (
+              <p className="mt-1 text-xs text-danger-500">{errors.deposit_amount.message}</p>
+            )}
           </div>
         </div>
       </div>
     </Modal>
-  );
+  )
 }

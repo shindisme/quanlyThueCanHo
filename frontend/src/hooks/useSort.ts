@@ -9,14 +9,14 @@ export interface SortConfig {
 export function useSort<T>(
   items: T[],
   initialConfig: SortConfig | null = null,
-  customExtractors?: Record<string, (item: T) => any>
+  customExtractors?: Record<string, (item: T) => unknown>
 ) {
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(initialConfig);
 
   const sortedItems = useMemo(() => {
     if (!sortConfig) return items;
 
-    const getNestedValue = (obj: any, path: string): any => {
+    const getNestedValue = (obj: T, path: string): unknown => {
       if (customExtractors && customExtractors[path]) {
         try {
           return customExtractors[path](obj);
@@ -25,12 +25,17 @@ export function useSort<T>(
         }
       }
       if (!obj) return undefined;
-      return path.split(".").reduce((acc, part) => acc && acc[part], obj);
+      return path.split(".").reduce<unknown>((acc, part) => {
+        if (acc && typeof acc === "object" && part in acc) {
+          return (acc as Record<string, unknown>)[part];
+        }
+        return undefined;
+      }, obj);
     };
 
     const sorted = [...items].sort((a, b) => {
-      let aVal = getNestedValue(a, sortConfig.key);
-      let bVal = getNestedValue(b, sortConfig.key);
+      const aVal = getNestedValue(a, sortConfig.key);
+      const bVal = getNestedValue(b, sortConfig.key);
 
       // Handle null/undefined values
       if (aVal === undefined || aVal === null) return 1;
@@ -60,7 +65,7 @@ export function useSort<T>(
     });
 
     return sorted;
-  }, [items, sortConfig]);
+  }, [items, sortConfig, customExtractors]);
 
   const requestSort = (key: string) => {
     let direction: "asc" | "desc" = "asc";

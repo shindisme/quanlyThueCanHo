@@ -1,80 +1,32 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Search, ArrowRight, Building2, Users, Shield, Star,
   MapPin, Maximize2, Phone, CheckCircle2, Loader2,
 } from "lucide-react";
-import { mockApartments } from "../../data/apartments";
-import { mockBuildings } from "../../data/buildings";
 import { formatCurrency, formatApartmentDisplay } from "../../utils/format";
-import * as buildingService from "../../services/buildingService";
-import * as apartmentService from "../../services/apartmentService";
+import { useHomePage } from "../../hooks/useHomePage";
+import type { ApartmentData } from "../../services/apartmentService";
+import type { ApartmentImage } from "../../types";
 
-// Helper to fetch apartment thumbnail from its images relation or fallback
-function getApartmentThumbnail(apt: any): string {
+function getApartmentThumbnail(apt: ApartmentData): string {
   if (apt && apt.images && Array.isArray(apt.images) && apt.images.length > 0) {
-    const thumb = apt.images.find((img: any) => img.is_thumbnail);
+    const thumb = (apt.images as ApartmentImage[]).find((img) => img.is_thumbnail);
     if (thumb) return thumb.image_url;
     return apt.images[0].image_url;
   }
   return "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80";
 }
 
-// Landing page cho khách vãng lai
 export default function GuestHomePage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [heroTitle, setHeroTitle] = useState("Tìm căn hộ lý tưởng của bạn");
-  const [heroSubtitle, setHeroSubtitle] = useState("YuKi House cung cấp các căn hộ cho thuê chất lượng cao tại TP. Hồ Chí Minh với đầy đủ tiện nghi, an ninh 24/7 và dịch vụ chuyên nghiệp.");
-  const [featuredIds, setFeaturedIds] = useState<number[]>([]);
-
-  // API State
-  const [apartments, setApartments] = useState<any[]>([]);
-  const [buildings, setBuildings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const storedSettings = localStorage.getItem("landing-page-settings");
-    if (storedSettings) {
-      try {
-        const parsed = JSON.parse(storedSettings);
-        if (parsed.heroTitle) setHeroTitle(parsed.heroTitle);
-        if (parsed.heroSubtitle) setHeroSubtitle(parsed.heroSubtitle);
-      } catch {
-        // ignore
-      }
-    }
-
-    const storedIds = localStorage.getItem("featured-apartment-ids");
-    let currentFeaturedIds: number[] = [];
-    if (storedIds) {
-      try {
-        currentFeaturedIds = JSON.parse(storedIds);
-        setFeaturedIds(currentFeaturedIds);
-      } catch { /* empty */ }
-    }
-
-    setLoading(true);
-    Promise.all([
-      buildingService.getAllBuildings({ limit: 100 }),
-      apartmentService.getAllApartments({ limit: currentFeaturedIds.length > 0 ? 20 : 6 })
-    ]).then(([bRes, aRes]) => {
-      setBuildings(bRes.data);
-      setApartments(aRes.data);
-    }).catch(() => {
-      setBuildings(mockBuildings);
-      setApartments(mockApartments as any);
-    }).finally(() => {
-      setLoading(false);
-    });
-  }, []);
-
-  const featuredApartments = (() => {
-    if (featuredIds.length > 0) {
-      const filtered = apartments.filter((a) => featuredIds.includes(a.id) && ["available", "vacant", "AVAILABLE"].includes(a.status));
-      if (filtered.length > 0) return filtered.slice(0, 4);
-    }
-    return apartments.filter((a) => ["available", "vacant", "AVAILABLE"].includes(a.status)).slice(0, 4);
-  })();
+  const {
+    searchQuery,
+    setSearchQuery,
+    heroTitle,
+    heroSubtitle,
+    buildings,
+    loading,
+    featuredApartments,
+  } = useHomePage();
 
   return (
     <div className="font-sans">
