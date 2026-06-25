@@ -1,8 +1,29 @@
+import { ScheduleStatus } from "@prisma/client";
 import { prisma } from "../config/database.js";
 import { sendViewingScheduleConfirmationEmail } from "./mail.service.js";
 
 const VALID_HOURS = [9, 11, 13, 15];
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const TEMP_LOCK_DURATION_MS = 10 * 60000;
+
+const findBlockingSchedule = (
+    apartmentId: number,
+    scheduleTime: Date,
+    excludeId?: number
+) => prisma.viewingSchedule.findFirst({
+    where: {
+        apartment_id: apartmentId,
+        schedule_time: scheduleTime,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+        OR: [
+            { status: ScheduleStatus.CONFIRMED },
+            {
+                status: ScheduleStatus.PENDING,
+                temp_locked_until: { gt: new Date() }
+            }
+        ]
+    }
+});
 
 const getApartmentLabel = (apartment: {
     room_number: string;
@@ -48,16 +69,7 @@ export const bookViewingService = async (data: {
         throw new Error("Căn hộ không tồn tại.");
     }
 
-    const existingBooking = await prisma.viewingSchedule.findFirst({
-        where: {
-            apartment_id: data.apartment_id,
-            schedule_time: requestedDate,
-            OR: [
-                { status: 'CONFIRMED' },
-                { temp_locked_until: { gt: new Date() } }
-            ]
-        }
-    });
+    const existingBooking = await findBlockingSchedule(data.apartment_id, requestedDate);
 
     if (existingBooking) {
         throw new Error("Khung giờ này đã có người đặt hoặc đang được giữ chỗ.");
@@ -70,8 +82,8 @@ export const bookViewingService = async (data: {
             guest_phone: data.guest_phone,
             guest_email: guestEmail,
             schedule_time: requestedDate,
-            status: 'PENDING',
-            temp_locked_until: new Date(Date.now() + 10 * 60000)
+            status: ScheduleStatus.PENDING,
+            temp_locked_until: new Date(Date.now() + TEMP_LOCK_DURATION_MS)
         }
     });
 
@@ -96,13 +108,21 @@ export const confirmScheduleService = async (id: number) => {
 
     if (!schedule) throw new Error("Lịch hẹn không tồn tại");
 
-    if (schedule.status === 'CANCELLED') {
+    if (schedule.status === ScheduleStatus.CANCELLED) {
         throw new Error("Lịch này đã bị hủy, không thể xác nhận.");
+    }
+
+    const blockingSchedule = await findBlockingSchedule(schedule.apartment_id, schedule.schedule_time, id);
+    if (blockingSchedule) {
+        throw new Error("Khung gio nay da co nguoi dat hoac dang duoc giu cho.");
     }
 
     return await prisma.viewingSchedule.update({
         where: { id },
-        data: { status: 'CONFIRMED' }
+        data: {
+            status: ScheduleStatus.CONFIRMED,
+            temp_locked_until: null
+        }
     });
 };
 
@@ -138,7 +158,7 @@ export const cancelScheduleService = async (id: number) => {
         throw new Error("Lịch hẹn không tồn tại");
     }
 
-    if (schedule.status === 'CONFIRMED') {
+    if (schedule.status === ScheduleStatus.CONFIRMED) {
         throw new Error("Không thể hủy lịch đã được Admin xác nhận. Vui lòng liên hệ trực tiếp.");
     }
 
@@ -150,7 +170,7 @@ export const cancelScheduleService = async (id: number) => {
     return await prisma.viewingSchedule.update({
         where: { id },
         data: {
-            status: 'CANCELLED',
+            status: ScheduleStatus.CANCELLED,
             temp_locked_until: null
         }
     });

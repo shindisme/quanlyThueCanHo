@@ -121,6 +121,7 @@ export const updateBuildingService = async (
     return await prisma.building.update({
         where: { id },
         data,
+        select: buildingSummarySelect,
     });
 };
 

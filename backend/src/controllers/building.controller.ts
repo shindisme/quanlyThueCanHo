@@ -102,9 +102,9 @@ export const update = async (req: Request, res: Response): Promise<void> => {
         };
 
         if (staff_id !== undefined) {
-            prismaUpdateData.assigned_staff = staff_id
-                ? { connect: { id: Number(staff_id) } }
-                : { disconnect: true };
+            prismaUpdateData.assigned_staff = staff_id && Number(staff_id) > 0
+                ? { set: [{ id: Number(staff_id) }] }
+                : { set: [] };
         }
 
         const data = await buildingService.updateBuildingService(buildingId, prismaUpdateData);
