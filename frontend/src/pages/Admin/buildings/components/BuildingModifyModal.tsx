@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
-import Select from "../../../../components/ui/Select";
-import * as buildingService from "../../../../services/buildingService";
+import Combobox from "../../../../components/ui/Combobox";
+import Input from "../../../../components/ui/Input";
 import type { BuildingData } from "../../../../services/buildingService";
-import { toast } from "sonner";
+import { useBuildingModify } from "../../../../hooks/useBuildingModify";
 
 interface BuildingModifyModalProps {
   isOpen: boolean;
@@ -20,108 +19,16 @@ export default function BuildingModifyModal({
   onSuccess,
   editItem,
 }: BuildingModifyModalProps) {
-  const [saving, setSaving] = useState(false);
-  const [staffList, setStaffList] = useState<any[]>([]);
-  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>("");
-  const [formData, setFormData] = useState({
-    name: "",
-    address_old: "",
-    address_new: "",
-    total_floors: 0,
-    description: "",
-    branch_name: "",
-    thumbnail_url: "",
-    staff_id: null as number | null,
-  });
-
-  useEffect(() => {
-    if (isOpen) {
-      fetchManagers();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (editItem && isOpen) {
-      setFormData({
-        name: editItem.name,
-        address_old: editItem.address_old || "",
-        address_new: editItem.address_new || "",
-        total_floors: editItem.total_floors,
-        description: editItem.description || "",
-        branch_name: editItem.branch_name || "",
-        thumbnail_url: editItem.thumbnail_url || "",
-        staff_id: editItem.manager_id || null,
-      });
-      setPreviewUrl(editItem.thumbnail_url || "");
-      setThumbnailFile(null);
-    }
-  }, [editItem, isOpen]);
-
-  async function fetchManagers() {
-    try {
-      const { getAllStaff } = await import("../../../../services/staffService");
-      const staffRes = await getAllStaff();
-      setStaffList(staffRes.data);
-    } catch {
-      toast.error("Không thể tải danh sách người quản lý");
-    }
-  }
-
-  const availableManagers = staffList.filter((m) => {
-    const isManager = m.position === "Quản lý" || m.user?.role === "MANAGER";
-    if (!isManager) return false;
-    if (m.user?.role === "ADMIN") return false;
-    if (!m.building_id) return true;
-    if (editItem && m.building_id === editItem.id) return true;
-    return false;
-  });
-
-  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      setThumbnailFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-      toast.success("Đã chọn ảnh");
-    }
-  }
-
-  async function handleSave() {
-    if (!editItem) return;
-    if (!formData.name || !formData.address_old || !formData.address_new || !formData.branch_name) {
-      toast.error("Vui lòng nhập tên chi nhánh/tòa nhà, địa chỉ cũ và địa chỉ mới");
-      return;
-    }
-    setSaving(true);
-    try {
-      const jsonPayload: any = {
-        name: formData.name,
-        branch_name: formData.branch_name,
-        address_old: formData.address_old,
-        address_new: formData.address_new,
-        total_floors: Number(formData.total_floors),
-        description: formData.description || "",
-      };
-
-      jsonPayload.staff_id = formData.staff_id !== null && formData.staff_id !== undefined ? Number(formData.staff_id) : null;
-
-      await buildingService.updateBuilding(editItem.id, jsonPayload);
-
-      if (thumbnailFile) {
-        const formDataToSend = new FormData();
-        formDataToSend.append("image", thumbnailFile);
-        await buildingService.updateBuilding(editItem.id, formDataToSend);
-      }
-
-      toast.success("Đã cập nhật tòa nhà");
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || error.response?.data?.message || "Thao tác thất bại");
-    } finally {
-      setSaving(false);
-    }
-  }
+  const {
+    saving,
+    formData,
+    setFormData,
+    previewUrl,
+    handleImageUpload,
+    handleRemoveImage,
+    handleSave,
+    availableManagers,
+  } = useBuildingModify({ isOpen, onClose, onSuccess, editItem });
 
   return (
     <Modal
@@ -139,80 +46,74 @@ export default function BuildingModifyModal({
       <div className="space-y-6">
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên chi nhánh/tòa nhà *</label>
-            <input
-              type="text"
+            <Input
+              label="Tên chi nhánh/tòa nhà *"
               value={formData.branch_name}
               onChange={(e) => setFormData({ ...formData, branch_name: e.target.value, name: e.target.value })}
               placeholder="VD: Chi nhánh Quận 1"
-              className="premium-input rounded-xl"
             />
           </div>
           <div className="col-span-12 sm:col-span-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Địa chỉ cũ *</label>
-            <input
-              type="text"
+            <Input
+              label="Địa chỉ cũ *"
               value={formData.address_old}
               onChange={(e) => setFormData({ ...formData, address_old: e.target.value })}
               placeholder="VD: 123 Nguyễn Huệ, Quận 1"
-              className="premium-input rounded-xl"
             />
           </div>
           <div className="col-span-12 sm:col-span-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Địa chỉ mới *</label>
-            <input
-              type="text"
+            <Input
+              label="Địa chỉ mới *"
               value={formData.address_new}
               onChange={(e) => setFormData({ ...formData, address_new: e.target.value })}
               placeholder="VD: 123 Nguyễn Huệ, Phường Bến Nghé, Quận 1"
-              className="premium-input rounded-xl"
             />
           </div>
           <div className="col-span-12">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Số tầng *</label>
-            <input
+            <Input
+              label="Số tầng *"
               type="number"
               value={formData.total_floors || ""}
               onChange={(e) => setFormData({ ...formData, total_floors: Number(e.target.value) })}
-              className="premium-input rounded-xl"
             />
           </div>
           <div className="col-span-12">
-            <Select
+            <Combobox
               label="Quản lý bởi"
-              value={formData.staff_id || ""}
-              onChange={(e) => setFormData({ ...formData, staff_id: e.target.value ? Number(e.target.value) : null })}
+              value={formData.staff_id ? String(formData.staff_id) : ""}
+              onChange={(val) => setFormData({ ...formData, staff_id: val ? Number(val) : null })}
               placeholder="-- Chưa phân công --"
+              searchPlaceholder="Tìm người quản lý..."
               options={availableManagers.map((s) => ({
                 value: String(s.id),
                 label: `${s.full_name} (${s.user?.username || s.position})`,
               }))}
+              triggerClassName="rounded-md"
             />
           </div>
           <div className="col-span-12">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Ảnh bìa tòa nhà</label>
-            <div className="flex items-center gap-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2 text-center">Ảnh bìa tòa nhà</label>
+            <div className="flex flex-col items-center justify-center gap-3">
               {previewUrl ? (
-                <div className="relative w-28 h-20 rounded-xl overflow-hidden border border-gray-200 shrink-0">
-                  <img src={previewUrl} className="w-full h-full object-cover" alt="" />
+                <div className="relative w-40 h-28 rounded-md overflow-hidden border border-gray-200 shadow-sm bg-gray-50 flex items-center justify-center">
+                  <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" />
                   <button
                     type="button"
-                    onClick={() => { setThumbnailFile(null); setPreviewUrl(""); }}
-                    className="absolute top-1 right-1 p-1 bg-red-650 hover:bg-red-700 text-white rounded-full text-[10px] shadow w-4 h-4 flex items-center justify-center cursor-pointer"
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 p-1.5 bg-red-650 hover:bg-red-700 text-white rounded-full text-xs shadow-md transition-colors cursor-pointer"
                   >
                     ✕
                   </button>
                 </div>
               ) : (
-                <label className="w-28 h-20 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-primary-500 hover:bg-primary-50/10 transition-colors shrink-0">
-                  <Plus className="text-gray-400" size={20} />
-                  <span className="text-[10px] text-gray-400 mt-1">Chọn ảnh</span>
+                <label className="w-40 h-28 border-2 border-dashed border-gray-300 hover:border-primary-500 hover:bg-primary-50/10 rounded-md flex flex-col items-center justify-center cursor-pointer transition-colors shadow-sm">
+                  <Plus className="text-gray-400" size={24} />
+                  <span className="text-xs text-gray-400 mt-1.5 font-medium">Chọn hình ảnh</span>
                   <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                 </label>
               )}
-              <div className="text-xs text-gray-400">
-                <p>Hỗ trợ JPG, PNG, WEBP.</p>
-                <p>Tải ảnh lên ImageKit để lấy URL lưu trữ.</p>
+              <div className="text-xs text-gray-400 text-center">
+                <p>Hỗ trợ định dạng JPG, PNG, WEBP.</p>
               </div>
             </div>
           </div>
@@ -223,7 +124,7 @@ export default function BuildingModifyModal({
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
               placeholder="Mô tả ngắn gọn về tòa nhà..."
-              className="premium-input rounded-xl resize-none"
+              className="premium-input rounded-md resize-none"
             />
           </div>
         </div>

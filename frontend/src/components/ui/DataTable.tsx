@@ -75,7 +75,7 @@ export default function DataTable<T extends { id: number | string }>({
   }
 
   return (
-    <div className={cn("border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm", className)}>
+    <div className={cn("border border-gray-200 overflow-hidden bg-white shadow-sm", className)}>
       <Table className={cn(density === "compact" && "[&_td]:p-2 [&_td]:text-xs [&_th]:h-8 [&_th]:px-3")}>
         <TableHeader>
           <TableRow>

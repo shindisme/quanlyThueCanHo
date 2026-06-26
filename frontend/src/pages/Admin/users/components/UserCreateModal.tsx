@@ -1,8 +1,8 @@
-import { useState } from "react";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
-import * as authService from "../../../../services/authService";
-import { toast } from "sonner";
+import Combobox from "../../../../components/ui/Combobox";
+import Input from "../../../../components/ui/Input";
+import { useUserCreate } from "../../../../hooks/useUserCreate";
 
 interface UserCreateModalProps {
   isOpen: boolean;
@@ -11,27 +11,7 @@ interface UserCreateModalProps {
 }
 
 export default function UserCreateModal({ isOpen, onClose, onSuccess }: UserCreateModalProps) {
-  const [formData, setFormData] = useState({ username: "", role: "TENANT" });
-  const [saving, setSaving] = useState(false);
-
-  async function handleCreate() {
-    if (!formData.username) {
-      toast.error("Vui lòng nhập tên tài khoản");
-      return;
-    }
-    setSaving(true);
-    try {
-      await authService.createUser(formData);
-      toast.success("Đã tạo tài khoản mới (mật khẩu mặc định: 123456)");
-      setFormData({ username: "", role: "TENANT" });
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Tạo tài khoản thất bại");
-    } finally {
-      setSaving(false);
-    }
-  }
+  const { formData, setFormData, saving, handleCreate } = useUserCreate({ onClose, onSuccess });
 
   return (
     <Modal
@@ -48,26 +28,30 @@ export default function UserCreateModal({ isOpen, onClose, onSuccess }: UserCrea
       <div className="space-y-6">
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Username *</label>
-            <input
+            <Input
+              label="Username *"
               type="text"
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               placeholder="VD: manager_q1"
-              className="premium-input rounded-xl"
+              className="rounded-md"
             />
           </div>
           <div className="col-span-12">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Role *</label>
-            <select
+            <Combobox
+              label="Role *"
+              options={[
+                { value: "TENANT", label: "Người thuê (Tenant)" },
+                { value: "MANAGER", label: "Quản lý (Manager)" },
+                { value: "ADMIN", label: "Quản trị viên (Admin)" }
+              ]}
               value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              className="premium-select w-full rounded-xl"
-            >
-              <option value="TENANT">Người thuê (Tenant)</option>
-              <option value="MANAGER">Quản lý (Manager)</option>
-              <option value="ADMIN">Quản trị viên (Admin)</option>
-            </select>
+              onChange={(val) => setFormData({ ...formData, role: val })}
+              placeholder="Chọn vai trò"
+              searchable={false}
+              triggerClassName="rounded-md"
+              clearable={false}
+            />
           </div>
         </div>
         <p className="text-xs text-gray-400">Mật khẩu mặc định: 123456</p>

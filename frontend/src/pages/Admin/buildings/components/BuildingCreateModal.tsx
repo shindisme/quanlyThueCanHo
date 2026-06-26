@@ -1,7 +1,8 @@
 import { Plus } from "lucide-react"
 import Modal from "../../../../components/ui/Modal"
 import Button from "../../../../components/ui/Button"
-import Select from "../../../../components/ui/Select"
+import Combobox from "../../../../components/ui/Combobox"
+import Input from "../../../../components/ui/Input"
 import { useBuildingCreate } from "../../../../hooks/useBuildingCreate"
 
 interface BuildingCreateModalProps {
@@ -33,7 +34,7 @@ export default function BuildingCreateModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Thêm tòa nhà mới"
+      title="Thêm chi nhánh/tòa nhà mới"
       size="lg"
       footer={
         <>
@@ -44,113 +45,106 @@ export default function BuildingCreateModal({
     >
       <div className="space-y-6">
         <div className="grid grid-cols-12 gap-6">
-          {/* branch_name */}
-          <div className="col-span-12">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tên chi nhánh/tòa nhà *</label>
-            <input
+          {/* Tên chi nhánh */}
+          <div className="col-span-6 sm:col-span-6">
+            <Input
+              label="Tên chi nhánh/tòa nhà *"
               type="text"
               {...register("branch_name")}
-              placeholder="VD: Chi nhánh Quận 1"
-              className={`premium-input rounded-xl ${errors.branch_name ? "border-danger-500 focus:ring-danger-500" : ""}`}
+              placeholder="Nhập tên chi nhánh/toà nhà"
+              error={errors.branch_name?.message}
+              className="rounded-md"
             />
-            {errors.branch_name && (
-              <p className="mt-1 text-xs text-danger-500">{errors.branch_name.message}</p>
-            )}
           </div>
 
-          {/* address_old */}
-          <div className="col-span-12 sm:col-span-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Địa chỉ cũ *</label>
-            <input
-              type="text"
-              {...register("address_old")}
-              placeholder="VD: 123 Nguyễn Huệ, Quận 1"
-              className={`premium-input rounded-xl ${errors.address_old ? "border-danger-500 focus:ring-danger-500" : ""}`}
-            />
-            {errors.address_old && (
-              <p className="mt-1 text-xs text-danger-500">{errors.address_old.message}</p>
-            )}
-          </div>
-
-          {/* address_new */}
-          <div className="col-span-12 sm:col-span-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Địa chỉ mới *</label>
-            <input
-              type="text"
-              {...register("address_new")}
-              placeholder="VD: 123 Nguyễn Huệ, Phường Bến Nghé, Quận 1"
-              className={`premium-input rounded-xl ${errors.address_new ? "border-danger-500 focus:ring-danger-500" : ""}`}
-            />
-            {errors.address_new && (
-              <p className="mt-1 text-xs text-danger-500">{errors.address_new.message}</p>
-            )}
-          </div>
-
-          {/* total_floors */}
-          <div className="col-span-12">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Số tầng *</label>
-            <input
+          {/* Tầng */}
+          <div className="col-span-6 sm:col-span-6">
+            <Input
+              label="Số tầng *"
               type="number"
               {...register("total_floors", { valueAsNumber: true })}
-              className={`premium-input rounded-xl ${errors.total_floors ? "border-danger-500 focus:ring-danger-500" : ""}`}
+              error={errors.total_floors?.message}
+              className="rounded-md"
             />
-            {errors.total_floors && (
-              <p className="mt-1 text-xs text-danger-500">{errors.total_floors.message}</p>
-            )}
           </div>
 
-          {/* staff_id */}
+          {/* Địa chỉ cũ */}
+          <div className="col-span-12 sm:col-span-6">
+            <Input
+              label="Địa chỉ cũ *"
+              type="text"
+              {...register("address_old")}
+              placeholder="Nhập địa chỉ cũ"
+              error={errors.address_old?.message}
+              className="rounded-md"
+            />
+          </div>
+
+          {/* Địa chỉ mới */}
+          <div className="col-span-12 sm:col-span-6">
+            <Input
+              label="Địa chỉ mới *"
+              type="text"
+              {...register("address_new")}
+              placeholder="Nhập địa chỉ mới"
+              error={errors.address_new?.message}
+              className="rounded-md"
+            />
+          </div>
+
+          {/* Phân công */}
           <div className="col-span-12">
-            <Select
+            <Combobox
               label="Quản lý bởi"
-              value={staffIdValue || ""}
-              onChange={(e) => setValue("staff_id", e.target.value ? Number(e.target.value) : null)}
+              value={staffIdValue ? String(staffIdValue) : ""}
+              onChange={(val) => setValue("staff_id", val ? Number(val) : null)}
               placeholder="-- Chưa phân công --"
+              searchPlaceholder="Tìm người quản lý..."
               options={availableManagers.map((s) => ({
                 value: String(s.id),
                 label: `${s.full_name} (${s.user?.username || s.position})`,
               }))}
+              triggerClassName="rounded-md"
               error={errors.staff_id?.message}
             />
           </div>
 
           {/* image bìa */}
           <div className="col-span-12">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Ảnh bìa tòa nhà</label>
-            <div className="flex items-center gap-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2 text-center">Ảnh bìa tòa nhà</label>
+            <div className="flex flex-col items-center justify-center gap-3">
               {previewUrl ? (
-                <div className="relative w-28 h-20 rounded-xl overflow-hidden border border-gray-200 shrink-0">
-                  <img src={previewUrl} className="w-full h-full object-cover" alt="" />
+                <div className="relative w-40 h-28 rounded-md overflow-hidden border border-gray-200 shadow-sm bg-gray-50 flex items-center justify-center">
+                  <img src={previewUrl} className="w-full h-full object-cover" alt="Preview" />
                   <button
                     type="button"
                     onClick={handleRemoveImage}
-                    className="absolute top-1 right-1 p-1 bg-red-650 hover:bg-red-700 text-white rounded-full text-[10px] shadow w-4 h-4 flex items-center justify-center cursor-pointer"
+                    className="absolute top-2 right-2 p-1.5 bg-red-650 hover:bg-red-700 text-white rounded-full text-xs shadow-md transition-colors cursor-pointer"
                   >
                     ✕
                   </button>
                 </div>
               ) : (
-                <label className="w-28 h-20 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-primary-500 hover:bg-primary-50/10 transition-colors shrink-0">
-                  <Plus className="text-gray-400" size={20} />
-                  <span className="text-[10px] text-gray-400 mt-1">Chọn ảnh</span>
+                <label className="w-40 h-28 border-2 border-dashed border-gray-300 hover:border-primary-500 hover:bg-primary-50/10 rounded-md flex flex-col items-center justify-center cursor-pointer transition-colors shadow-sm">
+                  <Plus className="text-gray-400" size={24} />
+                  <span className="text-xs text-gray-400 mt-1.5 font-medium">Chọn hình ảnh</span>
                   <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                 </label>
               )}
-              <div className="text-xs text-gray-400">
-                <p>Hỗ trợ JPG, PNG, WEBP.</p>
-                <p>Tải ảnh lên ImageKit để lấy URL lưu trữ.</p>
+              <div className="text-xs text-gray-400 text-center">
+                <p>Hỗ trợ định dạng: JPG, PNG, WEBP</p>
               </div>
             </div>
           </div>
 
-          {/* description */}
+          {/* Mô tả */}
           <div className="col-span-12">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Mô tả</label>
+            <label className="block text-sm drop-shadow-3xl font-medium text-gray-700 mb-1.5">Mô tả</label>
             <textarea
               {...register("description")}
               rows={3}
               placeholder="Mô tả ngắn gọn về tòa nhà..."
-              className="premium-input rounded-xl resize-none"
+              className="premium-input rounded-md resize-none"
             />
           </div>
         </div>

@@ -5,6 +5,8 @@ import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 import Badge from "../../components/ui/Badge";
 import Modal from "../../components/ui/Modal";
+import Input from "../../components/ui/Input";
+import { DatePicker } from "../../components/ui/DatePicker";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../constants/enums";
 import { formatCurrency, formatApartmentDisplay } from "../../utils/format";
 import { toast } from "sonner";
@@ -16,6 +18,7 @@ import type { BuildingData } from "../../services/buildingService";
 import { getApartmentReviews } from "../../services/reviewService";
 import type { ReviewData } from "../../services/reviewService";
 import type { ApartmentImage } from "../../types";
+import { useApartmentBooking } from "../../hooks/useApartmentBooking";
 
 interface BookedSlot {
   apartmentId: number;
@@ -36,21 +39,21 @@ export default function GuestApartmentDetail() {
   const [apartment, setApartment] = useState<ApartmentData | null>(null);
   const [building, setBuilding] = useState<BuildingData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showScheduleForm, setShowScheduleForm] = useState(false);
-  const [saving, setSaving] = useState(false);
-
   const [images, setImages] = useState<ApartmentImage[]>([]);
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedSlot, setSelectedSlot] = useState("");
 
-  // Form đặt lịch 
-  const [scheduleForm, setScheduleForm] = useState({
-    guest_name: "",
-    guest_phone: "",
-    guest_email: "",
-    schedule_time: "",
-    note: ""
-  });
+  const {
+    showScheduleForm,
+    setShowScheduleForm,
+    selectedDate,
+    setSelectedDate,
+    selectedSlot,
+    setSelectedSlot,
+    saving,
+    scheduleForm,
+    setScheduleForm,
+    isSlotBooked,
+    handleSubmitSchedule,
+  } = useApartmentBooking({ apartment });
 
   const [reviews, setReviews] = useState<ReviewData[]>([]);
   const [reviewMeta, setReviewMeta] = useState<{ averageRating: number; totalReviews: number }>({ averageRating: 0, totalReviews: 0 });
@@ -131,65 +134,7 @@ export default function GuestApartmentDetail() {
     );
   }
 
-  const isSlotBooked = (slot: string) => {
-    if (!selectedDate) return false;
-    const stored = localStorage.getItem("booked-slots");
-    if (!stored) return false;
-    try {
-      const list = JSON.parse(stored) as BookedSlot[];
-      return list.some(
-        (b) => b.apartmentId === apartment.id && b.date === selectedDate && b.slot === slot
-      );
-    } catch {
-      return false;
-    }
-  };
 
-  async function handleSubmitSchedule() {
-    if (!apartment) return;
-    if (apartment.status === "RENTED") {
-      toast.error("Căn hộ đã được thuê, không thể đặt lịch xem phòng!");
-      return;
-    }
-    if (!scheduleForm.guest_name || !scheduleForm.guest_phone || !scheduleForm.guest_email || !selectedDate || !selectedSlot) {
-      toast.error("Vui lòng nhập đầy đủ thông tin: họ tên, số điện thoại, email, ngày và giờ xem phòng");
-      return;
-    }
-    setSaving(true);
-    const combinedTime = `${selectedDate}T${selectedSlot.replace("h", ":")}:00`;
-    try {
-      await bookViewing({
-        apartment_id: apartment.id,
-        guest_name: scheduleForm.note
-          ? `${scheduleForm.guest_name} [Ghi chú: ${scheduleForm.note}]`
-          : scheduleForm.guest_name,
-        guest_phone: scheduleForm.guest_phone,
-        guest_email: scheduleForm.guest_email,
-        schedule_time: combinedTime,
-      });
-
-      // Save to localStorage
-      const stored = localStorage.getItem("booked-slots");
-      const list = stored ? JSON.parse(stored) : [];
-      list.push({
-        apartmentId: apartment.id,
-        date: selectedDate,
-        slot: selectedSlot
-      });
-      localStorage.setItem("booked-slots", JSON.stringify(list));
-
-      toast.success("Đã gửi yêu cầu đặt lịch xem phòng thành công!");
-      setShowScheduleForm(false);
-      setScheduleForm({ guest_name: "", guest_phone: "", guest_email: "", schedule_time: "", note: "" });
-      setSelectedDate("");
-      setSelectedSlot("");
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { error?: string } } };
-      toast.error(err.response?.data?.error || "Gửi yêu cầu thất bại");
-    } finally {
-      setSaving(false);
-    }
-  }
 
 
   return (
@@ -266,20 +211,20 @@ export default function GuestApartmentDetail() {
             <Card>
               <h3 className="font-semibold text-gray-800 mb-4 font-sans">Thông tin căn hộ</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-3 bg-gray-50 rounded-xl">
+                <div className="text-center p-3 bg-gray-50 rounded-md">
                   <Maximize2 size={18} className="text-primary-600 mx-auto mb-1" />
                   <p className="text-sm font-semibold text-gray-800">{apartment.area} m²</p>
                   <p className="text-xs text-gray-400">Diện tích</p>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded-xl">
+                <div className="text-center p-3 bg-gray-50 rounded-md">
                   <p className="text-sm font-semibold text-gray-800">Tòa {building?.name.replace(/yuki\s*house\s*|yuki\s*/gi, "")}</p>
                   <p className="text-xs text-gray-400">Tòa nhà</p>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded-xl">
+                <div className="text-center p-3 bg-gray-50 rounded-md">
                   <p className="text-sm font-semibold text-gray-800">{building?.total_floors} tầng</p>
                   <p className="text-xs text-gray-400">Tổng tầng</p>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded-xl">
+                <div className="text-center p-3 bg-gray-50 rounded-md">
                   <p className="text-sm font-semibold text-gray-800">{apartment.status === "AVAILABLE" ? "Sẵn sàng" : "Đang thuê"}</p>
                   <p className="text-xs text-gray-400">Trạng thái</p>
                 </div>
@@ -377,46 +322,64 @@ export default function GuestApartmentDetail() {
           </p>
           <div className="grid grid-cols-12 gap-4">
             <div className="col-span-12">
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Họ tên *</label>
-              <div className="relative">
-                <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input type="text" value={scheduleForm.guest_name}
-                  onChange={(e) => setScheduleForm({ ...scheduleForm, guest_name: e.target.value })}
-                  placeholder="Nguyễn Văn A" className="premium-input rounded-xl pl-10! text-xs" />
-              </div>
+              <Input
+                label="Họ tên *"
+                type="text"
+                value={scheduleForm.guest_name}
+                onChange={(e) => setScheduleForm({ ...scheduleForm, guest_name: e.target.value })}
+                placeholder="Nguyễn Văn A"
+                icon={<User size={16} />}
+                className="rounded-md text-xs"
+              />
             </div>
 
             <div className="col-span-12">
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Số điện thoại *</label>
-              <div className="relative">
-                <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input type="tel" value={scheduleForm.guest_phone}
-                  onChange={(e) => setScheduleForm({ ...scheduleForm, guest_phone: e.target.value })}
-                  placeholder="0901234567" className="premium-input rounded-xl pl-10! text-xs" />
-              </div>
+              <Input
+                label="Số điện thoại *"
+                type="tel"
+                value={scheduleForm.guest_phone}
+                onChange={(e) => setScheduleForm({ ...scheduleForm, guest_phone: e.target.value })}
+                placeholder="0901234567"
+                icon={<Phone size={16} />}
+                className="rounded-md text-xs"
+              />
             </div>
 
             <div className="col-span-12">
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email *</label>
-              <div className="relative">
-                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input type="email" value={scheduleForm.guest_email}
-                  onChange={(e) => setScheduleForm({ ...scheduleForm, guest_email: e.target.value })}
-                  placeholder="example@gmail.com" className="premium-input rounded-xl pl-10! text-xs" />
-              </div>
+              <Input
+                label="Email *"
+                type="email"
+                value={scheduleForm.guest_email}
+                onChange={(e) => setScheduleForm({ ...scheduleForm, guest_email: e.target.value })}
+                placeholder="example@gmail.com"
+                icon={<Mail size={16} />}
+                className="rounded-md text-xs"
+              />
             </div>
 
             <div className="col-span-12">
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày muốn xem *</label>
-              <input
-                type="date"
-                min={new Date().toISOString().split("T")[0]}
-                value={selectedDate}
-                onChange={(e) => {
-                  setSelectedDate(e.target.value);
+              <DatePicker
+                value={selectedDate ? new Date(selectedDate) : null}
+                onChange={(date) => {
+                  if (!date) {
+                    setSelectedDate("");
+                    setSelectedSlot("");
+                    return;
+                  }
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  if (date < today) {
+                    toast.error("Không thể chọn ngày trong quá khứ");
+                    return;
+                  }
+                  const y = date.getFullYear();
+                  const m = String(date.getMonth() + 1).padStart(2, "0");
+                  const d = String(date.getDate()).padStart(2, "0");
+                  setSelectedDate(`${y}-${m}-${d}`);
                   setSelectedSlot("");
                 }}
-                className="premium-input rounded-xl text-xs"
+                placeholder="Chọn ngày xem..."
               />
             </div>
 
@@ -433,7 +396,7 @@ export default function GuestApartmentDetail() {
                         type="button"
                         disabled={booked}
                         onClick={() => setSelectedSlot(slot)}
-                        className={`py-2.5 px-3 border rounded-xl text-xs font-semibold text-center transition-all cursor-pointer ${booked
+                        className={`py-2.5 px-3 border rounded-md text-xs font-semibold text-center transition-all cursor-pointer ${booked
                           ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                           : selected
                             ? "bg-primary-600 text-white border-primary-600 shadow-sm"
@@ -455,7 +418,7 @@ export default function GuestApartmentDetail() {
                 value={scheduleForm.note}
                 onChange={(e) => setScheduleForm({ ...scheduleForm, note: e.target.value })}
                 placeholder="Lưu ý gì thêm..."
-                className="premium-input rounded-xl resize-none text-xs"
+                className="premium-input rounded-md resize-none text-xs"
               />
             </div>
           </div>

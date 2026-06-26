@@ -1,10 +1,11 @@
 import Modal from "../../../../components/ui/Modal"
 import Button from "../../../../components/ui/Button"
 import Input from "../../../../components/ui/Input"
+import Combobox from "../../../../components/ui/Combobox"
+import { DatePicker } from "../../../../components/ui/DatePicker"
 import type { ApartmentData } from "../../../../services/apartmentService"
 import type { BuildingData } from "../../../../services/buildingService"
 import type { Tenant } from "../../../../types"
-import { formatCurrency } from "../../../../utils/format"
 import { useContractCreate } from "../../../../hooks/useContractCreate"
 
 interface ContractCreateModalProps {
@@ -45,18 +46,21 @@ export default function ContractCreateModal({
     buildingIdValue,
     floorValue,
     apartmentIdValue,
+    newTenantDobValue,
+    startDateValue,
+    endDateValue,
+    formFloors,
+    formApartments,
     actualOccupantsValue,
     monthlyRentValue,
     depositAmountValue,
     maxOccupants,
-    formFloors,
-    formApartments,
     buildingApartments,
   } = useContractCreate({
     isOpen,
     onClose,
     onSuccess,
-    currentUser,
+    currentUser: currentUser || { id: 1 },
     role,
     managerBuildingId,
     initialTenantId,
@@ -104,24 +108,18 @@ export default function ContractCreateModal({
 
             {!isNewTenant ? (
               <div>
-                <select
-                  value={tenantIdValue || ""}
-                  onChange={(e) => setValue("tenant_id", e.target.value ? Number(e.target.value) : null)}
-                  className={`premium-select w-full rounded-xl ${errors.tenant_id ? "border-danger-500 focus:ring-danger-500/20" : ""}`}
-                >
-                  <option value="">Chọn người thuê</option>
-                  {tenants.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.full_name} ({t.citizen_id})
-                    </option>
-                  ))}
-                </select>
-                {errors.tenant_id && (
-                  <p className="mt-1 text-xs text-danger-500">{errors.tenant_id.message}</p>
-                )}
+                <Combobox
+                  options={tenants.map((t) => ({ value: String(t.id), label: `${t.full_name} (${t.citizen_id})` }))}
+                  value={tenantIdValue ? String(tenantIdValue) : ""}
+                  onChange={(val) => setValue("tenant_id", val ? Number(val) : null)}
+                  placeholder="Chọn người thuê"
+                  searchPlaceholder="Tìm kiếm người thuê..."
+                  triggerClassName="rounded-md"
+                  error={errors.tenant_id?.message}
+                />
               </div>
             ) : (
-              <div className="grid grid-cols-12 gap-4 bg-gray-50/50 p-4 rounded-xl border border-gray-150">
+              <div className="grid grid-cols-12 gap-4 bg-gray-50/50 p-4 rounded-md border border-gray-150">
                 <div className="col-span-12">
                   <Input
                     label="Họ tên *"
@@ -139,12 +137,24 @@ export default function ContractCreateModal({
                   />
                 </div>
                 <div className="col-span-12 sm:col-span-6">
-                  <Input
-                    label="Ngày sinh"
-                    type="date"
-                    {...register("new_tenant_dob")}
-                    error={errors.new_tenant_dob?.message}
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày sinh</label>
+                  <DatePicker
+                    value={newTenantDobValue ? new Date(newTenantDobValue) : null}
+                    onChange={(date) => {
+                      if (!date) {
+                        setValue("new_tenant_dob", "");
+                        return;
+                      }
+                      const y = date.getFullYear();
+                      const m = String(date.getMonth() + 1).padStart(2, "0");
+                      const d = String(date.getDate()).padStart(2, "0");
+                      setValue("new_tenant_dob", `${y}-${m}-${d}`);
+                    }}
+                    placeholder="Chọn ngày sinh..."
                   />
+                  {errors.new_tenant_dob?.message && (
+                    <p className="mt-1 text-xs text-danger-500">{errors.new_tenant_dob.message}</p>
+                  )}
                 </div>
                 <div className="col-span-12 sm:col-span-6">
                   <Input
@@ -177,119 +187,117 @@ export default function ContractCreateModal({
 
           {role !== "MANAGER" && (
             <div className="col-span-12 sm:col-span-6">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Chi nhánh *</label>
-              <select
-                value={buildingIdValue || ""}
-                onChange={(e) => {
-                  setValue("building_id", e.target.value ? Number(e.target.value) : (undefined as unknown as number))
+              <Combobox
+                label="Chi nhánh *"
+                options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
+                value={buildingIdValue ? String(buildingIdValue) : ""}
+                onChange={(val) => {
+                  setValue("building_id", val ? Number(val) : (undefined as unknown as number))
                   setValue("floor", undefined as unknown as number)
                   setValue("apartment_id", undefined as unknown as number)
                 }}
                 disabled={role === "MANAGER"}
-                className={`premium-select w-full rounded-xl disabled:bg-gray-50 disabled:text-gray-500 ${errors.building_id ? "border-danger-500 focus:ring-danger-500/20" : ""}`}
-              >
-                <option value="">Chọn chi nhánh</option>
-                {buildings.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.branch_name}
-                  </option>
-                ))}
-              </select>
-              {errors.building_id && (
-                <p className="mt-1 text-xs text-danger-500">{errors.building_id.message}</p>
-              )}
+                placeholder="Chọn chi nhánh"
+                searchPlaceholder="Tìm chi nhánh..."
+                triggerClassName="rounded-md"
+                error={errors.building_id?.message}
+              />
             </div>
           )}
 
           <div className="col-span-12 sm:col-span-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tầng *</label>
-            <select
-              value={floorValue || ""}
-              onChange={(e) => {
-                setValue("floor", e.target.value ? Number(e.target.value) : (undefined as unknown as number))
+            <Combobox
+              label="Tầng *"
+              options={formFloors.map((floor) => ({ value: String(floor), label: `Tầng ${floor}` }))}
+              value={floorValue ? String(floorValue) : ""}
+              onChange={(val) => {
+                setValue("floor", val ? Number(val) : (undefined as unknown as number))
                 setValue("apartment_id", undefined as unknown as number)
               }}
               disabled={!buildingIdValue}
-              className={`premium-select w-full rounded-xl disabled:bg-gray-50 disabled:text-gray-500 ${errors.floor ? "border-danger-500 focus:ring-danger-500/20" : ""}`}
-            >
-              <option value="">Chọn tầng</option>
-              {formFloors.map((floor) => (
-                <option key={floor} value={floor}>Tầng {floor}</option>
-              ))}
-            </select>
-            {errors.floor && (
-              <p className="mt-1 text-xs text-danger-500">{errors.floor.message}</p>
-            )}
-          </div>
-
-          <div className="col-span-12 sm:col-span-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Căn hộ *</label>
-            <select
-              value={apartmentIdValue || ""}
-              onChange={(e) => setValue("apartment_id", e.target.value ? Number(e.target.value) : (undefined as unknown as number))}
-              disabled={!floorValue}
-              className={`premium-select w-full rounded-xl disabled:bg-gray-50 disabled:text-gray-500 ${errors.apartment_id ? "border-danger-500 focus:ring-danger-500/20" : ""}`}
-            >
-              <option value="">Chọn căn hộ</option>
-              {formApartments.map((a) => (
-                <option key={a.id} value={a.id}>P.{a.room_number} ({a.area}m²)</option>
-              ))}
-            </select>
-            {errors.apartment_id && (
-              <p className="mt-1 text-xs text-danger-500">{errors.apartment_id.message}</p>
-            )}
-          </div>
-
-          <div className="col-span-12 sm:col-span-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngày bắt đầu *</label>
-            <input
-              type="date"
-              {...register("start_date")}
-              className={`premium-input rounded-xl ${errors.start_date ? "border-danger-500 focus:ring-danger-500/20" : ""}`}
+              placeholder="Chọn tầng"
+              searchable={false}
+              triggerClassName="rounded-md"
+              error={errors.floor?.message}
             />
-            {errors.start_date && (
+          </div>
+
+          <div className="col-span-12 sm:col-span-6">
+            <Combobox
+              label="Căn hộ *"
+              options={formApartments.map((a) => ({ value: String(a.id), label: `P.${a.room_number} (${a.area}m²)` }))}
+              value={apartmentIdValue ? String(apartmentIdValue) : ""}
+              onChange={(val) => setValue("apartment_id", val ? Number(val) : (undefined as unknown as number))}
+              disabled={!floorValue}
+              placeholder="Chọn căn hộ"
+              searchPlaceholder="Tìm căn hộ..."
+              triggerClassName="rounded-md"
+              error={errors.apartment_id?.message}
+            />
+          </div>
+
+          <div className="col-span-12 sm:col-span-6">
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày bắt đầu *</label>
+            <DatePicker
+              value={startDateValue ? new Date(startDateValue) : null}
+              onChange={(date) => {
+                if (!date) {
+                  setValue("start_date", "");
+                  return;
+                }
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, "0");
+                const d = String(date.getDate()).padStart(2, "0");
+                setValue("start_date", `${y}-${m}-${d}`);
+              }}
+              placeholder="Chọn ngày bắt đầu..."
+            />
+            {errors.start_date?.message && (
               <p className="mt-1 text-xs text-danger-500">{errors.start_date.message}</p>
             )}
           </div>
           <div className="col-span-12 sm:col-span-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngày kết thúc *</label>
-            <input
-              type="date"
-              {...register("end_date")}
-              className={`premium-input rounded-xl ${errors.end_date ? "border-danger-500 focus:ring-danger-500/20" : ""}`}
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày kết thúc *</label>
+            <DatePicker
+              value={endDateValue ? new Date(endDateValue) : null}
+              onChange={(date) => {
+                if (!date) {
+                  setValue("end_date", "");
+                  return;
+                }
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, "0");
+                const d = String(date.getDate()).padStart(2, "0");
+                setValue("end_date", `${y}-${m}-${d}`);
+              }}
+              placeholder="Chọn ngày kết thúc..."
             />
-            {errors.end_date && (
+            {errors.end_date?.message && (
               <p className="mt-1 text-xs text-danger-500">{errors.end_date.message}</p>
             )}
           </div>
 
           <div className="col-span-12">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Số lượng người ở thực tế {apartmentIdValue ? `(Tối đa: ${maxOccupants} người)` : ""} *
-            </label>
-            <input
+            <Input
+              label={`Số lượng người ở thực tế ${apartmentIdValue ? `(Tối đa: ${maxOccupants} người)` : ""} *`}
               type="number"
               min={1}
               value={actualOccupantsValue || ""}
               {...register("actual_occupants", { valueAsNumber: true })}
-              className={`premium-input rounded-xl ${errors.actual_occupants ? "border-danger-500 focus:ring-danger-500/20" : ""}`}
+              error={errors.actual_occupants?.message}
+              className="rounded-md"
             />
-            {errors.actual_occupants && (
-              <p className="mt-1 text-xs text-danger-500">{errors.actual_occupants.message}</p>
-            )}
           </div>
 
           <div className="col-span-12 sm:col-span-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tiền thuê/tháng (VND) *</label>
-            <input
+            <Input
+              label="Tiền thuê/tháng (VND) *"
               type="number"
               value={monthlyRentValue || 0}
               {...register("monthly_rent", { valueAsNumber: true })}
-              className={`premium-input rounded-xl ${errors.monthly_rent ? "border-danger-500 focus:ring-danger-500/20" : ""}`}
+              error={errors.monthly_rent?.message}
+              className="rounded-md"
             />
-            {errors.monthly_rent && (
-              <p className="mt-1 text-xs text-danger-500">{errors.monthly_rent.message}</p>
-            )}
             {apartmentIdValue && (() => {
               const apt = buildingApartments.find((a) => a.id === apartmentIdValue) || apartments.find((a) => a.id === apartmentIdValue)
               const occupantsCount = Number(actualOccupantsValue) || 1
@@ -304,16 +312,14 @@ export default function ContractCreateModal({
             })()}
           </div>
           <div className="col-span-12 sm:col-span-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tiền cọc (VND) *</label>
-            <input
+            <Input
+              label="Tiền cọc (VND) *"
               type="number"
               value={depositAmountValue || 0}
               {...register("deposit_amount", { valueAsNumber: true })}
-              className={`premium-input rounded-xl ${errors.deposit_amount ? "border-danger-500 focus:ring-danger-500/20" : ""}`}
+              error={errors.deposit_amount?.message}
+              className="rounded-md"
             />
-            {errors.deposit_amount && (
-              <p className="mt-1 text-xs text-danger-500">{errors.deposit_amount.message}</p>
-            )}
           </div>
         </div>
       </div>

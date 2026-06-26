@@ -1,4 +1,4 @@
-import { Plus, Users, Eye, Pencil, Trash2 } from "lucide-react";
+import { Plus, Users, Eye, Pencil, Trash2, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../../components/ui/PageHeader";
 import Button from "../../../components/ui/Button";
@@ -40,9 +40,18 @@ export default function TenantList() {
     filtered,
     loadData,
     handleDelete,
+    loading,
   } = useTenantList({ role, managedBuildingId });
 
   const paginated = filtered;
+
+  if (loading && filtered.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-primary-600" size={32} />
+      </div>
+    );
+  }
 
   const columns: Column<Tenant>[] = [
     { key: "name", label: "Họ tên", sortValue: (t) => t.full_name, render: (t) => <span className="font-medium">{t.full_name}</span> },

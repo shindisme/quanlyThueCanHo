@@ -13,9 +13,7 @@ export function useHomePage() {
       try {
         const parsed = JSON.parse(storedSettings);
         if (parsed.heroTitle) return parsed.heroTitle;
-      } catch {
-        // ignore
-      }
+      } catch { /* empty */ }
     }
     return "Tìm căn hộ lý tưởng của bạn";
   });

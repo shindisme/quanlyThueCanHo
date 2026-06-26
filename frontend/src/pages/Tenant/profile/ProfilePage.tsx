@@ -1,186 +1,42 @@
-import { useState, useEffect } from "react";
 import { User, Mail, Save, Plus, Pencil, Trash2, FileText } from "lucide-react";
 import Button from "../../../components/ui/Button";
 import PageHeader from "../../../components/ui/PageHeader";
 import Modal from "../../../components/ui/Modal";
 import Input from "../../../components/ui/Input";
-import { useAuthStore } from "../../../stores/auth.store";
-import { changePassword } from "../../../services/authService";
-import { toast } from "sonner";
-import * as tenantService from "../../../services/tenantService";
-import * as contractService from "../../../services/contractService";
-import * as apartmentService from "../../../services/apartmentService";
-import * as buildingService from "../../../services/buildingService";
+import { DatePicker } from "../../../components/ui/DatePicker";
 import { formatCurrency, formatDate } from "../../../utils/format";
-
-function parseJwt(token: string) {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      window
-        .atob(base64)
-        .split("")
-        .map(function (c) {
-          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-        })
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch (e) {
-    return null;
-  }
-}
+import { useProfile } from "../../../hooks/useProfile";
 
 export default function ProfilePage() {
-  const { email, role, token } = useAuthStore();
-  const [oldPass, setOldPass] = useState("");
-  const [newPass, setNewPass] = useState("");
-  const [confirmPass, setConfirmPass] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  const [userContract, setUserContract] = useState<any | null>(null);
-  const [apartmentInfo, setApartmentInfo] = useState<any | null>(null);
-  const [buildingInfo, setBuildingInfo] = useState<any | null>(null);
-
-  useEffect(() => {
-    if (role === "TENANT" && email && token) {
-      async function loadTenantContract() {
-        try {
-          const decoded = parseJwt(token);
-          const userId = decoded?.userId;
-          if (!userId) return;
-
-          const tenantsRes = await tenantService.getAllTenants({ limit: 1000 });
-          const currentT = tenantsRes.data.find((t) => t.user_id === userId);
-          if (!currentT) return;
-
-          const contracts = await contractService.getAllContracts();
-          const activeContract = contracts.find((c) => c.tenant_id === currentT.id && c.status === "ACTIVE");
-
-          if (activeContract) {
-            setUserContract(activeContract);
-
-            // Load apartment and building details
-            const apartmentsRes = await apartmentService.getAllApartments({ limit: 1000 });
-            const apt = apartmentsRes.data.find((a) => a.id === activeContract.apartment_id);
-            if (apt) {
-              setApartmentInfo(apt);
-
-              const buildingsRes = await buildingService.getAllBuildings({ limit: 100 });
-              const bld = buildingsRes.data.find((b) => b.id === apt.building_id);
-              if (bld) {
-                setBuildingInfo(bld);
-              }
-            }
-          }
-        } catch (err) {
-          console.error("Lỗi khi tải thông tin hợp đồng cho Profile:", err);
-        }
-      }
-      loadTenantContract();
-    }
-  }, [email, role, token]);
-
-  const [occupants, setOccupants] = useState<any[]>(() => {
-    if (!email) return [];
-    const stored = localStorage.getItem(`occupants-${email}`);
-    return stored ? JSON.parse(stored) : [];
-  });
-  const [showOccupantModal, setShowOccupantModal] = useState(false);
-  const [editOccupant, setEditOccupant] = useState<any | null>(null);
-  const [occupantForm, setOccupantForm] = useState({
-    name: "",
-    cccd: "",
-    dob: "",
-    phone: ""
-  });
-
-  const handleOpenOccupantForm = (occ: any | null) => {
-    setEditOccupant(occ);
-    if (occ) {
-      setOccupantForm({
-        name: occ.name || "",
-        cccd: occ.cccd || "",
-        dob: occ.dob || "",
-        phone: occ.phone || ""
-      });
-    } else {
-      setOccupantForm({
-        name: "",
-        cccd: "",
-        dob: "",
-        phone: ""
-      });
-    }
-    setShowOccupantModal(true);
-  };
-
-  const handleDeleteOccupant = (id: string) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa người ở cùng này?")) return;
-    const updated = occupants.filter((occ) => occ.id !== id);
-    setOccupants(updated);
-    if (email) {
-      localStorage.setItem(`occupants-${email}`, JSON.stringify(updated));
-    }
-    toast.success("Xóa người ở cùng thành công");
-  };
-
-  const handleSaveOccupant = () => {
-    if (!occupantForm.name || !occupantForm.cccd) {
-      toast.error("Vui lòng điền đầy đủ Họ tên và Số CCCD");
-      return;
-    }
-    let updated: any[];
-    if (editOccupant) {
-      updated = occupants.map((occ) =>
-        occ.id === editOccupant.id ? { ...occ, ...occupantForm } : occ
-      );
-      toast.success("Cập nhật thông tin thành công");
-    } else {
-      const newOcc = {
-        id: Date.now().toString(),
-        ...occupantForm
-      };
-      updated = [...occupants, newOcc];
-      toast.success("Khai báo người ở cùng thành công");
-    }
-    setOccupants(updated);
-    if (email) {
-      localStorage.setItem(`occupants-${email}`, JSON.stringify(updated));
-    }
-    setShowOccupantModal(false);
-  };
+  const {
+    email,
+    role,
+    oldPass,
+    setOldPass,
+    newPass,
+    setNewPass,
+    confirmPass,
+    setConfirmPass,
+    saving,
+    userContract,
+    apartmentInfo,
+    buildingInfo,
+    occupants,
+    showOccupantModal,
+    setShowOccupantModal,
+    editOccupant,
+    occupantForm,
+    setOccupantForm,
+    handleOpenOccupantForm,
+    handleDeleteOccupant,
+    handleSaveOccupant,
+    handleChangePassword,
+  } = useProfile();
 
   const displayName = email?.split("@")[0] || "User";
   const roleLabel =
     role === "ADMIN" ? "Quản trị viên" :
       role === "MANAGER" ? "Quản lý" : "Người thuê";
-
-  async function handleChangePassword() {
-    if (!oldPass || !newPass) {
-      toast.error("Vui lòng nhập đầy đủ mật khẩu");
-      return;
-    }
-    if (newPass !== confirmPass) {
-      toast.error("Mật khẩu mới không khớp");
-      return;
-    }
-    if (newPass.length < 6) {
-      toast.error("Mật khẩu mới phải ít nhất 6 ký tự");
-      return;
-    }
-    setSaving(true);
-    try {
-      await changePassword(oldPass, newPass);
-      toast.success("Đổi mật khẩu thành công!");
-      setOldPass(""); setNewPass(""); setConfirmPass("");
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Đổi mật khẩu thất bại");
-    } finally {
-      setSaving(false);
-    }
-  }
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -226,21 +82,27 @@ export default function ProfilePage() {
       <div className="premium-card p-6">
         <h3 className="font-semibold text-gray-800 mb-4">Đổi mật khẩu</h3>
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Mật khẩu hiện tại</label>
-            <input type="password" value={oldPass} onChange={(e) => setOldPass(e.target.value)}
-              className="premium-input rounded-xl" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Mật khẩu mới</label>
-            <input type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)}
-              className="premium-input rounded-xl" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Xác nhận mật khẩu mới</label>
-            <input type="password" value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)}
-              className="premium-input rounded-xl" />
-          </div>
+          <Input
+            label="Mật khẩu hiện tại"
+            type="password"
+            value={oldPass}
+            onChange={(e) => setOldPass(e.target.value)}
+            className="rounded-md"
+          />
+          <Input
+            label="Mật khẩu mới"
+            type="password"
+            value={newPass}
+            onChange={(e) => setNewPass(e.target.value)}
+            className="rounded-md"
+          />
+          <Input
+            label="Xác nhận mật khẩu mới"
+            type="password"
+            value={confirmPass}
+            onChange={(e) => setConfirmPass(e.target.value)}
+            className="rounded-md"
+          />
           <Button onClick={handleChangePassword} isLoading={saving}>
             <Save size={16} /> Đổi mật khẩu
           </Button>
@@ -393,12 +255,23 @@ export default function ProfilePage() {
                 onChange={(e) => setOccupantForm({ ...occupantForm, cccd: e.target.value })}
                 placeholder="Nhập số CCCD"
               />
-              <Input
-                label="Ngày sinh"
-                type="date"
-                value={occupantForm.dob}
-                onChange={(e) => setOccupantForm({ ...occupantForm, dob: e.target.value })}
-              />
+              <div className="w-full">
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày sinh</label>
+                <DatePicker
+                  value={occupantForm.dob ? new Date(occupantForm.dob) : null}
+                  onChange={(date) => {
+                    if (!date) {
+                      setOccupantForm({ ...occupantForm, dob: "" });
+                      return;
+                    }
+                    const y = date.getFullYear();
+                    const m = String(date.getMonth() + 1).padStart(2, "0");
+                    const d = String(date.getDate()).padStart(2, "0");
+                    setOccupantForm({ ...occupantForm, dob: `${y}-${m}-${d}` });
+                  }}
+                  placeholder="Chọn ngày sinh..."
+                />
+              </div>
               <Input
                 label="Số điện thoại"
                 value={occupantForm.phone}

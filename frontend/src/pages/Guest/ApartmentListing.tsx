@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Search, Loader2 } from "lucide-react";
 import Badge from "../../components/ui/Badge";
+import Combobox from "../../components/ui/Combobox";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../constants/enums";
 import { formatCurrency, formatApartmentDisplay, removeVietnameseTones } from "../../utils/format";
 import * as buildingService from "../../services/buildingService";
@@ -142,54 +143,60 @@ export default function GuestApartmentListing() {
             />
           </div>
 
-          <select
+          <Combobox
+            options={[
+              { value: "low", label: "Dưới 6 triệu" },
+              { value: "mid", label: "Từ 6 - 15 triệu" },
+              { value: "high", label: "Trên 15 triệu" }
+            ]}
             value={priceFilter}
-            onChange={(e) => setPriceFilter(e.target.value)}
-            className="flex-1 min-w-[150px] px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500 h-[42px]"
-          >
-            <option value="">Mức giá</option>
-            <option value="low">Dưới 6 triệu</option>
-            <option value="mid">Từ 6 - 15 triệu</option>
-            <option value="high">Trên 15 triệu</option>
-          </select>
+            onChange={(val) => setPriceFilter(val)}
+            placeholder="Mức giá"
+            searchable={false}
+            className="flex-1 min-w-[150px]"
+            triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
+            clearable={true}
+          />
 
-          <select
+          <Combobox
+            options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
             value={buildingFilter}
-            onChange={(e) => {
-              setBuildingFilter(e.target.value);
-              setFloorFilter(""); // Reset floor when building changes
+            onChange={(val) => {
+              setBuildingFilter(val);
+              setFloorFilter("");
             }}
-            className="flex-1 min-w-[150px] px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500 h-[42px]"
-          >
-            <option value="">Tất cả chi nhánh</option>
-            {buildings.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.branch_name}
-              </option>
-            ))}
-          </select>
+            placeholder="Tất cả chi nhánh"
+            searchPlaceholder="Tìm chi nhánh..."
+            className="flex-1 min-w-[160px]"
+            triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
+            clearable={true}
+          />
 
-          <select
+          <Combobox
+            options={floors.map((f) => ({ value: String(f), label: `Tầng ${f}` }))}
             value={floorFilter}
-            onChange={(e) => setFloorFilter(e.target.value)}
+            onChange={(val) => setFloorFilter(val)}
             disabled={!buildingFilter}
-            className="flex-1 min-w-[150px] px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500 disabled:bg-gray-50 disabled:text-gray-400 h-[42px]"
-          >
-            <option value="">Chọn tầng</option>
-            {floors.map((floor) => (
-              <option key={floor} value={floor}>Tầng {floor}</option>
-            ))}
-          </select>
+            placeholder="Tầng"
+            searchPlaceholder="Tìm tầng..."
+            className="flex-1 min-w-[150px]"
+            triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
+            clearable={true}
+          />
 
-          <select
+          <Combobox
+            options={[
+              { value: "AVAILABLE", label: "Còn trống" },
+              { value: "RENTED", label: "Đang thuê" }
+            ]}
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="flex-1 min-w-[150px] px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500 h-[42px]"
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="AVAILABLE">Còn trống</option>
-            <option value="RENTED">Đang thuê</option>
-          </select>
+            onChange={(val) => setStatusFilter(val)}
+            placeholder="Tất cả trạng thái"
+            searchable={false}
+            className="flex-1 min-w-[150px]"
+            triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
+            clearable={true}
+          />
         </div>
 
         {loading ? (

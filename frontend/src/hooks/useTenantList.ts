@@ -23,6 +23,7 @@ export function useTenantList({ role, managedBuildingId }: UseTenantListProps) {
   const [editItem, setEditItem] = useState<Tenant | null>(null)
   const [deleteItem, setDeleteItem] = useState<Tenant | null>(null)
   const [viewItem, setViewItem] = useState<Tenant | null>(null)
+  const [loading, setLoading] = useState(true)
 
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [contracts, setContracts] = useState<RentalContract[]>([])
@@ -31,6 +32,7 @@ export function useTenantList({ role, managedBuildingId }: UseTenantListProps) {
 
   const loadData = useCallback(async () => {
     try {
+      setLoading(true)
       const res = await tenantService.getAllTenants({ page: currentPage })
       setTenants(res.data)
       if (res.data.length === 10) {
@@ -49,6 +51,8 @@ export function useTenantList({ role, managedBuildingId }: UseTenantListProps) {
       setBuildings(bRes.data)
     } catch {
       toast.error("Không thể tải danh sách người thuê")
+    } finally {
+      setLoading(false)
     }
   }, [currentPage])
 
@@ -134,5 +138,6 @@ export function useTenantList({ role, managedBuildingId }: UseTenantListProps) {
     filtered,
     loadData,
     handleDelete,
+    loading,
   }
 }

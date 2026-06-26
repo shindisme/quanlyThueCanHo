@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
+import { DatePicker } from "../../../../components/ui/DatePicker";
 import type { Tenant } from "../../../../types";
-import { toast } from "sonner";
-import * as tenantService from "../../../../services/tenantService";
+import { useTenantModify } from "../../../../hooks/useTenantModify";
 
 interface TenantModifyModalProps {
   isOpen: boolean;
@@ -19,50 +18,22 @@ export default function TenantModifyModal({
   onSuccess,
   editItem,
 }: TenantModifyModalProps) {
-  const [formFullName, setFormFullName] = useState("");
-  const [formCitizenId, setFormCitizenId] = useState("");
-  const [formDob, setFormDob] = useState("");
-  const [formAddress, setFormAddress] = useState("");
-  const [formEmail, setFormEmail] = useState("");
-  const [formPhone, setFormPhone] = useState("");
-
-  useEffect(() => {
-    if (editItem && isOpen) {
-      setFormFullName(editItem.full_name);
-      setFormCitizenId(editItem.citizen_id);
-      setFormDob(
-        editItem.date_of_birth
-          ? new Date(editItem.date_of_birth).toISOString().split("T")[0]
-          : ""
-      );
-      setFormAddress(editItem.address || "");
-      setFormEmail(editItem.email || "");
-      setFormPhone(editItem.phone || "");
-    }
-  }, [editItem, isOpen]);
-
-  async function handleEditSave() {
-    if (!formFullName || !formCitizenId || !editItem) {
-      toast.error("Vui lòng nhập đầy đủ Họ tên và số CCCD");
-      return;
-    }
-    try {
-      await tenantService.updateTenant(editItem.id, {
-        full_name: formFullName,
-        citizen_id: formCitizenId,
-        date_of_birth: formDob ? new Date(formDob).toISOString() : null,
-        address: formAddress || null,
-        email: formEmail.trim() || null,
-        phone: formPhone.trim() || null,
-      });
-
-      toast.success("Đã cập nhật thông tin người thuê thành công");
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Cập nhật thất bại");
-    }
-  }
+  const {
+    formFullName,
+    setFormFullName,
+    formCitizenId,
+    setFormCitizenId,
+    formDob,
+    setFormDob,
+    formAddress,
+    setFormAddress,
+    formEmail,
+    setFormEmail,
+    formPhone,
+    setFormPhone,
+    loading,
+    handleEditSave,
+  } = useTenantModify({ isOpen, onClose, onSuccess, editItem });
 
   return (
     <Modal
@@ -73,7 +44,7 @@ export default function TenantModifyModal({
       footer={
         <>
           <Button variant="outline" onClick={onClose}>Hủy</Button>
-          <Button onClick={handleEditSave}>Cập nhật</Button>
+          <Button onClick={handleEditSave} isLoading={loading}>Cập nhật</Button>
         </>
       }
     >
@@ -86,7 +57,21 @@ export default function TenantModifyModal({
             <Input label="CCCD *" value={formCitizenId} onChange={(e) => setFormCitizenId(e.target.value)} placeholder="079200001234" />
           </div>
           <div className="col-span-12 sm:col-span-6">
-            <Input label="Ngày sinh" type="date" value={formDob} onChange={(e) => setFormDob(e.target.value)} />
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày sinh</label>
+            <DatePicker
+              value={formDob ? new Date(formDob) : null}
+              onChange={(date) => {
+                if (!date) {
+                  setFormDob("");
+                  return;
+                }
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, "0");
+                const d = String(date.getDate()).padStart(2, "0");
+                setFormDob(`${y}-${m}-${d}`);
+              }}
+              placeholder="Chọn ngày sinh..."
+            />
           </div>
           <div className="col-span-12 sm:col-span-6">
             <Input label="Email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@example.com" />

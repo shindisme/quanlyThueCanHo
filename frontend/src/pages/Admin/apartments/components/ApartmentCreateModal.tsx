@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
-import * as apartmentService from "../../../../services/apartmentService";
 import type { BuildingData } from "../../../../services/buildingService";
-import { toast } from "sonner";
+import Combobox from "../../../../components/ui/Combobox";
+import Input from "../../../../components/ui/Input";
+import { useApartmentCreate } from "../../../../hooks/useApartmentCreate";
 
 interface ApartmentCreateModalProps {
   isOpen: boolean;
@@ -22,134 +22,25 @@ export default function ApartmentCreateModal({
   role,
   managerBuildingId,
 }: ApartmentCreateModalProps) {
-  const [saving, setSaving] = useState(false);
-  const [localThumbnail, setLocalThumbnail] = useState<string>("");
-  const [localImages, setLocalImages] = useState<string[]>([]);
-  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
-  const [detailFiles, setDetailFiles] = useState<(File | null)[]>([null, null, null, null]);
-
-  const defaultBuildingId = role === "MANAGER" && managerBuildingId ? managerBuildingId : (buildings[0]?.id || 0);
-
-  const [formData, setFormData] = useState({
-    room_number: "",
-    building_id: defaultBuildingId,
-    floor: 1,
-    area: 0,
-    bedrooms: 1,
-    bathrooms: 1,
-    rental_price: 0,
-    description: "",
-    status: "AVAILABLE",
+  const {
+    saving,
+    localThumbnail,
+    localImages,
+    formData,
+    setFormData,
+    handleThumbnailChange,
+    handleDetailImageChange,
+    removeThumbnail,
+    removeDetailImage,
+    handleSave,
+  } = useApartmentCreate({
+    isOpen,
+    onClose,
+    onSuccess,
+    buildings,
+    role,
+    managerBuildingId,
   });
-
-  useEffect(() => {
-    if (isOpen) {
-      setFormData({
-        room_number: "",
-        building_id: defaultBuildingId,
-        floor: 1,
-        area: 0,
-        bedrooms: 1,
-        bathrooms: 1,
-        rental_price: 0,
-        description: "",
-        status: "AVAILABLE",
-      });
-      setLocalThumbnail("");
-      setLocalImages([]);
-      setThumbnailFile(null);
-      setDetailFiles([null, null, null, null]);
-    }
-  }, [isOpen, defaultBuildingId]);
-
-  function handleThumbnailChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      setLocalThumbnail(URL.createObjectURL(file));
-      setThumbnailFile(file);
-    }
-  }
-
-  function handleDetailImageChange(e: React.ChangeEvent<HTMLInputElement>, index: number) {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setLocalImages((prev) => {
-        const next = [...prev];
-        next[index] = url;
-        return next;
-      });
-      setDetailFiles((prev) => {
-        const next = [...prev];
-        next[index] = file;
-        return next;
-      });
-    }
-  }
-
-  function removeThumbnail() {
-    setLocalThumbnail("");
-    setThumbnailFile(null);
-  }
-
-  function removeDetailImage(index: number) {
-    setLocalImages((prev) => {
-      const next = [...prev];
-      next.splice(index, 1);
-      return next;
-    });
-    setDetailFiles((prev) => {
-      const next = [...prev];
-      next.splice(index, 1);
-      return next;
-    });
-  }
-
-  async function handleSave() {
-    if (!formData.room_number || !formData.building_id) {
-      toast.error("Vui lòng nhập số phòng và chọn chi nhánh");
-      return;
-    }
-    const selectedBuilding = buildings.find((b) => b.id === formData.building_id);
-    if (selectedBuilding) {
-      if (formData.floor <= 0 || formData.floor > selectedBuilding.total_floors) {
-        toast.error(`Tầng không tồn tại. Chi nhánh này chỉ có tối đa ${selectedBuilding.total_floors} tầng.`);
-        return;
-      }
-    }
-    setSaving(true);
-    try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("room_number", formData.room_number);
-      formDataToSend.append("building_id", String(formData.building_id));
-      formDataToSend.append("floor", String(formData.floor));
-      formDataToSend.append("area", String(formData.area));
-      formDataToSend.append("bedrooms", String(formData.bedrooms));
-      formDataToSend.append("bathrooms", String(formData.bathrooms));
-      formDataToSend.append("rental_price", String(formData.rental_price));
-      formDataToSend.append("description", formData.description || "");
-      formDataToSend.append("status", formData.status);
-
-      if (thumbnailFile) {
-        formDataToSend.append("images", thumbnailFile);
-      }
-
-      detailFiles.forEach((file) => {
-        if (file) {
-          formDataToSend.append("images", file);
-        }
-      });
-
-      await apartmentService.createApartment(formDataToSend);
-      toast.success("Đã thêm căn hộ mới");
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Thao tác thất bại");
-    } finally {
-      setSaving(false);
-    }
-  }
 
   return (
     <Modal
@@ -167,90 +58,93 @@ export default function ApartmentCreateModal({
       <div className="space-y-6">
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 sm:col-span-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Số phòng *</label>
-            <input
+            <Input
+              label="Số phòng *"
               type="text"
               value={formData.room_number}
               onChange={(e) => setFormData({ ...formData, room_number: e.target.value })}
               placeholder="VD: 01, 02, 10..."
-              className="premium-input rounded-xl"
+              className="rounded-md"
             />
           </div>
           <div className="col-span-12 sm:col-span-6">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Chi nhánh *</label>
-            <select
-              value={formData.building_id}
-              onChange={(e) => setFormData({ ...formData, building_id: Number(e.target.value) })}
+            <label className="block text-sm font-semibold text-gray-855 mb-1.5">Chi nhánh *</label>
+            <Combobox
+              options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
+              value={formData.building_id ? String(formData.building_id) : ""}
+              onChange={(val) => setFormData({ ...formData, building_id: Number(val) })}
               disabled={role === "MANAGER"}
-              className="premium-select w-full rounded-xl disabled:bg-gray-50 disabled:text-gray-500"
-            >
-              <option value={0}>Chọn chi nhánh</option>
-              {buildings.map((b) => (
-                <option key={b.id} value={b.id}>{b.branch_name}</option>
-              ))}
-            </select>
+              placeholder="Chọn chi nhánh"
+              searchPlaceholder="Tìm chi nhánh..."
+              triggerClassName="rounded-md"
+              clearable={false}
+            />
           </div>
 
           <div className="col-span-12 sm:col-span-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tầng *</label>
-            <input
+            <Input
+              label="Tầng *"
               type="number"
               value={formData.floor || ""}
               onChange={(e) => setFormData({ ...formData, floor: Number(e.target.value) })}
               min={1}
-              className="premium-input rounded-xl"
+              className="rounded-md"
             />
           </div>
           <div className="col-span-12 sm:col-span-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Diện tích (m²)</label>
-            <input
+            <Input
+              label="Diện tích (m²)"
               type="number"
               value={formData.area || ""}
               onChange={(e) => setFormData({ ...formData, area: Number(e.target.value) })}
-              className="premium-input rounded-xl"
+              className="rounded-md"
             />
           </div>
           <div className="col-span-12 sm:col-span-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Giá thuê (VNĐ)</label>
-            <input
+            <Input
+              label="Giá thuê (VNĐ)"
               type="number"
               value={formData.rental_price || ""}
               onChange={(e) => setFormData({ ...formData, rental_price: Number(e.target.value) })}
-              className="premium-input rounded-xl"
+              className="rounded-md"
             />
           </div>
 
           <div className="col-span-12 sm:col-span-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Phòng ngủ</label>
-            <input
+            <Input
+              label="Phòng ngủ"
               type="number"
               value={formData.bedrooms}
               onChange={(e) => setFormData({ ...formData, bedrooms: Number(e.target.value) })}
               min={0}
-              className="premium-input rounded-xl"
+              className="rounded-md"
             />
           </div>
           <div className="col-span-12 sm:col-span-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Phòng tắm</label>
-            <input
+            <Input
+              label="Phòng tắm"
               type="number"
               value={formData.bathrooms}
               onChange={(e) => setFormData({ ...formData, bathrooms: Number(e.target.value) })}
               min={0}
-              className="premium-input rounded-xl"
+              className="rounded-md"
             />
           </div>
           <div className="col-span-12 sm:col-span-4">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Trạng thái</label>
-            <select
+            <Combobox
+              options={[
+                { value: "AVAILABLE", label: "Còn trống" },
+                { value: "RENTED", label: "Đang thuê" },
+                { value: "MAINTENANCE", label: "Bảo trì" }
+              ]}
               value={formData.status}
-              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              className="premium-select w-full rounded-xl"
-            >
-              <option value="AVAILABLE">Còn trống</option>
-              <option value="RENTED">Đang thuê</option>
-              <option value="MAINTENANCE">Bảo trì</option>
-            </select>
+              onChange={(val) => setFormData({ ...formData, status: val })}
+              placeholder="Chọn trạng thái"
+              searchable={false}
+              triggerClassName="rounded-md"
+              clearable={false}
+            />
           </div>
 
           <div className="col-span-12">
@@ -259,7 +153,7 @@ export default function ApartmentCreateModal({
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="premium-input rounded-xl resize-none"
+              className="premium-input rounded-md resize-none"
             />
           </div>
 
@@ -268,10 +162,10 @@ export default function ApartmentCreateModal({
             <label className="block text-sm font-semibold text-gray-800">Hình ảnh căn hộ</label>
 
             {/* Ảnh bìa */}
-            <div className="space-y-1.5">
-              <span className="text-xs text-gray-500 font-medium">Ảnh bìa (Thumbnail)</span>
+            <div className="space-y-1.5 flex flex-col items-center justify-center">
+              <span className="text-xs text-gray-500 font-medium text-center">Ảnh bìa (Thumbnail)</span>
               {localThumbnail ? (
-                <div className="relative border border-gray-200 rounded-xl overflow-hidden h-40 w-full max-w-md bg-gray-50 flex items-center justify-center">
+                <div className="relative border border-gray-200 rounded-md overflow-hidden h-40 w-full max-w-md bg-gray-50 flex items-center justify-center shadow-sm">
                   <img src={localThumbnail} className="h-full w-full object-cover" alt="Thumbnail preview" />
                   <button
                     type="button"
@@ -283,7 +177,7 @@ export default function ApartmentCreateModal({
                   </button>
                 </div>
               ) : (
-                <label className="border-2 border-dashed border-gray-300 hover:border-primary-500 hover:bg-primary-50/10 rounded-xl h-40 w-full max-w-md flex flex-col items-center justify-center cursor-pointer transition-colors">
+                <label className="border-2 border-dashed border-gray-300 hover:border-primary-500 hover:bg-primary-50/10 rounded-md h-40 w-full max-w-md flex flex-col items-center justify-center cursor-pointer transition-colors shadow-sm bg-white">
                   <span className="text-sm text-gray-400 font-mono font-medium">Chọn hình ảnh</span>
                   <input type="file" accept="image/*" className="hidden" onChange={handleThumbnailChange} />
                 </label>
@@ -299,7 +193,7 @@ export default function ApartmentCreateModal({
                   return (
                     <div key={idx} className="w-full">
                       {imageUrl ? (
-                        <div className="relative border border-gray-200 rounded-xl overflow-hidden h-20 w-full bg-gray-50 flex items-center justify-center">
+                        <div className="relative border border-gray-200 rounded-md overflow-hidden h-20 w-full bg-gray-50 flex items-center justify-center">
                           <img src={imageUrl} className="h-full w-full object-cover" alt={`Detail preview ${idx + 1}`} />
                           <button
                             type="button"
@@ -311,7 +205,7 @@ export default function ApartmentCreateModal({
                           </button>
                         </div>
                       ) : (
-                        <label className="border-2 border-dashed border-gray-300 hover:border-primary-500 hover:bg-primary-50/10 rounded-xl h-20 w-full flex items-center justify-center cursor-pointer transition-colors text-center px-1">
+                        <label className="border-2 border-dashed border-gray-300 hover:border-primary-500 hover:bg-primary-50/10 rounded-md h-20 w-full flex items-center justify-center cursor-pointer transition-colors text-center px-1">
                           <span className="text-[10px] text-gray-400 font-mono font-medium whitespace-nowrap">chọn hình ảnh</span>
                           <input type="file" accept="image/*" className="hidden" onChange={(e) => handleDetailImageChange(e, idx)} />
                         </label>

@@ -55,7 +55,7 @@ export function useApartmentDetail() {
     setTimeout(() => {
       if (!active) return
       if (activeTenantUser?.email) {
-        const stored = localStorage.getItem(`occupants-${activeTenantUser.email}`)
+        const stored = localStorage.getItem(`tenant-occupants-${activeTenantUser.email}`)
         if (stored) {
           try {
             setOccupants(JSON.parse(stored))

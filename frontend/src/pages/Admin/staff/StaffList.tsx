@@ -8,6 +8,7 @@ import DataTable, { type Column } from "../../../components/ui/DataTable";
 import Pagination from "../../../components/ui/Pagination";
 import { useAuthStore } from "../../../stores/auth.store";
 import { toast } from "sonner";
+import Combobox from "../../../components/ui/Combobox";
 import { removeVietnameseTones, maskPhone } from "../../../utils/format";
 import type { Staff } from "../../../types";
 import * as staffService from "../../../services/staffService";
@@ -217,38 +218,34 @@ export default function StaffList() {
           className="max-w-md w-full sm:w-72"
         />
 
-        <select
+        <Combobox
+          options={uniquePositions.map((pos) => ({ value: pos, label: pos }))}
           value={positionFilter}
-          onChange={(e) => {
-            setPositionFilter(e.target.value);
+          onChange={(val) => {
+            setPositionFilter(val);
             setCurrentPage(1);
           }}
-          className="px-3 py-2 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500 h-10 w-full sm:w-44"
-        >
-          <option value="">Tất cả chức vụ</option>
-          {uniquePositions.map((pos) => (
-            <option key={pos} value={pos}>
-              {pos}
-            </option>
-          ))}
-        </select>
+          placeholder="Tất cả chức vụ"
+          searchable={false}
+          className="w-full sm:w-44"
+          triggerClassName="h-10 rounded-xl border-gray-300"
+          clearable={true}
+        />
 
         {role !== "MANAGER" && (
-          <select
-            value={buildingFilter}
-            onChange={(e) => {
-              setBuildingFilter(e.target.value ? Number(e.target.value) : "");
+          <Combobox
+            options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
+            value={buildingFilter ? String(buildingFilter) : ""}
+            onChange={(val) => {
+              setBuildingFilter(val ? Number(val) : "");
               setCurrentPage(1);
             }}
-            className="px-3 py-2 rounded-xl border border-gray-300 text-sm bg-white cursor-pointer focus:outline-none focus:border-primary-500 h-10 w-full sm:w-48"
-          >
-            <option value="">Tất cả tòa nhà</option>
-            {buildings.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.branch_name}
-              </option>
-            ))}
-          </select>
+            placeholder="Tất cả tòa nhà"
+            searchPlaceholder="Tìm tòa nhà..."
+            className="w-full sm:w-48"
+            triggerClassName="h-10 rounded-xl border-gray-300"
+            clearable={true}
+          />
         )}
       </div>
 

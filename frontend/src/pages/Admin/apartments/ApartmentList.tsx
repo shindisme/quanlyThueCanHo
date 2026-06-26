@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Plus, Pencil, Trash2, Loader2, Home, Star, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../../components/ui/PageHeader";
@@ -7,6 +7,7 @@ import SearchInput from "../../../components/ui/SearchInput";
 import Badge from "../../../components/ui/Badge";
 import Pagination from "../../../components/ui/Pagination";
 import { toast } from "sonner";
+import Combobox from "../../../components/ui/Combobox";
 
 import * as apartmentService from "../../../services/apartmentService";
 import * as buildingService from "../../../services/buildingService";
@@ -82,11 +83,7 @@ export default function ApartmentList() {
     localStorage.setItem("featured-apartment-ids", JSON.stringify(updated));
   }
 
-  useEffect(() => {
-    fetchApartments();
-  }, [filterBuilding]);
-
-  async function fetchApartments() {
+  const fetchApartments = useCallback(async () => {
     try {
       setLoading(true);
       const result = await apartmentService.getAllApartments({
@@ -99,7 +96,11 @@ export default function ApartmentList() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [filterBuilding]);
+
+  useEffect(() => {
+    fetchApartments();
+  }, [fetchApartments]);
 
   const filtered = apartments.filter((apt) => {
     if (search) {
@@ -144,7 +145,7 @@ export default function ApartmentList() {
       MAINTENANCE: { label: "Bảo trì", variant: "warning" },
     };
     const s = map[status] || { label: status, variant: "gray" };
-    return <Badge variant={s.variant as any}>{s.label}</Badge>;
+    return <Badge variant={s.variant as "success" | "info" | "warning" | "gray"}>{s.label}</Badge>;
   }
 
   async function handleDelete() {
@@ -154,8 +155,9 @@ export default function ApartmentList() {
       toast.success("Đã xóa căn hộ");
       setDeleteItem(null);
       fetchApartments();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Xóa thất bại");
+    } catch (error) {
+      const apiError = error as { response?: { data?: { error?: string } } };
+      toast.error(apiError.response?.data?.error || "Xóa thất bại");
     }
   }
 
@@ -193,40 +195,56 @@ export default function ApartmentList() {
           className="flex-1 min-w-0 w-full"
         />
         {role !== "MANAGER" && (
-          <select
-            value={filterBuilding || ""}
-            onChange={(e) => { setFilterBuilding(e.target.value ? Number(e.target.value) : undefined); setCurrentPage(1); }}
-            className="flex-1 min-w-0 px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white focus:outline-none focus:border-primary-500 h-[42px]"
-          >
-            <option value="">Tất cả chi nhánh</option>
-            {buildings.map((b) => (
-              <option key={b.id} value={b.id}>{b.branch_name}</option>
-            ))}
-          </select>
+          <Combobox
+            options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
+            value={filterBuilding ? String(filterBuilding) : ""}
+            onChange={(val) => {
+              setFilterBuilding(val ? Number(val) : undefined);
+              setCurrentPage(1);
+            }}
+            placeholder="Tất cả chi nhánh"
+            className="flex-1 min-w-0 w-full"
+            triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
+            clearable={true}
+          />
         )}
-        <select
+        <Combobox
+          options={[
+            { value: "AVAILABLE", label: "Còn trống" },
+            { value: "RENTED", label: "Đang thuê" },
+            { value: "MAINTENANCE", label: "Bảo trì" }
+          ]}
           value={filterStatus}
-          onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
-          className="flex-1 min-w-0 px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white focus:outline-none focus:border-primary-500 h-[42px]"
-        >
-          <option value="">Tất cả trạng thái</option>
-          <option value="AVAILABLE">Còn trống</option>
-          <option value="RENTED">Đang thuê</option>
-          <option value="MAINTENANCE">Bảo trì</option>
-        </select>
+          onChange={(val) => {
+            setFilterStatus(val);
+            setCurrentPage(1);
+          }}
+          placeholder="Tất cả trạng thái"
+          searchable={false}
+          className="flex-1 min-w-0 w-full"
+          triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
+          clearable={true}
+        />
         {role === "ADMIN" && (
-          <select
+          <Combobox
+            options={[
+              { value: "featured", label: "Nổi bật" },
+              { value: "non-featured", label: "Không nổi bật" }
+            ]}
             value={filterFeatured}
-            onChange={(e) => { setFilterFeatured(e.target.value); setCurrentPage(1); }}
-            className="flex-1 min-w-0 px-4 py-2.5 rounded-xl border border-gray-300 text-sm bg-white focus:outline-none focus:border-primary-500 h-[42px]"
-          >
-            <option value="">Tất cả nổi bật</option>
-            <option value="featured">Nổi bật</option>
-            <option value="non-featured">Không nổi bật</option>
-          </select>
+            onChange={(val) => {
+              setFilterFeatured(val);
+              setCurrentPage(1);
+            }}
+            placeholder="Tất cả nổi bật"
+            searchable={false}
+            className="flex-1 min-w-0 w-full"
+            triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
+            clearable={true}
+          />
         )}
       </div>
-      <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm mt-6">
+      <div className="border border-gray-200 overflow-hidden bg-white shadow-sm mt-6">
         <Table>
           <TableHeader>
             <TableRow>
@@ -237,10 +255,10 @@ export default function ApartmentList() {
                 Diện tích {getSortIcon("area")}
               </TableHead>
               <TableHead onClick={() => requestSort("bedrooms")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                PN {getSortIcon("bedrooms")}
+                P.Ngủ {getSortIcon("bedrooms")}
               </TableHead>
               <TableHead onClick={() => requestSort("bathrooms")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                PT {getSortIcon("bathrooms")}
+                P.Tắm {getSortIcon("bathrooms")}
               </TableHead>
               <TableHead onClick={() => requestSort("rental_price")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 Giá thuê {getSortIcon("rental_price")}

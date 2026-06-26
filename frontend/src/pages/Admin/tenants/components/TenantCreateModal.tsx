@@ -1,10 +1,8 @@
-import { useState } from "react";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
-import { toast } from "sonner";
-import * as tenantService from "../../../../services/tenantService";
-import * as authService from "../../../../services/authService";
+import { DatePicker } from "../../../../components/ui/DatePicker";
+import { useTenantCreate } from "../../../../hooks/useTenantCreate";
 
 interface TenantCreateModalProps {
   isOpen: boolean;
@@ -17,58 +15,22 @@ export default function TenantCreateModal({
   onClose,
   onSuccess,
 }: TenantCreateModalProps) {
-  const [formFullName, setFormFullName] = useState("");
-  const [formCitizenId, setFormCitizenId] = useState("");
-  const [formDob, setFormDob] = useState("");
-  const [formAddress, setFormAddress] = useState("");
-  const [formEmail, setFormEmail] = useState("");
-  const [formPhone, setFormPhone] = useState("");
-
-  async function handleSaveTenantAndUser() {
-    if (!formFullName || !formCitizenId) {
-      toast.error("Vui lòng nhập đầy đủ Họ tên và số CCCD");
-      return;
-    }
-
-    const cleanCCCD = formCitizenId.trim();
-    const last6Digits = cleanCCCD.slice(-6);
-    const username = `YH${last6Digits}`;
-    const defaultEmail = `${username}@yukihouse.vn`;
-    const finalEmail = formEmail.trim() || defaultEmail;
-    const finalPhone = formPhone.trim() || null;
-
-    try {
-      const userRes = await authService.createUser({
-        username,
-        role: "TENANT",
-      });
-
-      const tenant = await tenantService.createTenant({
-        full_name: formFullName,
-        citizen_id: formCitizenId,
-        date_of_birth: formDob ? new Date(formDob).toISOString() : null,
-        address: formAddress || null,
-        email: finalEmail,
-        phone: finalPhone,
-        user_id: userRes.userId,
-      });
-
-      toast.success(`Đã tự động tạo tài khoản "${username}" cho người thuê mới!`);
-
-      // Reset fields
-      setFormFullName("");
-      setFormCitizenId("");
-      setFormDob("");
-      setFormAddress("");
-      setFormEmail("");
-      setFormPhone("");
-
-      onSuccess(tenant.id);
-      onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Không thể tạo người thuê");
-    }
-  }
+  const {
+    formFullName,
+    setFormFullName,
+    formCitizenId,
+    setFormCitizenId,
+    formDob,
+    setFormDob,
+    formAddress,
+    setFormAddress,
+    formEmail,
+    setFormEmail,
+    formPhone,
+    setFormPhone,
+    loading,
+    handleSaveTenantAndUser,
+  } = useTenantCreate({ onClose, onSuccess });
 
   return (
     <Modal
@@ -79,7 +41,7 @@ export default function TenantCreateModal({
       footer={
         <>
           <Button variant="outline" onClick={onClose}>Hủy</Button>
-          <Button onClick={handleSaveTenantAndUser}>Lưu thông tin</Button>
+          <Button onClick={handleSaveTenantAndUser} isLoading={loading}>Lưu thông tin</Button>
         </>
       }
     >
@@ -92,7 +54,21 @@ export default function TenantCreateModal({
             <Input label="CCCD *" value={formCitizenId} onChange={(e) => setFormCitizenId(e.target.value)} placeholder="Nhập số CCCD" />
           </div>
           <div className="col-span-12 sm:col-span-6">
-            <Input label="Ngày sinh" type="date" value={formDob} onChange={(e) => setFormDob(e.target.value)} />
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày sinh</label>
+            <DatePicker
+              value={formDob ? new Date(formDob) : null}
+              onChange={(date) => {
+                if (!date) {
+                  setFormDob("");
+                  return;
+                }
+                const y = date.getFullYear();
+                const m = String(date.getMonth() + 1).padStart(2, "0");
+                const d = String(date.getDate()).padStart(2, "0");
+                setFormDob(`${y}-${m}-${d}`);
+              }}
+              placeholder="Chọn ngày sinh..."
+            />
           </div>
           <div className="col-span-12 sm:col-span-6">
             <Input label="Email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="Nhập email" />

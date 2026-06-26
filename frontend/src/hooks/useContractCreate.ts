@@ -75,6 +75,9 @@ export function useContractCreate({
   const actualOccupantsValue = useWatch({ control, name: "actual_occupants" })
   const monthlyRentValue = useWatch({ control, name: "monthly_rent" })
   const depositAmountValue = useWatch({ control, name: "deposit_amount" })
+  const newTenantDobValue = useWatch({ control, name: "new_tenant_dob" })
+  const startDateValue = useWatch({ control, name: "start_date" })
+  const endDateValue = useWatch({ control, name: "end_date" })
 
   useEffect(() => {
     if (isOpen) {
@@ -269,5 +272,8 @@ export function useContractCreate({
     formFloors,
     formApartments,
     buildingApartments,
+    newTenantDobValue,
+    startDateValue,
+    endDateValue,
   }
 }

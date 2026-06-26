@@ -8,6 +8,7 @@ import Badge from "../../../components/ui/Badge";
 import Pagination from "../../../components/ui/Pagination";
 import Modal from "../../../components/ui/Modal";
 import { toast } from "sonner";
+import { DatePicker } from "../../../components/ui/DatePicker";
 
 import { useAuthStore } from "../../../stores/auth.store";
 
@@ -241,7 +242,7 @@ export default function ContractList() {
           <p className="text-sm text-gray-400 mt-1">Thử tìm kiếm với từ khóa khác</p>
         </div>
       ) : (
-        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+        <div className="border border-gray-200 overflow-hidden bg-white shadow-sm">
           <Table className="compact">
             <TableHeader>
               <TableRow>
@@ -391,12 +392,25 @@ export default function ContractList() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngày kết thúc mới *</label>
-              <input
-                type="date"
-                value={extendEndDate}
-                onChange={(e) => setExtendEndDate(e.target.value)}
-                min={selectedExtendContract.end_date.split("T")[0]}
-                className="premium-input rounded-xl"
+              <DatePicker
+                value={extendEndDate ? new Date(extendEndDate) : null}
+                onChange={(date) => {
+                  if (!date) {
+                    setExtendEndDate("");
+                    return;
+                  }
+                  const minDate = new Date(selectedExtendContract.end_date);
+                  minDate.setHours(0, 0, 0, 0);
+                  if (date < minDate) {
+                    toast.error("Ngày kết thúc mới phải sau ngày kết thúc hiện tại");
+                    return;
+                  }
+                  const y = date.getFullYear();
+                  const m = String(date.getMonth() + 1).padStart(2, "0");
+                  const d = String(date.getDate()).padStart(2, "0");
+                  setExtendEndDate(`${y}-${m}-${d}`);
+                }}
+                placeholder="Chọn ngày kết thúc mới..."
               />
             </div>
           </div>
