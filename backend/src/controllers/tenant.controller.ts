@@ -20,7 +20,7 @@ export const remove = async (req: Request, res: Response) => {
         await tenantService.deleteTenant(Number(req.params.id));
         res.status(200).json({ success: true, message: "Đã xóa người thuê thành công" });
     } catch (error) {
-        res.status(400).json({ success: false, message: "Lỗi xóa người thuê (có thể do ràng buộc dữ liệu)" });
+        res.status(400).json({ success: false, message: "Lỗi xóa người thuê" });
     }
 };
 
