@@ -23,7 +23,10 @@ export const confirmSchedules = async (request: Request, response: Response) => 
 
         await scheduleService.confirmScheduleService(id);
 
-        response.json({ success: true, message: "Xác nhận đặt lịch thành công" });
+        response.json({
+            success: true,
+            message: "Xác nhận đặt lịch và gửi email thông báo thành công"
+        });
     } catch (error: any) {
         const errorMessage = error.message || "Lỗi hệ thống";
         response.status(400).json({ success: false, error: errorMessage });

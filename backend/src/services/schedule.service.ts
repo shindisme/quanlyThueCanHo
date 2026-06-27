@@ -1,6 +1,9 @@
 import { ScheduleStatus } from "@prisma/client";
 import { prisma } from "../config/database.js";
-import { sendViewingScheduleConfirmationEmail } from "./mail.service.js";
+import {
+    sendViewingScheduleConfirmationEmail,
+    sendViewingScheduleConfirmedEmail
+} from "./mail.service.js";
 
 const VALID_HOURS = [9, 11, 13, 15];
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -104,7 +107,14 @@ export const bookViewingService = async (data: {
 };
 
 export const confirmScheduleService = async (id: number) => {
-    const schedule = await prisma.viewingSchedule.findUnique({ where: { id } });
+    const schedule = await prisma.viewingSchedule.findUnique({
+        where: { id },
+        include: {
+            apartment: {
+                include: { building: true }
+            }
+        }
+    });
 
     if (!schedule) throw new Error("Lịch hẹn không tồn tại");
 
@@ -112,18 +122,47 @@ export const confirmScheduleService = async (id: number) => {
         throw new Error("Lịch này đã bị hủy, không thể xác nhận.");
     }
 
-    const blockingSchedule = await findBlockingSchedule(schedule.apartment_id, schedule.schedule_time, id);
-    if (blockingSchedule) {
-        throw new Error("Khung gio nay da co nguoi dat hoac dang duoc giu cho.");
+    if (schedule.status === ScheduleStatus.CONFIRMED) {
+        throw new Error("Lịch hẹn đã được xác nhận trước đó.");
     }
 
-    return await prisma.viewingSchedule.update({
+    if (!schedule.guest_email) {
+        throw new Error("Không thể xác nhận vì lịch hẹn chưa có email khách hàng.");
+    }
+
+    const blockingSchedule = await findBlockingSchedule(schedule.apartment_id, schedule.schedule_time, id);
+    if (blockingSchedule) {
+        throw new Error("Khung giờ này đã có người đặt hoặc đang được giữ chỗ.");
+    }
+
+    const confirmedSchedule = await prisma.viewingSchedule.update({
         where: { id },
         data: {
             status: ScheduleStatus.CONFIRMED,
             temp_locked_until: null
         }
     });
+
+    try {
+        await sendViewingScheduleConfirmedEmail({
+            to: schedule.guest_email,
+            guestName: schedule.guest_name,
+            apartmentLabel: getApartmentLabel(schedule.apartment),
+            scheduleTime: schedule.schedule_time
+        });
+    } catch (error) {
+        console.error("Error sending confirmed viewing schedule email:", error);
+        await prisma.viewingSchedule.update({
+            where: { id },
+            data: {
+                status: schedule.status,
+                temp_locked_until: schedule.temp_locked_until
+            }
+        }).catch(() => undefined);
+        throw new Error("Không thể gửi email thông báo xác nhận. Vui lòng thử lại sau.");
+    }
+
+    return confirmedSchedule;
 };
 
 export const deleteScheduleService = async (id: number) => {

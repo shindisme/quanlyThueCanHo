@@ -7,10 +7,10 @@ export const create = async (req: Request, res: Response) => {
         const tenant = await tenantService.createTenant(tenantData);
         res.status(201).json({ success: true, data: tenant });
     } catch (error: any) {
-        const message = error.message.includes("Unique constraint")
-            ? "Số điện thoại hoặc CCCD đã tồn tại."
+        const message = error.message.includes("Unique constraint") 
+            ? "Số điện thoại hoặc CCCD đã tồn tại." 
             : error.message;
-
+            
         res.status(400).json({ success: false, message });
     }
 };
@@ -20,7 +20,7 @@ export const remove = async (req: Request, res: Response) => {
         await tenantService.deleteTenant(Number(req.params.id));
         res.status(200).json({ success: true, message: "Đã xóa người thuê thành công" });
     } catch (error) {
-        res.status(400).json({ success: false, message: "Lỗi xóa người thuê" });
+        res.status(400).json({ success: false, message: "Lỗi xóa người thuê (có thể do ràng buộc dữ liệu)" });
     }
 };
 

@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 
-type ViewingScheduleConfirmationEmailData = {
+type ViewingScheduleEmailData = {
     to: string;
     guestName: string;
     apartmentLabel: string;
@@ -54,7 +54,40 @@ const formatScheduleTime = (date: Date) =>
         timeZone: "Asia/Ho_Chi_Minh"
     }).format(date);
 
-export const sendViewingScheduleConfirmationEmail = async (data: ViewingScheduleConfirmationEmailData) => {
+export const sendViewingScheduleConfirmedEmail = async (data: ViewingScheduleEmailData) => {
+    const scheduleTime = formatScheduleTime(data.scheduleTime);
+    const guestName = escapeHtml(data.guestName);
+    const apartmentLabel = escapeHtml(data.apartmentLabel);
+
+    await getTransporter().sendMail({
+        from: getRequiredEnv("SMTP_FROM"),
+        to: data.to,
+        subject: "Lịch xem phòng của bạn đã được xác nhận",
+        text: [
+            `Xin chào ${data.guestName},`,
+            "",
+            "Quản lý đã xác nhận lịch xem phòng của bạn.",
+            `Căn hộ: ${data.apartmentLabel}`,
+            `Thời gian xem: ${scheduleTime}`,
+            "Trạng thái: Đã xác nhận.",
+            "",
+            "Vui lòng có mặt đúng giờ. Cảm ơn bạn đã quan tâm."
+        ].join("\n"),
+        html: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+                <h2 style="margin: 0 0 16px;">Lịch xem phòng đã được xác nhận</h2>
+                <p>Xin chào <strong>${guestName}</strong>,</p>
+                <p>Quản lý đã xác nhận lịch xem phòng của bạn.</p>
+                <p><strong>Căn hộ:</strong> ${apartmentLabel}</p>
+                <p><strong>Thời gian xem:</strong> ${escapeHtml(scheduleTime)}</p>
+                <p><strong>Trạng thái:</strong> Đã xác nhận.</p>
+                <p>Vui lòng có mặt đúng giờ. Cảm ơn bạn đã quan tâm.</p>
+            </div>
+        `
+    });
+};
+
+export const sendViewingScheduleConfirmationEmail = async (data: ViewingScheduleEmailData) => {
     const scheduleTime = formatScheduleTime(data.scheduleTime);
     const guestName = escapeHtml(data.guestName);
     const apartmentLabel = escapeHtml(data.apartmentLabel);
