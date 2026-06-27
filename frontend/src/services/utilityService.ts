@@ -18,6 +18,7 @@ export interface UtilityReadingData {
     building_id: number;
     floor: number;
     room_number: string;
+    status?: string;
     building?: {
       id: number;
       branch_name: string;

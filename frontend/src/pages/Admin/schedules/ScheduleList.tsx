@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
-import { CalendarDays, Check, X, Trash2, Loader2, Eye, Mail } from "lucide-react";
+import { CalendarDays, Check, X, Trash2, Loader2, Eye } from "lucide-react";
 import PageHeader from "../../../components/PageHeader";
 import Badge from "../../../components/ui/Badge";
 import SearchInput from "../../../components/ui/SearchInput";
 import { toast } from "sonner";
 import Pagination from "../../../components/ui/Pagination";
-import Modal from "../../../components/ui/Modal";
-import Button from "../../../components/ui/Button";
 import Combobox from "../../../components/ui/Combobox";
 
 import { useAuthStore } from "../../../stores/auth.store";
@@ -45,55 +43,7 @@ export default function ScheduleList() {
   const [buildings, setBuildings] = useState<BuildingData[]>([]);
   const itemsPerPage = 10;
 
-  // Email modal states
-  const [emailItem, setEmailItem] = useState<ScheduleData | null>(null);
-  const [emailTemplate, setEmailTemplate] = useState<"confirm" | "cancel" | "reminder">("confirm");
-  const [emailSubject, setEmailSubject] = useState("");
-  const [emailBody, setEmailBody] = useState("");
-  const [sendingEmail, setSendingEmail] = useState(false);
 
-  const initEmailContent = (item: ScheduleData, template: "confirm" | "cancel" | "reminder", bldList: BuildingData[]) => {
-    const building = bldList.find(b => b.id === item.apartment?.building_id);
-    const roomNumber = item.apartment?.room_number || "";
-    const floor = item.apartment?.floor || "";
-    const buildingName = building?.branch_name || building?.name || "Yuki House";
-    const aptLabel = roomNumber ? `Căn hộ P.${floor}${roomNumber} tại chi nhánh ${buildingName}` : "căn hộ";
-    const timeStr = new Date(item.schedule_time).toLocaleString("vi-VN");
-    const cleanGuestName = parseGuestName(item.guest_name).name;
-
-    if (template === "confirm") {
-      setEmailSubject(`[Yuki House] Xác nhận lịch xem phòng ${aptLabel}`);
-      setEmailBody(
-        `Kính gửi anh/chị ${cleanGuestName},\n\n` +
-        `Yuki House xin trân trọng xác nhận lịch hẹn xem phòng của anh/chị:\n` +
-        `- Căn hộ: ${aptLabel}\n` +
-        `- Thời gian: ${timeStr}\n\n` +
-        `Nhân viên hỗ trợ sẽ đón anh/chị tại sảnh tòa nhà trước giờ hẹn 5 phút. Nếu cần hỗ trợ thêm hoặc muốn thay đổi lịch hẹn, vui lòng liên hệ hotline: 0901000001.\n\n` +
-        `Trân trọng,\nBan quản lý Yuki House`
-      );
-    } else if (template === "cancel") {
-      setEmailSubject(`[Yuki House] Thông báo hủy lịch xem phòng ${aptLabel}`);
-      setEmailBody(
-        `Kính gửi anh/chị ${cleanGuestName},\n\n` +
-        `Rất tiếc Yuki House phải thông báo hủy lịch hẹn xem phòng của anh/chị:\n` +
-        `- Căn hộ: ${aptLabel}\n` +
-        `- Thời gian dự kiến: ${timeStr}\n\n` +
-        `Lý do: Căn hộ này hiện đã được khách hàng khác đặt cọc thuê hoặc có thay đổi đột xuất từ chủ nhà. Chúng tôi rất xin lỗi vì sự bất tiện này.\n` +
-        `Vui lòng truy cập website hoặc liên hệ hotline để lựa chọn căn hộ khác phù hợp.\n\n` +
-        `Trân trọng,\nBan quản lý Yuki House`
-      );
-    } else {
-      setEmailSubject(`[Yuki House] Nhắc nhở lịch xem phòng ${aptLabel}`);
-      setEmailBody(
-        `Kính gửi anh/chị ${cleanGuestName},\n\n` +
-        `Yuki House xin nhắc nhở lịch hẹn xem phòng của anh/chị sắp tới:\n` +
-        `- Căn hộ: ${aptLabel}\n` +
-        `- Thời gian: ${timeStr}\n\n` +
-        `Hẹn gặp anh/chị tại địa điểm xem phòng. Nếu có thay đổi, xin vui lòng báo trước cho chúng tôi ít nhất 2 tiếng.\n\n` +
-        `Trân trọng,\nBan quản lý Yuki House`
-      );
-    }
-  };
 
   useEffect(() => {
     fetchSchedules();
@@ -169,12 +119,6 @@ export default function ScheduleList() {
       await scheduleService.confirmSchedule(id);
       toast.success("Đã xác nhận lịch xem phòng");
 
-      const item = schedules.find((s) => s.id === id);
-      if (item && item.guest_email) {
-        setEmailItem({ ...item, status: "CONFIRMED" });
-        setEmailTemplate("confirm");
-      }
-
       fetchSchedules();
     } catch (error: unknown) {
       const err = error as { response?: { data?: { error?: string } } };
@@ -186,12 +130,6 @@ export default function ScheduleList() {
     try {
       await scheduleService.cancelSchedule(id);
       toast.success("Đã hủy lịch");
-
-      const item = schedules.find((s) => s.id === id);
-      if (item && item.guest_email) {
-        setEmailItem({ ...item, status: "CANCELLED" });
-        setEmailTemplate("cancel");
-      }
 
       fetchSchedules();
     } catch (error: unknown) {
@@ -329,20 +267,7 @@ export default function ScheduleList() {
                     >
                       <Eye size={16} />
                     </button>
-                    {s.guest_email && (
-                      <button
-                        onClick={() => {
-                          setEmailItem(s);
-                          const initialTemplate = s.status === "PENDING" ? "confirm" : s.status === "CANCELLED" ? "cancel" : "reminder";
-                          setEmailTemplate(initialTemplate);
-                          initEmailContent(s, initialTemplate, buildings);
-                        }}
-                        className="p-2 rounded-lg text-gray-400 hover:text-blue-650 hover:bg-blue-50 cursor-pointer"
-                        title="Gửi Email"
-                      >
-                        <Mail size={16} />
-                      </button>
-                    )}
+
                     {s.status === "PENDING" && (
                       <>
                         <button
@@ -407,125 +332,7 @@ export default function ScheduleList() {
         buildings={buildings}
       />
 
-      {/* Send Email Modal */}
-      <Modal
-        isOpen={!!emailItem}
-        onClose={() => setEmailItem(null)}
-        title="Gửi email thông báo cho khách"
-        size="md"
-        footer={
-          <div className="flex justify-between w-full">
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (!emailItem) return;
-                const mailtoUrl = `mailto:${emailItem.guest_email}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
-                window.open(mailtoUrl, "_blank");
-                setEmailItem(null);
-              }}
-            >
-              Gửi qua Mail App
-            </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setEmailItem(null)}>
-                Đóng
-              </Button>
-              <Button
-                isLoading={sendingEmail}
-                onClick={async () => {
-                  setSendingEmail(true);
-                  // Simulate system sending email
-                  await new Promise((resolve) => setTimeout(resolve, 1200));
-                  setSendingEmail(false);
-                  toast.success(`Hệ thống đã gửi email thành công tới ${emailItem?.guest_email}!`);
-                  setEmailItem(null);
-                }}
-              >
-                Gửi qua Hệ thống
-              </Button>
-            </div>
-          </div>
-        }
-      >
-        {emailItem && (
-          <div className="space-y-4 font-sans text-xs sm:text-sm">
-            <div className="flex flex-col gap-1">
-              <label className="text-gray-500 font-semibold">Khách hàng:</label>
-              <input
-                type="text"
-                disabled
-                value={`${parseGuestName(emailItem.guest_name).name} (${emailItem.guest_email})`}
-                className="premium-input rounded-xl bg-gray-50 text-gray-500 disabled:opacity-80"
-              />
-            </div>
 
-            <div className="flex flex-col gap-1">
-              <label className="text-gray-500 font-semibold">Chọn mẫu email:</label>
-              <div className="flex gap-4 py-1.5">
-                <label className="flex items-center gap-1.5 text-xs text-gray-700 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="emailTemplate"
-                    checked={emailTemplate === "confirm"}
-                    onChange={() => {
-                      setEmailTemplate("confirm");
-                      if (emailItem) initEmailContent(emailItem, "confirm", buildings);
-                    }}
-                    className="w-4 h-4 text-primary-600 focus:ring-primary-500"
-                  />
-                  Xác nhận đặt lịch
-                </label>
-                <label className="flex items-center gap-1.5 text-xs text-gray-700 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="emailTemplate"
-                    checked={emailTemplate === "cancel"}
-                    onChange={() => {
-                      setEmailTemplate("cancel");
-                      if (emailItem) initEmailContent(emailItem, "cancel", buildings);
-                    }}
-                    className="w-4 h-4 text-primary-600 focus:ring-primary-500"
-                  />
-                  Hủy đặt lịch
-                </label>
-                <label className="flex items-center gap-1.5 text-xs text-gray-700 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="emailTemplate"
-                    checked={emailTemplate === "reminder"}
-                    onChange={() => {
-                      setEmailTemplate("reminder");
-                      if (emailItem) initEmailContent(emailItem, "reminder", buildings);
-                    }}
-                    className="w-4 h-4 text-primary-600 focus:ring-primary-500"
-                  />
-                  Gửi lời nhắc nhở
-                </label>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-gray-500 font-semibold">Tiêu đề email:</label>
-              <input
-                type="text"
-                value={emailSubject}
-                onChange={(e) => setEmailSubject(e.target.value)}
-                className="premium-input rounded-xl"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-gray-500 font-semibold">Nội dung email:</label>
-              <textarea
-                rows={8}
-                value={emailBody}
-                onChange={(e) => setEmailBody(e.target.value)}
-                className="premium-input rounded-xl resize-none leading-relaxed text-xs"
-              />
-            </div>
-          </div>
-        )}
-      </Modal>
     </div>
   );
 }

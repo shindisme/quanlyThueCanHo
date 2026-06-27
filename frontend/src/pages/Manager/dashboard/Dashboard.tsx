@@ -99,11 +99,19 @@ export default function ManagerDashboard() {
       try {
         setLoading(true);
         const [aptRes, tRes, cRes, sRes, invRes] = await Promise.all([
-          apartmentService.getAllApartments({ limit: 1000 }),
+          apartmentService.getAllApartments({
+            building_id: managedBuildingId || undefined,
+            limit: 100
+          }),
           tenantService.getAllTenants({ limit: 1000 }),
-          contractService.getAllContracts(),
+          contractService.getAllContracts({
+            buildingId: managedBuildingId || undefined
+          }),
           scheduleService.getSchedules(),
-          invoiceService.getAllInvoices({ limit: 1000 })
+          invoiceService.getAllInvoices({
+            building_id: managedBuildingId || undefined,
+            limit: 1000
+          })
         ]);
 
         setApartments(aptRes.data || []);
@@ -118,7 +126,7 @@ export default function ManagerDashboard() {
       }
     }
     loadData();
-  }, []);
+  }, [managedBuildingId]);
 
   function formatCurrency(amount: number) {
     if (amount >= 1000000) return (amount / 1000000).toFixed(0) + " tr";
