@@ -197,20 +197,57 @@ export function useContractCreate({
         const finalEmail = data.new_tenant_email?.trim() || defaultEmail
         const finalPhone = data.new_tenant_phone?.trim() || null
 
+        const allTenantsRes = await tenantService.getAllTenants({ limit: 1000 }).catch(() => ({ data: [] }));
+        const allTenants = allTenantsRes.data || [];
+
+        if (finalPhone) {
+          const dup = allTenants.find((t) => t.phone === finalPhone);
+          if (dup) {
+            toast.error("Số điện thoại này đã tồn tại trong hệ thống.");
+            return;
+          }
+        }
+
+        if (finalEmail) {
+          const dup = allTenants.find(
+            (t) => t.email && t.email.toLowerCase() === finalEmail.toLowerCase()
+          );
+          if (dup) {
+            toast.error("Email này đã tồn tại trong hệ thống.");
+            return;
+          }
+        }
+
+        if (cleanCCCD) {
+          const dup = allTenants.find((t) => t.citizen_id === cleanCCCD);
+          if (dup) {
+            toast.error("Số CCCD này đã tồn tại trong hệ thống.");
+            return;
+          }
+        }
+
         const userRes = await authService.createUser({
           username,
           role: "TENANT",
         })
 
-        const tenant = await tenantService.createTenant({
-          full_name: data.new_tenant_name!,
-          citizen_id: cleanCCCD,
-          date_of_birth: data.new_tenant_dob ? new Date(data.new_tenant_dob).toISOString() : null,
-          address: data.new_tenant_address || null,
-          email: finalEmail,
-          phone: finalPhone,
-          user_id: userRes.userId,
-        })
+        let tenant
+        try {
+          tenant = await tenantService.createTenant({
+            full_name: data.new_tenant_name!,
+            citizen_id: cleanCCCD,
+            date_of_birth: data.new_tenant_dob ? new Date(data.new_tenant_dob).toISOString() : null,
+            address: data.new_tenant_address || null,
+            email: finalEmail,
+            phone: finalPhone,
+            user_id: userRes.userId,
+          })
+        } catch (tenantError) {
+          await authService.deleteUser(userRes.userId).catch((err) => {
+            console.error("Cleanup user account failed:", err);
+          });
+          throw tenantError;
+        }
 
         finalTenantId = tenant.id
         toast.success(`Đã tự động tạo tài khoản "${username}" cho người thuê mới!`)

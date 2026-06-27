@@ -158,7 +158,8 @@ export default function TenantList() {
         onSuccess={(newTenantId) => {
           loadData();
           if (newTenantId) {
-            navigate("/admin/contracts", { state: { openCreateModal: true, tenantId: newTenantId } });
+            const basePath = role === "ADMIN" ? "/admin" : "/manager";
+            navigate(`${basePath}/contracts`, { state: { openCreateModal: true, tenantId: newTenantId } });
           }
         }}
       />
