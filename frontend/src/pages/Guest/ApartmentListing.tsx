@@ -205,10 +205,9 @@ export default function GuestApartmentListing() {
           </div>
         ) : (
           <>
-            {/* Ket qua */}
             <p className="text-sm text-gray-500 mb-4">{filtered.length} căn hộ</p>
 
-            {/* Grid can ho */}
+            {/* Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...filtered]
                 .sort((a, b) => {
@@ -218,39 +217,39 @@ export default function GuestApartmentListing() {
                   return String(a.room_number).localeCompare(String(b.room_number), undefined, { numeric: true });
                 })
                 .map((apt) => {
-                const building = buildings.find((b) => b.id === apt.building_id);
-                return (
-                  <Link
-                    key={apt.id}
-                    to={`/apartments/${apt.id}`}
-                    className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-card-hover transition-shadow block group border border-gray-100"
-                  >
-                    <div className="w-full h-48 bg-gray-100 overflow-hidden relative">
-                      <img
-                        src={getApartmentThumbnail(apt)}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        alt="Ảnh căn hộ"
-                      />
-                    </div>
-                    <div className="p-5">
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors">
-                          {formatApartmentDisplay(apt.room_number, apt.floor, "ADMIN", building?.branch_name)}
-                        </h3>
-                        <Badge variant={APARTMENT_STATUS_COLORS[apt.status as keyof typeof APARTMENT_STATUS_COLORS] as "success" | "info" | "warning"}>
-                          {APARTMENT_STATUS_LABELS[apt.status as keyof typeof APARTMENT_STATUS_LABELS]}
-                        </Badge>
+                  const building = buildings.find((b) => b.id === apt.building_id);
+                  return (
+                    <Link
+                      key={apt.id}
+                      to={`/apartments/${apt.id}`}
+                      className="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-card-hover transition-shadow block group border border-gray-100"
+                    >
+                      <div className="w-full h-48 bg-gray-100 overflow-hidden relative">
+                        <img
+                          src={getApartmentThumbnail(apt)}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          alt="Ảnh căn hộ"
+                        />
                       </div>
-                      <p className="text-xs text-gray-400 mt-1">{building?.address_new || building?.address_old}</p>
-                      <p className="text-sm text-gray-500 line-clamp-2 mt-2">{apt.description}</p>
-                      <div className="flex items-center justify-between pt-3 mt-3 border-t border-gray-100">
-                        <span className="text-sm text-gray-500">{apt.area} m²</span>
-                        <span className="text-lg font-bold text-primary-600">{formatCurrency(apt.rental_price)}/tháng</span>
+                      <div className="p-5">
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors">
+                            {formatApartmentDisplay(apt.room_number, apt.floor, "ADMIN", building?.branch_name)}
+                          </h3>
+                          <Badge variant={APARTMENT_STATUS_COLORS[apt.status as keyof typeof APARTMENT_STATUS_COLORS] as "success" | "info" | "warning"}>
+                            {APARTMENT_STATUS_LABELS[apt.status as keyof typeof APARTMENT_STATUS_LABELS]}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">{building?.address_new || building?.address_old}</p>
+                        <p className="text-sm text-gray-500 line-clamp-2 mt-2">{apt.description}</p>
+                        <div className="flex items-center justify-between pt-3 mt-3 border-t border-gray-100">
+                          <span className="text-sm text-gray-500">{apt.area} m²</span>
+                          <span className="text-lg font-bold text-primary-600">{formatCurrency(apt.rental_price)}/tháng</span>
+                        </div>
                       </div>
-                    </div>
-                  </Link>
-                );
-              })}
+                    </Link>
+                  );
+                })}
             </div>
 
             {filtered.length === 0 && (

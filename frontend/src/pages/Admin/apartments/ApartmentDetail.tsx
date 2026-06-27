@@ -92,9 +92,8 @@ export default function ApartmentDetail() {
                   <button
                     key={img.id}
                     onClick={() => handleSetThumbnail(img.id)}
-                    className={`w-16 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${
-                      img.is_thumbnail ? "border-primary-500 scale-102" : "border-gray-200 hover:border-gray-300"
-                    }`}
+                    className={`w-16 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${img.is_thumbnail ? "border-primary-500 scale-102" : "border-gray-200 hover:border-gray-300"
+                      }`}
                   >
                     <img src={img.image_url} className="w-full h-full object-cover" alt="" />
                   </button>
@@ -242,31 +241,28 @@ export default function ApartmentDetail() {
         <div className="flex border-b border-gray-200 bg-gray-50/50">
           <button
             onClick={() => setActiveTab("tenant")}
-            className={`flex-1 py-3.5 text-center text-sm font-semibold border-b-2 cursor-pointer transition-all ${
-              activeTab === "tenant"
+            className={`flex-1 py-3.5 text-center text-sm font-semibold border-b-2 cursor-pointer transition-all ${activeTab === "tenant"
                 ? "border-primary-600 text-primary-600 bg-white"
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
-            }`}
+              }`}
           >
             Người thuê hiện tại {activeContract && <span className="ml-1.5 w-2 h-2 rounded-full bg-success-500 inline-block animate-pulse" />}
           </button>
           <button
             onClick={() => setActiveTab("tenantHistory")}
-            className={`flex-1 py-3.5 text-center text-sm font-semibold border-b-2 cursor-pointer transition-all ${
-              activeTab === "tenantHistory"
+            className={`flex-1 py-3.5 text-center text-sm font-semibold border-b-2 cursor-pointer transition-all ${activeTab === "tenantHistory"
                 ? "border-primary-600 text-primary-600 bg-white"
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
-            }`}
+              }`}
           >
             Lịch sử hợp đồng ({activeTenant ? tenantContracts.length : 0})
           </button>
           <button
             onClick={() => setActiveTab("reviews")}
-            className={`flex-1 py-3.5 text-center text-sm font-semibold border-b-2 cursor-pointer transition-all ${
-              activeTab === "reviews"
+            className={`flex-1 py-3.5 text-center text-sm font-semibold border-b-2 cursor-pointer transition-all ${activeTab === "reviews"
                 ? "border-primary-600 text-primary-600 bg-white"
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
-            }`}
+              }`}
           >
             Đánh giá & Nhận xét ({reviewMeta.totalReviews || 0})
           </button>
@@ -419,7 +415,7 @@ export default function ApartmentDetail() {
 
               {/* Review Comments list */}
               <div className="space-y-4">
-                <h4 className="font-semibold text-gray-800 text-sm">Ý kiến của khách hàng ({reviews.length})</h4>
+                <h4 className="font-semibold text-gray-800 text-sm">Ý kiến của người thuê ({reviews.length})</h4>
                 <div className="divide-y divide-gray-100">
                   {reviews.map((r) => (
                     <div key={r.id} className="py-4 first:pt-0 last:pb-0 space-y-1.5 font-sans">

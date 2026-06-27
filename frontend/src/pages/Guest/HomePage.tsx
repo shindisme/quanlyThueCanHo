@@ -198,7 +198,6 @@ export default function GuestHomePage() {
         </div>
       </section>
 
-      {/* WHY CHOOSE US */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
           <div className="text-center mb-14">

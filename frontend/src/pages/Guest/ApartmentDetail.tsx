@@ -48,6 +48,23 @@ export default function GuestApartmentDetail() {
     handleSubmitSchedule,
   } = useApartmentBooking({ apartment });
 
+  const isSlotDisabled = (slot: string) => {
+    if (isSlotBooked(slot)) return true;
+    if (!selectedDate) return false;
+
+    const [hoursStr, minutesStr] = slot.split("h");
+    const slotHours = parseInt(hoursStr, 10);
+    const slotMinutes = parseInt(minutesStr, 10);
+
+    const [year, month, day] = selectedDate.split("-").map(Number);
+    const slotDateObj = new Date(year, month - 1, day, slotHours, slotMinutes);
+
+    const minSelectableDateObj = new Date();
+    minSelectableDateObj.setHours(minSelectableDateObj.getHours() + 6);
+
+    return slotDateObj < minSelectableDateObj;
+  };
+
   const [reviews, setReviews] = useState<ReviewData[]>([]);
   const [reviewMeta, setReviewMeta] = useState<{ averageRating: number; totalReviews: number }>({ averageRating: 0, totalReviews: 0 });
 
@@ -139,7 +156,7 @@ export default function GuestApartmentDetail() {
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Cot trai - Thong tin chi tiet */}
+          {/* Left - Thong tin chi tiet */}
           <div className={`${apartment.status === "RENTED" ? "lg:col-span-3" : "lg:col-span-2"} space-y-6`}>
             {/* Hinh anh */}
             {images.length > 0 ? (
@@ -278,14 +295,11 @@ export default function GuestApartmentDetail() {
             </Card>
           </div>
 
-          {/* Cot phai - Dat lich xem phong */}
+          {/*Right - Dat lich xem phong */}
           {apartment.status !== "RENTED" && (
             <div className="lg:col-span-1">
               <Card className="sticky top-24">
                 <h3 className="font-semibold text-gray-800 mb-4">Đặt lịch xem phòng</h3>
-                <p className="text-sm text-gray-500 mb-4 leading-relaxed">
-                  Không cần đăng ký tài khoản. Chỉ cần để lại thông tin liên hệ, chúng tôi sẽ liên lạc và hẹn giờ trực tiếp với bạn.
-                </p>
                 <Button className="w-full" onClick={() => setShowScheduleForm(true)}>
                   <Calendar size={18} />
                   Đặt lịch ngay
@@ -320,7 +334,7 @@ export default function GuestApartmentDetail() {
                 type="text"
                 value={scheduleForm.guest_name}
                 onChange={(e) => setScheduleForm({ ...scheduleForm, guest_name: e.target.value })}
-                placeholder="Nguyễn Văn A"
+                placeholder="Nhập họ và tên..."
                 icon={<User size={16} />}
                 className="rounded-md text-xs"
               />
@@ -332,7 +346,7 @@ export default function GuestApartmentDetail() {
                 type="tel"
                 value={scheduleForm.guest_phone}
                 onChange={(e) => setScheduleForm({ ...scheduleForm, guest_phone: e.target.value })}
-                placeholder="0901234567"
+                placeholder="Nhập số điện thoại..."
                 icon={<Phone size={16} />}
                 className="rounded-md text-xs"
               />
@@ -344,7 +358,7 @@ export default function GuestApartmentDetail() {
                 type="email"
                 value={scheduleForm.guest_email}
                 onChange={(e) => setScheduleForm({ ...scheduleForm, guest_email: e.target.value })}
-                placeholder="example@gmail.com"
+                placeholder="Nhập email..."
                 icon={<Mail size={16} />}
                 className="rounded-md text-xs"
               />
@@ -382,14 +396,15 @@ export default function GuestApartmentDetail() {
                 <div className="grid grid-cols-2 gap-3 mt-2">
                   {timeSlots.map((slot) => {
                     const booked = isSlotBooked(slot);
+                    const disabled = isSlotDisabled(slot);
                     const selected = selectedSlot === slot;
                     return (
                       <button
                         key={slot}
                         type="button"
-                        disabled={booked}
+                        disabled={disabled}
                         onClick={() => setSelectedSlot(slot)}
-                        className={`py-2.5 px-3 border rounded-md text-xs font-semibold text-center transition-all cursor-pointer ${booked
+                        className={`py-2.5 px-3 border rounded-md text-xs font-semibold text-center transition-all cursor-pointer ${disabled
                           ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                           : selected
                             ? "bg-primary-600 text-white border-primary-600 shadow-sm"

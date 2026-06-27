@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Zap, Plus, Pencil, Trash2, Loader2, Calendar, Sparkles } from "lucide-react";
+import { Zap, Plus, Pencil, Trash2, Loader2, Calendar, Sparkles, Eye } from "lucide-react";
 import PageHeader from "../../../components/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
@@ -51,8 +51,11 @@ export default function UtilityList() {
   const [showModal, setShowModal] = useState(false);
   const [editItem, setEditItem] = useState<UtilityReadingData | null>(null);
   const [saving, setSaving] = useState(false);
+  const [isViewOnly, setIsViewOnly] = useState(false);
 
   // Form State
+  const [formBuildingId, setFormBuildingId] = useState<string>("");
+  const [formFloor, setFormFloor] = useState<string>("");
   const [formApartmentId, setFormApartmentId] = useState<string>("");
   const [formMonth, setFormMonth] = useState<number>(new Date().getMonth() + 1);
   const [formYear, setFormYear] = useState<number>(new Date().getFullYear());
@@ -123,10 +126,13 @@ export default function UtilityList() {
     }
   }, [formApartmentId, editItem, showModal, readings]);
 
-  // Open modal for Create/Update
-  const handleOpenModal = (item: UtilityReadingData | null = null) => {
+  // Open modal for Create/Update/View
+  const handleOpenModal = (item: UtilityReadingData | null = null, viewOnly = false) => {
+    setIsViewOnly(viewOnly);
     setEditItem(item);
     if (item) {
+      setFormBuildingId(String(item.apartment?.building_id || ""));
+      setFormFloor(String(item.apartment?.floor || ""));
       setFormApartmentId(String(item.apartment_id));
       setFormMonth(item.month);
       setFormYear(item.year);
@@ -135,6 +141,9 @@ export default function UtilityList() {
       setFormWaterOld(String(item.water_old));
       setFormWaterNew(String(item.water_new));
     } else {
+      const defaultBId = role !== "ADMIN" && managedBuildingId ? String(managedBuildingId) : "";
+      setFormBuildingId(defaultBId);
+      setFormFloor("");
       setFormApartmentId("");
       setFormMonth(new Date().getMonth() + 1);
       setFormYear(new Date().getFullYear());
@@ -267,6 +276,32 @@ export default function UtilityList() {
     return true;
   });
 
+  const buildingOptions = buildings.map((b) => ({
+    value: String(b.id),
+    label: b.branch_name,
+  }));
+
+  const floorOptions = (() => {
+    if (!formBuildingId) return [];
+    const b = buildings.find((x) => x.id === Number(formBuildingId));
+    if (!b) return [];
+    return Array.from({ length: b.total_floors }, (_, i) => ({
+      value: String(i + 1),
+      label: `Tầng ${i + 1}`,
+    }));
+  })();
+
+  const modalApartmentOptions = apartments
+    .filter((apt) => {
+      const matchBuilding = !formBuildingId || apt.building_id === Number(formBuildingId);
+      const matchFloor = !formFloor || apt.floor === Number(formFloor);
+      return matchBuilding && matchFloor;
+    })
+    .map((apt) => ({
+      value: String(apt.id),
+      label: `P.${apt.floor}${apt.room_number}`,
+    }));
+
   if (loading && readings.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -348,15 +383,11 @@ export default function UtilityList() {
                 Căn hộ {getSortIcon("apartment.room_number")}
               </TableHead>
               <TableHead className="text-center">Tháng / Năm</TableHead>
-              <TableHead className="text-right">Điện cũ</TableHead>
-              <TableHead className="text-right">Điện mới</TableHead>
               <TableHead className="text-right font-semibold text-emerald-600 bg-emerald-50/30">Điện dùng (kWh)</TableHead>
-              <TableHead className="text-right">Nước cũ</TableHead>
-              <TableHead className="text-right">Nước mới</TableHead>
               <TableHead className="text-right font-semibold text-blue-600 bg-blue-50/30">Nước dùng (m³)</TableHead>
               <TableHead>Người ghi</TableHead>
               <TableHead>Ngày ghi</TableHead>
-              {isWritable && <TableHead className="text-center w-24">Hành động</TableHead>}
+              <TableHead className="text-center w-28">Hành động</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -383,40 +414,45 @@ export default function UtilityList() {
                   <TableCell className="text-center font-medium">
                     {r.month}/{r.year}
                   </TableCell>
-                  <TableCell className="text-right text-gray-600 font-mono">{electricOld}</TableCell>
-                  <TableCell className="text-right text-gray-850 font-semibold font-mono">{electricNew}</TableCell>
                   <TableCell className="text-right font-bold text-emerald-650 bg-emerald-50/20 font-mono">{electricDiff}</TableCell>
-                  <TableCell className="text-right text-gray-600 font-mono">{waterOld}</TableCell>
-                  <TableCell className="text-right text-gray-850 font-semibold font-mono">{waterNew}</TableCell>
                   <TableCell className="text-right font-bold text-blue-650 bg-blue-50/20 font-mono">{waterDiff}</TableCell>
                   <TableCell className="font-medium text-gray-700">{r.staff?.full_name || "Hệ thống"}</TableCell>
                   <TableCell className="text-xs text-gray-500">{formatDate(r.created_at)}</TableCell>
-                  {isWritable && (
-                    <TableCell className="text-center">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button
-                          onClick={() => handleOpenModal(r)}
-                          className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg cursor-pointer"
-                          title="Sửa chỉ số"
-                        >
-                          <Pencil size={15} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(r.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-650 hover:bg-red-50 rounded-lg cursor-pointer"
-                          title="Xóa bản ghi"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </TableCell>
-                  )}
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        onClick={() => handleOpenModal(r, true)}
+                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer"
+                        title="Xem chi tiết"
+                      >
+                        <Eye size={15} />
+                      </button>
+                      {isWritable && (
+                        <>
+                          <button
+                            onClick={() => handleOpenModal(r, false)}
+                            className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg cursor-pointer"
+                            title="Sửa chỉ số"
+                          >
+                            <Pencil size={15} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(r.id)}
+                            className="p-1.5 text-gray-400 hover:text-red-650 hover:bg-red-50 rounded-lg cursor-pointer"
+                            title="Xóa bản ghi"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
                 </TableRow>
               );
             })}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={isWritable ? 13 : 12} className="text-center py-16 text-gray-500">
+                <TableCell colSpan={9} className="text-center py-16 text-gray-500">
                   <Sparkles size={48} className="mx-auto mb-3 text-gray-300" />
                   Không tìm thấy chỉ số điện nước nào
                 </TableCell>
@@ -431,34 +467,75 @@ export default function UtilityList() {
         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
       )}
 
-      {/* Write/Edit Reading Modal */}
+      {/* Write/Edit/View Reading Modal */}
       <Modal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        title={editItem ? "Cập nhật chỉ số điện nước" : "Ghi chỉ số điện nước mới"}
+        title={isViewOnly ? "Chi tiết chỉ số điện nước" : editItem ? "Cập nhật chỉ số điện nước" : "Ghi chỉ số điện nước mới"}
         footer={
           <>
-            <Button variant="outline" onClick={() => setShowModal(false)}>Hủy</Button>
-            <Button onClick={handleSave} isLoading={saving}>Lưu thông tin</Button>
+            <Button variant="outline" onClick={() => setShowModal(false)}>{isViewOnly ? "Đóng" : "Hủy"}</Button>
+            {!isViewOnly && (
+              <Button onClick={handleSave} isLoading={saving}>Lưu thông tin</Button>
+            )}
           </>
         }
       >
         <div className="space-y-5">
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1.5">Căn hộ *</label>
-            <Combobox
-              options={filteredApartments.map((apt) => ({
-                value: String(apt.id),
-                label: `P.${apt.floor}${apt.room_number} (${apt.building?.branch_name})`,
-              }))}
-              value={formApartmentId}
-              onChange={(val) => setFormApartmentId(val)}
-              disabled={!!editItem}
-              placeholder="Chọn căn hộ"
-              searchPlaceholder="Tìm kiếm căn hộ..."
-              triggerClassName="h-10 border-gray-300"
-              clearable={false}
-            />
+          {/* Building selection*/}
+          {role === "ADMIN" && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-800 mb-1.5">Chi nhánh / Tòa nhà *</label>
+              <Combobox
+                options={buildingOptions}
+                value={formBuildingId}
+                onChange={(val) => {
+                  setFormBuildingId(val);
+                  setFormFloor("");
+                  setFormApartmentId("");
+                }}
+                disabled={isViewOnly || !!editItem}
+                placeholder="Chọn chi nhánh"
+                searchPlaceholder="Tìm kiếm chi nhánh..."
+                triggerClassName="h-10 border-gray-300"
+                clearable={false}
+              />
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Floor selection */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-800 mb-1.5">Tầng *</label>
+              <Combobox
+                options={floorOptions}
+                value={formFloor}
+                onChange={(val) => {
+                  setFormFloor(val);
+                  setFormApartmentId("");
+                }}
+                disabled={isViewOnly || !!editItem || !formBuildingId}
+                placeholder={formBuildingId ? "Chọn tầng" : "Chọn tòa nhà trước"}
+                searchable={false}
+                triggerClassName="h-10 border-gray-300"
+                clearable={false}
+              />
+            </div>
+
+            {/* Room selection */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-800 mb-1.5">Căn hộ / Phòng *</label>
+              <Combobox
+                options={modalApartmentOptions}
+                value={formApartmentId}
+                onChange={(val) => setFormApartmentId(val)}
+                disabled={isViewOnly || !!editItem || !formFloor}
+                placeholder={formFloor ? "Chọn phòng" : "Chọn tầng trước"}
+                searchPlaceholder="Tìm phòng..."
+                triggerClassName="h-10 border-gray-300"
+                clearable={false}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -468,7 +545,7 @@ export default function UtilityList() {
                 options={getMonthOptions()}
                 value={String(formMonth)}
                 onChange={(val) => setFormMonth(Number(val))}
-                disabled={!!editItem}
+                disabled={isViewOnly || !!editItem}
                 placeholder="Chọn tháng"
                 searchable={false}
                 triggerClassName="h-10 border-gray-300"
@@ -481,7 +558,7 @@ export default function UtilityList() {
                 options={getYearOptions()}
                 value={String(formYear)}
                 onChange={(val) => setFormYear(Number(val))}
-                disabled={!!editItem}
+                disabled={isViewOnly || !!editItem}
                 placeholder="Chọn năm"
                 searchable={false}
                 triggerClassName="h-10 border-gray-300"
@@ -501,6 +578,7 @@ export default function UtilityList() {
                 type="number"
                 value={formElectricOld}
                 onChange={(e) => setFormElectricOld(e.target.value)}
+                disabled={isViewOnly}
                 placeholder="Nhập số điện cũ"
               />
               <Input
@@ -508,6 +586,7 @@ export default function UtilityList() {
                 type="number"
                 value={formElectricNew}
                 onChange={(e) => setFormElectricNew(e.target.value)}
+                disabled={isViewOnly}
                 placeholder="Nhập số điện mới"
               />
             </div>
@@ -529,6 +608,7 @@ export default function UtilityList() {
                 type="number"
                 value={formWaterOld}
                 onChange={(e) => setFormWaterOld(e.target.value)}
+                disabled={isViewOnly}
                 placeholder="Nhập số nước cũ"
               />
               <Input
@@ -536,6 +616,7 @@ export default function UtilityList() {
                 type="number"
                 value={formWaterNew}
                 onChange={(e) => setFormWaterNew(e.target.value)}
+                disabled={isViewOnly}
                 placeholder="Nhập số nước mới"
               />
             </div>

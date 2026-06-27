@@ -53,6 +53,32 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
       toast.error(result.error.issues[0].message);
       return;
     }
+
+    const isTooCloseOrBooked = () => {
+      const stored = localStorage.getItem("booked-viewing-slots");
+      const list = stored ? JSON.parse(stored) : [];
+      const isBooked = list.some(
+        (b: any) => b.apartmentId === apartment.id && b.date === selectedDate && b.slot === selectedSlot
+      );
+      if (isBooked) return true;
+
+      if (!selectedDate || !selectedSlot) return true;
+      const [hoursStr, minutesStr] = selectedSlot.split("h");
+      const slotHours = parseInt(hoursStr, 10);
+      const slotMinutes = parseInt(minutesStr, 10);
+      const [year, month, day] = selectedDate.split("-").map(Number);
+      const slotDateObj = new Date(year, month - 1, day, slotHours, slotMinutes);
+      
+      const minSelectableDateObj = new Date();
+      minSelectableDateObj.setHours(minSelectableDateObj.getHours() + 6);
+      return slotDateObj < minSelectableDateObj;
+    };
+
+    if (isTooCloseOrBooked()) {
+      toast.error("Mốc giờ xem phòng không khả dụng (đã được đặt hoặc quá sát giờ hiện tại < 6 tiếng)!");
+      return;
+    }
+
     setSaving(true);
     const combinedTime = `${selectedDate}T${selectedSlot.replace("h", ":")}:00`;
     try {

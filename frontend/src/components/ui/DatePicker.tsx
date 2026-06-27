@@ -19,12 +19,26 @@ export function DatePicker({
 }: DatePickerProps) {
   const [open, setOpen] = useState(false)
   const [localValue, setLocalValue] = useState<Date | null>(null)
+  const [placement, setPlacement] = useState<"bottom" | "top" | null>(null)
   
   const isControlled = externalValue !== undefined
   const value = isControlled ? externalValue : localValue
 
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const popoverRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom;
+      if (spaceBelow < 320 && rect.top > 320) {
+        setPlacement("top");
+      } else {
+        setPlacement("bottom");
+      }
+    }
+  }, [open]);
 
   const handleSelect = (date: Date) => {
     if (!isControlled) {
@@ -68,7 +82,10 @@ export function DatePicker({
       {open && (
         <div
           ref={popoverRef}
-          className="absolute z-50 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden animate-scale-in"
+          className={cn(
+            "absolute z-50 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden animate-scale-in",
+            placement === "top" ? "bottom-full mb-2" : "top-full mt-2"
+          )}
         >
           <Calendar selected={value} onSelect={handleSelect} />
         </div>
@@ -76,4 +93,4 @@ export function DatePicker({
     </div>
   )
 }
-
+export default DatePicker
