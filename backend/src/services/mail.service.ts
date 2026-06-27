@@ -5,6 +5,7 @@ type ViewingScheduleEmailData = {
     to: string;
     guestName: string;
     apartmentLabel: string;
+    buildingAddress: string;
     scheduleTime: Date;
 };
 
@@ -58,6 +59,7 @@ export const sendViewingScheduleConfirmedEmail = async (data: ViewingScheduleEma
     const scheduleTime = formatScheduleTime(data.scheduleTime);
     const guestName = escapeHtml(data.guestName);
     const apartmentLabel = escapeHtml(data.apartmentLabel);
+    const buildingAddress = escapeHtml(data.buildingAddress);
 
     await getTransporter().sendMail({
         from: getRequiredEnv("SMTP_FROM"),
@@ -68,6 +70,7 @@ export const sendViewingScheduleConfirmedEmail = async (data: ViewingScheduleEma
             "",
             "Quản lý đã xác nhận lịch xem phòng của bạn.",
             `Căn hộ: ${data.apartmentLabel}`,
+            `Địa chỉ tòa nhà: ${data.buildingAddress}`,
             `Thời gian xem: ${scheduleTime}`,
             "Trạng thái: Đã xác nhận.",
             "",
@@ -79,9 +82,46 @@ export const sendViewingScheduleConfirmedEmail = async (data: ViewingScheduleEma
                 <p>Xin chào <strong>${guestName}</strong>,</p>
                 <p>Quản lý đã xác nhận lịch xem phòng của bạn.</p>
                 <p><strong>Căn hộ:</strong> ${apartmentLabel}</p>
+                <p><strong>Địa chỉ tòa nhà:</strong> ${buildingAddress}</p>
                 <p><strong>Thời gian xem:</strong> ${escapeHtml(scheduleTime)}</p>
                 <p><strong>Trạng thái:</strong> Đã xác nhận.</p>
                 <p>Vui lòng có mặt đúng giờ. Cảm ơn bạn đã quan tâm.</p>
+            </div>
+        `
+    });
+};
+
+export const sendViewingScheduleCancelledEmail = async (data: ViewingScheduleEmailData) => {
+    const scheduleTime = formatScheduleTime(data.scheduleTime);
+    const guestName = escapeHtml(data.guestName);
+    const apartmentLabel = escapeHtml(data.apartmentLabel);
+    const buildingAddress = escapeHtml(data.buildingAddress);
+
+    await getTransporter().sendMail({
+        from: getRequiredEnv("SMTP_FROM"),
+        to: data.to,
+        subject: "Lịch xem phòng của bạn đã bị hủy",
+        text: [
+            `Xin chào ${data.guestName},`,
+            "",
+            "Quản lý đã hủy lịch xem phòng của bạn.",
+            `Căn hộ: ${data.apartmentLabel}`,
+            `Địa chỉ tòa nhà: ${data.buildingAddress}`,
+            `Thời gian xem: ${scheduleTime}`,
+            "Trạng thái: Đã hủy.",
+            "",
+            "Vui lòng liên hệ với chúng tôi nếu bạn cần thêm thông tin."
+        ].join("\n"),
+        html: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+                <h2 style="margin: 0 0 16px;">Lịch xem phòng đã bị hủy</h2>
+                <p>Xin chào <strong>${guestName}</strong>,</p>
+                <p>Quản lý đã hủy lịch xem phòng của bạn.</p>
+                <p><strong>Căn hộ:</strong> ${apartmentLabel}</p>
+                <p><strong>Địa chỉ tòa nhà:</strong> ${buildingAddress}</p>
+                <p><strong>Thời gian xem:</strong> ${escapeHtml(scheduleTime)}</p>
+                <p><strong>Trạng thái:</strong> Đã hủy.</p>
+                <p>Vui lòng liên hệ với chúng tôi nếu bạn cần thêm thông tin.</p>
             </div>
         `
     });
@@ -91,6 +131,7 @@ export const sendViewingScheduleConfirmationEmail = async (data: ViewingSchedule
     const scheduleTime = formatScheduleTime(data.scheduleTime);
     const guestName = escapeHtml(data.guestName);
     const apartmentLabel = escapeHtml(data.apartmentLabel);
+    const buildingAddress = escapeHtml(data.buildingAddress);
 
     await getTransporter().sendMail({
         from: getRequiredEnv("SMTP_FROM"),
@@ -101,6 +142,7 @@ export const sendViewingScheduleConfirmationEmail = async (data: ViewingSchedule
             "",
             "Hệ thống đã nhận yêu cầu đặt lịch xem phòng của bạn.",
             `Căn hộ: ${data.apartmentLabel}`,
+            `Địa chỉ tòa nhà: ${data.buildingAddress}`,
             `Thời gian xem: ${scheduleTime}`,
             "Trạng thái: Đang chờ quản trị viên xác nhận.",
             "",
@@ -112,6 +154,7 @@ export const sendViewingScheduleConfirmationEmail = async (data: ViewingSchedule
                 <p>Xin chào <strong>${guestName}</strong>,</p>
                 <p>Hệ thống đã nhận yêu cầu đặt lịch xem phòng của bạn.</p>
                 <p><strong>Căn hộ:</strong> ${apartmentLabel}</p>
+                <p><strong>Địa chỉ tòa nhà:</strong> ${buildingAddress}</p>
                 <p><strong>Thời gian xem:</strong> ${escapeHtml(scheduleTime)}</p>
                 <p><strong>Trạng thái:</strong> Đang chờ quản trị viên xác nhận.</p>
                 <p>Cảm ơn bạn đã quan tâm.</p>

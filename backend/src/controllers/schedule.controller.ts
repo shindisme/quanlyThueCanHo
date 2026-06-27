@@ -44,8 +44,14 @@ export const deleteSchedule = async (request: Request, response: Response) => {
 
 export const cancelSchedule = async (request: Request, response: Response) => {
     try {
-        await scheduleService.cancelScheduleService(Number(request.params.id));
-        response.json({ message: "Đã hủy lịch hẹn thành công" });
+        const result = await scheduleService.cancelScheduleService(Number(request.params.id));
+        response.json({
+            message: result.emailSent
+                ? "Đã hủy lịch hẹn, giải phóng khung giờ và gửi email thông báo thành công"
+                : "Đã hủy lịch hẹn và giải phóng khung giờ nhưng không thể gửi email thông báo",
+            emailSent: result.emailSent,
+            schedule: result.schedule
+        });
     } catch (error: any) {
         response.status(400).json({ error: error.message });
     }
