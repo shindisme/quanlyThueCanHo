@@ -95,7 +95,7 @@ export function useTenantCreate({ onClose, onSuccess }: UseTenantCreateProps) {
       } catch (tenantError) {
         if (createdUserId) {
           await authService.deleteUser(createdUserId).catch((err) => {
-            console.error("Cleanup user account failed:", err);
+            console.error("failed:", err);
           });
         }
         throw tenantError;
