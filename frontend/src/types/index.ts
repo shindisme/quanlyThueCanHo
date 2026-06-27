@@ -40,7 +40,7 @@ export interface Tenant {
   address: string | null;
   is_verified: boolean;
   created_at: string;
-  // Lien ket
+
   user?: User;
   contracts?: RentalContract[];
   invoices?: Invoice[];
@@ -60,7 +60,6 @@ export interface Building {
   branch_name: string;
   thumbnail_url: string | null;
   created_at: string;
-  // Lien ket
   apartments?: Apartment[];
   _count?: { apartments: number };
 }

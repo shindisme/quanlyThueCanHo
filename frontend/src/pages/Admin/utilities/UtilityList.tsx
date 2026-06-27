@@ -245,7 +245,20 @@ export default function UtilityList() {
     return matchesSearch && matchesBuilding && matchesFloor && isRented;
   });
 
-  const { items: sortedApartments, requestSort, getSortIcon } = useSort(filteredRentedApartments);
+  const defaultSorted = [...filteredRentedApartments].sort((a, b) => {
+    const branchA = a.building?.branch_name || "";
+    const branchB = b.building?.branch_name || "";
+    const branchCompare = branchA.localeCompare(branchB, "vi");
+    if (branchCompare !== 0) return branchCompare;
+
+    if (a.floor !== b.floor) return a.floor - b.floor;
+
+    const roomA = String(a.room_number);
+    const roomB = String(b.room_number);
+    return roomA.localeCompare(roomB, undefined, { numeric: true });
+  });
+
+  const { items: sortedApartments, requestSort, getSortIcon } = useSort(defaultSorted);
 
   // Pagination slice
   const totalPages = Math.ceil(filteredRentedApartments.length / pageSize);

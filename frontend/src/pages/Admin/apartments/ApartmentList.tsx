@@ -129,6 +129,11 @@ export default function ApartmentList() {
   });
 
   const defaultSortedFiltered = [...filtered].sort((a, b) => {
+    const branchA = a.building?.branch_name || "";
+    const branchB = b.building?.branch_name || "";
+    const branchCompare = branchA.localeCompare(branchB, "vi");
+    if (branchCompare !== 0) return branchCompare;
+
     if (a.floor !== b.floor) {
       return a.floor - b.floor;
     }
