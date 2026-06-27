@@ -16,7 +16,7 @@ import StaffList from "../pages/Admin/staff/StaffList";
 import ContractList from "../pages/Admin/contracts/ContractList";
 import InvoiceList from "../pages/Admin/invoices/InvoiceList";
 import PaymentList from "../pages/Admin/payments/PaymentList";
-import MaintenanceKanban from "../pages/Admin/maintenance/MaintenanceKanban";
+import MaintenanceKanban from "../pages/Admin/maintenance/Maintenance";
 import ScheduleList from "../pages/Admin/schedules/ScheduleList";
 import UtilityList from "../pages/Admin/utilities/UtilityList";
 import NotificationList from "../pages/Admin/notifications/NotificationList";
@@ -101,7 +101,7 @@ const router = createBrowserRouter([
   {
     path: "/manager",
     element: (
-      <RoleRoute allowedRoles={["MANAGER"]}>
+      <RoleRoute allowedRoles={["MANAGER", "STAFF"]}>
         <AdminLayout />
       </RoleRoute>
     ),

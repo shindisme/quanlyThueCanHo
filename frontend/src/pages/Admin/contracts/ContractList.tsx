@@ -182,6 +182,12 @@ export default function ContractList() {
 
   const totalPages = Math.max(1, Math.ceil(filteredContracts.length / pageSize));
 
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   async function handleExtendContract() {
     if (!selectedExtendContract || !extendEndDate) {
       toast.error("Vui lòng chọn ngày kết thúc mới!");

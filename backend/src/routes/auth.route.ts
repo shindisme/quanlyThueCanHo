@@ -5,7 +5,7 @@ import { authenticate, authorizeRole } from "../middleware/auth.middleware.js";
 const router = Router();
 
 router.post("/login", authController.login);
-router.post("/change-password", authController.changePassword);
+router.post("/change-password", authenticate, authController.changePassword);
 
 router.post("/create-user", authenticate, authorizeRole(["ADMIN", "MANAGER"]), authController.createAccount);
 router.delete("/delete-user/:id", authenticate, authorizeRole(["ADMIN", "MANAGER"]), authController.deleteUser);

@@ -17,7 +17,6 @@ interface UseTenantListProps {
 export function useTenantList({ role, managedBuildingId }: UseTenantListProps) {
   const [search, setSearch] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showModifyModal, setShowModifyModal] = useState(false)
   const [editItem, setEditItem] = useState<Tenant | null>(null)
@@ -33,13 +32,8 @@ export function useTenantList({ role, managedBuildingId }: UseTenantListProps) {
   const loadData = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await tenantService.getAllTenants({ page: currentPage })
+      const res = await tenantService.getAllTenants({ limit: 1000 })
       setTenants(res.data)
-      if (res.data.length === 10) {
-        setTotalPages(currentPage + 1)
-      } else {
-        setTotalPages(currentPage)
-      }
 
       const [cRes, aptRes, bRes] = await Promise.all([
         contractService.getAllContracts().catch(() => []),
@@ -54,13 +48,10 @@ export function useTenantList({ role, managedBuildingId }: UseTenantListProps) {
     } finally {
       setLoading(false)
     }
-  }, [currentPage])
+  }, [])
 
   useEffect(() => {
-    const handler = setTimeout(() => {
-      loadData()
-    }, 0)
-    return () => clearTimeout(handler)
+    loadData()
   }, [loadData])
 
   const displayTenants = (() => {
@@ -105,6 +96,15 @@ export function useTenantList({ role, managedBuildingId }: UseTenantListProps) {
     const citizenNorm = removeVietnameseTones(t.citizen_id)
     return nameNorm.includes(term) || citizenNorm.includes(term)
   })
+
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   async function handleDelete() {
     if (!deleteItem) return

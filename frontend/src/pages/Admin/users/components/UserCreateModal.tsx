@@ -33,7 +33,7 @@ export default function UserCreateModal({ isOpen, onClose, onSuccess }: UserCrea
               type="text"
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              placeholder="VD: manager_q1"
+              placeholder="Nhập username"
               className="rounded-md"
             />
           </div>

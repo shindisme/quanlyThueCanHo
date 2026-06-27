@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Home as HomeIcon, FileText, Receipt, Bell, MapPin, Maximize2,
-  Calendar, CreditCard, ArrowUpRight, Wrench, Loader2
+  Calendar, CreditCard, ArrowUpRight, Wrench, Loader2, Users, Zap
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "../../../stores/auth.store";
@@ -32,12 +32,19 @@ function parseJwt(token: string) {
 
 export default function TenantHome() {
   const { email, token } = useAuthStore();
-  const displayName = email?.split("@")[0] || "Bạn";
 
   const [contract, setContract] = useState<any | null>(null);
   const [apartment, setApartment] = useState<any | null>(null);
   const [building, setBuilding] = useState<any | null>(null);
+  const [occupants, setOccupants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (email) {
+      const stored = localStorage.getItem(`tenant-occupants-${email}`);
+      setOccupants(stored ? JSON.parse(stored) : []);
+    }
+  }, [email]);
 
   useEffect(() => {
     if (!token || !email) {
@@ -99,18 +106,12 @@ export default function TenantHome() {
     );
   }
 
-  // Calculate remaining days
   const daysUntilExpiry = contract?.end_date
     ? Math.ceil((new Date(contract.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : 0;
 
   return (
     <div className="space-y-6 font-sans">
-      <div className="rounded-lg p-6 text-white"
-        style={{ background: "linear-gradient(135deg, #7C3AED 0%, #6D28D9 50%, #5B21B6 100%)" }}>
-        <h1 className="text-2xl font-bold mb-1">Xin chào, {displayName}!</h1>
-        <p className="text-purple-200 text-sm">Chào mừng bạn quay trở lại YuKi House</p>
-      </div>
 
       {/* APARTMENT INFO */}
       <div className="bg-white rounded-lg border border-gray-200 p-5">
@@ -165,110 +166,84 @@ export default function TenantHome() {
         )}
       </div>
 
-      {/* CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Hóa đơn tháng này */}
-        <div className="bg-white rounded-lg border border-gray-200 p-5 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-warning-50 rounded-lg flex items-center justify-center">
-                <Receipt size={20} className="text-warning-600" />
-              </div>
-              <h4 className="font-semibold text-gray-800">Hóa đơn mới nhất</h4>
+      {/* QUICK SHORTCUT ACTIONS */}
+      <div className="bg-white rounded-lg border border-gray-200 p-5">
+        <h4 className="font-semibold text-gray-800 mb-4">Lối tắt chức năng</h4>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+          <Link to="/tenant/contracts" className="p-4 border border-gray-100 rounded-lg hover:bg-primary-50/30 hover:border-primary-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer">
+            <div className="w-10 h-10 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <FileText size={20} />
             </div>
-            <Link to="/tenant/invoices" className="text-primary-600 hover:text-primary-700">
-              <ArrowUpRight size={16} />
-            </Link>
-          </div>
+            <span className="text-xs font-semibold text-gray-700">Hợp đồng của tôi</span>
+          </Link>
 
-          <div className="flex-1 flex flex-col justify-center items-center py-6 text-gray-450 border-t border-gray-100">
-            <Receipt size={32} className="text-gray-300 mb-2" />
-            <p className="text-xs">Chưa có hóa đơn nào cần thanh toán</p>
-          </div>
-        </div>
-
-        {/* Hợp đồng */}
-        <div className="bg-white rounded-lg border border-gray-200 p-5 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-success-50 rounded-lg flex items-center justify-center">
-                <FileText size={20} className="text-success-600" />
-              </div>
-              <h4 className="font-semibold text-gray-800">Hợp đồng</h4>
+          <Link to="/tenant/invoices" className="p-4 border border-gray-100 rounded-lg hover:bg-warning-50/30 hover:border-warning-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer">
+            <div className="w-10 h-10 rounded-full bg-warning-50 text-warning-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Receipt size={20} />
             </div>
-            <Link to="/tenant/contracts" className="text-primary-600 hover:text-primary-700">
-              <ArrowUpRight size={16} />
-            </Link>
-          </div>
+            <span className="text-xs font-semibold text-gray-700">Hóa đơn</span>
+          </Link>
 
-          {contract ? (
-            <div className="space-y-3 pt-3 border-t border-gray-100 flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-success-50 text-success-600 font-semibold">
-                  Hiệu lực
-                </span>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 mb-0.5">Thời hạn</p>
-                <p className="text-xs text-gray-700 font-medium">
-                  {formatDate(contract.start_date)} → {formatDate(contract.end_date)}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400 mb-0.5">Tiền thuê hàng tháng</p>
-                <p className="text-sm font-semibold text-gray-800">{formatCurrency(contract.monthly_rent)}</p>
-              </div>
+          <Link to="/tenant/utilities" className="p-4 border border-gray-100 rounded-lg hover:bg-emerald-50/30 hover:border-emerald-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer">
+            <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Zap size={20} />
             </div>
-          ) : (
-            <div className="flex-1 flex flex-col justify-center items-center py-6 text-gray-450 border-t border-gray-100">
-              <FileText size={32} className="text-gray-300 mb-2" />
-              <p className="text-xs">Chưa có hợp đồng nào hoạt động</p>
-            </div>
-          )}
-        </div>
+            <span className="text-xs font-semibold text-gray-700">Điện nước</span>
+          </Link>
 
-        {/* Thông báo */}
-        <div className="bg-white rounded-lg border border-gray-200 p-5 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-info-50 rounded-lg flex items-center justify-center">
-                <Bell size={20} className="text-info-600" />
-              </div>
-              <h4 className="font-semibold text-gray-800">Thông báo mới</h4>
+          <Link to="/tenant/maintenance" className="p-4 border border-gray-100 rounded-lg hover:bg-danger-50/30 hover:border-danger-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer">
+            <div className="w-10 h-10 rounded-full bg-danger-50 text-danger-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Wrench size={20} />
             </div>
-            <Link to="/tenant/notifications" className="text-primary-600 hover:text-primary-700">
-              <ArrowUpRight size={16} />
-            </Link>
-          </div>
+            <span className="text-xs font-semibold text-gray-700">Yêu cầu sửa chữa</span>
+          </Link>
 
-          <div className="flex-1 flex flex-col justify-center items-center py-6 text-gray-450 border-t border-gray-100">
-            <Bell size={32} className="text-gray-300 mb-2" />
-            <p className="text-xs">Chưa có thông báo mới nào</p>
-          </div>
+          <Link to="/tenant/profile" className="p-4 border border-gray-100 rounded-lg hover:bg-info-50/30 hover:border-info-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer col-span-2 sm:col-span-1">
+            <div className="w-10 h-10 rounded-full bg-info-50 text-info-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Users size={20} />
+            </div>
+            <span className="text-xs font-semibold text-gray-700">Hồ sơ & Người ở</span>
+          </Link>
         </div>
       </div>
 
-      {/* YÊU CẦU SỬA CHỮA GẦN ĐÂY */}
+      {/* ROOMMATES */}
       <div className="bg-white rounded-lg border border-gray-200 p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-danger-50 rounded-lg flex items-center justify-center">
-              <Wrench size={20} className="text-danger-600" />
+            <div className="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center animate-pulse-dot">
+              <Users size={20} className="text-primary-600" />
             </div>
             <div>
-              <h4 className="font-semibold text-gray-800">Yêu cầu sửa chữa</h4>
-              <p className="text-xs text-gray-400">Gần đây</p>
+              <h4 className="font-semibold text-gray-800">Thành viên cùng căn hộ</h4>
+              <p className="text-xs text-gray-400">Danh sách người ở cùng đã khai báo</p>
             </div>
           </div>
-          <Link to="/tenant/maintenance"
-            className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1">
-            Xem tất cả <ArrowUpRight size={12} />
+          <Link to="/tenant/profile"
+            className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1 cursor-pointer">
+            Khai báo thêm <ArrowUpRight size={12} />
           </Link>
         </div>
 
-        <div className="text-center py-6 text-gray-400 border-t border-gray-100">
-          <Wrench size={28} className="mx-auto mb-2 text-gray-200" />
-          <p className="text-xs">Không có yêu cầu sửa chữa nào gần đây</p>
+        <div className="border-t border-gray-100 pt-4">
+          {occupants.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {occupants.map((occ) => (
+                <div key={occ.id} className="p-3 border border-gray-100 rounded-lg bg-gray-50/50 flex flex-col justify-center">
+                  <p className="text-sm font-semibold text-gray-850">{occ.name}</p>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-xs text-gray-500">
+                    <span>CCCD: {occ.cccd}</span>
+                    {occ.phone && <span>SĐT: {occ.phone}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-gray-450">
+              <Users size={28} className="mx-auto mb-2 text-gray-200" />
+              <p className="text-xs">Chưa khai báo người ở cùng nào</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -120,7 +120,7 @@ export default function BuildingList() {
         icon={Building2}
         title="Tòa nhà"
         subtitle="Quản lý danh sách tòa nhà"
-        count={totalCount}
+        count={role === "MANAGER" ? filtered.length : totalCount}
         actions={
           role === "ADMIN" && (
             <Button onClick={() => setShowCreateModal(true)}>
@@ -158,7 +158,7 @@ export default function BuildingList() {
           <p className="text-sm text-gray-400 mt-1">Thử tìm kiếm với từ khóa khác</p>
         </div>
       ) : (
-        <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+        <div className="border border-gray-200 overflow-hidden bg-white shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>
@@ -225,8 +225,8 @@ export default function BuildingList() {
       )}
 
       {/* Phân trang */}
-      {totalPages > 1 && (
-        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+      {(role === "MANAGER" ? 1 : totalPages) > 1 && (
+        <Pagination currentPage={currentPage} totalPages={role === "MANAGER" ? 1 : totalPages} onPageChange={setCurrentPage} />
       )}
 
       {/* Modal */}

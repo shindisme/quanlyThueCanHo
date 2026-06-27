@@ -53,7 +53,7 @@ export default function StaffCreateModal({
               label="Họ tên *"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="Nguyễn Văn A"
+              placeholder="Nhập họ tên"
             />
           </div>
           <div className="col-span-12 sm:col-span-6">
@@ -61,7 +61,7 @@ export default function StaffCreateModal({
               label="Số điện thoại"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="0987654321"
+              placeholder="Nhập số điện thoại"
             />
           </div>
           <div className="col-span-12 sm:col-span-6">
@@ -99,7 +99,7 @@ export default function StaffCreateModal({
           <div className="col-span-12">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Tài khoản liên kết (Tự động cấp)</label>
             <div className="premium-input rounded-md bg-gray-50 border border-gray-300 py-2.5 px-3 text-sm text-gray-650 font-semibold">
-              Tài khoản: <span className="text-primary-600">{nextUsername || "Đang tính..."}</span> (Mật khẩu mặc định: 123456)
+              Tài khoản: <span className="text-primary-600">{nextUsername || "Đang ..."}</span> (Mật khẩu mặc định: 123456)
             </div>
           </div>
         </div>
@@ -107,11 +107,4 @@ export default function StaffCreateModal({
     </Modal>
   );
 }
-Name="text-primary-600">{nextUsername || "Đang tính..."}</span> (Mật khẩu mặc định: 123456)
-            </div>
-          </div>
-        </div>
-      </div>
-    </Modal>
-  );
-}
+

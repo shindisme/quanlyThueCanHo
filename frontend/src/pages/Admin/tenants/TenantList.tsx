@@ -43,7 +43,8 @@ export default function TenantList() {
     loading,
   } = useTenantList({ role, managedBuildingId });
 
-  const paginated = filtered;
+  const pageSize = 10;
+  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   if (loading && filtered.length === 0) {
     return (

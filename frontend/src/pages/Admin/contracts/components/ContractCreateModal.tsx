@@ -123,7 +123,7 @@ export default function ContractCreateModal({
                 <div className="col-span-12">
                   <Input
                     label="Họ tên *"
-                    placeholder="VD: Nguyễn Văn A"
+                    placeholder="Nhập họ tên"
                     {...register("new_tenant_name")}
                     error={errors.new_tenant_name?.message}
                   />
@@ -131,7 +131,7 @@ export default function ContractCreateModal({
                 <div className="col-span-12 sm:col-span-6">
                   <Input
                     label="Số CCCD *"
-                    placeholder="VD: Nhập "
+                    placeholder="Nhập số CCCD"
                     {...register("new_tenant_cccd")}
                     error={errors.new_tenant_cccd?.message}
                   />
@@ -160,7 +160,7 @@ export default function ContractCreateModal({
                   <Input
                     label="Email"
                     type="email"
-                    placeholder="VD: tenant@gmail.com"
+                    placeholder="Nhập email"
                     {...register("new_tenant_email")}
                     error={errors.new_tenant_email?.message}
                   />
@@ -168,7 +168,7 @@ export default function ContractCreateModal({
                 <div className="col-span-12 sm:col-span-6">
                   <Input
                     label="Số điện thoại"
-                    placeholder="VD: 0901234567"
+                    placeholder="Nhập số điện thoại"
                     {...register("new_tenant_phone")}
                     error={errors.new_tenant_phone?.message}
                   />
@@ -176,7 +176,7 @@ export default function ContractCreateModal({
                 <div className="col-span-12">
                   <Input
                     label="Địa chỉ"
-                    placeholder="VD: 123 Đường ABC, Quận 1"
+                    placeholder="Nhập địa chỉ"
                     {...register("new_tenant_address")}
                     error={errors.new_tenant_address?.message}
                   />

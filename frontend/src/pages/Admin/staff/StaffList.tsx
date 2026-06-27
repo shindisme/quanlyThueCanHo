@@ -79,6 +79,13 @@ export default function StaffList() {
   });
 
   const totalPages = Math.ceil(filtered.length / pageSize);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   async function handleDelete() {

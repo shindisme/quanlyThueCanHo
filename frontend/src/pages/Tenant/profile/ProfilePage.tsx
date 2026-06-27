@@ -181,7 +181,7 @@ export default function ProfilePage() {
             </Button>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-gray-150">
+          <div className="overflow-x-auto border border-gray-150 overflow-hidden bg-white shadow-sm">
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>

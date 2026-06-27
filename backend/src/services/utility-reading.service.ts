@@ -146,7 +146,7 @@ const requireActorStaff = async (actor: UtilityReadingActor) => {
 };
 
 const resolveManagerBuildingId = async (actor: UtilityReadingActor) => {
-    if (actor.role === "ADMIN") {
+    if (actor.role === "ADMIN" || actor.role === "TENANT") {
         return undefined;
     }
 

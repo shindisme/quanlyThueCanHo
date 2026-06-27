@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import Pagination from "../../../components/ui/Pagination";
 import Modal from "../../../components/ui/Modal";
 import Button from "../../../components/ui/Button";
+import Combobox from "../../../components/ui/Combobox";
 
 import { useAuthStore } from "../../../stores/auth.store";
 import * as scheduleService from "../../../services/scheduleService";
@@ -35,6 +36,7 @@ export default function ScheduleList() {
   const [schedules, setSchedules] = useState<ScheduleData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [deleteItem, setDeleteItem] = useState<ScheduleData | null>(null);
   const [viewItem, setViewItem] = useState<ScheduleData | null>(null);
 
@@ -134,17 +136,28 @@ export default function ScheduleList() {
     const nameNorm = removeVietnameseTones(cleanGuestName);
     const phoneNorm = removeVietnameseTones(s.guest_phone);
     const roomNorm = removeVietnameseTones(s.apartment?.room_number || "");
-    return (
-      nameNorm.includes(term) ||
+    
+    const matchesSearch = nameNorm.includes(term) ||
       phoneNorm.includes(term) ||
-      roomNorm.includes(term)
-    );
+      roomNorm.includes(term);
+    
+    const matchesStatus = !statusFilter || s.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
   });
 
   const { items: sortedSchedules, requestSort, getSortIcon } = useSort(filtered, null, {
     apartment_id: (s) => s.apartment?.room_number || String(s.apartment_id),
     schedule_time: (s) => new Date(s.schedule_time).getTime(),
   });
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const paginatedSchedules = sortedSchedules.slice(
     (currentPage - 1) * itemsPerPage,
@@ -234,10 +247,29 @@ export default function ScheduleList() {
         iconColor="linear-gradient(135deg, #EC4899, #F472B6)"
       />
 
-      <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm..." className="max-w-md" />
+      <div className="flex flex-col sm:flex-row gap-3 w-full sm:items-center">
+        <SearchInput value={search} onChange={(v) => { setSearch(v); setCurrentPage(1); }} placeholder="Tìm kiếm..." className="flex-1 max-w-md w-full sm:w-72" />
+        <Combobox
+          options={[
+            { value: "PENDING", label: "Chờ xác nhận" },
+            { value: "CONFIRMED", label: "Đã xác nhận" },
+            { value: "CANCELLED", label: "Đã hủy" }
+          ]}
+          value={statusFilter}
+          onChange={(val) => {
+            setStatusFilter(val);
+            setCurrentPage(1);
+          }}
+          placeholder="Tất cả trạng thái"
+          searchable={false}
+          className="w-full sm:w-48"
+          triggerClassName="h-10 rounded-xl border-gray-300"
+          clearable={true}
+        />
+      </div>
 
       {/* Bảng */}
-      <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+      <div className="border border-gray-200 overflow-hidden bg-white shadow-sm">
         <Table className="compact">
           <TableHeader>
             <TableRow>
@@ -355,7 +387,7 @@ export default function ScheduleList() {
       {/* Pagination */}
       <Pagination
         currentPage={currentPage}
-        totalPages={Math.ceil(filtered.length / itemsPerPage)}
+        totalPages={totalPages}
         onPageChange={setCurrentPage}
       />
 

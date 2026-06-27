@@ -133,6 +133,12 @@ export default function ApartmentList() {
   const totalCount = filtered.length;
   const totalPages = Math.ceil(totalCount / pageSize);
 
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   const paginatedApartments = sortedApartments.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize

@@ -123,7 +123,7 @@ export default function UserList() {
       <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm..." className="max-w-md" />
 
       {/* Bảng */}
-      <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+      <div className="border border-gray-200 overflow-hidden bg-white shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>

@@ -39,12 +39,14 @@ function PaginationItem({ className, ref, ...props }: ComponentProps<"li">) {
 type PaginationLinkProps = {
   isActive?: boolean
   disabled?: boolean
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
 } & ComponentProps<typeof Button>
 
 function PaginationLink({
   className,
   isActive,
   disabled,
+  onClick,
   size = "icon",
   ref,
   ...props
@@ -61,6 +63,7 @@ function PaginationLink({
         className
       )}
       disabled={disabled}
+      onClick={onClick}
       {...props}
     />
   )
@@ -69,6 +72,8 @@ function PaginationLink({
 function PaginationPrevious({
   className,
   ref,
+  onClick,
+  disabled,
   ...props
 }: ComponentProps<typeof PaginationLink>) {
   return (
@@ -77,6 +82,8 @@ function PaginationPrevious({
       aria-label="Go to previous page"
       size="default"
       className={cn("gap-1 pl-2.5 h-9 w-auto px-3", className)}
+      onClick={onClick}
+      disabled={disabled}
       {...props}
     >
       <ChevronLeft className="h-4 w-4" />
@@ -88,6 +95,8 @@ function PaginationPrevious({
 function PaginationNext({
   className,
   ref,
+  onClick,
+  disabled,
   ...props
 }: ComponentProps<typeof PaginationLink>) {
   return (
@@ -96,6 +105,8 @@ function PaginationNext({
       aria-label="Go to next page"
       size="default"
       className={cn("gap-1 pr-2.5 h-9 w-auto px-3", className)}
+      onClick={onClick}
+      disabled={disabled}
       {...props}
     >
       <span>Sau</span>

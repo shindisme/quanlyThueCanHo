@@ -1,6 +1,6 @@
 import { cn } from "../../lib/utils"
 import { Search } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 
 interface SearchInputProps {
   value?: string
@@ -16,16 +16,20 @@ export default function SearchInput({
   className,
 }: SearchInputProps) {
   const [localValue, setLocalValue] = useState(externalValue || "")
+  const lastSentValueRef = useRef(externalValue || "")
 
   useEffect(() => {
     if (externalValue !== undefined) {
       setLocalValue(externalValue)
+      lastSentValueRef.current = externalValue
     }
   }, [externalValue])
 
   useEffect(() => {
+    if (localValue === lastSentValueRef.current) return
     const timer = setTimeout(() => {
       onChange(localValue)
+      lastSentValueRef.current = localValue
     }, 300)
     return () => clearTimeout(timer)
   }, [localValue, onChange])

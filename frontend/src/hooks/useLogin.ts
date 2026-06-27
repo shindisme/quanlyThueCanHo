@@ -59,7 +59,7 @@ export function useLogin() {
       let managedBuildingId: number | null = null
       let managedBuildingName: string | null = null
 
-      if (result.role === "MANAGER" && decoded && decoded.userId) {
+      if ((result.role === "MANAGER" || result.role === "STAFF") && decoded && decoded.userId) {
         try {
           const { getAllStaff } = await import("../services/staffService")
           const { getAllBuildings } = await import("../services/buildingService")
@@ -90,6 +90,7 @@ export function useLogin() {
           navigate("/admin/dashboard")
           break
         case "MANAGER":
+        case "STAFF":
           navigate("/manager/dashboard")
           break
         case "TENANT":

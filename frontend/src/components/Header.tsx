@@ -277,11 +277,6 @@ export default function Header() {
 
       {/*Right side*/}
       <div className="flex items-center gap-1">
-        {role === "MANAGER" && managedBuildingName && (
-          <div className="hidden md:flex items-center px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-xs font-semibold border border-primary-100 mr-2">
-            Chi nhánh: {managedBuildingName}
-          </div>
-        )}
         {/* Notification */}
         <button
           onClick={() => navigate(`/${role?.toLowerCase()}/notifications`)}

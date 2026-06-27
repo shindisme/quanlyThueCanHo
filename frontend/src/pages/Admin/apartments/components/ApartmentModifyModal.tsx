@@ -63,7 +63,7 @@ export default function ApartmentModifyModal({
               type="text"
               value={formData.room_number}
               onChange={(e) => setFormData({ ...formData, room_number: e.target.value })}
-              placeholder="VD: 01, 02, 10..."
+              placeholder="Nhập số phòng"
               className="rounded-md"
             />
           </div>

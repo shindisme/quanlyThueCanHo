@@ -50,7 +50,7 @@ export default function BuildingModifyModal({
               label="Tên chi nhánh/tòa nhà *"
               value={formData.branch_name}
               onChange={(e) => setFormData({ ...formData, branch_name: e.target.value, name: e.target.value })}
-              placeholder="VD: Chi nhánh Quận 1"
+              placeholder="Nhập tên chi nhánh/tòa nhà"
             />
           </div>
           <div className="col-span-12 sm:col-span-6">
@@ -58,7 +58,7 @@ export default function BuildingModifyModal({
               label="Địa chỉ cũ *"
               value={formData.address_old}
               onChange={(e) => setFormData({ ...formData, address_old: e.target.value })}
-              placeholder="VD: 123 Nguyễn Huệ, Quận 1"
+              placeholder="Nhập địa chỉ cũ"
             />
           </div>
           <div className="col-span-12 sm:col-span-6">
@@ -66,7 +66,7 @@ export default function BuildingModifyModal({
               label="Địa chỉ mới *"
               value={formData.address_new}
               onChange={(e) => setFormData({ ...formData, address_new: e.target.value })}
-              placeholder="VD: 123 Nguyễn Huệ, Phường Bến Nghé, Quận 1"
+              placeholder="Nhập địa chỉ mới"
             />
           </div>
           <div className="col-span-12">

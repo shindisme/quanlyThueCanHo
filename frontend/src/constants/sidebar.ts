@@ -128,6 +128,17 @@ const tenantMenu: SidebarGroup[] = [
   },
 ];
 
+// Menu Staff
+const staffMenu: SidebarGroup[] = [
+  {
+    items: [
+      { label: "Điện nước", path: "/manager/utilities", icon: Zap },
+      { label: "Yêu cầu sửa chữa", path: "/manager/maintenance", icon: Wrench },
+      { label: "Hồ sơ cá nhân", path: "/manager/profile", icon: User },
+    ],
+  },
+];
+
 // Lay menu theo role nguoi dung
 export function getSidebarMenu(role: Role): SidebarGroup[] {
   switch (role) {
@@ -135,6 +146,8 @@ export function getSidebarMenu(role: Role): SidebarGroup[] {
       return adminMenu;
     case "MANAGER":
       return managerMenu;
+    case "STAFF":
+      return staffMenu;
     case "TENANT":
       return tenantMenu;
     default:

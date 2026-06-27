@@ -63,7 +63,7 @@ export default function StaffModifyModal({
               label="Họ tên *"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="Nguyễn Văn A"
+              placeholder="Nhập họ tên"
             />
           </div>
           <div className="col-span-12 sm:col-span-6">
@@ -71,7 +71,7 @@ export default function StaffModifyModal({
               label="Số điện thoại"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="0987654321"
+              placeholder="Nhập số điện thoại"
             />
           </div>
           <div className="col-span-12 sm:col-span-6">

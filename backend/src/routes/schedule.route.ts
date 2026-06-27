@@ -6,7 +6,7 @@ const router = Router();
 
 router.post("/book", scheduleController.bookViewing);
 router.put("/:id/cancel", scheduleController.cancelSchedule);
-router.use(authenticate, authorizeRole(["ADMIN"]));
+router.use(authenticate, authorizeRole(["ADMIN", "MANAGER"]));
 
 router.get("/", scheduleController.getSchedules);
 router.put("/:id/confirm", scheduleController.confirmSchedules);
