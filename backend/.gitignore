@@ -1,10 +1,8 @@
 .env
-
 node_modules
-
 package-lock.json
-
 .vscode/*
 /src/generated/prisma
-
 dist
+docs
+.worktrees/
