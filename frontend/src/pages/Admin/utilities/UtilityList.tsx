@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Zap, Plus, Pencil, Trash2, Loader2, Eye, Calendar, Sparkles } from "lucide-react";
+import { Zap, Plus, Pencil, Trash2, Loader2, Calendar, Sparkles } from "lucide-react";
 import PageHeader from "../../../components/ui/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
@@ -16,8 +16,6 @@ import * as buildingService from "../../../services/buildingService";
 import type { BuildingData } from "../../../services/buildingService";
 import * as apartmentService from "../../../services/apartmentService";
 import type { ApartmentData } from "../../../services/apartmentService";
-import * as tenantService from "../../../services/tenantService";
-import * as contractService from "../../../services/contractService";
 
 import {
   Table,
@@ -28,29 +26,10 @@ import {
   TableCell,
 } from "../../../components/ui/Table";
 import { useSort } from "../../../hooks/useSort";
-import { removeVietnameseTones, formatDate, formatApartmentDisplay } from "../../../utils/format";
-
-function parseJwt(token: string) {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      window
-        .atob(base64)
-        .split("")
-        .map(function (c) {
-          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-        })
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch (e) {
-    return null;
-  }
-}
+import { removeVietnameseTones, formatDate } from "../../../utils/format";
 
 export default function UtilityList() {
-  const { role, managedBuildingId, token } = useAuthStore();
+  const { role, managedBuildingId } = useAuthStore();
   const isWritable = role === "MANAGER" || role === "STAFF";
 
   const [readings, setReadings] = useState<UtilityReadingData[]>([]);
@@ -68,16 +47,12 @@ export default function UtilityList() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 15;
 
-  // Modals
+  // Modal State
   const [showModal, setShowModal] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false);
   const [editItem, setEditItem] = useState<UtilityReadingData | null>(null);
-  const [viewItem, setViewItem] = useState<UtilityReadingData | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Form State
-  const [formBuildingId, setFormBuildingId] = useState<string>("");
-  const [formFloor, setFormFloor] = useState<string>("");
   const [formApartmentId, setFormApartmentId] = useState<string>("");
   const [formMonth, setFormMonth] = useState<number>(new Date().getMonth() + 1);
   const [formYear, setFormYear] = useState<number>(new Date().getFullYear());
@@ -90,51 +65,19 @@ export default function UtilityList() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+      // Fetch utility readings
       const readingsParams: any = { limit: 1000 };
-
-      if (role === "TENANT") {
-        if (!token) {
-          setLoading(false);
-          return;
-        }
-        const decoded = parseJwt(token);
-        const userId = decoded?.userId;
-        if (!userId) {
-          setLoading(false);
-          return;
-        }
-
-        // Fetch tenants
-        const tenantsRes = await tenantService.getAllTenants({ limit: 1000 });
-        const currentT = tenantsRes.data.find((t) => t.user_id === userId);
-        if (!currentT) {
-          setLoading(false);
-          return;
-        }
-
-        // Fetch contracts to find active contract apartment_id
-        const contracts = await contractService.getAllContracts();
-        const activeContract = contracts.find(
-          (c) => c.tenant_id === currentT.id && c.status === "ACTIVE"
-        );
-
-        if (activeContract) {
-          readingsParams.apartment_id = activeContract.apartment_id;
-        } else {
-          setReadings([]);
-          setLoading(false);
-          return;
-        }
-      } else if (role !== "ADMIN" && managedBuildingId) {
+      if (role !== "ADMIN" && managedBuildingId) {
         readingsParams.building_id = managedBuildingId;
       }
-
       const readingsRes = await utilityService.getAllUtilityReadings(readingsParams);
       setReadings(readingsRes.data || []);
 
+      // Fetch buildings
       const bRes = await buildingService.getAllBuildings({ limit: 100 });
       setBuildings(bRes.data || []);
 
+      // Fetch apartments
       const aptParams: any = { limit: 1000 };
       if (role !== "ADMIN" && managedBuildingId) {
         aptParams.building_id = managedBuildingId;
@@ -148,29 +91,19 @@ export default function UtilityList() {
     } finally {
       setLoading(false);
     }
-  }, [role, managedBuildingId, token]);
+  }, [role, managedBuildingId]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Sync building ID for non-admin
+
   useEffect(() => {
     if (role !== "ADMIN" && managedBuildingId) {
       setFilterBuilding(String(managedBuildingId));
-      setFormBuildingId(String(managedBuildingId));
     }
   }, [role, managedBuildingId]);
 
-  // Compute available floors in active building
-  const activeBuildingId = role === "ADMIN" ? Number(formBuildingId) : managedBuildingId;
-  const buildingApartments = apartments.filter((a) => a.building_id === activeBuildingId);
-  const availableFloors = Array.from(new Set(buildingApartments.map((a) => a.floor))).sort((a, b) => a - b);
-
-  // Compute apartments on selected floor
-  const floorApartments = buildingApartments.filter((a) => a.floor === Number(formFloor));
-
-  // Auto pre-fill old indicators when picking apartment
   useEffect(() => {
     if (formApartmentId && !editItem && showModal) {
       const aptReadings = readings
@@ -190,24 +123,10 @@ export default function UtilityList() {
     }
   }, [formApartmentId, editItem, showModal, readings]);
 
-  // Reset floor and room picker when changing building in admin
-  const handleBuildingChange = (val: string) => {
-    setFormBuildingId(val);
-    setFormFloor("");
-    setFormApartmentId("");
-  };
-
-  const handleFloorChange = (val: string) => {
-    setFormFloor(val);
-    setFormApartmentId("");
-  };
-
-  // Open write modal
+  // Open modal for Create/Update
   const handleOpenModal = (item: UtilityReadingData | null = null) => {
     setEditItem(item);
     if (item) {
-      setFormBuildingId(String(item.apartment?.building_id || ""));
-      setFormFloor(String(item.apartment?.floor || ""));
       setFormApartmentId(String(item.apartment_id));
       setFormMonth(item.month);
       setFormYear(item.year);
@@ -216,10 +135,6 @@ export default function UtilityList() {
       setFormWaterOld(String(item.water_old));
       setFormWaterNew(String(item.water_new));
     } else {
-      if (role === "ADMIN") {
-        setFormBuildingId("");
-      }
-      setFormFloor("");
       setFormApartmentId("");
       setFormMonth(new Date().getMonth() + 1);
       setFormYear(new Date().getFullYear());
@@ -231,13 +146,7 @@ export default function UtilityList() {
     setShowModal(true);
   };
 
-  // Open detail modal
-  const handleOpenDetailModal = (item: UtilityReadingData) => {
-    setViewItem(item);
-    setShowDetailModal(true);
-  };
-
-  // Delete utility reading record
+  // Delete utility reading
   const handleDelete = async (id: number) => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa bản ghi điện nước này?")) return;
     try {
@@ -249,7 +158,7 @@ export default function UtilityList() {
     }
   };
 
-  // Save / Update logic
+  // Submit form (Save / Update)
   const handleSave = async () => {
     if (!formApartmentId) {
       toast.error("Vui lòng chọn căn hộ");
@@ -302,7 +211,7 @@ export default function UtilityList() {
     }
   };
 
-  // Filter calculations
+  // Filter logic
   const filtered = readings.filter((r) => {
     const term = removeVietnameseTones(search);
     const roomNorm = removeVietnameseTones(r.apartment?.room_number || "");
@@ -319,7 +228,7 @@ export default function UtilityList() {
 
   const { items: sortedReadings, requestSort, getSortIcon } = useSort(filtered);
 
-  // Pagination paging
+  // Pagination slice
   const totalPages = Math.ceil(filtered.length / pageSize);
 
   useEffect(() => {
@@ -350,6 +259,22 @@ export default function UtilityList() {
     return years.reverse();
   };
 
+  // Options for modal apartment picker
+  const filteredApartments = apartments.filter((apt) => {
+    if (role !== "ADMIN" && managedBuildingId) {
+      return apt.building_id === managedBuildingId;
+    }
+    return true;
+  });
+
+  if (loading && readings.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-primary-600" size={32} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 font-sans">
       <PageHeader
@@ -367,16 +292,14 @@ export default function UtilityList() {
         }
       />
 
-      {/* Filter Header */}
+      {/* Filter Options */}
       <div className="flex flex-col sm:flex-row gap-3 w-full sm:items-center">
-        {role !== "TENANT" && (
-          <SearchInput
-            value={search}
-            onChange={(v) => { setSearch(v); setCurrentPage(1); }}
-            placeholder="Tìm phòng, tòa nhà, người ghi..."
-            className="flex-1 max-w-md w-full sm:w-72"
-          />
-        )}
+        <SearchInput
+          value={search}
+          onChange={(v) => { setSearch(v); setCurrentPage(1); }}
+          placeholder="Tìm phòng, tòa nhà, người ghi..."
+          className="flex-1 max-w-md w-full sm:w-72"
+        />
 
         {role === "ADMIN" && (
           <Combobox
@@ -385,7 +308,7 @@ export default function UtilityList() {
             onChange={(val) => { setFilterBuilding(val); setCurrentPage(1); }}
             placeholder="Tất cả chi nhánh"
             className="w-full sm:w-48"
-            triggerClassName="h-10 border-gray-300 px-4 py-2.5"
+            triggerClassName="h-10 border-gray-300"
             clearable={true}
           />
         )}
@@ -397,7 +320,7 @@ export default function UtilityList() {
           placeholder="Tất cả tháng"
           searchable={false}
           className="w-full sm:w-36"
-          triggerClassName="h-10 border-gray-300 px-4 py-2.5"
+          triggerClassName="h-10 border-gray-300"
           clearable={true}
         />
 
@@ -408,26 +331,32 @@ export default function UtilityList() {
           placeholder="Tất cả năm"
           searchable={false}
           className="w-full sm:w-36"
-          triggerClassName="h-10 border-gray-300 px-4 py-2.5"
+          triggerClassName="h-10 border-gray-300"
           clearable={true}
         />
       </div>
 
-      {/* Table Section (Square bordered) */}
       <div className="border border-gray-200 overflow-hidden bg-white shadow-sm">
         <Table className="compact">
           <TableHeader>
             <TableRow>
               <TableHead className="w-12 text-center">STT</TableHead>
+              <TableHead onClick={() => requestSort("apartment.building.branch_name")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                Chi nhánh {getSortIcon("apartment.building.branch_name")}
+              </TableHead>
               <TableHead onClick={() => requestSort("apartment.room_number")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 Căn hộ {getSortIcon("apartment.room_number")}
               </TableHead>
               <TableHead className="text-center">Tháng / Năm</TableHead>
-              <TableHead className="text-right font-semibold text-emerald-600 bg-emerald-50/30">Điện đã dùng (kWh)</TableHead>
-              <TableHead className="text-right font-semibold text-blue-600 bg-blue-50/30">Nước đã dùng (m³)</TableHead>
+              <TableHead className="text-right">Điện cũ</TableHead>
+              <TableHead className="text-right">Điện mới</TableHead>
+              <TableHead className="text-right font-semibold text-emerald-600 bg-emerald-50/30">Điện dùng (kWh)</TableHead>
+              <TableHead className="text-right">Nước cũ</TableHead>
+              <TableHead className="text-right">Nước mới</TableHead>
+              <TableHead className="text-right font-semibold text-blue-600 bg-blue-50/30">Nước dùng (m³)</TableHead>
               <TableHead>Người ghi</TableHead>
               <TableHead>Ngày ghi</TableHead>
-              <TableHead className="text-center w-28">Chức năng</TableHead>
+              {isWritable && <TableHead className="text-center w-24">Hành động</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -445,56 +374,49 @@ export default function UtilityList() {
                   <TableCell className="text-center text-gray-500 font-medium">
                     {(currentPage - 1) * pageSize + index + 1}
                   </TableCell>
+                  <TableCell className="font-semibold text-gray-800">
+                    {r.apartment?.building?.branch_name || "Yuki House"}
+                  </TableCell>
                   <TableCell className="font-semibold text-[#3f6ad8]">
-                    {formatApartmentDisplay(
-                      r.apartment?.room_number || "",
-                      r.apartment?.floor || 1,
-                      role || undefined,
-                      r.apartment?.building?.branch_name
-                    )}
+                    P.{r.apartment?.floor}{r.apartment?.room_number}
                   </TableCell>
                   <TableCell className="text-center font-medium">
                     {r.month}/{r.year}
                   </TableCell>
+                  <TableCell className="text-right text-gray-600 font-mono">{electricOld}</TableCell>
+                  <TableCell className="text-right text-gray-850 font-semibold font-mono">{electricNew}</TableCell>
                   <TableCell className="text-right font-bold text-emerald-650 bg-emerald-50/20 font-mono">{electricDiff}</TableCell>
+                  <TableCell className="text-right text-gray-600 font-mono">{waterOld}</TableCell>
+                  <TableCell className="text-right text-gray-850 font-semibold font-mono">{waterNew}</TableCell>
                   <TableCell className="text-right font-bold text-blue-650 bg-blue-50/20 font-mono">{waterDiff}</TableCell>
                   <TableCell className="font-medium text-gray-700">{r.staff?.full_name || "Hệ thống"}</TableCell>
                   <TableCell className="text-xs text-gray-500">{formatDate(r.created_at)}</TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex items-center justify-center gap-1">
-                      <button
-                        onClick={() => handleOpenDetailModal(r)}
-                        className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg cursor-pointer"
-                        title="Xem chi tiết"
-                      >
-                        <Eye size={15} />
-                      </button>
-                      {isWritable && (
-                        <>
-                          <button
-                            onClick={() => handleOpenModal(r)}
-                            className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg cursor-pointer"
-                            title="Sửa chỉ số"
-                          >
-                            <Pencil size={15} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(r.id)}
-                            className="p-1.5 text-gray-400 hover:text-red-650 hover:bg-red-50 rounded-lg cursor-pointer"
-                            title="Xóa bản ghi"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
+                  {isWritable && (
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          onClick={() => handleOpenModal(r)}
+                          className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg cursor-pointer"
+                          title="Sửa chỉ số"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(r.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-650 hover:bg-red-50 rounded-lg cursor-pointer"
+                          title="Xóa bản ghi"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               );
             })}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={12} className="text-center py-16 text-gray-500">
+                <TableCell colSpan={isWritable ? 13 : 12} className="text-center py-16 text-gray-500">
                   <Sparkles size={48} className="mx-auto mb-3 text-gray-300" />
                   Không tìm thấy chỉ số điện nước nào
                 </TableCell>
@@ -522,58 +444,21 @@ export default function UtilityList() {
         }
       >
         <div className="space-y-5">
-          {role === "ADMIN" && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1.5">Chi nhánh *</label>
-              <Combobox
-                options={buildings.map((b) => ({
-                  value: String(b.id),
-                  label: b.branch_name,
-                }))}
-                value={formBuildingId}
-                onChange={handleBuildingChange}
-                disabled={!!editItem}
-                placeholder="Chọn chi nhánh"
-                searchPlaceholder="Tìm chi nhánh..."
-                triggerClassName="h-10 border-gray-300 px-4 py-2.5"
-                clearable={false}
-              />
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1.5">Tầng *</label>
-              <Combobox
-                options={availableFloors.map((fl) => ({
-                  value: String(fl),
-                  label: `Tầng ${fl}`,
-                }))}
-                value={formFloor}
-                onChange={handleFloorChange}
-                disabled={!!editItem || (!formBuildingId && role === "ADMIN")}
-                placeholder="Chọn tầng"
-                searchable={false}
-                triggerClassName="h-10 border-gray-300 px-4 py-2.5"
-                clearable={false}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1.5">Căn hộ *</label>
-              <Combobox
-                options={floorApartments.map((apt) => ({
-                  value: String(apt.id),
-                  label: `Phòng ${apt.room_number}`,
-                }))}
-                value={formApartmentId}
-                onChange={(val) => setFormApartmentId(val)}
-                disabled={!!editItem || !formFloor}
-                placeholder="Chọn phòng"
-                searchPlaceholder="Tìm phòng..."
-                triggerClassName="h-10 border-gray-300 px-4 py-2.5"
-                clearable={false}
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-1.5">Căn hộ *</label>
+            <Combobox
+              options={filteredApartments.map((apt) => ({
+                value: String(apt.id),
+                label: `P.${apt.floor}${apt.room_number} (${apt.building?.branch_name})`,
+              }))}
+              value={formApartmentId}
+              onChange={(val) => setFormApartmentId(val)}
+              disabled={!!editItem}
+              placeholder="Chọn căn hộ"
+              searchPlaceholder="Tìm kiếm căn hộ..."
+              triggerClassName="h-10 border-gray-300"
+              clearable={false}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -586,7 +471,7 @@ export default function UtilityList() {
                 disabled={!!editItem}
                 placeholder="Chọn tháng"
                 searchable={false}
-                triggerClassName="h-10 border-gray-300 px-4 py-2.5"
+                triggerClassName="h-10 border-gray-300"
                 clearable={false}
               />
             </div>
@@ -599,7 +484,7 @@ export default function UtilityList() {
                 disabled={!!editItem}
                 placeholder="Chọn năm"
                 searchable={false}
-                triggerClassName="h-10 border-gray-300 px-4 py-2.5"
+                triggerClassName="h-10 border-gray-300"
                 clearable={false}
               />
             </div>
@@ -661,97 +546,6 @@ export default function UtilityList() {
             )}
           </div>
         </div>
-      </Modal>
-
-      {/* Details View Modal */}
-      <Modal
-        isOpen={showDetailModal}
-        onClose={() => setShowDetailModal(false)}
-        title="Chi tiết chỉ số điện nước"
-        footer={<Button onClick={() => setShowDetailModal(false)}>Đóng</Button>}
-      >
-        {viewItem && (
-          <div className="space-y-6 font-sans">
-            <div className="grid grid-cols-2 gap-4 border-b pb-4 border-gray-100">
-              <div>
-                <p className="text-xs text-gray-400">Chi nhánh / Tòa nhà</p>
-                <p className="text-sm font-semibold text-gray-800">
-                  {viewItem.apartment?.building?.branch_name || "Yuki House"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-400">Căn hộ / Phòng</p>
-                <p className="text-sm font-semibold text-primary-600">
-                  P.{viewItem.apartment?.floor}{viewItem.apartment?.room_number}
-                </p>
-              </div>
-              <div className="mt-2">
-                <p className="text-xs text-gray-400">Tháng / Năm</p>
-                <p className="text-sm font-semibold text-gray-800">
-                  Tháng {viewItem.month} năm {viewItem.year}
-                </p>
-              </div>
-              <div className="mt-2">
-                <p className="text-xs text-gray-400">Ngày ghi chỉ số</p>
-                <p className="text-sm font-semibold text-gray-800">
-                  {formatDate(viewItem.created_at)}
-                </p>
-              </div>
-              <div className="col-span-2 mt-2">
-                <p className="text-xs text-gray-400">Nhân viên ghi nhận</p>
-                <p className="text-sm font-semibold text-gray-800">
-                  {viewItem.staff?.full_name || "Hệ thống"} ({viewItem.staff?.position || "QTV"})
-                </p>
-              </div>
-            </div>
-
-            {/* Electric Section */}
-            <div className="bg-emerald-50/30 p-4 border border-emerald-100 rounded-lg">
-              <h4 className="font-bold text-emerald-800 text-sm flex items-center gap-1.5 mb-3">
-                <Zap size={16} /> Chỉ số Điện
-              </h4>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <p className="text-[10px] text-gray-400 uppercase">Chỉ số cũ</p>
-                  <p className="text-base font-semibold text-gray-700 font-mono">{viewItem.electric_old} kWh</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-400 uppercase">Chỉ số mới</p>
-                  <p className="text-base font-semibold text-gray-800 font-mono">{viewItem.electric_new} kWh</p>
-                </div>
-                <div className="bg-emerald-50/50 rounded p-1 border border-emerald-100">
-                  <p className="text-[10px] text-emerald-700 uppercase font-semibold">Tiêu thụ</p>
-                  <p className="text-base font-bold text-emerald-650 font-mono">
-                    {Number(viewItem.electric_new) - Number(viewItem.electric_old)} kWh
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Water Section */}
-            <div className="bg-blue-50/30 p-4 border border-blue-100 rounded-lg">
-              <h4 className="font-bold text-blue-800 text-sm flex items-center gap-1.5 mb-3">
-                <Calendar size={16} /> Chỉ số Nước
-              </h4>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <p className="text-[10px] text-gray-400 uppercase">Chỉ số cũ</p>
-                  <p className="text-base font-semibold text-gray-700 font-mono">{viewItem.water_old} m³</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-gray-400 uppercase">Chỉ số mới</p>
-                  <p className="text-base font-semibold text-gray-800 font-mono">{viewItem.water_new} m³</p>
-                </div>
-                <div className="bg-blue-50/50 rounded p-1 border border-blue-100">
-                  <p className="text-[10px] text-blue-700 uppercase font-semibold">Tiêu thụ</p>
-                  <p className="text-base font-bold text-blue-650 font-mono">
-                    {Number(viewItem.water_new) - Number(viewItem.water_old)} m³
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </Modal>
     </div>
   );

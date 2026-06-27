@@ -1,10 +1,13 @@
 import {
   Building2, Home, Users, DollarSign, FileText, Wrench,
-  TrendingUp, TrendingDown, ChevronDown, ArrowUpRight, Loader2,
+  TrendingUp, TrendingDown, ChevronDown, ArrowUpRight,
 } from "lucide-react";
+import {
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, BarChart, Bar, AreaChart, Area,
+} from "recharts";
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../../../stores/auth.store";
-import Combobox from "../../../components/ui/Combobox";
 import * as buildingService from "../../../services/buildingService";
 import type { BuildingData } from "../../../services/buildingService";
 import * as apartmentService from "../../../services/apartmentService";
@@ -166,7 +169,7 @@ export default function Dashboard() {
     return s.status === "PENDING" && matchesBuilding;
   }).length;
 
-  // Revenue chart data (mocked baseline with actual scale modifier)
+  // Revenue chart data 
   const baseRevenueFactor = monthlyRevenue > 0 ? monthlyRevenue : 450000000;
   const revenueData = [
     { month: "T1", revenue: Math.round(baseRevenueFactor * 0.7), lastYear: Math.round(baseRevenueFactor * 0.6) },
@@ -210,16 +213,20 @@ export default function Dashboard() {
           <p className="text-sm text-gray-500 mt-1">Tổng quan hệ thống</p>
         </div>
 
-        <div>
-          <Combobox
-            options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
+        <div className="relative">
+          <select
             value={selectedBranch}
-            onChange={setSelectedBranch}
-            placeholder="Tất cả chi nhánh"
-            className="w-56"
-            triggerClassName="h-10 border-gray-300 px-4 py-2.5 bg-white"
-            clearable={true}
-          />
+            onChange={(e) => setSelectedBranch(e.target.value)}
+            className="appearance-none pl-4 pr-10 py-2 rounded-lg border border-gray-300 text-sm bg-white focus:outline-none focus:border-primary-500 cursor-pointer"
+          >
+            <option value="">Tất cả chi nhánh</option>
+            {buildings.map((b) => (
+              <option key={b.id} value={String(b.id)}>
+                {b.branch_name}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
         </div>
       </div>
 
@@ -263,6 +270,85 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* CHARTS ROW */}
+      <div className="grid grid-cols-12 gap-6">
+        {/* Revenue chart */}
+        <div className="col-span-12 lg:col-span-8">
+          <ChartCard title="Xu hướng doanh thu (ước lượng)" subtitle="Dựa trên hợp đồng thuê đang hoạt động"
+            action={<TrendingUp size={18} className="text-success-500" />}>
+            <ResponsiveContainer width="100%" height={280} debounce={150}>
+              <AreaChart data={revenueData}>
+                <defs>
+                  <linearGradient id="gradientRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#7C3AED" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#7C3AED" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+                <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="#9CA3AF" />
+                <YAxis tick={{ fontSize: 11 }} stroke="#9CA3AF" tickFormatter={(v) => `${(v / 1000000).toFixed(0)}tr`} />
+                <Tooltip formatter={(value: any) => [formatCurrency(Number(value) || 0), ""]}
+                  contentStyle={{ borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "13px" }} />
+                <Area type="monotone" dataKey="lastYear" stroke="#E5E7EB" strokeWidth={1.5} fill="transparent" name="Năm trước" />
+                <Area type="monotone" dataKey="revenue" stroke="#7C3AED" strokeWidth={2.5}
+                  fill="url(#gradientRevenue)" name="Năm nay" dot={{ fill: "#7C3AED", r: 4 }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        </div>
+
+        {/* Invoice status pie */}
+        <div className="col-span-12 lg:col-span-4">
+          <ChartCard title="Phân tích tình trạng thu phí" subtitle="Ước tính theo hợp đồng">
+            <ResponsiveContainer width="100%" height={200} debounce={150}>
+              <PieChart>
+                <Pie data={invoiceData} dataKey="value" nameKey="name" cx="50%" cy="50%"
+                  innerRadius={55} outerRadius={80} paddingAngle={4}>
+                  {invoiceData.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="space-y-2 mt-2">
+              {invoiceData.map((item) => (
+                <div key={item.name} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                    <span className="text-xs text-gray-600">{item.name}</span>
+                  </div>
+                  <span className="text-xs font-semibold text-gray-800">{item.value} căn</span>
+                </div>
+              ))}
+            </div>
+          </ChartCard>
+        </div>
+      </div>
+
+      {/* ROW 3: Activities */}
+      <div className="grid grid-cols-1 gap-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-semibold text-gray-800">Thông báo và Chỉ số vận hành</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Tự động thống kê từ cơ sở dữ liệu</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            {recentActivities.map((activity, i) => (
+              <div key={i} className="p-4 border border-gray-150 rounded-lg bg-gray-50/50">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`w-2.5 h-2.5 rounded-full ${activity.color}`} />
+                  <span className="text-[10px] font-bold text-gray-400 uppercase">{activity.time}</span>
+                </div>
+                <p className="text-xs text-gray-700 font-medium leading-relaxed">{activity.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
