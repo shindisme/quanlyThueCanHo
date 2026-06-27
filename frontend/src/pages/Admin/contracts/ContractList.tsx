@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Loader2, FileText, Eye, Calendar } from "lucide-react";
 import { useLocation } from "react-router-dom";
-import PageHeader from "../../../components/ui/PageHeader";
+import PageHeader from "../../../components/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
 import Badge from "../../../components/ui/Badge";

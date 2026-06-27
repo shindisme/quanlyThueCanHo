@@ -1,6 +1,5 @@
 import { Building2, Users, Award, Heart } from "lucide-react";
 
-// Trang gioi thieu DuKiHome cho khach vang lai
 export default function GuestAbout() {
   return (
     <div className="pt-20 pb-16">
@@ -9,7 +8,7 @@ export default function GuestAbout() {
         <div className="text-center mb-16">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Về YuKi House</h1>
           <p className="text-lg text-gray-500 max-w-2xl mx-auto leading-relaxed">
-            YuKi House là hệ thống quản lý và cho thuê căn hộ chuyên nghiệp hàng đầu tại TP. Hồ Chí Minh,
+            YuKi House là dịch vụ cho thuê căn hộ tại TP. Hồ Chí Minh,
             mang đến trải nghiệm sống tiện nghi và dịch vụ chăm sóc cư dân tốt nhất.
           </p>
         </div>
@@ -31,7 +30,6 @@ export default function GuestAbout() {
           ))}
         </div>
 
-        {/* Su menh */}
         <div className="bg-primary-50 rounded-3xl p-8 lg:p-12 mb-16">
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Sứ mệnh của chúng tôi</h2>

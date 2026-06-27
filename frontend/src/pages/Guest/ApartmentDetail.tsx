@@ -10,7 +10,6 @@ import { DatePicker } from "../../components/ui/DatePicker";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../constants/enums";
 import { formatCurrency, formatApartmentDisplay } from "../../utils/format";
 import { toast } from "sonner";
-import { bookViewing } from "../../services/scheduleService";
 import * as apartmentService from "../../services/apartmentService";
 import * as buildingService from "../../services/buildingService";
 import type { ApartmentData } from "../../services/apartmentService";
@@ -19,12 +18,6 @@ import { getApartmentReviews } from "../../services/reviewService";
 import type { ReviewData } from "../../services/reviewService";
 import type { ApartmentImage } from "../../types";
 import { useApartmentBooking } from "../../hooks/useApartmentBooking";
-
-interface BookedSlot {
-  apartmentId: number;
-  date: string;
-  slot: string;
-}
 
 const timeSlots = [
   "09h00",

@@ -1,6 +1,6 @@
 import { Plus, Users, Eye, Pencil, Trash2, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import PageHeader from "../../../components/ui/PageHeader";
+import PageHeader from "../../../components/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
 import Badge from "../../../components/ui/Badge";
@@ -46,7 +46,7 @@ export default function TenantList() {
   const pageSize = 10;
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  if (loading && filtered.length === 0) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="animate-spin text-primary-600" size={32} />

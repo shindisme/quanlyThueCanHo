@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Zap, Plus, Pencil, Trash2, Loader2, Calendar, Sparkles } from "lucide-react";
-import PageHeader from "../../../components/ui/PageHeader";
+import PageHeader from "../../../components/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
 import Combobox from "../../../components/ui/Combobox";

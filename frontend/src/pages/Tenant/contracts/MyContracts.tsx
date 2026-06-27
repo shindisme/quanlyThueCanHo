@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { FileText, Star } from "lucide-react";
 import Badge from "../../../components/ui/Badge";
 import SearchInput from "../../../components/ui/SearchInput";
-import PageHeader from "../../../components/ui/PageHeader";
+import PageHeader from "../../../components/PageHeader";
 import Modal from "../../../components/ui/Modal";
 import Button from "../../../components/ui/Button";
 import { toast } from "sonner";

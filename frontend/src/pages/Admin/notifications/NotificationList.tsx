@@ -1,6 +1,6 @@
 import { Bell, Check } from "lucide-react";
 import { useState } from "react";
-import PageHeader from "../../../components/ui/PageHeader";
+import PageHeader from "../../../components/PageHeader";
 
 const mockNotifications = [
   { id: 1, title: "Hóa đơn tháng 6 đã được tạo", content: "Hóa đơn tháng 6/2026 đã được phát hành. Vui lòng thanh toán trước ngày 30/06.", type: "INVOICE", is_read: false, created_at: "2026-06-10" },

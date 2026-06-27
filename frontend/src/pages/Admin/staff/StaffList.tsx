@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Plus, Briefcase, Eye, Pencil, Trash2, Loader2 } from "lucide-react";
-import PageHeader from "../../../components/ui/PageHeader";
+import PageHeader from "../../../components/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
 import Badge from "../../../components/ui/Badge";

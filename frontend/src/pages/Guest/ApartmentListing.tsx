@@ -210,7 +210,14 @@ export default function GuestApartmentListing() {
 
             {/* Grid can ho */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filtered.map((apt) => {
+              {[...filtered]
+                .sort((a, b) => {
+                  if (a.floor !== b.floor) {
+                    return a.floor - b.floor;
+                  }
+                  return String(a.room_number).localeCompare(String(b.room_number), undefined, { numeric: true });
+                })
+                .map((apt) => {
                 const building = buildings.find((b) => b.id === apt.building_id);
                 return (
                   <Link

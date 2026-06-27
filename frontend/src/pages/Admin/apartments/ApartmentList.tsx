@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Pencil, Trash2, Loader2, Home, Star, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import PageHeader from "../../../components/ui/PageHeader";
+import PageHeader from "../../../components/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
 import Badge from "../../../components/ui/Badge";
@@ -50,7 +50,7 @@ export default function ApartmentList() {
   const [featuredIds, setFeaturedIds] = useState<number[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 20;
+  const pageSize = 10;
 
   // Lấy danh sách tòa nhà 
   useEffect(() => {
@@ -128,7 +128,14 @@ export default function ApartmentList() {
     return true;
   });
 
-  const { items: sortedApartments, requestSort, getSortIcon } = useSort(filtered);
+  const defaultSortedFiltered = [...filtered].sort((a, b) => {
+    if (a.floor !== b.floor) {
+      return a.floor - b.floor;
+    }
+    return String(a.room_number).localeCompare(String(b.room_number), undefined, { numeric: true });
+  });
+
+  const { items: sortedApartments, requestSort, getSortIcon } = useSort(defaultSortedFiltered);
 
   const totalCount = filtered.length;
   const totalPages = Math.ceil(totalCount / pageSize);

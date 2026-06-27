@@ -48,7 +48,7 @@ export function useHomePage() {
   useEffect(() => {
     Promise.all([
       buildingService.getAllBuildings({ limit: 100 }),
-      apartmentService.getAllApartments({ limit: featuredIds.length > 0 ? 20 : 6 })
+      apartmentService.getAllApartments({ limit: 100 })
     ])
       .then(([bRes, aRes]) => {
         setBuildings(bRes.data);
@@ -64,13 +64,14 @@ export function useHomePage() {
   }, [featuredIds]);
 
   const featuredApartments = (() => {
+    const validStatuses = ["available", "vacant", "AVAILABLE", "rented", "RENTED", "maintenance", "MAINTENANCE"];
     if (featuredIds.length > 0) {
       const filtered = apartments.filter(
-        (a) => featuredIds.includes(a.id) && ["available", "vacant", "AVAILABLE"].includes(a.status)
+        (a) => featuredIds.includes(a.id) && validStatuses.includes(a.status)
       );
-      if (filtered.length > 0) return filtered.slice(0, 4);
+      if (filtered.length > 0) return filtered.slice(0, 6);
     }
-    return apartments.filter((a) => ["available", "vacant", "AVAILABLE"].includes(a.status)).slice(0, 4);
+    return apartments.filter((a) => validStatuses.includes(a.status)).slice(0, 6);
   })();
 
   return {

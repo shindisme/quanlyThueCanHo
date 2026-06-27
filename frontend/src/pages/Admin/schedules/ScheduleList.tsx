@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { CalendarDays, Check, X, Trash2, Loader2, Eye, Mail } from "lucide-react";
-import PageHeader from "../../../components/ui/PageHeader";
+import PageHeader from "../../../components/PageHeader";
 import Badge from "../../../components/ui/Badge";
 import SearchInput from "../../../components/ui/SearchInput";
 import { toast } from "sonner";
@@ -136,13 +136,13 @@ export default function ScheduleList() {
     const nameNorm = removeVietnameseTones(cleanGuestName);
     const phoneNorm = removeVietnameseTones(s.guest_phone);
     const roomNorm = removeVietnameseTones(s.apartment?.room_number || "");
-    
+
     const matchesSearch = nameNorm.includes(term) ||
       phoneNorm.includes(term) ||
       roomNorm.includes(term);
-    
+
     const matchesStatus = !statusFilter || s.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 

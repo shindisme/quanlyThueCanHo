@@ -13,25 +13,16 @@ interface PageHeaderProps {
 }
 
 export default function PageHeader({
-  icon: Icon,
+  icon: _Icon,
   title,
   subtitle,
   count,
   actions,
-  iconColor = "linear-gradient(135deg, #7C3AED, #A78BFA)",
+  iconColor: _iconColor = "linear-gradient(135deg, #7C3AED, #A78BFA)",
 }: PageHeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 md:mb-10">
       <div className="flex items-center gap-4">
-        {/* Icon */}
-        {Icon && (
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
-            style={{ background: iconColor }}
-          >
-            <Icon size={24} className="text-white" />
-          </div>
-        )}
         <div>
           <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
             {title}

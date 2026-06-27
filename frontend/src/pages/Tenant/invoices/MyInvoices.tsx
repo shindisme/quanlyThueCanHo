@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Receipt } from "lucide-react";
 import Badge from "../../../components/ui/Badge";
 import SearchInput from "../../../components/ui/SearchInput";
-import PageHeader from "../../../components/ui/PageHeader";
+import PageHeader from "../../../components/PageHeader";
 import {
   Table,
   TableHeader,

@@ -7,6 +7,7 @@ import type { ApartmentData } from "../../../../services/apartmentService"
 import type { BuildingData } from "../../../../services/buildingService"
 import type { Tenant } from "../../../../types"
 import { useContractCreate } from "../../../../hooks/useContractCreate"
+import { formatCurrency } from "../../../../utils/format"
 
 interface ContractCreateModalProps {
   isOpen: boolean

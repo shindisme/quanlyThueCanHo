@@ -148,7 +148,7 @@ export default function GuestHomePage() {
               <Loader2 className="animate-spin text-primary-600" size={32} />
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
               {featuredApartments.map((apt) => {
                 const building = buildings.find((b) => b.id === apt.building_id);
                 return (
@@ -163,9 +163,15 @@ export default function GuestHomePage() {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
                         alt="Ảnh căn hộ"
                       />
-                      <span className="absolute top-3 left-3 text-xs px-2.5 py-1 rounded-full bg-success-500 text-white font-semibold">
-                        Còn trống
-                      </span>
+                      {["RENTED", "rented"].includes(apt.status) ? (
+                        <span className="absolute top-3 left-3 text-xs px-2.5 py-1 rounded-full bg-blue-500 text-white font-semibold">
+                          Đang thuê
+                        </span>
+                      ) : (
+                        <span className="absolute top-3 left-3 text-xs px-2.5 py-1 rounded-full bg-success-500 text-white font-semibold">
+                          Còn trống
+                        </span>
+                      )}
                     </div>
                     <div className="p-5">
                       <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors">

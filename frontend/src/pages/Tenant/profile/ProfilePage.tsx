@@ -1,6 +1,6 @@
 import { User, Mail, Save, Plus, Pencil, Trash2, FileText } from "lucide-react";
 import Button from "../../../components/ui/Button";
-import PageHeader from "../../../components/ui/PageHeader";
+import PageHeader from "../../../components/PageHeader";
 import Modal from "../../../components/ui/Modal";
 import Input from "../../../components/ui/Input";
 import { DatePicker } from "../../../components/ui/DatePicker";

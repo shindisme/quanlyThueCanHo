@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  Home as HomeIcon, FileText, Receipt, Bell, MapPin, Maximize2,
+  Home as HomeIcon, FileText, Receipt, MapPin, Maximize2,
   Calendar, CreditCard, ArrowUpRight, Wrench, Loader2, Users, Zap
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -9,7 +9,7 @@ import * as tenantService from "../../../services/tenantService";
 import * as contractService from "../../../services/contractService";
 import * as apartmentService from "../../../services/apartmentService";
 import * as buildingService from "../../../services/buildingService";
-import { formatCurrency, formatDate } from "../../../utils/format";
+import { formatCurrency } from "../../../utils/format";
 
 function parseJwt(token: string) {
   try {

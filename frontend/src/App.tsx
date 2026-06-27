@@ -6,7 +6,7 @@ export default function App() {
   return (
     <>
       <RouterProvider router={router} />
-      <Toaster position="top-right" richColors />
+      <Toaster position="top-right" richColors duration={2000} />
     </>
   );
 }
