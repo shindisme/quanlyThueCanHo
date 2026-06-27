@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "../../lib/utils"
 
@@ -10,6 +10,12 @@ interface CalendarProps {
 
 export function Calendar({ className, selected, onSelect }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(selected || new Date())
+
+  useEffect(() => {
+    if (selected) {
+      setCurrentDate(selected)
+    }
+  }, [selected])
 
   const year = currentDate.getFullYear()
   const month = currentDate.getMonth()
@@ -28,6 +34,16 @@ export function Calendar({ className, selected, onSelect }: CalendarProps) {
   const handleSelectDay = (day: number) => {
     const newSelected = new Date(year, month, day)
     onSelect?.(newSelected)
+  }
+
+  const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newMonth = Number(e.target.value)
+    setCurrentDate(new Date(year, newMonth, 1))
+  }
+
+  const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newYear = Number(e.target.value)
+    setCurrentDate(new Date(newYear, month, 1))
   }
 
   const weekdays = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]
@@ -92,9 +108,30 @@ export function Calendar({ className, selected, onSelect }: CalendarProps) {
         >
           <ChevronLeft size={16} />
         </button>
-        <span className="text-xs font-bold text-gray-800">
-          {monthNames[month]} / {year}
-        </span>
+        <div className="flex items-center gap-1">
+          <select
+            value={month}
+            onChange={handleMonthChange}
+            className="text-xs font-bold text-gray-800 bg-transparent border-none outline-none focus:ring-0 cursor-pointer p-0 pr-1"
+          >
+            {monthNames.map((name, idx) => (
+              <option key={idx} value={idx}>{name}</option>
+            ))}
+          </select>
+          <span className="text-gray-400 text-xs">/</span>
+          <select
+            value={year}
+            onChange={handleYearChange}
+            className="text-xs font-bold text-gray-800 bg-transparent border-none outline-none focus:ring-0 cursor-pointer p-0"
+          >
+            {Array.from({ length: 100 }, (_, i) => {
+              const y = new Date().getFullYear() - 80 + i;
+              return (
+                <option key={y} value={y}>{y}</option>
+              );
+            })}
+          </select>
+        </div>
         <button
           type="button"
           onClick={handleNextMonth}

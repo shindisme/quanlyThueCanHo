@@ -18,7 +18,7 @@ export const createTenant = async (data: any) => {
     const existing = await prisma.tenant.findUnique({
         where: { phone: data.phone }
     });
-    
+
     if (existing) {
         throw new Error("Số điện thoại này đã tồn tại trong hệ thống.");
     }
