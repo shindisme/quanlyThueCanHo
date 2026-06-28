@@ -265,6 +265,7 @@ describe("authentication", () => {
             .get("/actor")
             .set("Authorization", createBearerToken(101));
 
+        expect(prismaMock.user.findUnique).toHaveBeenCalledOnce();
         expect(response.status).toBe(200);
         expect(response.body).toEqual({
             userId: 101,
@@ -288,6 +289,7 @@ describe("authentication", () => {
             .get("/actor")
             .set("Authorization", createBearerToken(101));
 
+        expect(prismaMock.user.findUnique).toHaveBeenCalledOnce();
         expect(response.status).toBe(200);
         expect(response.body).toEqual({
             userId: 101,
