@@ -33,6 +33,20 @@ const requestSchema = z.object({
 
 type ValidatedRequest = z.infer<typeof requestSchema>;
 
+const asyncRequestSchema = z.object({
+    params: z.object({}),
+    query: z.object({}),
+    body: z.object({
+        name: z.string().refine(
+            async (name) => {
+                await Promise.resolve();
+                return name !== "taken";
+            },
+            { message: "Name is already taken" }
+        )
+    })
+});
+
 const createRouter = () => {
     const router = Router();
 
@@ -43,6 +57,12 @@ const createRouter = () => {
             201
         );
     });
+
+    router.post(
+        "/async-resources",
+        validate(asyncRequestSchema),
+        (_req, res) => sendSuccess(res, { created: true }, 201)
+    );
 
     router.get("/conflict", () => {
         throw new AppError(
@@ -63,6 +83,30 @@ const createRouter = () => {
                 total: 1,
                 totalPages: 1
             }
+        );
+    });
+
+    router.get("/success-meta", (_req, res) => {
+        return sendSuccess(
+            res,
+            { id: 1 },
+            200,
+            { requestId: "request-1" }
+        );
+    });
+
+    router.get("/paginated-meta", (_req, res) => {
+        return sendPaginated(
+            res,
+            [{ id: 1 }],
+            {
+                page: 1,
+                limit: 10,
+                total: 1,
+                totalPages: 1
+            },
+            200,
+            { unreadCount: 4 }
         );
     });
 
@@ -113,6 +157,21 @@ describe("API infrastructure", () => {
         );
     });
 
+    it("returns validation details from an async refinement", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+        const response = await request(createTestApp(createRouter()))
+            .post("/async-resources")
+            .send({ name: "taken" });
+
+        expect(response.status).toBe(400);
+        expect(response.body.error.code).toBe("VALIDATION_ERROR");
+        expect(response.body.error.details).toContainEqual({
+            field: "body.name",
+            message: "Name is already taken"
+        });
+    });
+
     it("maps AppError status, code, message, and details", async () => {
         const response = await request(createTestApp(createRouter()))
             .get("/conflict");
@@ -153,6 +212,34 @@ describe("API infrastructure", () => {
                     total: 1,
                     totalPages: 1
                 }
+            }
+        });
+    });
+
+    it("includes optional metadata in a success response", async () => {
+        const response = await request(createTestApp(createRouter()))
+            .get("/success-meta");
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({
+            success: true,
+            data: { id: 1 },
+            meta: { requestId: "request-1" }
+        });
+    });
+
+    it("adds pagination to extra response metadata", async () => {
+        const response = await request(createTestApp(createRouter()))
+            .get("/paginated-meta");
+
+        expect(response.status).toBe(200);
+        expect(response.body.meta).toEqual({
+            unreadCount: 4,
+            pagination: {
+                page: 1,
+                limit: 10,
+                total: 1,
+                totalPages: 1
             }
         });
     });

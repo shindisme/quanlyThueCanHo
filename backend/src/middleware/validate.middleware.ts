@@ -6,13 +6,13 @@ import type {
 import type { ZodType } from "zod";
 
 export const validate = <T>(schema: ZodType<T>) => {
-    return (
+    return async (
         request: Request,
         _response: Response,
         next: NextFunction
     ) => {
         try {
-            request.validated = schema.parse({
+            request.validated = await schema.parseAsync({
                 params: request.params,
                 query: request.query,
                 body: request.body

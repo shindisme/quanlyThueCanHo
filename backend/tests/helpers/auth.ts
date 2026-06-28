@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
-import type { Actor } from "../../src/types/auth.js";
+
+type ExtraClaims = Omit<jwt.JwtPayload, "sub">;
 
 const getTestSecret = () => {
     if (!process.env.JWT_SECRET) {
@@ -9,8 +10,14 @@ const getTestSecret = () => {
     return process.env.JWT_SECRET;
 };
 
-export const createBearerToken = (actor: Actor) => {
-    const token = jwt.sign(actor, getTestSecret(), {
+export const createBearerToken = (
+    userId: number,
+    extraClaims: ExtraClaims = {}
+) => {
+    const token = jwt.sign({
+        ...extraClaims,
+        sub: String(userId)
+    }, getTestSecret(), {
         algorithm: "HS256",
         expiresIn: "1h"
     });

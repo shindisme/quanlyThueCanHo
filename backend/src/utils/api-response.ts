@@ -7,39 +7,67 @@ export type Pagination = {
     totalPages: number;
 };
 
-export type SuccessResponse<T> = {
+type Metadata = Record<string, unknown>;
+
+export type SuccessResponse<
+    T,
+    M extends Metadata = Metadata
+> = {
     success: true;
     data: T;
+    meta?: M;
 };
 
-export type PaginatedResponse<T> = SuccessResponse<T> & {
-    meta: {
-        pagination: Pagination;
-    };
+type PaginatedMetadata<M extends Metadata> = Omit<M, "pagination"> & {
+    pagination: Pagination;
 };
 
-export const sendSuccess = <T>(
+export type PaginatedResponse<
+    T,
+    M extends Metadata = Record<string, never>
+> = SuccessResponse<T, PaginatedMetadata<M>> & {
+    meta: PaginatedMetadata<M>;
+};
+
+export const sendSuccess = <
+    T,
+    M extends Metadata = Record<string, never>
+>(
     response: Response,
     data: T,
-    statusCode = 200
+    statusCode = 200,
+    meta?: M
 ) => {
-    return response.status(statusCode).json({
+    const body: SuccessResponse<T, M> = {
         success: true,
         data
-    } satisfies SuccessResponse<T>);
+    };
+
+    if (meta !== undefined) {
+        body.meta = meta;
+    }
+
+    return response.status(statusCode).json(body);
 };
 
-export const sendPaginated = <T>(
+export const sendPaginated = <
+    T,
+    M extends Metadata = Record<string, never>
+>(
     response: Response,
     data: T,
     pagination: Pagination,
-    statusCode = 200
+    statusCode = 200,
+    extraMetadata?: M
 ) => {
+    const meta = {
+        ...extraMetadata,
+        pagination
+    } as PaginatedMetadata<M>;
+
     return response.status(statusCode).json({
         success: true,
         data,
-        meta: {
-            pagination
-        }
-    } satisfies PaginatedResponse<T>);
+        meta
+    } satisfies PaginatedResponse<T, M>);
 };

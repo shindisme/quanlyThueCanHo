@@ -4,11 +4,7 @@ import type {
     RequestHandler,
     Response
 } from "express";
-import {
-    JsonWebTokenError,
-    NotBeforeError,
-    TokenExpiredError
-} from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import multer from "multer";
 import { ZodError } from "zod";
 import { AppError } from "../errors/app-error.js";
@@ -56,8 +52,13 @@ export const errorHandler: ErrorRequestHandler = (
     error: unknown,
     _request,
     response,
-    _next
+    next
 ) => {
+    if (response.headersSent) {
+        next(error);
+        return;
+    }
+
     if (error instanceof ZodError) {
         sendError(
             response,
@@ -84,9 +85,9 @@ export const errorHandler: ErrorRequestHandler = (
     }
 
     if (
-        error instanceof JsonWebTokenError
-        || error instanceof TokenExpiredError
-        || error instanceof NotBeforeError
+        error instanceof jwt.JsonWebTokenError
+        || error instanceof jwt.TokenExpiredError
+        || error instanceof jwt.NotBeforeError
     ) {
         sendError(
             response,
