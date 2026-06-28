@@ -91,7 +91,7 @@ export const errorHandler: ErrorRequestHandler = (
         sendError(
             response,
             401,
-            "UNAUTHORIZED",
+            "INVALID_TOKEN",
             "Authentication token is invalid or expired"
         );
         return;
@@ -147,7 +147,7 @@ export const errorHandler: ErrorRequestHandler = (
     sendError(
         response,
         500,
-        "INTERNAL_SERVER_ERROR",
+        "INTERNAL_ERROR",
         "An unexpected error occurred"
     );
 };

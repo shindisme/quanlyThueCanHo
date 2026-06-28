@@ -162,7 +162,7 @@ describe("API infrastructure", () => {
             .get("/jwt-error");
 
         expect(response.status).toBe(401);
-        expect(response.body.error.code).toBe("UNAUTHORIZED");
+        expect(response.body.error.code).toBe("INVALID_TOKEN");
     });
 
     it("maps Multer errors to a standard bad-request response", async () => {
@@ -210,7 +210,7 @@ describe("API infrastructure", () => {
             .get("/unknown-error");
 
         expect(response.status).toBe(500);
-        expect(response.body.error.code).toBe("INTERNAL_SERVER_ERROR");
+        expect(response.body.error.code).toBe("INTERNAL_ERROR");
         expect(response.body.error.message).not.toContain("database password");
         expect(consoleError).toHaveBeenCalledOnce();
     });

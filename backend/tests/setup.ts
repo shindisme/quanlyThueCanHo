@@ -22,10 +22,10 @@ vi.mock("../src/config/database.js", async () => {
     };
 });
 
-vi.mock("imagekit", () => ({
-    default: class MockImageKit {
-        upload = ioMocks.imageKitUpload;
-        deleteFile = ioMocks.imageKitDeleteFile;
+vi.mock("../src/config/imagekit.js", () => ({
+    imagekit: {
+        upload: ioMocks.imageKitUpload,
+        deleteFile: ioMocks.imageKitDeleteFile
     }
 }));
 
