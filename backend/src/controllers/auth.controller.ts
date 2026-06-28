@@ -1,57 +1,86 @@
-import { Request, Response } from "express";
+import type {
+    Request,
+    Response
+} from "express";
+import { AppError } from "../errors/app-error.js";
+import { getValidated } from "../middleware/validate.middleware.js";
+import type {
+    ChangePasswordRequest,
+    CreateUserRequest,
+    LoginRequest,
+    UpdateUserRequest,
+    UserIdRequest
+} from "../schemas/auth.schema.js";
 import * as authService from "../services/auth.service.js";
+import { sendSuccess } from "../utils/api-response.js";
 
-export const createAccount = async (req: Request, res: Response) => {
-    try {
-        const user = await authService.createAccountByAdminService(req.body);
-        res.status(201).json({ message: "Tài khoản đã được tạo thành công", userId: user.id });
-    } catch (error: any) {
-        res.status(400).json({ error: error.message });
-    }
-};
+export const createAccount = async (request: Request, response: Response) => {
+    const { body } = getValidated<CreateUserRequest>(request);
+    const user = await authService.createAccountByAdminService(body);
 
-export const login = async (req: Request, res: Response) => {
-    try {
-        const { username, password } = req.body;
-        const result = await authService.loginService(username, password);
-        res.json(result);
-    } catch (error: any) {
-        res.status(401).json({ error: error.message });
-    }
-};
-export const deleteUser = async (req: Request, res: Response) => {
-    try {
-        const { id } = req.params;
-        await authService.deleteUserService(Number(id));
-        res.json({ message: "Đã xóa người dùng thành công" });
-    } catch (error: any) {
-        res.status(400).json({ error: error.message });
-    }
-};
-export const getAllUsers = async (req: Request, res: Response) => {
-    try {
-        const users = await authService.getAllUsersService();
-        res.json(users);
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
-    }
-};
-export const updateUserInfo = async (req: Request, res: Response) => {
-    const { id } = req.params;
-    const user = await authService.updateUserService(Number(id), req.body);
-    res.json({ message: "Cập nhật thành công", user });
+    return sendSuccess(response, { userId: user.id }, 201);
 };
 
-export const resetPassword = async (req: Request, res: Response) => {
-    await authService.resetPasswordByAdminService(Number(req.params.id));
-    res.json({ message: "Mật khẩu đã reset về 123456" });
+export const login = async (request: Request, response: Response) => {
+    const { username, password } =
+        getValidated<LoginRequest>(request).body;
+    const result = await authService.loginService(username, password);
+
+    return sendSuccess(response, result);
 };
 
-export const changePassword = async (req: Request, res: Response) => {
-    const userId = req.user?.id;
-    if (!userId) {
-        return res.status(401).json({ message: "Vui lòng đăng nhập để đổi mật khẩu" });
+export const deleteUser = async (request: Request, response: Response) => {
+    const { id } = getValidated<UserIdRequest>(request).params;
+    await authService.deleteUserService(id);
+
+    return sendSuccess(response, { deleted: true });
+};
+
+export const getAllUsers = async (_request: Request, response: Response) => {
+    const users = await authService.getAllUsersService();
+
+    return sendSuccess(response, users);
+};
+
+export const updateUserInfo = async (
+    request: Request,
+    response: Response
+) => {
+    const { params, body } = getValidated<UpdateUserRequest>(request);
+    const user = await authService.updateUserService(params.id, body);
+
+    return sendSuccess(response, user);
+};
+
+export const resetPassword = async (
+    request: Request,
+    response: Response
+) => {
+    const { id } = getValidated<UserIdRequest>(request).params;
+    await authService.resetPasswordByAdminService(id);
+
+    return sendSuccess(response, { reset: true });
+};
+
+export const changePassword = async (
+    request: Request,
+    response: Response
+) => {
+    if (!request.actor) {
+        throw new AppError(
+            401,
+            "AUTHENTICATION_REQUIRED",
+            "Authentication is required"
+        );
     }
-    await authService.changePasswordService(userId, req.body.oldPass, req.body.newPass);
-    res.json({ message: "Đổi mật khẩu thành công" });
+
+    const { oldPass, newPass } =
+        getValidated<ChangePasswordRequest>(request).body;
+    await authService.changePasswordService(
+        request.actor.userId,
+        oldPass,
+        newPass
+    );
+
+    return sendSuccess(response, { changed: true });
 };

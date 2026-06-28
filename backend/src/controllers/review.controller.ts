@@ -3,7 +3,7 @@ import * as reviewService from "../services/review.service.js";
 
 export const create = async (req: Request, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.id;
+        const userId = req.actor?.userId;
 
         if (!userId) {
             res.status(401).json({ message: "Không tìm thấy thông tin xác thực!" });

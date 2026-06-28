@@ -3,15 +3,13 @@ import { Request, Response } from "express";
 import * as paymentService from "../services/payment.service.js";
 
 const getActor = (req: Request): paymentService.PaymentActor | null => {
-    const userId = req.user?.id;
-
-    if (!userId || !req.user?.role) {
+    if (!req.actor) {
         return null;
     }
 
     return {
-        userId,
-        role: req.user.role
+        userId: req.actor.userId,
+        role: req.actor.role
     };
 };
 

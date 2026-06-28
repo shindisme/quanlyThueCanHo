@@ -2,15 +2,13 @@ import { Request, Response } from "express";
 import * as utilityReadingService from "../services/utility-reading.service.js";
 
 const getActor = (req: Request): utilityReadingService.UtilityReadingActor | null => {
-    const userId = req.user?.id;
-
-    if (!userId || !req.user?.role) {
+    if (!req.actor) {
         return null;
     }
 
     return {
-        userId,
-        role: req.user.role
+        userId: req.actor.userId,
+        role: req.actor.role
     };
 };
 

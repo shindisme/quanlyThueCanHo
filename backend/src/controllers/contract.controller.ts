@@ -5,15 +5,13 @@ import * as contractService from "../services/contract.service.js";
 const hasValue = (value: unknown) => value !== undefined && value !== null && value !== "";
 
 const getActor = (req: Request): contractService.ContractActor | null => {
-    const userId = req.user?.id;
-
-    if (!userId || !req.user?.role) {
+    if (!req.actor) {
         return null;
     }
 
     return {
-        userId,
-        role: req.user.role
+        userId: req.actor.userId,
+        role: req.actor.role
     };
 };
 

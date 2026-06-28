@@ -1,25 +1,45 @@
-import { prisma } from "../config/database.js";
+import {
+    UserStatus,
+    type Role
+} from "@prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { prisma } from "../config/database.js";
+import { AppError } from "../errors/app-error.js";
 
-export const createAccountByAdminService = async (data: { username: string, role: any }) => {
-    const tempPassword = "123456";
-    const password_hash = await bcrypt.hash(tempPassword, 10);
+const DUMMY_PASSWORD_HASH =
+    "$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
 
-    return await prisma.user.create({
+const invalidCredentialsError = () => new AppError(
+    401,
+    "INVALID_CREDENTIALS",
+    "Invalid username or password"
+);
+
+export const createAccountByAdminService = async (data: {
+    username: string;
+    role: Role;
+}) => {
+    const password_hash = await bcrypt.hash("123456", 10);
+
+    return prisma.user.create({
         data: {
             username: data.username,
             role: data.role,
             password_hash,
-            status: 'ACTIVE'
+            status: UserStatus.ACTIVE
         }
     });
 };
 
 export const deleteUserService = async (id: number) => {
     const user = await prisma.user.findUnique({ where: { id } });
-    if (!user) throw new Error("Người dùng không tồn tại");
-    return await prisma.user.delete({
+
+    if (!user) {
+        throw new Error("User does not exist");
+    }
+
+    return prisma.user.delete({
         where: { id }
     });
 };
@@ -35,48 +55,88 @@ export const getAllUsersService = async () => {
             }
         }
     });
-    return users.map(user => ({
+
+    return users.map((user) => ({
         id: user.id,
         username: user.username,
         role: user.role,
         status: user.status,
         created_at: user.created_at,
-        managed_building: user.staff?.building ? {
-            id: user.staff.building.id,
-            branch_name: user.staff.building.branch_name,
-            address_new: user.staff.building.address_new
-        } : null
+        managed_building: user.staff?.building
+            ? {
+                id: user.staff.building.id,
+                branch_name: user.staff.building.branch_name,
+                address_new: user.staff.building.address_new
+            }
+            : null
     }));
 };
 
 export const loginService = async (username: string, password: string) => {
-    const user = await prisma.user.findFirst({
-        where: { username: username }
+    const user = await prisma.user.findUnique({
+        where: { username }
     });
-    if (!user) throw new Error("Tài khoản không tồn tại");
+    const isMatch = await bcrypt.compare(
+        password,
+        user?.password_hash ?? DUMMY_PASSWORD_HASH
+    );
 
-    const isMatch = await bcrypt.compare(password, user.password_hash);
-    if (!isMatch) throw new Error("Sai mật khẩu");
+    if (!user || !isMatch) {
+        throw invalidCredentialsError();
+    }
+
+    if (user.status !== UserStatus.ACTIVE) {
+        throw new AppError(
+            403,
+            "ACCOUNT_DISABLED",
+            "This account is disabled"
+        );
+    }
+
+    const secret = process.env.JWT_SECRET;
+
+    if (!secret) {
+        throw new AppError(
+            500,
+            "JWT_NOT_CONFIGURED",
+            "JWT authentication is not configured"
+        );
+    }
 
     const token = jwt.sign(
-        { userId: user.id, role: user.role },
-        process.env.JWT_SECRET as string,
-        { expiresIn: "24h" }
+        {},
+        secret,
+        {
+            algorithm: "HS256",
+            expiresIn: "24h",
+            subject: String(user.id)
+        }
     );
 
     return { token, role: user.role };
 };
 
-export const updateUserService = async (id: number, data: { username?: string, role?: any }) => {
-    const updateData: any = {};
+export const updateUserService = async (
+    id: number,
+    data: {
+        username?: string;
+        role?: Role;
+    }
+) => {
+    const updateData: {
+        username?: string;
+        role?: Role;
+    } = {};
+
     if (data.username) {
         updateData.username = data.username;
     }
+
     if (data.role) {
         updateData.role = data.role;
     }
 
-    return await prisma.user.update({
+    return prisma.user.update({
         where: { id },
         data: updateData
     });
@@ -84,19 +144,38 @@ export const updateUserService = async (id: number, data: { username?: string, r
 
 export const resetPasswordByAdminService = async (id: number) => {
     const password_hash = await bcrypt.hash("123456", 10);
-    return await prisma.user.update({
+
+    return prisma.user.update({
         where: { id },
         data: { password_hash }
     });
 };
 
-export const changePasswordService = async (id: number, oldPass: string, newPass: string) => {
+export const changePasswordService = async (
+    id: number,
+    oldPass: string,
+    newPass: string
+) => {
     const user = await prisma.user.findUnique({ where: { id } });
-    if (!user) throw new Error("User không tồn tại");
+
+    if (!user) {
+        throw new AppError(404, "NOT_FOUND", "User was not found");
+    }
 
     const isMatch = await bcrypt.compare(oldPass, user.password_hash);
-    if (!isMatch) throw new Error("Mật khẩu cũ không đúng");
+
+    if (!isMatch) {
+        throw new AppError(
+            401,
+            "INVALID_PASSWORD",
+            "Current password is incorrect"
+        );
+    }
 
     const password_hash = await bcrypt.hash(newPass, 10);
-    return await prisma.user.update({ where: { id }, data: { password_hash } });
+
+    return prisma.user.update({
+        where: { id },
+        data: { password_hash }
+    });
 };

@@ -3,15 +3,13 @@ import { Request, Response } from "express";
 import * as invoiceService from "../services/invoice.service.js";
 
 const getActor = (req: Request): invoiceService.InvoiceActor | null => {
-    const userId = req.user?.id;
-
-    if (!userId || !req.user?.role) {
+    if (!req.actor) {
         return null;
     }
 
     return {
-        userId,
-        role: req.user.role
+        userId: req.actor.userId,
+        role: req.actor.role
     };
 };
 
