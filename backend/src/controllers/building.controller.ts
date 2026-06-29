@@ -100,27 +100,13 @@ export const update = async (
     } = getValidated<UpdateBuildingRequest>(request);
     let imageUrl: string | undefined;
 
+    buildingService.assertBuildingUpdateAccessService(
+        params.id,
+        body,
+        request.actor!
+    );
+
     if (request.file) {
-        const oldBuilding =
-            await buildingService.getBuildingForUpdateService(
-                params.id,
-                request.actor!
-            );
-
-        if (oldBuilding.thumbnail_url) {
-            const oldFilePath = oldBuilding.thumbnail_url
-                .split(".io/")
-                .pop()
-                ?.split("/")
-                .slice(1)
-                .join("/");
-
-            if (oldFilePath) {
-                await imagekit.deleteFile(oldFilePath)
-                    .catch(() => undefined);
-            }
-        }
-
         imageUrl = await uploadImage(request.file);
     }
 

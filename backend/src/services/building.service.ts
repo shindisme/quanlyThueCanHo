@@ -166,21 +166,22 @@ export const getBuildingByIdService = async (id: number) => {
     });
 };
 
-export const getBuildingForUpdateService = async (
+export const assertBuildingUpdateAccessService = (
     id: number,
+    data: UpdateBuildingRequest["body"],
     actor: Actor
 ) => {
     if (actor.role === Role.MANAGER) {
         assertManagerBuildingTarget(id, actor);
+
+        if (data.staff_id !== undefined) {
+            throw new AppError(
+                403,
+                "FORBIDDEN",
+                "Managers cannot change building staff assignments"
+            );
+        }
     }
-
-    const building = await getBuildingByIdService(id);
-
-    if (!building) {
-        throw notFound();
-    }
-
-    return building;
 };
 
 export const updateBuildingService = async (
@@ -189,6 +190,8 @@ export const updateBuildingService = async (
     actor: Actor,
     imageUrl?: string
 ) => {
+    assertBuildingUpdateAccessService(id, data, actor);
+
     const {
         staff_id,
         ...scalarData
@@ -202,15 +205,6 @@ export const updateBuildingService = async (
 
     if (actor.role === Role.MANAGER) {
         const buildingId = assertManagerBuildingTarget(id, actor);
-
-        if (staff_id !== undefined) {
-            throw new AppError(
-                403,
-                "FORBIDDEN",
-                "Managers cannot change building staff assignments"
-            );
-        }
-
         const result = await prisma.building.updateMany({
             where: { id: buildingId },
             data: updateData

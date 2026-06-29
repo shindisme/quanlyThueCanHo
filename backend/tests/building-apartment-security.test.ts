@@ -1,6 +1,7 @@
 import {
     ApartmentStatus,
     BuildingStatus,
+    Prisma,
     Role,
     UserStatus
 } from "@prisma/client";
@@ -17,6 +18,7 @@ import buildingRouter from "../src/routes/building.route.js";
 import { createBearerToken } from "./helpers/auth.js";
 import { createTestApp } from "./helpers/test-app.js";
 import {
+    imageKitDeleteFileMock,
     imageKitUploadMock,
     prismaMock
 } from "./setup.js";
@@ -27,6 +29,15 @@ const MANAGER_STAFF_ID = 201;
 const BUILDING_ID = 301;
 const OTHER_BUILDING_ID = 302;
 const APARTMENT_ID = 401;
+
+const prismaNotFoundError = () =>
+    new Prisma.PrismaClientKnownRequestError(
+        "Record to update not found",
+        {
+            code: "P2025",
+            clientVersion: "6.15.0"
+        }
+    );
 
 const building = {
     id: BUILDING_ID,
@@ -416,6 +427,31 @@ describe("building write authorization and scope", () => {
         expect(prismaMock.building.updateMany).not.toHaveBeenCalled();
     });
 
+    it("rejects Manager multipart staff assignment before any external image work", async () => {
+        authenticateAs(Role.MANAGER);
+        prismaMock.building.findUnique.mockResolvedValueOnce({
+            ...building,
+            thumbnail_url: "https://ik.imagekit.io/demo/old-building.jpg"
+        } as never);
+        imageKitUploadMock.mockResolvedValueOnce({
+            url: "https://images.example/new-building.jpg"
+        });
+        imageKitDeleteFileMock.mockResolvedValueOnce(undefined);
+
+        const response = await request(buildingApp())
+            .put(`/buildings/${BUILDING_ID}`)
+            .set("Authorization", createBearerToken(MANAGER_USER_ID))
+            .field("staff_id", "999")
+            .attach("image", Buffer.from("image"), "building.jpg");
+
+        expect(response.status).toBe(403);
+        expect(response.body.error.code).toBe("FORBIDDEN");
+        expect(imageKitUploadMock).not.toHaveBeenCalled();
+        expect(imageKitDeleteFileMock).not.toHaveBeenCalled();
+        expect(prismaMock.building.updateMany).not.toHaveBeenCalled();
+        expect(prismaMock.building.update).not.toHaveBeenCalled();
+    });
+
     it("allows Admin to create, update, and delete buildings globally", async () => {
         authenticateAs(Role.ADMIN);
         prismaMock.building.create.mockResolvedValueOnce(building as never);
@@ -546,8 +582,7 @@ describe("apartment write authorization and scope", () => {
 
     it("updates an apartment with a final Manager building guard", async () => {
         authenticateAs(Role.MANAGER);
-        prismaMock.apartment.updateMany.mockResolvedValueOnce({ count: 1 });
-        prismaMock.apartment.findFirst.mockResolvedValueOnce({
+        prismaMock.apartment.update.mockResolvedValueOnce({
             ...apartment,
             floor: 2
         } as never);
@@ -558,42 +593,24 @@ describe("apartment write authorization and scope", () => {
             .send({ floor: "2" });
 
         expect(response.status).toBe(200);
-        expect(prismaMock.apartment.updateMany).toHaveBeenCalledWith({
-            where: {
-                id: APARTMENT_ID,
-                building_id: BUILDING_ID
-            },
-            data: { floor: 2 }
-        });
-        expect(prismaMock.apartment.update).not.toHaveBeenCalled();
-        expect(response.body.success).toBe(true);
-    });
-
-    it("keeps the Manager post-update read inside the same building scope", async () => {
-        authenticateAs(Role.MANAGER);
-        prismaMock.apartment.updateMany.mockResolvedValueOnce({ count: 1 });
-        prismaMock.apartment.findFirst.mockResolvedValueOnce(null);
-
-        const response = await request(apartmentApp())
-            .put(`/apartments/${APARTMENT_ID}`)
-            .set("Authorization", createBearerToken(MANAGER_USER_ID))
-            .send({ floor: 2 });
-
-        expect(response.status).toBe(404);
-        expect(prismaMock.apartment.findFirst).toHaveBeenCalledWith(
+        expect(prismaMock.apartment.update).toHaveBeenCalledWith(
             expect.objectContaining({
                 where: {
                     id: APARTMENT_ID,
                     building_id: BUILDING_ID
-                }
+                },
+                data: { floor: 2 }
             })
         );
-        expect(prismaMock.apartment.findUnique).not.toHaveBeenCalled();
+        expect(prismaMock.apartment.updateMany).not.toHaveBeenCalled();
+        expect(response.body.success).toBe(true);
     });
 
-    it("conceals an out-of-building apartment when the guarded update matches nothing", async () => {
+    it("maps a no-match final scoped Manager update to standard 404", async () => {
         authenticateAs(Role.MANAGER);
-        prismaMock.apartment.updateMany.mockResolvedValueOnce({ count: 0 });
+        prismaMock.apartment.update.mockRejectedValueOnce(
+            prismaNotFoundError()
+        );
 
         const response = await request(apartmentApp())
             .put(`/apartments/${APARTMENT_ID}`)
@@ -602,20 +619,114 @@ describe("apartment write authorization and scope", () => {
 
         expect(response.status).toBe(404);
         expect(response.body.error.code).toBe("NOT_FOUND");
-        expect(prismaMock.apartment.updateMany).toHaveBeenCalledWith({
-            where: {
-                id: APARTMENT_ID,
-                building_id: BUILDING_ID
-            },
-            data: { floor: 2 }
+        expect(prismaMock.apartment.update).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: {
+                    id: APARTMENT_ID,
+                    building_id: BUILDING_ID
+                }
+            })
+        );
+        expect(prismaMock.apartment.updateMany).not.toHaveBeenCalled();
+    });
+
+    it("nests Manager image writes in the final scoped apartment update after preflight", async () => {
+        authenticateAs(Role.MANAGER);
+        prismaMock.apartment.findFirst.mockResolvedValueOnce({
+            id: APARTMENT_ID
+        } as never);
+        prismaMock.apartmentImage.count.mockResolvedValueOnce(0);
+        imageKitUploadMock.mockResolvedValueOnce({
+            url: "https://images.example/apartment-new.jpg"
         });
-        expect(prismaMock.apartment.update).not.toHaveBeenCalled();
+        prismaMock.apartment.update.mockResolvedValueOnce({
+            ...apartment,
+            description: "Updated with image"
+        } as never);
+
+        const response = await request(apartmentApp())
+            .put(`/apartments/${APARTMENT_ID}`)
+            .set("Authorization", createBearerToken(MANAGER_USER_ID))
+            .field("description", "Updated with image")
+            .attach("images", Buffer.from("image"), "apartment.jpg");
+
+        expect(response.status).toBe(200);
+        expect(
+            prismaMock.apartment.findFirst.mock.invocationCallOrder[0]
+        ).toBeLessThan(
+            imageKitUploadMock.mock.invocationCallOrder[0]
+        );
+        expect(prismaMock.apartment.update).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: {
+                    id: APARTMENT_ID,
+                    building_id: BUILDING_ID
+                },
+                data: {
+                    description: "Updated with image",
+                    images: {
+                        create: [{
+                            image_url:
+                                "https://images.example/apartment-new.jpg",
+                            is_thumbnail: true
+                        }]
+                    }
+                }
+            })
+        );
+        expect(prismaMock.apartment.updateMany).not.toHaveBeenCalled();
+        expect(
+            prismaMock.apartmentImage.createMany
+        ).not.toHaveBeenCalled();
+    });
+
+    it("returns 404 without unscoped image writes when Manager loses scope at the final update", async () => {
+        authenticateAs(Role.MANAGER);
+        prismaMock.apartment.findFirst.mockResolvedValueOnce({
+            id: APARTMENT_ID
+        } as never);
+        prismaMock.apartmentImage.count.mockResolvedValueOnce(2);
+        imageKitUploadMock.mockResolvedValueOnce({
+            url: "https://images.example/apartment-new.jpg"
+        });
+        prismaMock.apartment.update.mockRejectedValueOnce(
+            prismaNotFoundError()
+        );
+
+        const response = await request(apartmentApp())
+            .put(`/apartments/${APARTMENT_ID}`)
+            .set("Authorization", createBearerToken(MANAGER_USER_ID))
+            .field("description", "Scope changed")
+            .attach("images", Buffer.from("image"), "apartment.jpg");
+
+        expect(response.status).toBe(404);
+        expect(response.body.error.code).toBe("NOT_FOUND");
+        expect(prismaMock.apartment.update).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: {
+                    id: APARTMENT_ID,
+                    building_id: BUILDING_ID
+                },
+                data: expect.objectContaining({
+                    images: {
+                        create: [{
+                            image_url:
+                                "https://images.example/apartment-new.jpg",
+                            is_thumbnail: false
+                        }]
+                    }
+                })
+            })
+        );
+        expect(prismaMock.apartment.updateMany).not.toHaveBeenCalled();
+        expect(
+            prismaMock.apartmentImage.createMany
+        ).not.toHaveBeenCalled();
     });
 
     it("ignores a Manager attempt to move an apartment to another building", async () => {
         authenticateAs(Role.MANAGER);
-        prismaMock.apartment.updateMany.mockResolvedValueOnce({ count: 1 });
-        prismaMock.apartment.findFirst.mockResolvedValueOnce(apartment as never);
+        prismaMock.apartment.update.mockResolvedValueOnce(apartment as never);
 
         const response = await request(apartmentApp())
             .put(`/apartments/${APARTMENT_ID}`)
@@ -626,15 +737,17 @@ describe("apartment write authorization and scope", () => {
             });
 
         expect(response.status).toBe(200);
-        expect(prismaMock.apartment.updateMany).toHaveBeenCalledWith({
-            where: {
-                id: APARTMENT_ID,
-                building_id: BUILDING_ID
-            },
-            data: {
-                description: "Still managed here"
-            }
-        });
+        expect(prismaMock.apartment.update).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: {
+                    id: APARTMENT_ID,
+                    building_id: BUILDING_ID
+                },
+                data: {
+                    description: "Still managed here"
+                }
+            })
+        );
     });
 
     it.each([

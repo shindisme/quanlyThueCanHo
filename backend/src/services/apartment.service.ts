@@ -241,32 +241,34 @@ export const updateApartmentService = async (
             building_id: _ignoredBuildingId,
             ...managerData
         } = data;
-        const result = await prisma.apartment.updateMany({
+        const existingImageCount = imageUrls.length === 0
+            ? 0
+            : await prisma.apartmentImage.count({
+                where: { apartment_id: id }
+            });
+        const nestedImages = imageUrls.length === 0
+            ? {}
+            : {
+                images: {
+                    create: imageUrls.map((url, index) => ({
+                        image_url: url,
+                        is_thumbnail:
+                            existingImageCount === 0 && index === 0
+                    }))
+                }
+            };
+
+        return prisma.apartment.update({
             where: {
                 id,
                 building_id: buildingId
             },
-            data: managerData
-        });
-
-        if (result.count === 0) {
-            throw notFound();
-        }
-
-        await addImages(id, imageUrls);
-        const updated = await prisma.apartment.findFirst({
-            where: {
-                id,
-                building_id: buildingId
+            data: {
+                ...managerData,
+                ...nestedImages
             },
             select: apartmentSelect
         });
-
-        if (!updated) {
-            throw notFound();
-        }
-
-        return updated;
     }
 
     const updated = await prisma.apartment.update({
