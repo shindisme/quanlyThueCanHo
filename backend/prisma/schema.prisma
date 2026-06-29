@@ -83,24 +83,28 @@ model User {
 }
 
 model Tenant {
-  id            Int       @id @default(autoincrement())
-  user_id       Int?      @unique
-  full_name     String
-  phone         String?   @unique
-  email         String?   @unique
-  date_of_birth DateTime?
-  citizen_id    String    @unique
-  address       String?
-  is_verified   Boolean   @default(false)
-  created_at    DateTime  @default(now())
+  id                     Int       @id @default(autoincrement())
+  user_id                Int?      @unique
+  onboarding_building_id Int?
+  full_name              String
+  phone                  String?   @unique
+  email                  String?   @unique
+  date_of_birth          DateTime?
+  citizen_id             String    @unique
+  address                String?
+  is_verified            Boolean   @default(false)
+  created_at             DateTime  @default(now())
 
-  user        User?                @relation(fields: [user_id], references: [id])
-  occupants   Occupant[]
-  contracts   RentalContract[]
-  maintenance MaintenanceRequest[]
-  reviews     Review[]
+  user                User?      @relation(fields: [user_id], references: [id])
+  onboarding_building Building?  @relation("TenantOnboardingBuilding", fields: [onboarding_building_id], references: [id], onDelete: SetNull)
+  occupants           Occupant[]
+  contracts           RentalContract[]
+  invoices            Invoice[]
+  maintenance         MaintenanceRequest[]
+  reviews             Review[]
 
   @@index([created_at])
+  @@index([onboarding_building_id])
   @@map("tenants")
 }
 
@@ -131,8 +135,9 @@ model Building {
   thumbnail_url    String?
   created_at       DateTime       @default(now())
 
-  apartments     Apartment[]
-  assigned_staff Staff[]     @relation("BuildingStaff")
+  apartments          Apartment[]
+  assigned_staff      Staff[]  @relation("BuildingStaff")
+  onboarding_tenants Tenant[] @relation("TenantOnboardingBuilding")
 
   @@index([status])
   @@index([created_at])
@@ -180,6 +185,7 @@ model Apartment {
   @@index([status])
   @@index([building_id, status])
   @@index([building_id, floor])
+  @@unique([building_id, floor, room_number])
   @@map("apartments")
 }
 
@@ -231,6 +237,7 @@ model Invoice {
   paid_at      DateTime?
 
   contract RentalContract @relation(fields: [contract_id], references: [id])
+  tenant   Tenant         @relation(fields: [tenant_id], references: [id])
   items    InvoiceItem[]
   payments Payment[]
 
@@ -327,6 +334,7 @@ model UtilityReading {
 
   @@index([apartment_id, month, year])
   @@index([recorded_by])
+  @@unique([apartment_id, month, year])
   @@map("utility_readings")
 }
 
@@ -383,5 +391,6 @@ model Review {
 
   @@index([apartment_id])
   @@index([tenant_id])
+  @@unique([apartment_id, tenant_id])
   @@map("reviews")
 }
