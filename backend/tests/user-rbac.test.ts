@@ -70,6 +70,17 @@ const managerScope = {
     ]
 };
 
+const scopedTargetLookup = {
+    where: {
+        id: TARGET_ID,
+        role: {
+            not: Role.ADMIN
+        },
+        ...managerScope
+    },
+    select: { id: true }
+};
+
 const userSummarySelect = {
     id: true,
     username: true,
@@ -218,6 +229,14 @@ describe("user-management RBAC", () => {
                         address_new: "123 Main Street"
                     }
                 }
+            },
+            {
+                id: TARGET_ID + 1,
+                username: "tenant-user",
+                role: Role.TENANT,
+                status: UserStatus.ACTIVE,
+                created_at: createdAt,
+                staff: null
             }
         ] as never);
 
@@ -247,6 +266,14 @@ describe("user-management RBAC", () => {
                     branch_name: "Central",
                     address_new: "123 Main Street"
                 }
+            },
+            {
+                id: TARGET_ID + 1,
+                username: "tenant-user",
+                role: Role.TENANT,
+                status: UserStatus.ACTIVE,
+                created_at: createdAt.toISOString(),
+                managed_building: null
             }
         ]);
     });
@@ -311,6 +338,12 @@ describe("user-management RBAC", () => {
             .set("Authorization", createBearerToken(MANAGER_ID));
 
         expect(response.status).toBe(200);
+        expect(prismaMock.user.findFirst).toHaveBeenCalledWith(
+            scopedTargetLookup
+        );
+        expect(
+            prismaMock.user.findFirst.mock.calls[0][0].where?.OR
+        ).toContainEqual(managerScope.OR[0]);
         expect(prismaMock.user.delete).toHaveBeenCalledWith({
             where: { id: TARGET_ID }
         });
@@ -341,6 +374,12 @@ describe("user-management RBAC", () => {
             .send({ status: UserStatus.BANNED });
 
         expect(response.status).toBe(200);
+        expect(prismaMock.user.findFirst).toHaveBeenCalledWith(
+            scopedTargetLookup
+        );
+        expect(
+            prismaMock.user.findFirst.mock.calls[0][0].where?.OR
+        ).toContainEqual(managerScope.OR[1]);
         expect(prismaMock.user.update).toHaveBeenCalledWith({
             where: { id: TARGET_ID },
             data: { status: UserStatus.BANNED },
@@ -373,6 +412,12 @@ describe("user-management RBAC", () => {
             .set("Authorization", createBearerToken(MANAGER_ID));
 
         expect(response.status).toBe(200);
+        expect(prismaMock.user.findFirst).toHaveBeenCalledWith(
+            scopedTargetLookup
+        );
+        expect(
+            prismaMock.user.findFirst.mock.calls[0][0].where?.OR
+        ).toContainEqual(managerScope.OR[2]);
         expect(prismaMock.user.update).toHaveBeenCalledOnce();
         expect(prismaMock.user.update.mock.calls[0][0]).toEqual({
             where: { id: TARGET_ID },
