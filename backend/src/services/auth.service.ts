@@ -36,7 +36,7 @@ export const deleteUserService = async (id: number) => {
     const user = await prisma.user.findUnique({ where: { id } });
 
     if (!user) {
-        throw new Error("User does not exist");
+        throw new AppError(404, "NOT_FOUND", "User was not found");
     }
 
     return prisma.user.delete({
@@ -138,7 +138,14 @@ export const updateUserService = async (
 
     return prisma.user.update({
         where: { id },
-        data: updateData
+        data: updateData,
+        select: {
+            id: true,
+            username: true,
+            role: true,
+            status: true,
+            created_at: true
+        }
     });
 };
 
@@ -166,7 +173,7 @@ export const changePasswordService = async (
 
     if (!isMatch) {
         throw new AppError(
-            401,
+            400,
             "INVALID_PASSWORD",
             "Current password is incorrect"
         );

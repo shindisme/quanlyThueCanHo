@@ -177,6 +177,17 @@ describe("authentication", () => {
         }
     );
 
+    it("requires an Authorization header", async () => {
+        const response = await request(createTestApp(createActorRouter()))
+            .get("/actor");
+
+        expect(response.status).toBe(401);
+        expect(response.body.error.code).toBe(
+            "AUTHENTICATION_REQUIRED"
+        );
+        expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
+    });
+
     it.each([
         ["malformed", "Bearer not-a-jwt"],
         [
@@ -203,6 +214,25 @@ describe("authentication", () => {
             expect(response.body.error.code).toBe("INVALID_TOKEN");
         }
     );
+
+    it("rejects a signed token with an invalid subject", async () => {
+        const authorization = `Bearer ${jwt.sign(
+            { sub: "not-a-user-id" },
+            JWT_SECRET,
+            {
+                algorithm: "HS256",
+                expiresIn: "1h"
+            }
+        )}`;
+
+        const response = await request(createTestApp(createActorRouter()))
+            .get("/actor")
+            .set("Authorization", authorization);
+
+        expect(response.status).toBe(401);
+        expect(response.body.error.code).toBe("INVALID_TOKEN");
+        expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
+    });
 
     it("rejects a valid token when its database user no longer exists", async () => {
         prismaMock.user.findUnique.mockResolvedValue(null);
@@ -266,6 +296,28 @@ describe("authentication", () => {
             .set("Authorization", createBearerToken(101));
 
         expect(prismaMock.user.findUnique).toHaveBeenCalledOnce();
+        expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+            where: { id: 101 },
+            select: {
+                id: true,
+                role: true,
+                status: true,
+                staff: {
+                    select: {
+                        id: true,
+                        building_id: true
+                    }
+                },
+                tenant: {
+                    select: {
+                        id: true
+                    }
+                }
+            }
+        });
+        expect(
+            prismaMock.user.findUnique.mock.calls[0][0].select
+        ).not.toHaveProperty("password_hash");
         expect(response.status).toBe(200);
         expect(response.body).toEqual({
             userId: 101,
@@ -296,6 +348,130 @@ describe("authentication", () => {
             role: Role.TENANT,
             status: UserStatus.ACTIVE,
             tenantId: 501
+        });
+    });
+
+    it("returns 400 INVALID_PASSWORD for a wrong current password", async () => {
+        prismaMock.user.findUnique
+            .mockResolvedValueOnce(authenticationRecord() as never)
+            .mockResolvedValueOnce(user());
+
+        const response = await request(createTestApp(authRouter, "/auth"))
+            .post("/auth/change-password")
+            .set("Authorization", createBearerToken(101))
+            .send({
+                oldPass: "wrong-password",
+                newPass: "new-password"
+            });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({
+            success: false,
+            error: {
+                code: "INVALID_PASSWORD",
+                message: "Current password is incorrect"
+            }
+        });
+        expect(prismaMock.user.update).not.toHaveBeenCalled();
+    });
+
+    it("verifies the old password and persists a hash of the new password", async () => {
+        prismaMock.user.findUnique
+            .mockResolvedValueOnce(authenticationRecord() as never)
+            .mockResolvedValueOnce(user());
+        prismaMock.user.update.mockResolvedValue(user());
+
+        const response = await request(createTestApp(authRouter, "/auth"))
+            .post("/auth/change-password")
+            .set("Authorization", createBearerToken(101))
+            .send({
+                oldPass: PASSWORD,
+                newPass: "new-password"
+            });
+
+        expect(prismaMock.user.findUnique).toHaveBeenNthCalledWith(
+            2,
+            { where: { id: 101 } }
+        );
+        expect(prismaMock.user.update).toHaveBeenCalledOnce();
+
+        const updateArguments = prismaMock.user.update.mock.calls[0][0];
+        const updatedHash = updateArguments.data.password_hash as string;
+
+        expect(updateArguments).toEqual({
+            where: { id: 101 },
+            data: { password_hash: expect.any(String) }
+        });
+        expect(updatedHash).not.toBe(PASSWORD);
+        expect(await bcrypt.compare("new-password", updatedHash)).toBe(true);
+        expect(await bcrypt.compare(PASSWORD, updatedHash)).toBe(false);
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({
+            success: true,
+            data: { changed: true }
+        });
+    });
+
+    it("returns 404 NOT_FOUND when deleting a missing user", async () => {
+        prismaMock.user.findUnique
+            .mockResolvedValueOnce(authenticationRecord() as never)
+            .mockResolvedValueOnce(null);
+
+        const response = await request(createTestApp(authRouter, "/auth"))
+            .delete("/auth/delete-user/999")
+            .set("Authorization", createBearerToken(101));
+
+        expect(response.status).toBe(404);
+        expect(response.body).toEqual({
+            success: false,
+            error: {
+                code: "NOT_FOUND",
+                message: "User was not found"
+            }
+        });
+        expect(prismaMock.user.delete).not.toHaveBeenCalled();
+    });
+
+    it("updates a user with an explicit credential-safe projection", async () => {
+        const createdAt = new Date("2026-02-01T00:00:00.000Z");
+
+        prismaMock.user.findUnique.mockResolvedValue(
+            authenticationRecord() as never
+        );
+        prismaMock.user.update.mockResolvedValue({
+            id: 102,
+            username: "bob",
+            role: Role.MANAGER,
+            status: UserStatus.ACTIVE,
+            created_at: createdAt
+        } as never);
+
+        const response = await request(createTestApp(authRouter, "/auth"))
+            .put("/auth/users/102")
+            .set("Authorization", createBearerToken(101))
+            .send({ username: "bob" });
+
+        expect(prismaMock.user.update).toHaveBeenCalledWith({
+            where: { id: 102 },
+            data: { username: "bob" },
+            select: {
+                id: true,
+                username: true,
+                role: true,
+                status: true,
+                created_at: true
+            }
+        });
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({
+            success: true,
+            data: {
+                id: 102,
+                username: "bob",
+                role: Role.MANAGER,
+                status: UserStatus.ACTIVE,
+                created_at: createdAt.toISOString()
+            }
         });
     });
 });
