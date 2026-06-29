@@ -14,6 +14,10 @@ import invoiceRouter from "./routes/invoice.routes.js";
 import paymentRouter from "./routes/payment.routes.js";
 import notificationRouter from "./routes/notification.routes.js";
 import contractRouter from "./routes/contract.routes.js";
+import {
+    errorHandler,
+    notFound
+} from "./middleware/error.middleware.js";
 
 const app = express();
 
@@ -39,5 +43,8 @@ app.use("/contracts", contractRouter);
 app.get("/", (req, res) => {
     res.json({ message: "API hệ thống quản lý thuê căn hộ đang hoạt động ổn định!" });
 });
+
+app.use(notFound);
+app.use(errorHandler);
 
 export default app;
