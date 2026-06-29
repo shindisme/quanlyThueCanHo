@@ -371,7 +371,11 @@ describe("authentication", () => {
             }
         ] as never);
 
-        const users = await getAllUsersService();
+        const users = await getAllUsersService({
+            userId: 1,
+            role: Role.ADMIN,
+            status: UserStatus.ACTIVE
+        });
 
         expect(prismaMock.user.findMany).toHaveBeenCalledWith({
             select: {
@@ -496,9 +500,15 @@ describe("authentication", () => {
     it("updates a user with an explicit credential-safe projection", async () => {
         const createdAt = new Date("2026-02-01T00:00:00.000Z");
 
-        prismaMock.user.findUnique.mockResolvedValue(
-            authenticationRecord() as never
-        );
+        prismaMock.user.findUnique
+            .mockResolvedValueOnce(authenticationRecord() as never)
+            .mockResolvedValueOnce({
+                id: 102,
+                role: Role.MANAGER
+            } as never);
+        prismaMock.user.findFirst.mockResolvedValueOnce({
+            id: 102
+        } as never);
         prismaMock.user.update.mockResolvedValue({
             id: 102,
             username: "bob",

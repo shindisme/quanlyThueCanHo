@@ -1,4 +1,7 @@
-import { Role } from "@prisma/client";
+import {
+    Role,
+    UserStatus
+} from "@prisma/client";
 import { z } from "zod";
 
 const emptyObjectSchema = z.object({}).strict();
@@ -51,11 +54,15 @@ export const updateUserRequestSchema = z.object({
     query: emptyObjectSchema,
     body: z.object({
         username: z.string().trim().min(3).max(100).optional(),
-        role: z.nativeEnum(Role).optional()
+        role: z.nativeEnum(Role).optional(),
+        status: z.nativeEnum(UserStatus).optional()
     })
         .strict()
         .refine(
-            (body) => body.username !== undefined || body.role !== undefined,
+            (body) =>
+                body.username !== undefined
+                || body.role !== undefined
+                || body.status !== undefined,
             { message: "At least one field must be provided" }
         )
 }).strict();

@@ -1,11 +1,13 @@
 import {
+    Role,
     UserStatus,
-    type Role
+    type Prisma
 } from "@prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { prisma } from "../config/database.js";
 import { AppError } from "../errors/app-error.js";
+import type { Actor } from "../types/auth.js";
 
 const DUMMY_PASSWORD_HASH =
     "$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
@@ -16,10 +18,151 @@ const invalidCredentialsError = () => new AppError(
     "Invalid username or password"
 );
 
-export const createAccountByAdminService = async (data: {
+const forbiddenError = () => new AppError(
+    403,
+    "FORBIDDEN",
+    "You do not have permission to perform this action"
+);
+
+const userNotFoundError = () => new AppError(
+    404,
+    "NOT_FOUND",
+    "User was not found"
+);
+
+const userSummarySelect = {
+    id: true,
+    username: true,
+    role: true,
+    status: true,
+    created_at: true,
+    staff: {
+        select: {
+            building: {
+                select: {
+                    id: true,
+                    branch_name: true,
+                    address_new: true
+                }
+            }
+        }
+    }
+} satisfies Prisma.UserSelect;
+
+const managerUserScope = (
+    buildingId: number
+): Prisma.UserWhereInput => ({
+    OR: [
+        {
+            staff: {
+                is: {
+                    building_id: buildingId
+                }
+            }
+        },
+        {
+            tenant: {
+                is: {
+                    onboarding_building_id: buildingId
+                }
+            }
+        },
+        {
+            tenant: {
+                is: {
+                    contracts: {
+                        some: {
+                            apartment: {
+                                building_id: buildingId
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+});
+
+const getManagerBuildingId = (actor: Actor) => {
+    if (actor.role === Role.ADMIN) {
+        return undefined;
+    }
+
+    if (actor.role !== Role.MANAGER) {
+        throw forbiddenError();
+    }
+
+    if (actor.buildingId === undefined) {
+        throw new AppError(
+            403,
+            "MANAGER_BUILDING_REQUIRED",
+            "A building assignment is required for Manager operations"
+        );
+    }
+
+    return actor.buildingId;
+};
+
+const assertAssignableRole = (
+    actor: Actor,
+    role: Role | undefined
+) => {
+    if (actor.role === Role.MANAGER && role === Role.ADMIN) {
+        throw forbiddenError();
+    }
+};
+
+const assertCanManageTarget = async (
+    actor: Actor,
+    targetId: number,
+    managerBuildingId: number | undefined
+) => {
+    const target = await prisma.user.findUnique({
+        where: { id: targetId },
+        select: {
+            id: true,
+            role: true
+        }
+    });
+
+    if (!target) {
+        throw userNotFoundError();
+    }
+
+    if (actor.role === Role.MANAGER && target.role === Role.ADMIN) {
+        throw forbiddenError();
+    }
+
+    if (managerBuildingId === undefined) {
+        return;
+    }
+
+    const scopedTarget = await prisma.user.findFirst({
+        where: {
+            id: targetId,
+            role: {
+                not: Role.ADMIN
+            },
+            ...managerUserScope(managerBuildingId)
+        },
+        select: { id: true }
+    });
+
+    if (!scopedTarget) {
+        throw userNotFoundError();
+    }
+};
+
+export const createAccountByAdminService = async (
+    actor: Actor,
+    data: {
     username: string;
     role: Role;
-}) => {
+    }
+) => {
+    getManagerBuildingId(actor);
+    assertAssignableRole(actor, data.role);
+
     const password_hash = await bcrypt.hash("123456", 10);
 
     return prisma.user.create({
@@ -32,39 +175,30 @@ export const createAccountByAdminService = async (data: {
     });
 };
 
-export const deleteUserService = async (id: number) => {
-    const user = await prisma.user.findUnique({ where: { id } });
-
-    if (!user) {
-        throw new AppError(404, "NOT_FOUND", "User was not found");
-    }
+export const deleteUserService = async (actor: Actor, id: number) => {
+    const managerBuildingId = getManagerBuildingId(actor);
+    await assertCanManageTarget(actor, id, managerBuildingId);
 
     return prisma.user.delete({
         where: { id }
     });
 };
 
-export const getAllUsersService = async () => {
-    const users = await prisma.user.findMany({
-        select: {
-            id: true,
-            username: true,
-            role: true,
-            status: true,
-            created_at: true,
-            staff: {
-                select: {
-                    building: {
-                        select: {
-                            id: true,
-                            branch_name: true,
-                            address_new: true
-                        }
-                    }
-                }
-            }
-        }
-    });
+export const getAllUsersService = async (actor: Actor) => {
+    const managerBuildingId = getManagerBuildingId(actor);
+    const users = managerBuildingId === undefined
+        ? await prisma.user.findMany({
+            select: userSummarySelect
+        })
+        : await prisma.user.findMany({
+            where: {
+                role: {
+                    not: Role.ADMIN
+                },
+                ...managerUserScope(managerBuildingId)
+            },
+            select: userSummarySelect
+        });
 
     return users.map((user) => ({
         id: user.id,
@@ -127,24 +261,36 @@ export const loginService = async (username: string, password: string) => {
 };
 
 export const updateUserService = async (
+    actor: Actor,
     id: number,
     data: {
         username?: string;
         role?: Role;
+        status?: UserStatus;
     }
 ) => {
+    const managerBuildingId = getManagerBuildingId(actor);
+    assertAssignableRole(actor, data.role);
+
     const updateData: {
         username?: string;
         role?: Role;
+        status?: UserStatus;
     } = {};
 
-    if (data.username) {
+    if (data.username !== undefined) {
         updateData.username = data.username;
     }
 
-    if (data.role) {
+    if (data.role !== undefined) {
         updateData.role = data.role;
     }
+
+    if (data.status !== undefined) {
+        updateData.status = data.status;
+    }
+
+    await assertCanManageTarget(actor, id, managerBuildingId);
 
     return prisma.user.update({
         where: { id },
@@ -159,8 +305,13 @@ export const updateUserService = async (
     });
 };
 
-export const resetPasswordByAdminService = async (id: number) => {
+export const resetPasswordByAdminService = async (
+    actor: Actor,
+    id: number
+) => {
+    const managerBuildingId = getManagerBuildingId(actor);
     const password_hash = await bcrypt.hash("123456", 10);
+    await assertCanManageTarget(actor, id, managerBuildingId);
 
     return prisma.user.update({
         where: { id },
