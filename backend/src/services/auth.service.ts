@@ -49,6 +49,14 @@ const userSummarySelect = {
     }
 } satisfies Prisma.UserSelect;
 
+const userMutationSelect = {
+    id: true,
+    username: true,
+    role: true,
+    status: true,
+    created_at: true
+} satisfies Prisma.UserSelect;
+
 const managerUserScope = (
     buildingId: number
 ): Prisma.UserWhereInput => ({
@@ -179,9 +187,27 @@ export const deleteUserService = async (actor: Actor, id: number) => {
     const managerBuildingId = getManagerBuildingId(actor);
     await assertCanManageTarget(actor, id, managerBuildingId);
 
-    return prisma.user.delete({
-        where: { id }
+    if (managerBuildingId === undefined) {
+        return prisma.user.delete({
+            where: { id }
+        });
+    }
+
+    const deleted = await prisma.user.deleteMany({
+        where: {
+            id,
+            role: {
+                not: Role.ADMIN
+            },
+            ...managerUserScope(managerBuildingId)
+        }
     });
+
+    if (deleted.count === 0) {
+        throw userNotFoundError();
+    }
+
+    return deleted;
 };
 
 export const getAllUsersService = async (actor: Actor) => {
@@ -292,17 +318,39 @@ export const updateUserService = async (
 
     await assertCanManageTarget(actor, id, managerBuildingId);
 
-    return prisma.user.update({
-        where: { id },
-        data: updateData,
-        select: {
-            id: true,
-            username: true,
-            role: true,
-            status: true,
-            created_at: true
-        }
+    if (managerBuildingId === undefined) {
+        return prisma.user.update({
+            where: { id },
+            data: updateData,
+            select: userMutationSelect
+        });
+    }
+
+    const updated = await prisma.user.updateMany({
+        where: {
+            id,
+            role: {
+                not: Role.ADMIN
+            },
+            ...managerUserScope(managerBuildingId)
+        },
+        data: updateData
     });
+
+    if (updated.count === 0) {
+        throw userNotFoundError();
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { id },
+        select: userMutationSelect
+    });
+
+    if (!user) {
+        throw userNotFoundError();
+    }
+
+    return user;
 };
 
 export const resetPasswordByAdminService = async (
@@ -310,13 +358,32 @@ export const resetPasswordByAdminService = async (
     id: number
 ) => {
     const managerBuildingId = getManagerBuildingId(actor);
-    const password_hash = await bcrypt.hash("123456", 10);
     await assertCanManageTarget(actor, id, managerBuildingId);
+    const password_hash = await bcrypt.hash("123456", 10);
 
-    return prisma.user.update({
-        where: { id },
+    if (managerBuildingId === undefined) {
+        return prisma.user.update({
+            where: { id },
+            data: { password_hash }
+        });
+    }
+
+    const updated = await prisma.user.updateMany({
+        where: {
+            id,
+            role: {
+                not: Role.ADMIN
+            },
+            ...managerUserScope(managerBuildingId)
+        },
         data: { password_hash }
     });
+
+    if (updated.count === 0) {
+        throw userNotFoundError();
+    }
+
+    return updated;
 };
 
 export const changePasswordService = async (

@@ -2,11 +2,13 @@ import {
     Role,
     UserStatus
 } from "@prisma/client";
+import bcrypt from "bcrypt";
 import request from "supertest";
 import {
     describe,
     expect,
-    it
+    it,
+    vi
 } from "vitest";
 import authRouter from "../src/routes/auth.route.js";
 import { createBearerToken } from "./helpers/auth.js";
@@ -79,6 +81,16 @@ const scopedTargetLookup = {
         ...managerScope
     },
     select: { id: true }
+};
+
+const guardedTargetWhere = scopedTargetLookup.where;
+
+const userMutationSelect = {
+    id: true,
+    username: true,
+    role: true,
+    status: true,
+    created_at: true
 };
 
 const userSummarySelect = {
@@ -285,6 +297,7 @@ describe("user-management RBAC", () => {
     ] as const)(
         "conceals an out-of-building target with 404 and no %s write",
         async (_operation, method, path, body) => {
+            const hashSpy = vi.spyOn(bcrypt, "hash");
             prismaMock.user.findUnique
                 .mockResolvedValueOnce(authenticationRecord() as never)
                 .mockResolvedValueOnce({
@@ -316,6 +329,63 @@ describe("user-management RBAC", () => {
             });
             expect(prismaMock.user.update).not.toHaveBeenCalled();
             expect(prismaMock.user.delete).not.toHaveBeenCalled();
+            expect(hashSpy).not.toHaveBeenCalled();
+        }
+    );
+
+    it.each([
+        ["update", "put", `/auth/users/${TARGET_ID}`, { username: "target" }],
+        ["delete", "delete", `/auth/delete-user/${TARGET_ID}`, undefined],
+        ["reset password", "post", `/auth/reset-password/${TARGET_ID}`, undefined]
+    ] as const)(
+        "returns 404 when a Manager loses guarded %s access before the final write",
+        async (operation, method, path, body) => {
+            prismaMock.user.findUnique
+                .mockResolvedValueOnce(authenticationRecord() as never)
+                .mockResolvedValueOnce({
+                    id: TARGET_ID,
+                    role: Role.STAFF
+                } as never);
+            prismaMock.user.findFirst.mockResolvedValueOnce({
+                id: TARGET_ID
+            } as never);
+            prismaMock.user.updateMany.mockResolvedValueOnce({
+                count: 0
+            });
+            prismaMock.user.deleteMany.mockResolvedValueOnce({
+                count: 0
+            });
+
+            let pending = request(app())[method](path)
+                .set("Authorization", createBearerToken(MANAGER_ID));
+
+            if (body) {
+                pending = pending.send(body);
+            }
+
+            const response = await pending;
+
+            expect(response.status).toBe(404);
+            expect(response.body.error.code).toBe("NOT_FOUND");
+            expect(prismaMock.user.findFirst).toHaveBeenCalledWith(
+                scopedTargetLookup
+            );
+            expect(prismaMock.user.findUnique).toHaveBeenCalledTimes(2);
+            expect(prismaMock.user.update).not.toHaveBeenCalled();
+            expect(prismaMock.user.delete).not.toHaveBeenCalled();
+
+            if (operation === "delete") {
+                expect(prismaMock.user.deleteMany).toHaveBeenCalledWith({
+                    where: guardedTargetWhere
+                });
+                expect(prismaMock.user.updateMany).not.toHaveBeenCalled();
+            } else {
+                expect(prismaMock.user.deleteMany).not.toHaveBeenCalled();
+                expect(prismaMock.user.updateMany).toHaveBeenCalledOnce();
+                expect(
+                    prismaMock.user.updateMany.mock.calls[0][0].where
+                ).toEqual(guardedTargetWhere);
+            }
         }
     );
 
@@ -329,9 +399,7 @@ describe("user-management RBAC", () => {
         prismaMock.user.findFirst.mockResolvedValueOnce({
             id: TARGET_ID
         } as never);
-        prismaMock.user.delete.mockResolvedValueOnce({
-            id: TARGET_ID
-        } as never);
+        prismaMock.user.deleteMany.mockResolvedValueOnce({ count: 1 });
 
         const response = await request(app())
             .delete(`/auth/delete-user/${TARGET_ID}`)
@@ -344,9 +412,10 @@ describe("user-management RBAC", () => {
         expect(
             prismaMock.user.findFirst.mock.calls[0][0].where?.OR
         ).toContainEqual(managerScope.OR[0]);
-        expect(prismaMock.user.delete).toHaveBeenCalledWith({
-            where: { id: TARGET_ID }
+        expect(prismaMock.user.deleteMany).toHaveBeenCalledWith({
+            where: guardedTargetWhere
         });
+        expect(prismaMock.user.delete).not.toHaveBeenCalled();
     });
 
     it("allows a Manager to update an onboarding tenant in the building", async () => {
@@ -356,17 +425,18 @@ describe("user-management RBAC", () => {
             .mockResolvedValueOnce({
                 id: TARGET_ID,
                 role: Role.TENANT
+            } as never)
+            .mockResolvedValueOnce({
+                id: TARGET_ID,
+                username: "tenant-user",
+                role: Role.TENANT,
+                status: UserStatus.BANNED,
+                created_at: createdAt
             } as never);
         prismaMock.user.findFirst.mockResolvedValueOnce({
             id: TARGET_ID
         } as never);
-        prismaMock.user.update.mockResolvedValueOnce({
-            id: TARGET_ID,
-            username: "tenant-user",
-            role: Role.TENANT,
-            status: UserStatus.BANNED,
-            created_at: createdAt
-        } as never);
+        prismaMock.user.updateMany.mockResolvedValueOnce({ count: 1 });
 
         const response = await request(app())
             .put(`/auth/users/${TARGET_ID}`)
@@ -380,17 +450,60 @@ describe("user-management RBAC", () => {
         expect(
             prismaMock.user.findFirst.mock.calls[0][0].where?.OR
         ).toContainEqual(managerScope.OR[1]);
-        expect(prismaMock.user.update).toHaveBeenCalledWith({
-            where: { id: TARGET_ID },
-            data: { status: UserStatus.BANNED },
-            select: {
-                id: true,
-                username: true,
-                role: true,
-                status: true,
-                created_at: true
-            }
+        expect(prismaMock.user.updateMany).toHaveBeenCalledWith({
+            where: guardedTargetWhere,
+            data: { status: UserStatus.BANNED }
         });
+        expect(prismaMock.user.findUnique).toHaveBeenNthCalledWith(
+            3,
+            {
+                where: { id: TARGET_ID },
+                select: userMutationSelect
+            }
+        );
+        expect(prismaMock.user.update).not.toHaveBeenCalled();
+        expect(response.body.data).toEqual({
+            id: TARGET_ID,
+            username: "tenant-user",
+            role: Role.TENANT,
+            status: UserStatus.BANNED,
+            created_at: createdAt.toISOString()
+        });
+        expect(response.body.data).not.toHaveProperty("password_hash");
+    });
+
+    it("returns 404 when a Manager update target disappears before the safe post-read", async () => {
+        prismaMock.user.findUnique
+            .mockResolvedValueOnce(authenticationRecord() as never)
+            .mockResolvedValueOnce({
+                id: TARGET_ID,
+                role: Role.TENANT
+            } as never)
+            .mockResolvedValueOnce(null);
+        prismaMock.user.findFirst.mockResolvedValueOnce({
+            id: TARGET_ID
+        } as never);
+        prismaMock.user.updateMany.mockResolvedValueOnce({ count: 1 });
+
+        const response = await request(app())
+            .put(`/auth/users/${TARGET_ID}`)
+            .set("Authorization", createBearerToken(MANAGER_ID))
+            .send({ status: UserStatus.BANNED });
+
+        expect(response.status).toBe(404);
+        expect(response.body.error.code).toBe("NOT_FOUND");
+        expect(prismaMock.user.updateMany).toHaveBeenCalledWith({
+            where: guardedTargetWhere,
+            data: { status: UserStatus.BANNED }
+        });
+        expect(prismaMock.user.findUnique).toHaveBeenNthCalledWith(
+            3,
+            {
+                where: { id: TARGET_ID },
+                select: userMutationSelect
+            }
+        );
+        expect(prismaMock.user.update).not.toHaveBeenCalled();
     });
 
     it("allows a Manager to reset an in-building contracted tenant password", async () => {
@@ -403,9 +516,7 @@ describe("user-management RBAC", () => {
         prismaMock.user.findFirst.mockResolvedValueOnce({
             id: TARGET_ID
         } as never);
-        prismaMock.user.update.mockResolvedValueOnce({
-            id: TARGET_ID
-        } as never);
+        prismaMock.user.updateMany.mockResolvedValueOnce({ count: 1 });
 
         const response = await request(app())
             .post(`/auth/reset-password/${TARGET_ID}`)
@@ -418,13 +529,14 @@ describe("user-management RBAC", () => {
         expect(
             prismaMock.user.findFirst.mock.calls[0][0].where?.OR
         ).toContainEqual(managerScope.OR[2]);
-        expect(prismaMock.user.update).toHaveBeenCalledOnce();
-        expect(prismaMock.user.update.mock.calls[0][0]).toEqual({
-            where: { id: TARGET_ID },
+        expect(prismaMock.user.updateMany).toHaveBeenCalledOnce();
+        expect(prismaMock.user.updateMany.mock.calls[0][0]).toEqual({
+            where: guardedTargetWhere,
             data: {
                 password_hash: expect.any(String)
             }
         });
+        expect(prismaMock.user.update).not.toHaveBeenCalled();
     });
 
     it("validates user status before reading or updating a target", async () => {
@@ -480,7 +592,7 @@ describe("user-management RBAC", () => {
         ["reset password", "post", `/auth/reset-password/${TARGET_ID}`, undefined]
     ] as const)(
         "allows an Admin to %s a target globally after a fresh safe read",
-        async (_operation, method, path, body) => {
+        async (operation, method, path, body) => {
             prismaMock.user.findUnique
                 .mockResolvedValueOnce(authenticationRecord({
                     id: ADMIN_ID,
@@ -523,6 +635,33 @@ describe("user-management RBAC", () => {
                 }
             );
             expect(prismaMock.user.findFirst).not.toHaveBeenCalled();
+            expect(prismaMock.user.updateMany).not.toHaveBeenCalled();
+            expect(prismaMock.user.deleteMany).not.toHaveBeenCalled();
+
+            if (operation === "delete") {
+                expect(prismaMock.user.delete).toHaveBeenCalledWith({
+                    where: { id: TARGET_ID }
+                });
+                expect(prismaMock.user.update).not.toHaveBeenCalled();
+            } else {
+                expect(prismaMock.user.delete).not.toHaveBeenCalled();
+                expect(prismaMock.user.update).toHaveBeenCalledOnce();
+
+                if (operation === "update") {
+                    expect(prismaMock.user.update).toHaveBeenCalledWith({
+                        where: { id: TARGET_ID },
+                        data: { username: "global" },
+                        select: userMutationSelect
+                    });
+                } else {
+                    expect(prismaMock.user.update.mock.calls[0][0]).toEqual({
+                        where: { id: TARGET_ID },
+                        data: {
+                            password_hash: expect.any(String)
+                        }
+                    });
+                }
+            }
         }
     );
 });

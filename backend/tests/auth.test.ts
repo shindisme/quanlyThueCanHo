@@ -505,34 +505,76 @@ describe("authentication", () => {
             .mockResolvedValueOnce({
                 id: 102,
                 role: Role.MANAGER
+            } as never)
+            .mockResolvedValueOnce({
+                id: 102,
+                username: "bob",
+                role: Role.MANAGER,
+                status: UserStatus.ACTIVE,
+                created_at: createdAt
             } as never);
         prismaMock.user.findFirst.mockResolvedValueOnce({
             id: 102
         } as never);
-        prismaMock.user.update.mockResolvedValue({
-            id: 102,
-            username: "bob",
-            role: Role.MANAGER,
-            status: UserStatus.ACTIVE,
-            created_at: createdAt
-        } as never);
+        prismaMock.user.updateMany.mockResolvedValueOnce({ count: 1 });
 
         const response = await request(createTestApp(authRouter, "/auth"))
             .put("/auth/users/102")
             .set("Authorization", createBearerToken(101))
             .send({ username: "bob" });
 
-        expect(prismaMock.user.update).toHaveBeenCalledWith({
-            where: { id: 102 },
-            data: { username: "bob" },
-            select: {
-                id: true,
-                username: true,
-                role: true,
-                status: true,
-                created_at: true
-            }
+        expect(prismaMock.user.updateMany).toHaveBeenCalledWith({
+            where: {
+                id: 102,
+                role: {
+                    not: Role.ADMIN
+                },
+                OR: [
+                    {
+                        staff: {
+                            is: {
+                                building_id: 301
+                            }
+                        }
+                    },
+                    {
+                        tenant: {
+                            is: {
+                                onboarding_building_id: 301
+                            }
+                        }
+                    },
+                    {
+                        tenant: {
+                            is: {
+                                contracts: {
+                                    some: {
+                                        apartment: {
+                                            building_id: 301
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
+            },
+            data: { username: "bob" }
         });
+        expect(prismaMock.user.findUnique).toHaveBeenNthCalledWith(
+            3,
+            {
+                where: { id: 102 },
+                select: {
+                    id: true,
+                    username: true,
+                    role: true,
+                    status: true,
+                    created_at: true
+                }
+            }
+        );
+        expect(prismaMock.user.update).not.toHaveBeenCalled();
         expect(response.status).toBe(200);
         expect(response.body).toEqual({
             success: true,
