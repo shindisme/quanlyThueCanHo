@@ -1,85 +1,130 @@
-import { Request, Response } from "express";
-import * as apartmentService from "../services/apartment.service.js";
 import { imagekit } from "@/config/imagekit.js";
+import type {
+    Request,
+    Response
+} from "express";
+import { AppError } from "../errors/app-error.js";
+import { getValidated } from "../middleware/validate.middleware.js";
+import type {
+    ApartmentIdRequest,
+    CreateApartmentRequest,
+    ListApartmentsRequest,
+    UpdateApartmentRequest
+} from "../schemas/apartment.schema.js";
+import * as apartmentService from "../services/apartment.service.js";
+import {
+    sendPaginated,
+    sendSuccess
+} from "../utils/api-response.js";
 
-export const create = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const files = req.files as Express.Multer.File[];
-        const uploadPromises = files?.map(file =>
-            imagekit.upload({
-                file: file.buffer.toString("base64"),
-                fileName: `${Date.now()}_${file.originalname}`,
-                folder: "/apartments"
-            })
-        ) || [];
+const uploadImages = async (files: Express.Multer.File[]) => {
+    const results = await Promise.all(files.map((file) =>
+        imagekit.upload({
+            file: file.buffer.toString("base64"),
+            fileName: `${Date.now()}_${file.originalname}`,
+            folder: "/apartments"
+        })
+    ));
 
-        const results = await Promise.all(uploadPromises);
-        const imageUrls = results.map(r => r.url);
+    return results.map((result) => result.url);
+};
 
-        const data = await apartmentService.createApartmentWithImagesService(
-            req.body,
-            imageUrls
+export const create = async (
+    request: Request,
+    response: Response
+) => {
+    const { body } = getValidated<CreateApartmentRequest>(request);
+
+    apartmentService.assertApartmentCreateAccessService(
+        request.actor!,
+        body.building_id
+    );
+
+    const imageUrls = await uploadImages(
+        (request.files as Express.Multer.File[] | undefined) ?? []
+    );
+    const apartment =
+        await apartmentService.createApartmentWithImagesService(
+            body,
+            imageUrls,
+            request.actor!
         );
 
-        res.status(201).json(data);
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
-    }
+    return sendSuccess(response, apartment, 201);
 };
 
-export const getAll = async (req: Request, res: Response): Promise<void> => {
-    const { building_id, search, page, limit } = req.query;
-    const result = await apartmentService.getAllApartmentsService({
-        building_id: building_id ? Number(building_id) : undefined,
-        search: search as string,
-        page: page ? Number(page) : 1,
-        limit: limit ? Number(limit) : 10
-    });
-    res.json(result);
+export const getAll = async (
+    request: Request,
+    response: Response
+) => {
+    const { query } = getValidated<ListApartmentsRequest>(request);
+    const result = await apartmentService.getAllApartmentsService(query);
+
+    return sendPaginated(
+        response,
+        result.data,
+        result.pagination
+    );
 };
 
-export const getById = async (req: Request, res: Response): Promise<void> => {
-    const data = await apartmentService.getApartmentByIdService(Number(req.params.id));
-    data ? res.json(data) : res.status(404).json({ message: "Not found" });
-};
+export const getById = async (
+    request: Request,
+    response: Response
+) => {
+    const { params } = getValidated<ApartmentIdRequest>(request);
+    const apartment = await apartmentService.getApartmentByIdService(
+        params.id
+    );
 
-export const update = async (req: Request, res: Response) => {
-    try {
-        const apartmentId = Number(req.params.id);
-        const files = (req.files as Express.Multer.File[]) || [];
-
-        const uploadPromises = files.map(file =>
-            imagekit.upload({
-                file: file.buffer.toString("base64"),
-                fileName: `${Date.now()}_${file.originalname}`,
-                folder: "/apartments"
-            })
+    if (!apartment) {
+        throw new AppError(
+            404,
+            "NOT_FOUND",
+            "Apartment was not found"
         );
-        const results = await Promise.all(uploadPromises);
-        const newImageUrls = results.map(r => r.url);
-
-        const { building_id, floor, room_number, area, bedrooms, bathrooms, rental_price, description, status } = req.body;
-
-        const updateData: any = {};
-        if (building_id !== undefined) updateData.building_id = Number(building_id);
-        if (floor !== undefined) updateData.floor = Number(floor);
-        if (room_number !== undefined) updateData.room_number = room_number;
-        if (area !== undefined) updateData.area = Number(area);
-        if (bedrooms !== undefined) updateData.bedrooms = Number(bedrooms);
-        if (bathrooms !== undefined) updateData.bathrooms = Number(bathrooms);
-        if (rental_price !== undefined) updateData.rental_price = Number(rental_price);
-        if (description !== undefined) updateData.description = description;
-        if (status !== undefined) updateData.status = status;
-
-        await apartmentService.updateApartmentService(apartmentId, updateData, newImageUrls);
-
-        res.json({ message: "Cập nhật căn hộ thành công" });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
     }
+
+    return sendSuccess(response, apartment);
 };
 
-export const remove = async (req: Request, res: Response): Promise<void> => {
-    await apartmentService.deleteApartmentService(Number(req.params.id));
-    res.json({ message: "Deleted" });
+export const update = async (
+    request: Request,
+    response: Response
+) => {
+    const {
+        params,
+        body
+    } = getValidated<UpdateApartmentRequest>(request);
+    const files =
+        (request.files as Express.Multer.File[] | undefined) ?? [];
+
+    if (files.length > 0) {
+        await apartmentService.assertApartmentUpdateAccessService(
+            params.id,
+            request.actor!
+        );
+    }
+
+    const imageUrls = await uploadImages(files);
+    const apartment = await apartmentService.updateApartmentService(
+        params.id,
+        body,
+        imageUrls,
+        request.actor!
+    );
+
+    return sendSuccess(response, apartment);
+};
+
+export const remove = async (
+    request: Request,
+    response: Response
+) => {
+    const { params } = getValidated<ApartmentIdRequest>(request);
+
+    await apartmentService.deleteApartmentService(
+        params.id,
+        request.actor!
+    );
+    return sendSuccess(response, { deleted: true });
 };
