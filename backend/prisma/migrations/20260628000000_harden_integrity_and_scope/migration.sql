@@ -1,3 +1,5 @@
+BEGIN;
+
 -- Abort before any schema change if existing data cannot satisfy the new
 -- foreign key and uniqueness constraints. This migration intentionally does
 -- not repair or remove live data; the database remains the source of truth.
@@ -75,3 +77,5 @@ FOREIGN KEY ("tenant_id")
 REFERENCES "public"."tenants"("id")
 ON DELETE RESTRICT
 ON UPDATE CASCADE;
+
+COMMIT;
