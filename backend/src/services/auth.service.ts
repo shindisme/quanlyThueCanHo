@@ -46,11 +46,21 @@ export const deleteUserService = async (id: number) => {
 
 export const getAllUsersService = async () => {
     const users = await prisma.user.findMany({
-        include: {
-            tenant: true,
+        select: {
+            id: true,
+            username: true,
+            role: true,
+            status: true,
+            created_at: true,
             staff: {
-                include: {
-                    building: true
+                select: {
+                    building: {
+                        select: {
+                            id: true,
+                            branch_name: true,
+                            address_new: true
+                        }
+                    }
                 }
             }
         }

@@ -18,6 +18,21 @@ type ErrorBody = {
     };
 };
 
+type JsonParseError = SyntaxError & {
+    status: 400;
+    type: "entity.parse.failed";
+    body: string;
+};
+
+const isJsonParseError = (error: unknown): error is JsonParseError =>
+    error instanceof SyntaxError
+    && "status" in error
+    && error.status === 400
+    && "type" in error
+    && error.type === "entity.parse.failed"
+    && "body" in error
+    && typeof error.body === "string";
+
 const sendError = (
     response: Response,
     statusCode: number,
@@ -56,6 +71,16 @@ export const errorHandler: ErrorRequestHandler = (
 ) => {
     if (response.headersSent) {
         next(error);
+        return;
+    }
+
+    if (isJsonParseError(error)) {
+        sendError(
+            response,
+            400,
+            "MALFORMED_JSON",
+            "Request body contains malformed JSON"
+        );
         return;
     }
 

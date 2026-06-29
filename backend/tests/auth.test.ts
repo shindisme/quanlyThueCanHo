@@ -18,6 +18,7 @@ import {
     authorizeRole
 } from "../src/middleware/auth.middleware.js";
 import authRouter from "../src/routes/auth.route.js";
+import { getAllUsersService } from "../src/services/auth.service.js";
 import { prismaMock } from "./setup.js";
 import { createBearerToken } from "./helpers/auth.js";
 import { createTestApp } from "./helpers/test-app.js";
@@ -349,6 +350,66 @@ describe("authentication", () => {
             status: UserStatus.ACTIVE,
             tenantId: 501
         });
+    });
+
+    it("loads user summaries with an explicit credential-safe projection", async () => {
+        const createdAt = new Date("2026-02-01T00:00:00.000Z");
+        prismaMock.user.findMany.mockResolvedValue([
+            {
+                id: 101,
+                username: "alice",
+                role: Role.MANAGER,
+                status: UserStatus.ACTIVE,
+                created_at: createdAt,
+                staff: {
+                    building: {
+                        id: 301,
+                        branch_name: "Central",
+                        address_new: "123 Main Street"
+                    }
+                }
+            }
+        ] as never);
+
+        const users = await getAllUsersService();
+
+        expect(prismaMock.user.findMany).toHaveBeenCalledWith({
+            select: {
+                id: true,
+                username: true,
+                role: true,
+                status: true,
+                created_at: true,
+                staff: {
+                    select: {
+                        building: {
+                            select: {
+                                id: true,
+                                branch_name: true,
+                                address_new: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        expect(
+            prismaMock.user.findMany.mock.calls[0][0].select
+        ).not.toHaveProperty("password_hash");
+        expect(users).toEqual([
+            {
+                id: 101,
+                username: "alice",
+                role: Role.MANAGER,
+                status: UserStatus.ACTIVE,
+                created_at: createdAt,
+                managed_building: {
+                    id: 301,
+                    branch_name: "Central",
+                    address_new: "123 Main Street"
+                }
+            }
+        ]);
     });
 
     it("returns 400 INVALID_PASSWORD for a wrong current password", async () => {

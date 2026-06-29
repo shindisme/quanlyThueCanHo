@@ -17,6 +17,22 @@ describe("default application error handling", () => {
         expect(response.body.error.code).toBe("VALIDATION_ERROR");
     });
 
+    it("returns a safe client error for malformed JSON", async () => {
+        const response = await request(app)
+            .post("/auth/login")
+            .set("Content-Type", "application/json")
+            .send("{");
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({
+            success: false,
+            error: {
+                code: "MALFORMED_JSON",
+                message: "Request body contains malformed JSON"
+            }
+        });
+    });
+
     it("returns the standard not-found envelope for an unknown route", async () => {
         const response = await request(app)
             .get("/route-that-does-not-exist");
