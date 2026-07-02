@@ -317,7 +317,6 @@ export default function MyMaintenance() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input
             label="Tiêu đề yêu cầu"
-            placeholder="Ví dụ: Hỏng bóng đèn bếp, nghẹt bồn cầu..."
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
@@ -342,7 +341,6 @@ export default function MyMaintenance() {
             <label className="text-xs font-semibold text-gray-600">Mô tả chi tiết sự cố</label>
             <textarea
               className="w-full min-h-[100px] p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm transition-all"
-              placeholder="Vui lòng tả rõ vị trí hỏng, hiện trạng sự cố để kỹ thuật viên chuẩn bị dụng cụ phù hợp..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               required
