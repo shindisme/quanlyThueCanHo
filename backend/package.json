@@ -10,7 +10,8 @@
     "dev": "dotenv -e .env -- tsx watch ./src/server.ts",
     "build": "tsc && tsc-alias",
     "start": "node ./dist/server.js",
-    "prisma:gen": "prisma generate"
+    "prisma:gen": "prisma generate",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@getbrevo/brevo": "^5.0.4",
