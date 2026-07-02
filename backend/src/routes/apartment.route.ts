@@ -3,7 +3,8 @@ import { Role } from "@prisma/client";
 import * as apartmentController from "../controllers/apartment.controller.js";
 import {
     authenticate,
-    authorizeRole
+    authorizeRole,
+    requireManagerBuildingAssignment
 } from "../middleware/auth.middleware.js";
 import { upload } from "../middleware/upload.middleware.js";
 import { validate } from "../middleware/validate.middleware.js";
@@ -30,6 +31,7 @@ router.post(
     "/",
     authenticate,
     authorizeRole([Role.ADMIN, Role.MANAGER]),
+    requireManagerBuildingAssignment,
     upload.array("images", 10),
     validate(createApartmentRequestSchema),
     apartmentController.create
@@ -38,6 +40,7 @@ router.put(
     "/:id",
     authenticate,
     authorizeRole([Role.ADMIN, Role.MANAGER]),
+    requireManagerBuildingAssignment,
     upload.array("images", 10),
     validate(updateApartmentRequestSchema),
     apartmentController.update

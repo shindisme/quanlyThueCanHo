@@ -1,6 +1,6 @@
 import {
+    Role,
     UserStatus,
-    type Role
 } from "@prisma/client";
 import type { RequestHandler } from "express";
 import jwt from "jsonwebtoken";
@@ -136,4 +136,34 @@ export const authorizeRole = (roles: Role[]): RequestHandler => {
 
         next();
     };
+};
+
+export const requireManagerBuildingAssignment: RequestHandler = (
+    request,
+    _response,
+    next
+) => {
+    if (!request.actor) {
+        throw new AppError(
+            401,
+            "AUTHENTICATION_REQUIRED",
+            "Authentication is required"
+        );
+    }
+
+    if (
+        request.actor.role === Role.MANAGER
+        && (
+            request.actor.staffId === undefined
+            || request.actor.buildingId === undefined
+        )
+    ) {
+        throw new AppError(
+            403,
+            "MANAGER_BUILDING_REQUIRED",
+            "A current building assignment is required"
+        );
+    }
+
+    next();
 };

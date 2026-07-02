@@ -1,4 +1,3 @@
-import { imagekit } from "@/config/imagekit.js";
 import type {
     Request,
     Response
@@ -12,20 +11,12 @@ import type {
     UpdateBuildingRequest
 } from "../schemas/building.schema.js";
 import * as buildingService from "../services/building.service.js";
+import { withCompensatedImageUploads } from "../services/image-upload.service.js";
+import { assertUpdateHasChanges } from "../services/update-validation.service.js";
 import {
     sendPaginated,
     sendSuccess
 } from "../utils/api-response.js";
-
-const uploadImage = async (file: Express.Multer.File) => {
-    const result = await imagekit.upload({
-        file: file.buffer.toString("base64"),
-        fileName: `${Date.now()}_${file.originalname}`,
-        folder: "/buildings"
-    });
-
-    return result.url;
-};
 
 const withDisplayName = <
     T extends { branch_name: string }
@@ -39,12 +30,13 @@ export const create = async (
     response: Response
 ) => {
     const { body } = getValidated<CreateBuildingRequest>(request);
-    const imageUrl = request.file
-        ? await uploadImage(request.file)
-        : undefined;
-    const building = await buildingService.createBuildingService(
-        body,
-        imageUrl
+    const building = await withCompensatedImageUploads(
+        request.file ? [request.file] : [],
+        "/buildings",
+        async (images) => buildingService.createBuildingService(
+            body,
+            images[0]?.url
+        )
     );
 
     return sendSuccess(response, withDisplayName(building), 201);
@@ -98,7 +90,7 @@ export const update = async (
         params,
         body
     } = getValidated<UpdateBuildingRequest>(request);
-    let imageUrl: string | undefined;
+    assertUpdateHasChanges(body, request.file !== undefined);
 
     buildingService.assertBuildingUpdateAccessService(
         params.id,
@@ -106,15 +98,15 @@ export const update = async (
         request.actor!
     );
 
-    if (request.file) {
-        imageUrl = await uploadImage(request.file);
-    }
-
-    const building = await buildingService.updateBuildingService(
-        params.id,
-        body,
-        request.actor!,
-        imageUrl
+    const building = await withCompensatedImageUploads(
+        request.file ? [request.file] : [],
+        "/buildings",
+        async (images) => buildingService.updateBuildingService(
+            params.id,
+            body,
+            request.actor!,
+            images[0]?.url
+        )
     );
 
     return sendSuccess(response, withDisplayName(building));

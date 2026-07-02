@@ -45,6 +45,18 @@ Before production approval:
    FROM public.reviews
    GROUP BY apartment_id, tenant_id
    HAVING COUNT(*) > 1;
+
+   SELECT apartment_id, COUNT(*)
+   FROM public.rental_contracts
+   WHERE status = 'ACTIVE'
+   GROUP BY apartment_id
+   HAVING COUNT(*) > 1;
+
+   SELECT apartment_id, schedule_time, COUNT(*)
+   FROM public.viewing_schedules
+   WHERE status IN ('PENDING', 'CONFIRMED')
+   GROUP BY apartment_id, schedule_time
+   HAVING COUNT(*) > 1;
    ```
 
 Do not change or delete application data to make a preflight pass. Stop and
@@ -77,9 +89,14 @@ and explicit production approval is recorded:
    npx prisma migrate deploy
    ```
 
-4. Verify the onboarding column, both foreign keys, and all three unique
-   indexes. Confirm application health and deployment logs before ending the
-   maintenance window.
+4. Verify the onboarding column, both foreign keys, the three full unique
+   indexes, and the two partial unique indexes
+   `rental_contracts_one_active_per_apartment_key` and
+   `viewing_schedules_one_active_slot_key`. Confirm their predicates are
+   limited to `WHERE status = 'ACTIVE'` and
+   `WHERE status IN ('PENDING', 'CONFIRMED')`, respectively, then rerun both
+   duplicate queries above. Confirm application health and deployment logs
+   before ending the maintenance window.
 
 The hardening migration uses one explicit transaction. Its `ALTER TABLE` and
 index operations acquire write-affecting locks that are held until `COMMIT`;
@@ -87,7 +104,17 @@ on large or busy tables, concurrent writes can block and the migration can wait
 for existing transactions. Keep writes paused, monitor lock/statement
 timeouts, and allow enough maintenance-window capacity. A failed preflight or
 DDL statement rolls back the transaction without cleanup or partial data
-changes.
+changes. Creating the partial unique index also scans `rental_contracts` and
+acquires a lock that conflicts with concurrent writes, so size the maintenance
+window for that table and keep contract creation/end operations paused.
+The viewing-schedule partial unique index likewise scans
+`viewing_schedules` and locks against concurrent schedule writes. It is the
+database-level backstop that prevents two PENDING or CONFIRMED rows for one
+apartment and exact timestamp. Expired PENDING rows remain covered until the
+booking transaction marks the exact expired slot CANCELLED; using a
+time-dependent predicate would not be immutable enough for a PostgreSQL
+partial index. Keep booking and schedule-management writes paused while this
+index is created.
 
 ## Clean database
 

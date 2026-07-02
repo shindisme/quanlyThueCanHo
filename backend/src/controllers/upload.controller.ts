@@ -1,26 +1,31 @@
-import { Request, Response } from "express";
-import { imagekit } from "../config/imagekit.js";
+import type {
+    Request,
+    Response
+} from "express";
+import { AppError } from "../errors/app-error.js";
+import { withCompensatedImageUploads } from "../services/image-upload.service.js";
+import { sendSuccess } from "../utils/api-response.js";
 
-export const uploadMultipleImages = async (req: Request, res: Response) => {
-    try {
-        const files = req.files as Express.Multer.File[];
-        if (!files || files.length === 0) {
-            return res.status(400).json({ error: "Vui lòng chọn ít nhất 1 ảnh" });
-        }
+export const uploadMultipleImages = async (
+    request: Request,
+    response: Response
+) => {
+    const files =
+        (request.files as Express.Multer.File[] | undefined) ?? [];
 
-        const uploadPromises = files.map(file =>
-            imagekit.upload({
-                file: file.buffer.toString("base64"),
-                fileName: `${Date.now()}_${file.originalname}`,
-                folder: "/buildings"
-            })
+    if (files.length === 0) {
+        throw new AppError(
+            400,
+            "FILES_REQUIRED",
+            "At least one image is required"
         );
-
-        const results = await Promise.all(uploadPromises);
-
-        const urls = results.map(r => r.url);
-        res.status(200).json({ urls });
-    } catch (error: any) {
-        res.status(500).json({ error: error.message });
     }
+
+    const urls = await withCompensatedImageUploads(
+        files,
+        "/buildings",
+        async (images) => images.map(({ url }) => url)
+    );
+
+    return sendSuccess(response, { urls });
 };

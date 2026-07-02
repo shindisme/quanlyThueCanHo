@@ -1,50 +1,24 @@
-import { InvoiceStatus, Prisma } from "@prisma/client";
+import {
+    Prisma,
+    Role
+} from "@prisma/client";
 import { prisma } from "../config/database.js";
+import { AppError } from "../errors/app-error.js";
+import type {
+    ListNotificationsRequest,
+    SendBuildingNotificationRequest,
+    SendInvoiceNotificationsRequest
+} from "../schemas/notification.schema.js";
+import type { Actor } from "../types/auth.js";
+import { getCurrentManagerAssignment } from "./manager-scope.js";
 
-export type NotificationActor = {
-    userId: number;
-    role: string;
-};
-
-export type NotificationFilters = {
-    type?: string;
-    is_read?: boolean;
-    user_id?: number;
-    tenant_id?: number;
-    building_id?: number;
-    search?: string;
-    page?: number;
-    limit?: number;
-};
-
-export type SendBuildingNotificationInput = {
-    building_id: number;
-    title: string;
-    content: string;
-    type?: string;
-    apartment_ids?: number[];
-    tenant_ids?: number[];
-};
-
-export type SendInvoiceNotificationInput = {
-    building_id?: number;
-    invoice_ids?: number[];
-    tenant_ids?: number[];
-    month?: number;
-    year?: number;
-    status?: InvoiceStatus;
-    title?: string;
-    content?: string;
-};
-
-export class NotificationError extends Error {
-    statusCode: number;
-
-    constructor(message: string, statusCode = 400) {
-        super(message);
-        this.statusCode = statusCode;
-    }
-}
+export type NotificationActor = Actor;
+export type NotificationFilters =
+    ListNotificationsRequest["query"];
+export type SendBuildingNotificationInput =
+    SendBuildingNotificationRequest["body"];
+export type SendInvoiceNotificationInput =
+    SendInvoiceNotificationsRequest["body"];
 
 const notificationInclude = {
     user: {
@@ -99,117 +73,155 @@ type InvoiceForNotification = Prisma.InvoiceGetPayload<{
     include: typeof invoiceNotificationInclude;
 }>;
 
-const toNumber = (value: Prisma.Decimal | number) => Number(value);
+type ManagerAssignment =
+    ReturnType<typeof getCurrentManagerAssignment>;
 
-const normalizeString = (value: unknown, label: string) => {
-    if (typeof value !== "string" || !value.trim()) {
-        throw new NotificationError(`Vui long nhap ${label}.`);
+const notFound = () => new AppError(
+    404,
+    "NOT_FOUND",
+    "Notification was not found"
+);
+
+const forbidden = (message: string) => new AppError(
+    403,
+    "FORBIDDEN",
+    message
+);
+
+const concurrentModification = () => new AppError(
+    409,
+    "CONCURRENT_MODIFICATION",
+    "Notification scope changed during this operation"
+);
+
+const SERIALIZABLE_RETRY_LIMIT = 3;
+
+const runSerializableTransaction = async <T>(
+    operation: (transaction: Prisma.TransactionClient) => Promise<T>
+) => {
+    for (let attempt = 1; attempt <= SERIALIZABLE_RETRY_LIMIT; attempt++) {
+        try {
+            return await prisma.$transaction(operation, {
+                isolationLevel:
+                    Prisma.TransactionIsolationLevel.Serializable
+            });
+        } catch (error) {
+            const isSerializationConflict =
+                error instanceof Prisma.PrismaClientKnownRequestError
+                && error.code === "P2034";
+
+            if (!isSerializationConflict) {
+                throw error;
+            }
+
+            if (attempt === SERIALIZABLE_RETRY_LIMIT) {
+                throw concurrentModification();
+            }
+        }
     }
 
-    return value.trim();
+    throw new Error("Serializable transaction retry exhausted");
 };
 
-const normalizeOptionalString = (value: unknown) => {
-    if (typeof value !== "string") {
-        return undefined;
+const getApartmentBuildingScope = (
+    buildingId: number,
+    assignment?: ManagerAssignment
+) => ({
+    building_id: buildingId,
+    ...(assignment
+        ? { building: assignment.assignmentWhere }
+        : {})
+}) satisfies Prisma.ApartmentWhereInput;
+
+const getBuildingUserScope = (
+    buildingId: number,
+    assignment?: ManagerAssignment
+) => {
+    const buildingRelation = assignment
+        ? assignment.assignmentWhere
+        : undefined;
+    const apartmentScope = getApartmentBuildingScope(
+        buildingId,
+        assignment
+    );
+
+    return {
+        role: {
+            not: Role.ADMIN
+        },
+        OR: [
+            {
+                staff: {
+                    building_id: buildingId,
+                    ...(buildingRelation
+                        ? { building: buildingRelation }
+                        : {})
+                }
+            },
+            {
+                tenant: {
+                    OR: [
+                        {
+                            onboarding_building_id: buildingId,
+                            ...(buildingRelation
+                                ? {
+                                    onboarding_building:
+                                        buildingRelation
+                                }
+                                : {})
+                        },
+                        {
+                            contracts: {
+                                some: {
+                                    apartment: apartmentScope
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    } satisfies Prisma.UserWhereInput;
+};
+
+const getNotificationScope = (
+    actor: NotificationActor
+): Prisma.NotificationWhereInput => {
+    if (actor.role === Role.ADMIN) {
+        return {};
     }
 
-    const trimmed = value.trim();
-    return trimmed || undefined;
+    if (actor.role === Role.MANAGER) {
+        const assignment = getCurrentManagerAssignment(actor);
+        return {
+            user: getBuildingUserScope(
+                assignment.buildingId,
+                assignment
+            )
+        };
+    }
+
+    if (actor.role === Role.TENANT) {
+        return {
+            user_id: actor.userId
+        };
+    }
+
+    throw forbidden("You do not have access to notifications");
 };
 
 const assertCanManageNotifications = (actor: NotificationActor) => {
-    if (!["ADMIN", "MANAGER"].includes(actor.role)) {
-        throw new NotificationError("Ban khong co quyen gui thong bao.", 403);
+    if (
+        actor.role !== Role.ADMIN
+        && actor.role !== Role.MANAGER
+    ) {
+        throw forbidden("You do not have permission to send notifications");
     }
 };
 
-const getActorStaff = async (userId: number) => {
-    return prisma.staff.findUnique({
-        where: { user_id: userId },
-        select: {
-            id: true,
-            building_id: true
-        }
-    });
-};
-
-const getActorTenant = async (userId: number) => {
-    return prisma.tenant.findUnique({
-        where: { user_id: userId },
-        select: {
-            id: true,
-            user_id: true
-        }
-    });
-};
-
-const requireManagerBuildingId = async (actor: NotificationActor) => {
-    if (actor.role === "ADMIN") {
-        return undefined;
-    }
-
-    const staff = await getActorStaff(actor.userId);
-    if (!staff) {
-        throw new NotificationError("Tai khoan chua duoc lien ket voi ho so nhan vien.", 403);
-    }
-
-    if (!staff.building_id) {
-        throw new NotificationError("Nhan vien chua duoc phan cong toa nha.", 403);
-    }
-
-    return staff.building_id;
-};
-
-const requireTenantId = async (actor: NotificationActor) => {
-    const tenant = await getActorTenant(actor.userId);
-    if (!tenant) {
-        throw new NotificationError("Tai khoan chua duoc lien ket voi ho so nguoi thue.", 403);
-    }
-
-    return tenant.id;
-};
-
-const assertBuildingAccessible = async (buildingId: number, actor: NotificationActor) => {
-    assertCanManageNotifications(actor);
-
-    if (actor.role === "MANAGER") {
-        const managerBuildingId = await requireManagerBuildingId(actor);
-        if (managerBuildingId !== buildingId) {
-            throw new NotificationError("Ban khong co quyen gui thong bao cho toa nha nay.", 403);
-        }
-    }
-
-    const building = await prisma.building.findUnique({
-        where: { id: buildingId },
-        select: { id: true }
-    });
-
-    if (!building) {
-        throw new NotificationError("Toa nha khong ton tai.", 404);
-    }
-};
-
-const uniqueNumbers = (values?: number[]) => {
-    if (!values) {
-        return undefined;
-    }
-
-    const normalized = values.filter((value) => Number.isInteger(value) && value > 0);
-    return [...new Set(normalized)];
-};
-
-const assertValidMonthYear = (month: number, year: number) => {
-    if (!Number.isInteger(month) || month < 1 || month > 12) {
-        throw new NotificationError("Thang hoa don khong hop le.");
-    }
-
-    if (!Number.isInteger(year) || year < 2000 || year > 3000) {
-        throw new NotificationError("Nam hoa don khong hop le.");
-    }
-};
-
-const padMonth = (month: number) => month.toString().padStart(2, "0");
+const toNumber = (value: Prisma.Decimal | number) => Number(value);
+const padMonth = (month: number) =>
+    month.toString().padStart(2, "0");
 
 const formatMoney = (value: Prisma.Decimal | number) =>
     new Intl.NumberFormat("vi-VN", {
@@ -224,60 +236,54 @@ const formatDate = (date: Date) =>
         timeZone: "Asia/Ho_Chi_Minh"
     }).format(date);
 
-const getNotificationScopeWhere = async (actor: NotificationActor): Promise<Prisma.NotificationWhereInput> => {
-    if (actor.role === "ADMIN") {
-        return {};
-    }
+const resolveManagedBuilding = async (
+    requestedBuildingId: number,
+    actor: NotificationActor,
+    transaction: Prisma.TransactionClient
+) => {
+    assertCanManageNotifications(actor);
 
-    if (actor.role === "MANAGER") {
-        const buildingId = await requireManagerBuildingId(actor);
+    if (actor.role === Role.MANAGER) {
+        const assignment = getCurrentManagerAssignment(actor);
+        const building = await transaction.building.findFirst({
+            where: assignment.buildingWhere,
+            select: { id: true }
+        });
+
+        if (!building) {
+            throw notFound();
+        }
+
         return {
-            user: {
-                tenant: {
-                    contracts: {
-                        some: {
-                            apartment: {
-                                building_id: buildingId
-                            }
-                        }
-                    }
-                }
-            }
+            buildingId: assignment.buildingId,
+            assignment
         };
     }
 
-    if (actor.role === "TENANT") {
-        return {
-            user_id: actor.userId
-        };
-    }
-
-    throw new NotificationError("Ban khong co quyen truy cap thong bao.", 403);
-};
-
-const assertNotificationAccessible = async (notificationId: number, actor: NotificationActor) => {
-    const where = await getNotificationScopeWhere(actor);
-    const notification = await prisma.notification.findFirst({
-        where: {
-            id: notificationId,
-            AND: [where]
-        },
-        include: notificationInclude
+    const building = await transaction.building.findUnique({
+        where: { id: requestedBuildingId },
+        select: { id: true }
     });
 
-    if (!notification) {
-        throw new NotificationError("Thong bao khong ton tai hoac ban khong co quyen truy cap.", 404);
+    if (!building) {
+        throw notFound();
     }
 
-    return notification;
+    return {
+        buildingId: requestedBuildingId,
+        assignment: undefined
+    };
 };
 
-export const getNotificationsService = async (filters: NotificationFilters, actor: NotificationActor) => {
-    const page = Math.max(1, filters.page || 1);
-    const limit = Math.min(100, Math.max(1, filters.limit || 10));
-    const skip = (page - 1) * limit;
-
-    const andFilters: Prisma.NotificationWhereInput[] = [await getNotificationScopeWhere(actor)];
+export const getNotificationsService = async (
+    filters: NotificationFilters,
+    actor: NotificationActor
+) => {
+    const page = filters.page;
+    const limit = filters.limit;
+    const scope = getNotificationScope(actor);
+    const andFilters: Prisma.NotificationWhereInput[] =
+        actor.role === Role.ADMIN ? [] : [scope];
 
     if (filters.type) {
         andFilters.push({
@@ -287,26 +293,20 @@ export const getNotificationsService = async (filters: NotificationFilters, acto
             }
         });
     }
-
     if (filters.is_read !== undefined) {
         andFilters.push({ is_read: filters.is_read });
     }
 
-    if (filters.user_id) {
-        if (actor.role === "TENANT" && actor.userId !== filters.user_id) {
-            throw new NotificationError("Ban khong co quyen xem thong bao cua nguoi dung nay.", 403);
-        }
+    if (
+        actor.role !== Role.TENANT
+        && filters.user_id !== undefined
+    ) {
         andFilters.push({ user_id: filters.user_id });
     }
-
-    if (filters.tenant_id) {
-        if (actor.role === "TENANT") {
-            const tenantId = await requireTenantId(actor);
-            if (tenantId !== filters.tenant_id) {
-                throw new NotificationError("Ban khong co quyen xem thong bao cua nguoi thue nay.", 403);
-            }
-        }
-
+    if (
+        actor.role !== Role.TENANT
+        && filters.tenant_id !== undefined
+    ) {
         andFilters.push({
             user: {
                 tenant: {
@@ -315,65 +315,80 @@ export const getNotificationsService = async (filters: NotificationFilters, acto
             }
         });
     }
-
-    if (filters.building_id) {
-        if (actor.role === "MANAGER") {
-            const managerBuildingId = await requireManagerBuildingId(actor);
-            if (managerBuildingId !== filters.building_id) {
-                throw new NotificationError("Ban khong co quyen xem thong bao cua toa nha nay.", 403);
-            }
-        }
-
-        if (actor.role === "TENANT") {
-            throw new NotificationError("Nguoi thue khong the loc thong bao theo toa nha.", 403);
-        }
-
+    if (
+        actor.role === Role.ADMIN
+        && filters.building_id !== undefined
+    ) {
         andFilters.push({
-            user: {
-                tenant: {
-                    contracts: {
-                        some: {
-                            apartment: {
-                                building_id: filters.building_id
-                            }
-                        }
-                    }
-                }
-            }
+            user: getBuildingUserScope(filters.building_id)
         });
     }
 
     if (filters.search) {
         andFilters.push({
             OR: [
-                { title: { contains: filters.search, mode: "insensitive" } },
-                { content: { contains: filters.search, mode: "insensitive" } },
-                { user: { username: { contains: filters.search, mode: "insensitive" } } },
-                { user: { tenant: { full_name: { contains: filters.search, mode: "insensitive" } } } }
+                {
+                    title: {
+                        contains: filters.search,
+                        mode: "insensitive"
+                    }
+                },
+                {
+                    content: {
+                        contains: filters.search,
+                        mode: "insensitive"
+                    }
+                },
+                {
+                    user: {
+                        username: {
+                            contains: filters.search,
+                            mode: "insensitive"
+                        }
+                    }
+                },
+                {
+                    user: {
+                        tenant: {
+                            full_name: {
+                                contains: filters.search,
+                                mode: "insensitive"
+                            }
+                        }
+                    }
+                }
             ]
         });
     }
 
-    const whereClause: Prisma.NotificationWhereInput = { AND: andFilters };
-
-    const [notifications, total, unreadCount] = await prisma.$transaction([
-        prisma.notification.findMany({
-            where: whereClause,
-            skip,
-            take: limit,
-            orderBy: { created_at: "desc" },
-            include: notificationInclude
-        }),
-        prisma.notification.count({ where: whereClause }),
-        prisma.notification.count({
-            where: {
+    const where: Prisma.NotificationWhereInput =
+        andFilters.length === 0
+            ? {}
+            : { AND: andFilters };
+    const unreadWhere: Prisma.NotificationWhereInput =
+        actor.role === Role.ADMIN
+            ? { is_read: false }
+            : {
                 AND: [
-                    await getNotificationScopeWhere(actor),
+                    scope,
                     { is_read: false }
                 ]
-            }
-        })
-    ]);
+            };
+    const skip = (page - 1) * limit;
+    const [notifications, total, unreadCount] =
+        await prisma.$transaction([
+            prisma.notification.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: { created_at: "desc" },
+                include: notificationInclude
+            }),
+            prisma.notification.count({ where }),
+            prisma.notification.count({
+                where: unreadWhere
+            })
+        ]);
 
     return {
         data: notifications,
@@ -390,128 +405,103 @@ export const getNotificationsService = async (filters: NotificationFilters, acto
 export const sendBuildingNotificationService = async (
     input: SendBuildingNotificationInput,
     actor: NotificationActor
-) => {
-    await assertBuildingAccessible(input.building_id, actor);
+) => runSerializableTransaction(async (transaction) => {
+    const {
+        buildingId,
+        assignment
+    } = await resolveManagedBuilding(
+        input.building_id,
+        actor,
+        transaction
+    );
+    const targetFilters: Prisma.UserWhereInput[] = [
+        getBuildingUserScope(buildingId, assignment)
+    ];
 
-    const title = normalizeString(input.title, "tieu de thong bao");
-    const content = normalizeString(input.content, "noi dung thong bao");
-    const type = normalizeOptionalString(input.type) ?? "GENERAL";
-    const apartmentIds = uniqueNumbers(input.apartment_ids);
-    const tenantIds = uniqueNumbers(input.tenant_ids);
-
-    const contracts = await prisma.rentalContract.findMany({
-        where: {
-            status: "ACTIVE",
-            apartment: {
-                building_id: input.building_id,
-                ...(apartmentIds?.length ? { id: { in: apartmentIds } } : {})
-            },
-            ...(tenantIds?.length ? { tenant_id: { in: tenantIds } } : {})
-        },
-        include: {
+    if (input.tenant_ids || input.apartment_ids) {
+        targetFilters.push({
             tenant: {
-                select: {
-                    id: true,
-                    full_name: true,
-                    phone: true,
-                    email: true,
-                    user_id: true
-                }
-            },
-            apartment: {
-                select: {
-                    id: true,
-                    room_number: true,
-                    floor: true,
-                    building: {
-                        select: {
-                            id: true,
-                            branch_name: true
+                ...(input.tenant_ids
+                    ? { id: { in: input.tenant_ids } }
+                    : {}),
+                ...(input.apartment_ids
+                    ? {
+                        contracts: {
+                            some: {
+                                apartment: {
+                                    id: {
+                                        in: input.apartment_ids
+                                    },
+                                    ...getApartmentBuildingScope(
+                                        buildingId,
+                                        assignment
+                                    )
+                                }
+                            }
                         }
                     }
-                }
+                    : {})
             }
-        },
-        orderBy: [
-            { apartment: { floor: "asc" } },
-            { apartment: { room_number: "asc" } }
-        ]
-    });
-
-    const recipientsByUser = new Map<number, {
-        user_id: number;
-        tenant_id: number;
-        tenant_name: string;
-        apartments: Array<{
-            id: number;
-            room_number: string;
-            floor: number;
-            building_id: number;
-            building_name: string;
-        }>;
-    }>();
-
-    const skipped = [];
-
-    for (const contract of contracts) {
-        if (!contract.tenant.user_id) {
-            skipped.push({
-                tenant_id: contract.tenant.id,
-                tenant_name: contract.tenant.full_name,
-                apartment_id: contract.apartment.id,
-                room_number: contract.apartment.room_number,
-                reason: "Nguoi thue chua co tai khoan nguoi dung."
-            });
-            continue;
-        }
-
-        const existing = recipientsByUser.get(contract.tenant.user_id);
-        const apartment = {
-            id: contract.apartment.id,
-            room_number: contract.apartment.room_number,
-            floor: contract.apartment.floor,
-            building_id: contract.apartment.building.id,
-            building_name: contract.apartment.building.branch_name
-        };
-
-        if (existing) {
-            existing.apartments.push(apartment);
-            continue;
-        }
-
-        recipientsByUser.set(contract.tenant.user_id, {
-            user_id: contract.tenant.user_id,
-            tenant_id: contract.tenant.id,
-            tenant_name: contract.tenant.full_name,
-            apartments: [apartment]
         });
     }
 
-    const recipients = [...recipientsByUser.values()];
-
-    const created = await prisma.notification.createMany({
-        data: recipients.map((recipient) => ({
-            user_id: recipient.user_id,
-            title,
-            content,
-            type
-        }))
+    const recipients = await transaction.user.findMany({
+        where: {
+            AND: targetFilters
+        },
+        select: {
+            id: true,
+            username: true,
+            role: true,
+            tenant: {
+                select: {
+                    id: true,
+                    full_name: true
+                }
+            },
+            staff: {
+                select: {
+                    id: true,
+                    full_name: true
+                }
+            }
+        },
+        orderBy: { id: "asc" }
     });
 
-    return {
-        building_id: input.building_id,
-        total_contracts: contracts.length,
-        sent_count: created.count,
-        skipped_count: skipped.length,
-        recipients,
-        skipped
-    };
-};
+    for (const recipient of recipients) {
+        await transaction.notification.create({
+            data: {
+                title: input.title,
+                content: input.content,
+                type: input.type,
+                user: {
+                    connect: {
+                        id: recipient.id,
+                        AND: targetFilters
+                    }
+                }
+            }
+        });
+    }
 
-const buildInvoiceNotificationContent = (invoice: InvoiceForNotification, customContent?: string) => {
-    const roomLabel = `${invoice.contract.apartment.building.branch_name} - phong ${invoice.contract.apartment.room_number}`;
+    return {
+        building_id: buildingId,
+        sent_count: recipients.length,
+        recipients
+    };
+});
+
+const buildInvoiceNotificationContent = (
+    invoice: InvoiceForNotification,
+    customContent?: string
+) => {
+    const roomLabel =
+        `${invoice.contract.apartment.building.branch_name}`
+        + ` - phong ${invoice.contract.apartment.room_number}`;
+
     return [
-        customContent?.trim(),
+        customContent,
         `Ma hoa don: ${invoice.invoice_code}`,
         `Can ho: ${roomLabel}`,
         `Nguoi thue: ${invoice.contract.tenant.full_name}`,
@@ -526,49 +516,19 @@ export const sendInvoiceNotificationsService = async (
     actor: NotificationActor
 ) => {
     assertCanManageNotifications(actor);
-
-    const invoiceIds = uniqueNumbers(input.invoice_ids);
-    const tenantIds = uniqueNumbers(input.tenant_ids);
-
-    if (!input.building_id && !invoiceIds?.length) {
-        throw new NotificationError("Vui long chon toa nha hoac danh sach hoa don can gui.");
-    }
-
-    if (input.month !== undefined || input.year !== undefined) {
-        if (input.month === undefined || input.year === undefined) {
-            throw new NotificationError("Can nhap day du month va year de gui hoa don.");
-        }
-
-        assertValidMonthYear(input.month, input.year);
-    }
-
-    if (input.building_id) {
-        await assertBuildingAccessible(input.building_id, actor);
-    } else if (actor.role === "MANAGER") {
-        const managerBuildingId = await requireManagerBuildingId(actor);
-        const invoiceCount = await prisma.invoice.count({
-            where: {
-                id: { in: invoiceIds },
-                contract: {
-                    apartment: {
-                        building_id: managerBuildingId
-                    }
-                }
-            }
-        });
-
-        if (invoiceCount !== invoiceIds?.length) {
-            throw new NotificationError("Danh sach hoa don co hoa don nam ngoai toa nha ban quan ly.", 403);
-        }
-    }
-
     const andFilters: Prisma.InvoiceWhereInput[] = [];
 
-    if (invoiceIds?.length) {
-        andFilters.push({ id: { in: invoiceIds } });
-    }
-
-    if (input.building_id) {
+    if (actor.role === Role.MANAGER) {
+        const assignment = getCurrentManagerAssignment(actor);
+        andFilters.push({
+            contract: {
+                apartment: getApartmentBuildingScope(
+                    assignment.buildingId,
+                    assignment
+                )
+            }
+        });
+    } else if (input.building_id !== undefined) {
         andFilters.push({
             contract: {
                 apartment: {
@@ -578,15 +538,23 @@ export const sendInvoiceNotificationsService = async (
         });
     }
 
-    if (tenantIds?.length) {
-        andFilters.push({ tenant_id: { in: tenantIds } });
+    if (input.invoice_ids) {
+        andFilters.push({
+            id: { in: input.invoice_ids }
+        });
     }
-
+    if (input.tenant_ids) {
+        andFilters.push({
+            tenant_id: { in: input.tenant_ids }
+        });
+    }
     if (input.status) {
         andFilters.push({ status: input.status });
     }
-
-    if (input.month !== undefined && input.year !== undefined) {
+    if (
+        input.month !== undefined
+        && input.year !== undefined
+    ) {
         andFilters.push({
             invoice_code: {
                 contains: `-${input.year}${padMonth(input.month)}`
@@ -594,56 +562,82 @@ export const sendInvoiceNotificationsService = async (
         });
     }
 
-    const invoices = await prisma.invoice.findMany({
-        where: {
-            AND: andFilters
-        },
-        include: invoiceNotificationInclude,
-        orderBy: { due_date: "asc" }
-    });
+    return runSerializableTransaction(async (transaction) => {
+        const invoices = await transaction.invoice.findMany({
+            where: {
+                AND: andFilters
+            },
+            include: invoiceNotificationInclude,
+            orderBy: { due_date: "asc" }
+        });
 
-    const skipped = [];
-    const notificationsData = [];
-
-    for (const invoice of invoices) {
-        if (!invoice.contract.tenant.user_id) {
-            skipped.push({
-                invoice_id: invoice.id,
-                invoice_code: invoice.invoice_code,
-                tenant_id: invoice.contract.tenant.id,
-                tenant_name: invoice.contract.tenant.full_name,
-                reason: "Nguoi thue chua co tai khoan nguoi dung."
-            });
-            continue;
+        if (
+            input.invoice_ids
+            && invoices.length !== new Set(input.invoice_ids).size
+        ) {
+            throw notFound();
         }
 
-        notificationsData.push({
-            user_id: invoice.contract.tenant.user_id,
-            title: normalizeOptionalString(input.title) ?? `Hoa don ${invoice.invoice_code}`,
-            content: buildInvoiceNotificationContent(invoice, normalizeOptionalString(input.content)),
-            type: "INVOICE_NOTICE"
-        });
-    }
+        const skipped: Array<{
+            invoice_id: number;
+            reason: string;
+        }> = [];
+        let sentCount = 0;
 
-    const created = await prisma.notification.createMany({
-        data: notificationsData
+        for (const invoice of invoices) {
+            const userId = invoice.contract.tenant.user_id;
+            if (!userId) {
+                skipped.push({
+                    invoice_id: invoice.id,
+                    reason: "Tenant has no user account"
+                });
+                continue;
+            }
+
+            await transaction.notification.create({
+                data: {
+                    title: input.title
+                        ?? `Hoa don ${invoice.invoice_code}`,
+                    content: buildInvoiceNotificationContent(
+                        invoice,
+                        input.content
+                    ),
+                    type: "INVOICE_NOTICE",
+                    user: {
+                        connect: {
+                            id: userId,
+                            tenant: {
+                                id: invoice.tenant_id,
+                                invoices: {
+                                    some: {
+                                        id: invoice.id,
+                                        AND: andFilters
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            sentCount++;
+        }
+
+        return {
+            total_invoices: invoices.length,
+            sent_count: sentCount,
+            skipped_count: skipped.length,
+            invoices: invoices.map((invoice) => ({
+                id: invoice.id,
+                invoice_code: invoice.invoice_code,
+                status: invoice.status,
+                total_amount: toNumber(invoice.total_amount),
+                due_date: invoice.due_date,
+                tenant: invoice.contract.tenant,
+                apartment: invoice.contract.apartment
+            })),
+            skipped
+        };
     });
-
-    return {
-        total_invoices: invoices.length,
-        sent_count: created.count,
-        skipped_count: skipped.length,
-        invoices: invoices.map((invoice) => ({
-            id: invoice.id,
-            invoice_code: invoice.invoice_code,
-            status: invoice.status,
-            total_amount: toNumber(invoice.total_amount),
-            due_date: invoice.due_date,
-            tenant: invoice.contract.tenant,
-            apartment: invoice.contract.apartment
-        })),
-        skipped
-    };
 };
 
 export const markNotificationReadService = async (
@@ -651,36 +645,58 @@ export const markNotificationReadService = async (
     actor: NotificationActor,
     isRead = true
 ) => {
-    await assertNotificationAccessible(notificationId, actor);
+    const scope = getNotificationScope(actor);
 
     return prisma.notification.update({
-        where: { id: notificationId },
+        where: {
+            id: notificationId,
+            AND: [scope]
+        },
         data: { is_read: isRead },
         include: notificationInclude
     });
 };
 
-export const markAllNotificationsReadService = async (actor: NotificationActor) => {
-    const scopeWhere = await getNotificationScopeWhere(actor);
-    const updated = await prisma.notification.updateMany({
-        where: {
-            AND: [
-                scopeWhere,
-                { is_read: false }
-            ]
-        },
+export const markAllNotificationsReadService = async (
+    actor: NotificationActor
+) => {
+    const scope = getNotificationScope(actor);
+    const result = await prisma.notification.updateMany({
+        where: actor.role === Role.ADMIN
+            ? { is_read: false }
+            : {
+                ...scope,
+                is_read: false
+            },
         data: { is_read: true }
     });
 
     return {
-        updated_count: updated.count
+        updated_count: result.count
     };
 };
 
-export const deleteNotificationService = async (notificationId: number, actor: NotificationActor) => {
-    await assertNotificationAccessible(notificationId, actor);
+export const deleteNotificationService = async (
+    notificationId: number,
+    actor: NotificationActor
+) => {
+    const scope = getNotificationScope(actor);
 
-    await prisma.notification.delete({
-        where: { id: notificationId }
+    if (actor.role === Role.ADMIN) {
+        await prisma.notification.delete({
+            where: { id: notificationId }
+        });
+        return;
+    }
+
+    const result = await prisma.notification.deleteMany({
+        where: {
+            id: notificationId,
+            ...scope
+        }
     });
+
+    if (result.count === 0) {
+        throw notFound();
+    }
 };

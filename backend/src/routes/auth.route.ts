@@ -32,7 +32,7 @@ router.post(
 router.post(
     "/create-user",
     authenticate,
-    authorizeRole(userManagerRoles),
+    authorizeRole([Role.ADMIN]),
     validate(createUserRequestSchema),
     authController.createAccount
 );

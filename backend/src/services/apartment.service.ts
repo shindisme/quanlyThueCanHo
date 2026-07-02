@@ -10,6 +10,7 @@ import type {
     UpdateApartmentRequest
 } from "../schemas/apartment.schema.js";
 import type { Actor } from "../types/auth.js";
+import { getCurrentManagerAssignment } from "./manager-scope.js";
 
 const apartmentImageSelect = {
     id: true,
@@ -55,16 +56,39 @@ const notFound = () => new AppError(
     "Apartment was not found"
 );
 
-const getManagerBuildingId = (actor: Actor) => {
-    if (actor.buildingId === undefined) {
-        throw new AppError(
-            403,
-            "MANAGER_BUILDING_REQUIRED",
-            "A current building assignment is required"
-        );
+const concurrentModification = () => new AppError(
+    409,
+    "CONCURRENT_MODIFICATION",
+    "Apartment changed during this operation"
+);
+
+const SERIALIZABLE_RETRY_LIMIT = 3;
+
+const runSerializableTransaction = async <T>(
+    operation: (transaction: Prisma.TransactionClient) => Promise<T>
+) => {
+    for (let attempt = 1; attempt <= SERIALIZABLE_RETRY_LIMIT; attempt++) {
+        try {
+            return await prisma.$transaction(operation, {
+                isolationLevel:
+                    Prisma.TransactionIsolationLevel.Serializable
+            });
+        } catch (error) {
+            const isSerializationConflict =
+                error instanceof Prisma.PrismaClientKnownRequestError
+                && error.code === "P2034";
+
+            if (!isSerializationConflict) {
+                throw error;
+            }
+
+            if (attempt === SERIALIZABLE_RETRY_LIMIT) {
+                throw concurrentModification();
+            }
+        }
     }
 
-    return actor.buildingId;
+    throw new Error("Serializable transaction retry exhausted");
 };
 
 export const assertApartmentCreateAccessService = (
@@ -72,7 +96,7 @@ export const assertApartmentCreateAccessService = (
     requestedBuildingId?: number
 ) => {
     if (actor.role === Role.MANAGER) {
-        getManagerBuildingId(actor);
+        getCurrentManagerAssignment(actor);
         return;
     }
 
@@ -93,11 +117,15 @@ export const assertApartmentUpdateAccessService = async (
         return;
     }
 
-    const buildingId = getManagerBuildingId(actor);
+    const {
+        buildingId,
+        assignmentWhere
+    } = getCurrentManagerAssignment(actor);
     const apartment = await prisma.apartment.findFirst({
         where: {
             id,
-            building_id: buildingId
+            building_id: buildingId,
+            building: assignmentWhere
         },
         select: { id: true }
     });
@@ -107,28 +135,6 @@ export const assertApartmentUpdateAccessService = async (
     }
 };
 
-const addImages = async (
-    apartmentId: number,
-    imageUrls: string[]
-) => {
-    if (imageUrls.length === 0) {
-        return;
-    }
-
-    const existingImages = await prisma.apartmentImage.findMany({
-        where: { apartment_id: apartmentId },
-        select: { id: true }
-    });
-
-    await prisma.apartmentImage.createMany({
-        data: imageUrls.map((url, index) => ({
-            apartment_id: apartmentId,
-            image_url: url,
-            is_thumbnail: existingImages.length === 0 && index === 0
-        }))
-    });
-};
-
 export const createApartmentWithImagesService = async (
     data: CreateApartmentRequest["body"],
     imageUrls: string[],
@@ -136,9 +142,11 @@ export const createApartmentWithImagesService = async (
 ) => {
     assertApartmentCreateAccessService(actor, data.building_id);
 
-    const buildingId = actor.role === Role.MANAGER
-        ? getManagerBuildingId(actor)
-        : data.building_id;
+    const managerAssignment = actor.role === Role.MANAGER
+        ? getCurrentManagerAssignment(actor)
+        : undefined;
+    const buildingId = managerAssignment?.buildingId
+        ?? data.building_id;
 
     // The assertion above narrows this at runtime for Admin requests.
     if (buildingId === undefined) {
@@ -152,10 +160,17 @@ export const createApartmentWithImagesService = async (
 
     return prisma.$transaction(async (transaction) => {
         const created = await transaction.apartment.create({
-            data: {
-                ...apartmentData,
-                building_id: buildingId
-            }
+            data: managerAssignment
+                ? {
+                    ...apartmentData,
+                    building: {
+                        connect: managerAssignment.buildingWhere
+                    }
+                }
+                : {
+                    ...apartmentData,
+                    building_id: buildingId
+                }
         });
 
         if (imageUrls.length > 0) {
@@ -235,20 +250,53 @@ export const updateApartmentService = async (
     imageUrls: string[],
     actor: Actor
 ) => {
-    if (actor.role === Role.MANAGER) {
-        const buildingId = getManagerBuildingId(actor);
-        const {
-            building_id: _ignoredBuildingId,
-            ...managerData
-        } = data;
-        const existingImageCount = imageUrls.length === 0
-            ? 0
-            : await prisma.apartmentImage.count({
-                where: { apartment_id: id }
-            });
-        const nestedImages = imageUrls.length === 0
+    const {
+        building_id: requestedBuildingId,
+        ...adminData
+    } = data;
+    let where: Prisma.ApartmentWhereUniqueInput = { id };
+    let updateData: Prisma.ApartmentUpdateInput = {
+        ...adminData,
+        ...(requestedBuildingId === undefined
             ? {}
             : {
+                building: {
+                    connect: { id: requestedBuildingId }
+                }
+            })
+    };
+
+    if (actor.role === Role.MANAGER) {
+        const {
+            buildingId,
+            assignmentWhere
+        } = getCurrentManagerAssignment(actor);
+        where = {
+            id,
+            building_id: buildingId,
+            building: assignmentWhere
+        };
+        updateData = adminData;
+    }
+
+    if (imageUrls.length === 0) {
+        return prisma.apartment.update({
+            where,
+            data: updateData,
+            select: apartmentSelect
+        });
+    }
+
+    return runSerializableTransaction(async (transaction) => {
+        const existingImageCount =
+            await transaction.apartmentImage.count({
+                where: { apartment_id: id }
+            });
+
+        return transaction.apartment.update({
+            where,
+            data: {
+                ...updateData,
                 images: {
                     create: imageUrls.map((url, index) => ({
                         image_url: url,
@@ -256,29 +304,10 @@ export const updateApartmentService = async (
                             existingImageCount === 0 && index === 0
                     }))
                 }
-            };
-
-        return prisma.apartment.update({
-            where: {
-                id,
-                building_id: buildingId
-            },
-            data: {
-                ...managerData,
-                ...nestedImages
             },
             select: apartmentSelect
         });
-    }
-
-    const updated = await prisma.apartment.update({
-        where: { id },
-        data,
-        select: apartmentSelect
     });
-
-    await addImages(id, imageUrls);
-    return updated;
 };
 
 export const deleteApartmentService = async (
@@ -286,11 +315,15 @@ export const deleteApartmentService = async (
     actor: Actor
 ) => {
     if (actor.role === Role.MANAGER) {
-        const buildingId = getManagerBuildingId(actor);
+        const {
+            buildingId,
+            assignmentWhere
+        } = getCurrentManagerAssignment(actor);
         const result = await prisma.apartment.deleteMany({
             where: {
                 id,
-                building_id: buildingId
+                building_id: buildingId,
+                building: assignmentWhere
             }
         });
 

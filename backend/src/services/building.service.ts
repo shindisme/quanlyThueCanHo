@@ -9,6 +9,7 @@ import type {
     UpdateBuildingRequest
 } from "../schemas/building.schema.js";
 import type { Actor } from "../types/auth.js";
+import { getCurrentManagerAssignment } from "./manager-scope.js";
 
 const staffSummarySelect = {
     id: true,
@@ -22,7 +23,7 @@ const staffSummarySelect = {
     }
 } satisfies Prisma.StaffSelect;
 
-const buildingSummarySelect = {
+const publicBuildingSelect = {
     id: true,
     branch_name: true,
     address_old: true,
@@ -35,7 +36,11 @@ const buildingSummarySelect = {
     created_at: true,
     _count: {
         select: { apartments: true }
-    },
+    }
+} satisfies Prisma.BuildingSelect;
+
+const privateBuildingSelect = {
+    ...publicBuildingSelect,
     assigned_staff: {
         select: staffSummarySelect
     }
@@ -47,26 +52,14 @@ const notFound = () => new AppError(
     "Building was not found"
 );
 
-const getManagerBuildingId = (actor: Actor) => {
-    if (actor.buildingId === undefined) {
-        throw new AppError(
-            403,
-            "MANAGER_BUILDING_REQUIRED",
-            "A current building assignment is required"
-        );
-    }
-
-    return actor.buildingId;
-};
-
 const assertManagerBuildingTarget = (id: number, actor: Actor) => {
-    const buildingId = getManagerBuildingId(actor);
+    const assignment = getCurrentManagerAssignment(actor);
 
-    if (id !== buildingId) {
+    if (id !== assignment.buildingId) {
         throw notFound();
     }
 
-    return buildingId;
+    return assignment;
 };
 
 export const createBuildingService = async (
@@ -88,7 +81,7 @@ export const createBuildingService = async (
                 }
                 : undefined
         },
-        select: buildingSummarySelect
+        select: privateBuildingSelect
     });
 };
 
@@ -143,7 +136,7 @@ export const getAllBuildingsService = async (filters: {
             skip,
             take: limit,
             orderBy: { created_at: "desc" },
-            select: buildingSummarySelect
+            select: publicBuildingSelect
         }),
         prisma.building.count({ where })
     ]);
@@ -162,7 +155,7 @@ export const getAllBuildingsService = async (filters: {
 export const getBuildingByIdService = async (id: number) => {
     return prisma.building.findUnique({
         where: { id },
-        select: buildingSummarySelect
+        select: publicBuildingSelect
     });
 };
 
@@ -204,23 +197,33 @@ export const updateBuildingService = async (
     };
 
     if (actor.role === Role.MANAGER) {
-        const buildingId = assertManagerBuildingTarget(id, actor);
-        const result = await prisma.building.updateMany({
-            where: { id: buildingId },
-            data: updateData
+        const { buildingId, assignmentWhere } =
+            assertManagerBuildingTarget(id, actor);
+
+        return prisma.$transaction(async (transaction) => {
+            const result = await transaction.building.updateMany({
+                where: {
+                    id: buildingId,
+                    ...assignmentWhere
+                },
+                data: updateData
+            });
+
+            if (result.count === 0) {
+                throw notFound();
+            }
+
+            const updated = await transaction.building.findUnique({
+                where: { id: buildingId },
+                select: privateBuildingSelect
+            });
+
+            if (!updated) {
+                throw notFound();
+            }
+
+            return updated;
         });
-
-        if (result.count === 0) {
-            throw notFound();
-        }
-
-        const updated = await getBuildingByIdService(buildingId);
-
-        if (!updated) {
-            throw notFound();
-        }
-
-        return updated;
     }
 
     const adminUpdateData: Prisma.BuildingUpdateInput = {
@@ -238,7 +241,7 @@ export const updateBuildingService = async (
     return prisma.building.update({
         where: { id },
         data: adminUpdateData,
-        select: buildingSummarySelect
+        select: privateBuildingSelect
     });
 };
 

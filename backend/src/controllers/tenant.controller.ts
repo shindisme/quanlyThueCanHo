@@ -1,45 +1,88 @@
-import { Request, Response } from "express";
+import type {
+    Request,
+    Response
+} from "express";
+import { getValidated } from "../middleware/validate.middleware.js";
+import type {
+    CreateTenantRequest,
+    ListTenantsRequest,
+    TenantIdRequest,
+    UpdateTenantRequest
+} from "../schemas/tenant.schema.js";
 import * as tenantService from "../services/tenant.service.js";
+import {
+    sendPaginated,
+    sendSuccess
+} from "../utils/api-response.js";
 
-export const create = async (req: Request, res: Response) => {
-    try {
-        const { id, ...tenantData } = req.body;
-        const tenant = await tenantService.createTenant(tenantData);
-        res.status(201).json({ success: true, data: tenant });
-    } catch (error: any) {
-        const message = error.message.includes("Unique constraint") 
-            ? "Số điện thoại hoặc CCCD đã tồn tại." 
-            : error.message;
-            
-        res.status(400).json({ success: false, message });
-    }
+export const create = async (
+    request: Request,
+    response: Response
+) => {
+    const { body } = getValidated<CreateTenantRequest>(request);
+    const tenant = await tenantService.createTenant(
+        body,
+        request.actor!
+    );
+
+    return sendSuccess(response, tenant, 201);
 };
 
-export const remove = async (req: Request, res: Response) => {
-    try {
-        await tenantService.deleteTenant(Number(req.params.id));
-        res.status(200).json({ success: true, message: "Đã xóa người thuê thành công" });
-    } catch (error) {
-        res.status(400).json({ success: false, message: "Lỗi xóa người thuê (có thể do ràng buộc dữ liệu)" });
-    }
+export const getAll = async (
+    request: Request,
+    response: Response
+) => {
+    const { query } = getValidated<ListTenantsRequest>(request);
+    const result = await tenantService.getTenants(
+        query.page,
+        query.limit,
+        query.search,
+        request.actor!
+    );
+
+    return sendPaginated(
+        response,
+        result.data,
+        result.pagination
+    );
 };
 
-export const getAll = async (req: Request, res: Response) => {
-    try {
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
-        const result = await tenantService.getTenants(page, limit, req.query.search as string | undefined);
-        res.json({ success: true, ...result });
-    } catch (error) {
-        res.status(500).json({ success: false, message: "Lỗi hệ thống khi lấy danh sách" });
-    }
+export const getById = async (
+    request: Request,
+    response: Response
+) => {
+    const { params } = getValidated<TenantIdRequest>(request);
+    const tenant = await tenantService.getTenantById(
+        params.id,
+        request.actor!
+    );
+
+    return sendSuccess(response, tenant);
 };
 
-export const update = async (req: Request, res: Response) => {
-    try {
-        const updated = await tenantService.updateTenant(Number(req.params.id), req.body);
-        res.json({ success: true, data: updated });
-    } catch (error) {
-        res.status(400).json({ success: false, message: "Lỗi cập nhật người thuê" });
-    }
+export const update = async (
+    request: Request,
+    response: Response
+) => {
+    const {
+        params,
+        body
+    } = getValidated<UpdateTenantRequest>(request);
+    const tenant = await tenantService.updateTenant(
+        params.id,
+        body,
+        request.actor!
+    );
+
+    return sendSuccess(response, tenant);
+};
+
+export const remove = async (
+    request: Request,
+    response: Response
+) => {
+    const { params } = getValidated<TenantIdRequest>(request);
+
+    await tenantService.deleteTenant(params.id, request.actor!);
+    return sendSuccess(response, { deleted: true });
 };

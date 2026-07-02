@@ -29,12 +29,12 @@ const getActor = (request: Request): Actor => {
 
 export const createAccount = async (request: Request, response: Response) => {
     const { body } = getValidated<CreateUserRequest>(request);
-    const user = await authService.createAccountByAdminService(
+    const result = await authService.createAccountByAdminService(
         getActor(request),
         body
     );
 
-    return sendSuccess(response, { userId: user.id }, 201);
+    return sendSuccess(response, result, 201);
 };
 
 export const login = async (request: Request, response: Response) => {
@@ -77,12 +77,12 @@ export const resetPassword = async (
     response: Response
 ) => {
     const { id } = getValidated<UserIdRequest>(request).params;
-    await authService.resetPasswordByAdminService(
+    const result = await authService.resetPasswordByAdminService(
         getActor(request),
         id
     );
 
-    return sendSuccess(response, { reset: true });
+    return sendSuccess(response, result);
 };
 
 export const changePassword = async (

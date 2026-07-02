@@ -1,195 +1,99 @@
-import { Request, Response } from "express";
-import { ContractStatus } from "@prisma/client";
+import type {
+    Request,
+    Response
+} from "express";
+import { getValidated } from "../middleware/validate.middleware.js";
+import type {
+    ContractIdRequest,
+    CreateContractRequest,
+    EndContractRequest,
+    ExtendContractRequest,
+    ListContractsRequest
+} from "../schemas/contract.schema.js";
 import * as contractService from "../services/contract.service.js";
+import {
+    sendPaginated,
+    sendSuccess
+} from "../utils/api-response.js";
 
-const hasValue = (value: unknown) => value !== undefined && value !== null && value !== "";
+export const getAll = async (
+    request: Request,
+    response: Response
+) => {
+    const { query } = getValidated<ListContractsRequest>(request);
+    const result = await contractService.getContractsService(
+        query,
+        request.actor!
+    );
 
-const getActor = (req: Request): contractService.ContractActor | null => {
-    if (!req.actor) {
-        return null;
-    }
-
-    return {
-        userId: req.actor.userId,
-        role: req.actor.role
-    };
+    return sendPaginated(
+        response,
+        result.data,
+        result.pagination
+    );
 };
 
-const sendError = (res: Response, error: any, fallbackMessage: string) => {
-    const statusCode = error?.statusCode || 400;
-    res.status(statusCode).json({
-        success: false,
-        message: error?.message || fallbackMessage
+export const getById = async (
+    request: Request,
+    response: Response
+) => {
+    const { params } = getValidated<ContractIdRequest>(request);
+    const contract = await contractService.getContractByIdService(
+        params.id,
+        request.actor!
+    );
+
+    return sendSuccess(response, contract);
+};
+
+export const create = async (
+    request: Request,
+    response: Response
+) => {
+    const { body } = getValidated<CreateContractRequest>(request);
+    const contract = await contractService.createContractService(
+        body,
+        request.actor!
+    );
+
+    return sendSuccess(response, contract, 201);
+};
+
+export const extend = async (
+    request: Request,
+    response: Response
+) => {
+    const {
+        params,
+        body
+    } = getValidated<ExtendContractRequest>(request);
+    const result = await contractService.extendContractService(
+        params.id,
+        body.new_end_date,
+        request.actor!
+    );
+
+    return sendSuccess(response, {
+        id: result.contract.id,
+        old_end_date: result.old_end_date,
+        new_end_date: result.contract.end_date,
+        extended_at: result.contract.extended_at
     });
 };
 
-const parseOptionalNumber = (value: unknown) => {
-    const rawValue = Array.isArray(value) ? value[0] : value;
+export const end = async (
+    request: Request,
+    response: Response
+) => {
+    const {
+        params,
+        body
+    } = getValidated<EndContractRequest>(request);
+    const result = await contractService.endContractService(
+        params.id,
+        request.actor!,
+        body.end_date
+    );
 
-    if (rawValue === undefined || rawValue === null || rawValue === "") {
-        return undefined;
-    }
-
-    const parsed = Number(rawValue);
-    return Number.isFinite(parsed) ? parsed : Number.NaN;
-};
-
-const parseRequiredNumber = (value: unknown) => {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : Number.NaN;
-};
-
-const isContractStatus = (value: unknown): value is ContractStatus => {
-    return value === ContractStatus.ACTIVE || value === ContractStatus.ENDED;
-};
-
-export const getAll = async (req: Request, res: Response) => {
-    try {
-        const actor = getActor(req);
-        if (!actor) {
-            return res.status(401).json({ success: false, message: "Vui lòng đăng nhập" });
-        }
-
-        const status = req.query.status;
-        if (status !== undefined && !isContractStatus(status)) {
-            return res.status(400).json({ success: false, message: "Trạng thái hợp đồng không hợp lệ" });
-        }
-
-        const tenantId = parseOptionalNumber(req.query.tenant_id ?? req.query.tenantId);
-        const apartmentId = parseOptionalNumber(req.query.apartment_id ?? req.query.apartmentId);
-        const buildingId = parseOptionalNumber(req.query.building_id ?? req.query.buildingId);
-        const page = parseOptionalNumber(req.query.page);
-        const limit = parseOptionalNumber(req.query.limit);
-
-        if ([tenantId, apartmentId, buildingId, page, limit].some((value) => Number.isNaN(value))) {
-            return res.status(400).json({ success: false, message: "Tham số lọc không hợp lệ" });
-        }
-
-        const result = await contractService.getContractsService({
-            status,
-            tenant_id: tenantId,
-            apartment_id: apartmentId,
-            building_id: buildingId,
-            search: req.query.search as string | undefined,
-            page,
-            limit
-        }, actor);
-
-        res.json({
-            success: true,
-            ...result
-        });
-    } catch (error: any) {
-        sendError(res, error, "Lỗi khi lấy danh sách hợp đồng");
-    }
-};
-
-export const getById = async (req: Request, res: Response) => {
-    try {
-        const actor = getActor(req);
-        if (!actor) {
-            return res.status(401).json({ success: false, message: "Vui lòng đăng nhập" });
-        }
-
-        const id = parseRequiredNumber(req.params.id);
-        if (Number.isNaN(id)) {
-            return res.status(400).json({ success: false, message: "Mã hợp đồng không hợp lệ" });
-        }
-
-        const data = await contractService.getContractByIdService(id, actor);
-        res.json({ success: true, data });
-    } catch (error: any) {
-        sendError(res, error, "Lỗi khi lấy chi tiết hợp đồng");
-    }
-};
-
-export const create = async (req: Request, res: Response) => {
-    try {
-        const requiredFields = [
-            "apartment_id",
-            "tenant_id",
-            "start_date",
-            "end_date",
-            "deposit_amount",
-            "monthly_rent",
-            "signed_at"
-        ];
-        const missingFields = requiredFields.filter((field) => !hasValue(req.body[field]));
-
-        if (missingFields.length > 0) {
-            return res.status(400).json({
-                success: false,
-                message: `Thiếu dữ liệu bắt buộc: ${missingFields.join(", ")}`
-            });
-        }
-
-        const contract = await contractService.createContractService(req.body);
-        res.status(201).json({
-            success: true,
-            message: "Hợp đồng đã được tạo thành công",
-            data: contract
-        });
-    } catch (error: any) {
-        sendError(res, error, "Lỗi khi tạo hợp đồng");
-    }
-};
-
-export const extend = async (req: Request, res: Response) => {
-    try {
-        const id = Number(req.params.id);
-        const { new_end_date } = req.body;
-
-        if (!Number.isInteger(id) || id <= 0) {
-            return res.status(400).json({ success: false, message: "Mã hợp đồng không hợp lệ" });
-        }
-
-        if (!hasValue(new_end_date)) {
-            return res.status(400).json({ success: false, message: "Thiếu ngày kết thúc mới" });
-        }
-
-        const result = await contractService.extendContractService(id, new_end_date);
-        res.json({
-            success: true,
-            message: "Hợp đồng đã được gia hạn thành công",
-            data: {
-                id: result.contract.id,
-                old_end_date: result.old_end_date,
-                new_end_date: result.contract.end_date,
-                extended_at: result.contract.extended_at
-            }
-        });
-    } catch (error: any) {
-        sendError(res, error, "Lỗi khi gia hạn hợp đồng");
-    }
-};
-
-export const end = async (req: Request, res: Response) => {
-    try {
-        const actor = getActor(req);
-        if (!actor) {
-            return res.status(401).json({ success: false, message: "Vui lòng đăng nhập" });
-        }
-
-        const id = Number(req.params.id);
-        if (!Number.isInteger(id) || id <= 0) {
-            return res.status(400).json({ success: false, message: "Mã hợp đồng không hợp lệ" });
-        }
-
-        const result = await contractService.endContractService(id, actor, req.body?.end_date);
-        res.json({
-            success: true,
-            message: "Hợp đồng đã được kết thúc thành công",
-            data: {
-                id: result.contract.id,
-                old_status: result.old_status,
-                new_status: result.new_status,
-                end_date: result.contract.end_date,
-                ended_at: result.ended_at,
-                apartment_status: result.apartment_status,
-                contract: result.contract
-            }
-        });
-    } catch (error: any) {
-        sendError(res, error, "Lỗi khi kết thúc hợp đồng");
-    }
+    return sendSuccess(response, result);
 };

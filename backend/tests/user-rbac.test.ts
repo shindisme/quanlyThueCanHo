@@ -20,6 +20,22 @@ const ADMIN_ID = 102;
 const TARGET_ID = 202;
 const BUILDING_ID = 301;
 
+const liveManagerAssignment = {
+    assigned_staff: {
+        some: {
+            id: 201,
+            user_id: MANAGER_ID,
+            user: {
+                is: {
+                    id: MANAGER_ID,
+                    role: Role.MANAGER,
+                    status: UserStatus.ACTIVE
+                }
+            }
+        }
+    }
+};
+
 const authenticationRecord = (
     overrides: {
         id?: number;
@@ -45,14 +61,16 @@ const managerScope = {
         {
             staff: {
                 is: {
-                    building_id: BUILDING_ID
+                    building_id: BUILDING_ID,
+                    building: liveManagerAssignment
                 }
             }
         },
         {
             tenant: {
                 is: {
-                    onboarding_building_id: BUILDING_ID
+                    onboarding_building_id: BUILDING_ID,
+                    onboarding_building: liveManagerAssignment
                 }
             }
         },
@@ -62,7 +80,8 @@ const managerScope = {
                     contracts: {
                         some: {
                             apartment: {
-                                building_id: BUILDING_ID
+                                building_id: BUILDING_ID,
+                                building: liveManagerAssignment
                             }
                         }
                     }
@@ -131,15 +150,15 @@ const authenticateAsAdmin = () => {
 const app = () => createTestApp(authRouter, "/auth");
 
 describe("user-management RBAC", () => {
-    it("rejects Manager creation of an Admin before Prisma create", async () => {
+    it("rejects every Manager create-user request before Prisma create", async () => {
         authenticateAsManager();
 
         const response = await request(app())
             .post("/auth/create-user")
             .set("Authorization", createBearerToken(MANAGER_ID))
             .send({
-                username: "new-admin",
-                role: Role.ADMIN
+                username: "new-staff",
+                role: Role.STAFF
             });
 
         expect(response.status).toBe(403);
@@ -536,6 +555,27 @@ describe("user-management RBAC", () => {
                 password_hash: expect.any(String)
             }
         });
+        const initialPassword =
+            response.body.data.initial_password;
+
+        expect(initialPassword).toEqual(expect.any(String));
+        expect(initialPassword.length).toBeGreaterThanOrEqual(32);
+        expect(initialPassword).not.toBe("123456");
+        expect(
+            await bcrypt.compare(
+                initialPassword,
+                prismaMock.user.updateMany.mock.calls[0][0]
+                    .data.password_hash as string
+            )
+        ).toBe(true);
+        expect(JSON.stringify(response.body).match(
+            /initial_password/g
+        )).toHaveLength(1);
+        expect(response.body.data).not.toHaveProperty(
+            "temporary_password"
+        );
+        expect(response.body.data).not.toHaveProperty("reset");
+        expect(response.body.data).not.toHaveProperty("password_hash");
         expect(prismaMock.user.update).not.toHaveBeenCalled();
     });
 
@@ -569,7 +609,36 @@ describe("user-management RBAC", () => {
             });
 
         expect(response.status).toBe(201);
-        expect(prismaMock.user.create).toHaveBeenCalledOnce();
+        expect(prismaMock.user.create).toHaveBeenCalledWith({
+            data: {
+                username: "another-admin",
+                role: Role.ADMIN,
+                password_hash: expect.any(String),
+                status: UserStatus.ACTIVE
+            },
+            select: { id: true }
+        });
+        const initialPassword =
+            response.body.data.initial_password;
+
+        expect(response.body.data.userId).toBe(TARGET_ID);
+        expect(initialPassword).toEqual(expect.any(String));
+        expect(initialPassword.length).toBeGreaterThanOrEqual(32);
+        expect(initialPassword).not.toBe("123456");
+        expect(
+            await bcrypt.compare(
+                initialPassword,
+                prismaMock.user.create.mock.calls[0][0]
+                    .data.password_hash
+            )
+        ).toBe(true);
+        expect(JSON.stringify(response.body).match(
+            /initial_password/g
+        )).toHaveLength(1);
+        expect(response.body.data).not.toHaveProperty(
+            "temporary_password"
+        );
+        expect(response.body.data).not.toHaveProperty("password_hash");
     });
 
     it("allows an Admin to list users globally without a scope filter", async () => {

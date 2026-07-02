@@ -1,4 +1,3 @@
-import { imagekit } from "@/config/imagekit.js";
 import type {
     Request,
     Response
@@ -12,22 +11,12 @@ import type {
     UpdateApartmentRequest
 } from "../schemas/apartment.schema.js";
 import * as apartmentService from "../services/apartment.service.js";
+import { withCompensatedImageUploads } from "../services/image-upload.service.js";
+import { assertUpdateHasChanges } from "../services/update-validation.service.js";
 import {
     sendPaginated,
     sendSuccess
 } from "../utils/api-response.js";
-
-const uploadImages = async (files: Express.Multer.File[]) => {
-    const results = await Promise.all(files.map((file) =>
-        imagekit.upload({
-            file: file.buffer.toString("base64"),
-            fileName: `${Date.now()}_${file.originalname}`,
-            folder: "/apartments"
-        })
-    ));
-
-    return results.map((result) => result.url);
-};
 
 export const create = async (
     request: Request,
@@ -40,15 +29,18 @@ export const create = async (
         body.building_id
     );
 
-    const imageUrls = await uploadImages(
-        (request.files as Express.Multer.File[] | undefined) ?? []
+    const files =
+        (request.files as Express.Multer.File[] | undefined) ?? [];
+    const apartment = await withCompensatedImageUploads(
+        files,
+        "/apartments",
+        async (images) =>
+            apartmentService.createApartmentWithImagesService(
+                body,
+                images.map(({ url }) => url),
+                request.actor!
+            )
     );
-    const apartment =
-        await apartmentService.createApartmentWithImagesService(
-            body,
-            imageUrls,
-            request.actor!
-        );
 
     return sendSuccess(response, apartment, 201);
 };
@@ -97,6 +89,7 @@ export const update = async (
     } = getValidated<UpdateApartmentRequest>(request);
     const files =
         (request.files as Express.Multer.File[] | undefined) ?? [];
+    assertUpdateHasChanges(body, files.length > 0);
 
     if (files.length > 0) {
         await apartmentService.assertApartmentUpdateAccessService(
@@ -105,12 +98,15 @@ export const update = async (
         );
     }
 
-    const imageUrls = await uploadImages(files);
-    const apartment = await apartmentService.updateApartmentService(
-        params.id,
-        body,
-        imageUrls,
-        request.actor!
+    const apartment = await withCompensatedImageUploads(
+        files,
+        "/apartments",
+        async (images) => apartmentService.updateApartmentService(
+            params.id,
+            body,
+            images.map(({ url }) => url),
+            request.actor!
+        )
     );
 
     return sendSuccess(response, apartment);

@@ -60,6 +60,22 @@ const authenticationRecord = (
     ...overrides
 });
 
+const liveManagerAssignment = {
+    assigned_staff: {
+        some: {
+            id: 201,
+            user_id: 101,
+            user: {
+                is: {
+                    id: 101,
+                    role: Role.MANAGER,
+                    status: UserStatus.ACTIVE
+                }
+            }
+        }
+    }
+};
+
 const createActorRouter = (roles?: Role[]) => {
     const router = Router();
     const handlers = roles
@@ -533,14 +549,18 @@ describe("authentication", () => {
                     {
                         staff: {
                             is: {
-                                building_id: 301
+                                building_id: 301,
+                                building:
+                                    liveManagerAssignment
                             }
                         }
                     },
                     {
                         tenant: {
                             is: {
-                                onboarding_building_id: 301
+                                onboarding_building_id: 301,
+                                onboarding_building:
+                                    liveManagerAssignment
                             }
                         }
                     },
@@ -550,7 +570,9 @@ describe("authentication", () => {
                                 contracts: {
                                     some: {
                                         apartment: {
-                                            building_id: 301
+                                            building_id: 301,
+                                            building:
+                                                liveManagerAssignment
                                         }
                                     }
                                 }

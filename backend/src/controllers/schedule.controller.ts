@@ -1,58 +1,98 @@
-import { Request, Response } from "express";
+import type {
+    Request,
+    Response
+} from "express";
+import { getValidated } from "../middleware/validate.middleware.js";
+import type {
+    BookViewingRequest,
+    ConfirmScheduleRequest,
+    ListSchedulesRequest,
+    ScheduleIdRequest,
+    ViewingAvailabilityRequest
+} from "../schemas/schedule.schema.js";
 import * as scheduleService from "../services/schedule.service.js";
+import {
+    sendPaginated,
+    sendSuccess
+} from "../utils/api-response.js";
 
-export const bookViewing = async (request: Request, response: Response) => {
-    try {
-        const schedule = await scheduleService.bookViewingService(request.body);
-        response.status(201).json({ message: "Đặt lịch thành công", schedule });
-    } catch (error: any) {
-        response.status(400).json({ error: error.message });
-    }
+export const bookViewing = async (
+    request: Request,
+    response: Response
+) => {
+    const { body } = getValidated<BookViewingRequest>(request);
+    const schedule = await scheduleService.bookViewingService(body);
+    return sendSuccess(response, schedule, 201);
 };
 
-export const getSchedules = async (request: Request, response: Response) => {
-    const { date, guestName } = request.query;
-    const schedules = await scheduleService.getSchedulesAdminService(date as string, guestName as string);
-    response.json(schedules);
+export const getAvailability = async (
+    request: Request,
+    response: Response
+) => {
+    const { query } =
+        getValidated<ViewingAvailabilityRequest>(request);
+    const availability =
+        await scheduleService.getViewingAvailabilityService(
+            query.apartment_id,
+            query.date
+        );
+
+    return sendSuccess(response, availability);
 };
 
-export const confirmSchedules = async (request: Request, response: Response) => {
-    try {
-        const id = Number(request.params.id);
-        if (isNaN(id)) return response.status(400).json({ error: "ID không hợp lệ" });
+export const getSchedules = async (
+    request: Request,
+    response: Response
+) => {
+    const { query } = getValidated<ListSchedulesRequest>(request);
+    const result = await scheduleService.getSchedulesAdminService(
+        query,
+        request.actor!
+    );
 
-        await scheduleService.confirmScheduleService(id);
-
-        response.json({
-            success: true,
-            message: "Xác nhận đặt lịch và gửi email thông báo thành công"
-        });
-    } catch (error: any) {
-        const errorMessage = error.message || "Lỗi hệ thống";
-        response.status(400).json({ success: false, error: errorMessage });
-    }
+    return sendPaginated(
+        response,
+        result.data,
+        result.pagination
+    );
 };
 
-export const deleteSchedule = async (request: Request, response: Response) => {
-    try {
-        await scheduleService.deleteScheduleService(Number(request.params.id));
-        response.json({ message: "Đã xóa lịch hẹn thành công" });
-    } catch (error: any) {
-        response.status(500).json({ error: error.message });
-    }
+export const confirmSchedules = async (
+    request: Request,
+    response: Response
+) => {
+    const { params } =
+        getValidated<ConfirmScheduleRequest>(request);
+    const schedule = await scheduleService.confirmScheduleService(
+        params.id,
+        request.actor!
+    );
+
+    return sendSuccess(response, schedule);
 };
 
-export const cancelSchedule = async (request: Request, response: Response) => {
-    try {
-        const result = await scheduleService.cancelScheduleService(Number(request.params.id));
-        response.json({
-            message: result.emailSent
-                ? "Đã hủy lịch hẹn, giải phóng khung giờ và gửi email thông báo thành công"
-                : "Đã hủy lịch hẹn và giải phóng khung giờ nhưng không thể gửi email thông báo",
-            emailSent: result.emailSent,
-            schedule: result.schedule
-        });
-    } catch (error: any) {
-        response.status(400).json({ error: error.message });
-    }
+export const cancelSchedule = async (
+    request: Request,
+    response: Response
+) => {
+    const { params } = getValidated<ScheduleIdRequest>(request);
+    const result = await scheduleService.cancelScheduleService(
+        params.id,
+        request.actor!
+    );
+
+    return sendSuccess(response, result);
+};
+
+export const deleteSchedule = async (
+    request: Request,
+    response: Response
+) => {
+    const { params } = getValidated<ScheduleIdRequest>(request);
+    await scheduleService.deleteScheduleService(
+        params.id,
+        request.actor!
+    );
+
+    return sendSuccess(response, { deleted: true });
 };

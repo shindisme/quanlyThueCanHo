@@ -40,6 +40,26 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'Preflight failed: duplicate apartment/tenant reviews exist';
     END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM "public"."rental_contracts"
+        WHERE "status" = 'ACTIVE'
+        GROUP BY "apartment_id"
+        HAVING COUNT(*) > 1
+    ) THEN
+        RAISE EXCEPTION 'Preflight failed: multiple active rental contracts exist for one apartment';
+    END IF;
+
+    IF EXISTS (
+        SELECT 1
+        FROM "public"."viewing_schedules"
+        WHERE "status" IN ('PENDING', 'CONFIRMED')
+        GROUP BY "apartment_id", "schedule_time"
+        HAVING COUNT(*) > 1
+    ) THEN
+        RAISE EXCEPTION 'Preflight failed: multiple active viewing schedules exist for one apartment and exact slot';
+    END IF;
 END $$;
 
 -- AlterTable
@@ -61,6 +81,16 @@ ON "public"."utility_readings"("apartment_id", "month", "year");
 -- CreateIndex
 CREATE UNIQUE INDEX "reviews_apartment_id_tenant_id_key"
 ON "public"."reviews"("apartment_id", "tenant_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "rental_contracts_one_active_per_apartment_key"
+ON "public"."rental_contracts"("apartment_id")
+WHERE "status" = 'ACTIVE';
+
+-- CreateIndex
+CREATE UNIQUE INDEX "viewing_schedules_one_active_slot_key"
+ON "public"."viewing_schedules"("apartment_id", "schedule_time")
+WHERE "status" IN ('PENDING', 'CONFIRMED');
 
 -- AddForeignKey
 ALTER TABLE "public"."tenants"

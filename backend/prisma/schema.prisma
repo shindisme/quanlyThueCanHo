@@ -201,6 +201,9 @@ model ApartmentImage {
   @@map("apartment_images")
 }
 
+// PostgreSQL enforces at most one ACTIVE row per apartment through the
+// rental_contracts_one_active_per_apartment_key partial unique index in the
+// hardening migration. Prisma schema syntax cannot represent partial indexes.
 model RentalContract {
   id             Int            @id @default(autoincrement())
   apartment_id   Int
@@ -313,6 +316,10 @@ model ViewingSchedule {
 
   @@index([apartment_id])
   @@index([status, schedule_time])
+  // Migration-only partial unique index
+  // `viewing_schedules_one_active_slot_key` covers apartment_id and
+  // schedule_time while status is PENDING or CONFIRMED. Prisma cannot model
+  // partial unique indexes, so this is intentionally not an @@unique.
   @@index([temp_locked_until])
   @@map("viewing_schedules")
 }
