@@ -5,11 +5,11 @@
   "license": "ISC",
   "author": "Nguyễn Tiến Dũng - Trần Anh Kiệt",
   "type": "module",
-  "main": "dist/server.js",
+  "main": "api/server.js",
   "scripts": {
     "dev": "dotenv -e .env -- tsx watch ./src/server.ts",
     "build": "tsc && tsc-alias",
-    "start": "node ./dist/server.js",
+    "start": "node ./api/server.js",
     "prisma:gen": "prisma generate",
     "postinstall": "prisma generate"
   },
