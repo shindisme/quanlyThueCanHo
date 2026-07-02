@@ -1,5 +1,8 @@
 import { fileURLToPath, URL } from "node:url";
-import { defineConfig } from "vitest/config";
+import {
+    configDefaults,
+    defineConfig
+} from "vitest/config";
 
 export default defineConfig({
     resolve: {
@@ -14,6 +17,10 @@ export default defineConfig({
         restoreMocks: true,
         mockReset: true,
         pool: "forks",
-        fileParallelism: false
+        fileParallelism: false,
+        exclude: [
+            ...configDefaults.exclude,
+            ".worktrees/**"
+        ]
     }
 });
