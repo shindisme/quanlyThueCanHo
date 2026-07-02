@@ -147,7 +147,84 @@ export default function TenantList() {
         className="max-w-md"
       />
 
-      <DataTable columns={columns} data={paginated} />
+      {filtered.length === 0 ? (
+        <div className="text-center py-16 text-gray-500 bg-white rounded-xl border border-gray-200">
+          <Users size={48} className="mx-auto mb-3 text-gray-300" />
+          <p className="font-medium">Không tìm thấy người thuê nào</p>
+          <p className="text-sm text-gray-400 mt-1">Thử tìm kiếm với từ khóa khác</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* View Card */}
+          <div className="grid grid-cols-1 gap-4 md:hidden">
+            {paginated.map((t) => {
+              const activeContract = t.contracts?.[0];
+              const apt = activeContract?.apartment;
+              const bld = apt?.building;
+              return (
+                <div key={t.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-800 text-base">
+                      {t.full_name}
+                    </span>
+                    <Badge variant={t.is_verified ? "success" : "warning"}>
+                      {t.is_verified ? "Đã xác thực" : "Chưa xác thực"}
+                    </Badge>
+                  </div>
+
+                  <div className="text-sm text-gray-500 space-y-1">
+                    <p>
+                      <span className="font-semibold text-gray-700">Số điện thoại:</span> {t.phone ? maskPhone(t.phone) : "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-gray-700">Căn hộ:</span>{" "}
+                      {apt ? (
+                        <span className="text-primary-600 font-semibold">
+                          {bld?.branch_name || "YuKi House"} - P.{apt.floor}{apt.room_number}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 italic text-xs">Chưa thuê</span>
+                      )}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-gray-700">CCCD:</span> {maskCCCD(t.citizen_id)}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                    <button
+                      onClick={() => setViewItem(t)}
+                      className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-primary-600 hover:bg-primary-50 flex items-center gap-1 text-xs cursor-pointer"
+                    >
+                      <Eye size={14} /> Chi tiết
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditItem(t);
+                        modifyModal.onOpen();
+                      }}
+                      className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-primary-600 hover:bg-primary-50 flex items-center gap-1 text-xs cursor-pointer"
+                    >
+                      <Pencil size={14} /> Sửa
+                    </button>
+                    <button
+                      onClick={() => setDeleteItem(t)}
+                      className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1 text-xs cursor-pointer"
+                    >
+                      <Trash2 size={14} /> Xóa
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* View List */}
+          <div className="hidden md:block">
+            <DataTable columns={columns} data={paginated} />
+          </div>
+        </div>
+      )}
 
       {totalPages > 1 && (
         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />

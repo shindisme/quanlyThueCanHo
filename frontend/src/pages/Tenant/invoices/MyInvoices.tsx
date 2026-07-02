@@ -138,59 +138,90 @@ export default function MyInvoices() {
 
       <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm..." className="max-w-md" />
 
-      {/* Bảng hóa đơn */}
-      <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-16">
-            <LoadingSpinner size={36} />
-            <span className="text-sm text-gray-400 mt-2">Đang tải hóa đơn...</span>
+      {/* Danh sách hóa đơn */}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-gray-200">
+          <LoadingSpinner size={36} />
+          <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải hóa đơn...</span>
+        </div>
+      ) : sortedInvoices.length === 0 ? (
+        <div className="text-center py-16 text-gray-550 bg-white rounded-xl border border-gray-200">
+          <Receipt size={48} className="mx-auto mb-3 text-gray-300" />
+          <p className="font-medium">Không có hóa đơn nào phù hợp</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* View Card */}
+          <div className="grid grid-cols-1 gap-4 md:hidden">
+            {sortedInvoices.map((inv) => {
+              const dateObj = new Date(inv.created_at || inv.due_date);
+              const monthStr = `${String(dateObj.getMonth() + 1).padStart(2, "0")}/${dateObj.getFullYear()}`;
+              return (
+                <div key={inv.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-primary-600 text-base">
+                      {inv.invoice_code}
+                    </span>
+                    {getStatusBadge(inv.status)}
+                  </div>
+
+                  <div className="text-sm text-gray-500 space-y-1">
+                    <p>
+                      <span className="font-semibold text-gray-700">Tháng:</span> {monthStr}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-gray-700">Hạn thanh toán:</span> {formatDate(inv.due_date)}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-gray-700">Tổng tiền:</span> <span className="font-bold text-gray-800 text-base">{formatCurrency(inv.total_amount)}</span>
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead onClick={() => requestSort("invoice_code")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Mã HĐ {getSortIcon("invoice_code")}
-                </TableHead>
-                <TableHead onClick={() => requestSort("billing_month")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Tháng {getSortIcon("billing_month")}
-                </TableHead>
-                <TableHead onClick={() => requestSort("due_date")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Hạn thanh toán {getSortIcon("due_date")}
-                </TableHead>
-                <TableHead onClick={() => requestSort("total")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Tổng tiền {getSortIcon("total")}
-                </TableHead>
-                <TableHead onClick={() => requestSort("status")} className="text-center cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                  Trạng thái {getSortIcon("status")}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedInvoices.map((inv) => {
-                const dateObj = new Date(inv.created_at || inv.due_date);
-                const monthStr = `${String(dateObj.getMonth() + 1).padStart(2, "0")}/${dateObj.getFullYear()}`;
-                return (
-                  <TableRow key={inv.id}>
-                    <TableCell className="font-semibold text-primary-600">{inv.invoice_code}</TableCell>
-                    <TableCell className="text-gray-650">{monthStr}</TableCell>
-                    <TableCell className="text-gray-600">{formatDate(inv.due_date)}</TableCell>
-                    <TableCell className="font-bold text-gray-800 text-right">{formatCurrency(inv.total_amount)}</TableCell>
-                    <TableCell className="text-center">{getStatusBadge(inv.status)}</TableCell>
-                  </TableRow>
-                );
-              })}
-              {sortedInvoices.length === 0 && (
+
+          {/* View TList */}
+          <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-sm rounded-xl">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12 text-gray-500">
-                    Không có hóa đơn nào phù hợp
-                  </TableCell>
+                  <TableHead onClick={() => requestSort("invoice_code")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                    Mã HĐ {getSortIcon("invoice_code")}
+                  </TableHead>
+                  <TableHead onClick={() => requestSort("billing_month")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                    Tháng {getSortIcon("billing_month")}
+                  </TableHead>
+                  <TableHead onClick={() => requestSort("due_date")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                    Hạn thanh toán {getSortIcon("due_date")}
+                  </TableHead>
+                  <TableHead onClick={() => requestSort("total")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                    Tổng tiền {getSortIcon("total")}
+                  </TableHead>
+                  <TableHead onClick={() => requestSort("status")} className="text-center cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                    Trạng thái {getSortIcon("status")}
+                  </TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        )}
-      </div>
+              </TableHeader>
+              <TableBody>
+                {sortedInvoices.map((inv) => {
+                  const dateObj = new Date(inv.created_at || inv.due_date);
+                  const monthStr = `${String(dateObj.getMonth() + 1).padStart(2, "0")}/${dateObj.getFullYear()}`;
+                  return (
+                    <TableRow key={inv.id}>
+                      <TableCell className="font-semibold text-primary-600">{inv.invoice_code}</TableCell>
+                      <TableCell className="text-gray-655">{monthStr}</TableCell>
+                      <TableCell className="text-gray-600">{formatDate(inv.due_date)}</TableCell>
+                      <TableCell className="font-bold text-gray-800 text-right">{formatCurrency(inv.total_amount)}</TableCell>
+                      <TableCell className="text-center">{getStatusBadge(inv.status)}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

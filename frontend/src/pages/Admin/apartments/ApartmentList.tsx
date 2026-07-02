@@ -150,94 +150,171 @@ export default function ApartmentList() {
           />
         )}
       </div>
-      <div className="border border-gray-200 overflow-hidden bg-white shadow-sm mt-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead onClick={() => requestSort("room_number")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Phòng {getSortIcon("room_number")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("area")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Diện tích {getSortIcon("area")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("bedrooms")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                P.Ngủ {getSortIcon("bedrooms")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("bathrooms")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                P.Tắm {getSortIcon("bathrooms")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("rental_price")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Giá thuê {getSortIcon("rental_price")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("status")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Trạng thái {getSortIcon("status")}
-              </TableHead>
-              {role === "ADMIN" && (
-                <TableHead className="text-center w-24">Nổi bật</TableHead>
-              )}
-              <TableHead className="text-right">Chức năng</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedApartments.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={role === "ADMIN" ? 8 : 7} className="text-center py-12 text-gray-500">
-                  <Home size={48} className="mx-auto mb-3 text-gray-300" />
-                  Không tìm thấy căn hộ nào
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedApartments.map((apt) => (
-                <TableRow key={apt.id}>
-                  <TableCell className="font-semibold text-primary-600">
-                    {formatApartmentDisplay(
-                      apt.room_number,
-                      apt.floor,
-                      role || undefined,
-                      buildings.find((b) => b.id === apt.building_id)?.branch_name
-                    )}
-                  </TableCell>
-                  <TableCell className="text-gray-600">{apt.area} m²</TableCell>
-                  <TableCell className="text-gray-655">{apt.bedrooms}</TableCell>
-                  <TableCell className="text-gray-655">{apt.bathrooms}</TableCell>
-                  <TableCell className="font-semibold text-gray-855">{formatCurrency(apt.rental_price)}</TableCell>
-                  <TableCell>{getStatusBadge(apt.status)}</TableCell>
-                  {role === "ADMIN" && (
-                    <TableCell className="text-center">
-                      <button
-                        onClick={() => toggleFeatured(apt.id)}
-                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${featuredIds.includes(apt.id)
-                          ? "text-amber-500 hover:text-amber-600"
-                          : "text-gray-300 hover:text-gray-400"
-                          }`}
-                        title={featuredIds.includes(apt.id) ? "Bỏ nổi bật" : "Bật nổi bật"}
-                      >
-                        <Star size={18} fill={featuredIds.includes(apt.id) ? "currentColor" : "none"} />
-                      </button>
-                    </TableCell>
-                  )}
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => navigate(`/${role?.toLowerCase()}/apartments/${apt.id}`)}
-                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Xem chi tiết">
-                        <Eye size={16} />
-                      </button>
-                      <button onClick={() => { setEditItem(apt); modifyModal.onOpen(); }}
-                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Sửa">
-                        <Pencil size={16} />
-                      </button>
-                      <button onClick={() => { setDeleteItem(apt); }}
-                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer" title="Xóa">
-                        <Trash2 size={16} />
-                      </button>
+      {paginatedApartments.length === 0 ? (
+        <div className="text-center py-16 text-gray-500 bg-white rounded-xl border border-gray-200 mt-6">
+          <Home size={48} className="mx-auto mb-3 text-gray-300" />
+          <p className="font-medium">Không tìm thấy căn hộ nào</p>
+          <p className="text-sm text-gray-400 mt-1">Thử tìm kiếm với từ khóa khác</p>
+        </div>
+      ) : (
+        <div className="space-y-4 mt-6">
+          {/* View Card */}
+          <div className="grid grid-cols-1 gap-4 md:hidden">
+            {paginatedApartments.map((apt) => {
+              const aptDisplay = formatApartmentDisplay(
+                apt.room_number,
+                apt.floor,
+                role || undefined,
+                buildings.find((b) => b.id === apt.building_id)?.branch_name
+              );
+              return (
+                <div key={apt.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className="font-semibold text-primary-600 cursor-pointer text-base hover:underline"
+                      onClick={() => navigate(`/${role?.toLowerCase()}/apartments/${apt.id}`)}
+                    >
+                      {aptDisplay}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {role === "ADMIN" && (
+                        <button
+                          onClick={() => toggleFeatured(apt.id)}
+                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${featuredIds.includes(apt.id)
+                            ? "text-amber-500 hover:text-amber-600"
+                            : "text-gray-300 hover:text-gray-400"
+                            }`}
+                          title={featuredIds.includes(apt.id) ? "Bỏ nổi bật" : "Bật nổi bật"}
+                        >
+                          <Star size={18} fill={featuredIds.includes(apt.id) ? "currentColor" : "none"} />
+                        </button>
+                      )}
+                      {getStatusBadge(apt.status)}
                     </div>
-                  </TableCell>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-gray-500">
+                    <p>
+                      <span className="font-semibold text-gray-700">Diện tích:</span> {apt.area} m²
+                    </p>
+                    <p>
+                      <span className="font-semibold text-gray-700">Giá thuê:</span> <span className="font-bold text-gray-800">{formatCurrency(apt.rental_price)}</span>
+                    </p>
+                    <p>
+                      <span className="font-semibold text-gray-700">Phòng ngủ:</span> {apt.bedrooms}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-gray-700">Phòng tắm:</span> {apt.bathrooms}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                    <button
+                      onClick={() => navigate(`/${role?.toLowerCase()}/apartments/${apt.id}`)}
+                      className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-primary-600 hover:bg-primary-50 flex items-center gap-1 text-xs cursor-pointer"
+                    >
+                      <Eye size={14} /> Chi tiết
+                    </button>
+                    <button
+                      onClick={() => { setEditItem(apt); modifyModal.onOpen(); }}
+                      className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-primary-600 hover:bg-primary-50 flex items-center gap-1 text-xs cursor-pointer"
+                    >
+                      <Pencil size={14} /> Sửa
+                    </button>
+                    <button
+                      onClick={() => setDeleteItem(apt)}
+                      className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1 text-xs cursor-pointer"
+                    >
+                      <Trash2 size={14} /> Xóa
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* View List*/}
+          <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead onClick={() => requestSort("room_number")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                    Phòng {getSortIcon("room_number")}
+                  </TableHead>
+                  <TableHead onClick={() => requestSort("area")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                    Diện tích {getSortIcon("area")}
+                  </TableHead>
+                  <TableHead onClick={() => requestSort("bedrooms")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                    P.Ngủ {getSortIcon("bedrooms")}
+                  </TableHead>
+                  <TableHead onClick={() => requestSort("bathrooms")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                    P.Tắm {getSortIcon("bathrooms")}
+                  </TableHead>
+                  <TableHead onClick={() => requestSort("rental_price")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                    Giá thuê {getSortIcon("rental_price")}
+                  </TableHead>
+                  <TableHead onClick={() => requestSort("status")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                    Trạng thái {getSortIcon("status")}
+                  </TableHead>
+                  {role === "ADMIN" && (
+                    <TableHead className="text-center w-24">Nổi bật</TableHead>
+                  )}
+                  <TableHead className="text-right">Chức năng</TableHead>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {paginatedApartments.map((apt) => (
+                  <TableRow key={apt.id}>
+                    <TableCell className="font-semibold text-primary-600">
+                      {formatApartmentDisplay(
+                        apt.room_number,
+                        apt.floor,
+                        role || undefined,
+                        buildings.find((b) => b.id === apt.building_id)?.branch_name
+                      )}
+                    </TableCell>
+                    <TableCell className="text-gray-600">{apt.area} m²</TableCell>
+                    <TableCell className="text-gray-655">{apt.bedrooms}</TableCell>
+                    <TableCell className="text-gray-655">{apt.bathrooms}</TableCell>
+                    <TableCell className="font-semibold text-gray-855">{formatCurrency(apt.rental_price)}</TableCell>
+                    <TableCell>{getStatusBadge(apt.status)}</TableCell>
+                    {role === "ADMIN" && (
+                      <TableCell className="text-center">
+                        <button
+                          onClick={() => toggleFeatured(apt.id)}
+                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${featuredIds.includes(apt.id)
+                            ? "text-amber-500 hover:text-amber-600"
+                            : "text-gray-300 hover:text-gray-400"
+                            }`}
+                          title={featuredIds.includes(apt.id) ? "Bỏ nổi bật" : "Bật nổi bật"}
+                        >
+                          <Star size={18} fill={featuredIds.includes(apt.id) ? "currentColor" : "none"} />
+                        </button>
+                      </TableCell>
+                    )}
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => navigate(`/${role?.toLowerCase()}/apartments/${apt.id}`)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Xem chi tiết">
+                          <Eye size={16} />
+                        </button>
+                        <button onClick={() => { setEditItem(apt); modifyModal.onOpen(); }}
+                          className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Sửa">
+                          <Pencil size={16} />
+                        </button>
+                        <button onClick={() => { setDeleteItem(apt); }}
+                          className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer" title="Xóa">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (

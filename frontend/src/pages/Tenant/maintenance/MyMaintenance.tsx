@@ -216,61 +216,101 @@ export default function MyMaintenance() {
       <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm yêu cầu..." className="max-w-md" />
 
       {/* Bảng danh sách yêu cầu */}
-      <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-16">
-            <LoadingSpinner size={36} />
-            <span className="text-sm text-gray-400 mt-2">Đang tải danh sách...</span>
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
+          <LoadingSpinner size={36} />
+          <span className="text-sm text-gray-400 mt-2">Đang tải danh sách...</span>
+        </div>
+      ) : filteredRequests.length === 0 ? (
+        <div className="text-center py-16 text-gray-500 bg-white rounded-xl border border-gray-200 shadow-sm">
+          <ClipboardList size={48} className="mx-auto mb-3 text-gray-300" />
+          <p className="font-medium">Không tìm thấy yêu cầu sửa chữa nào</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* View Card */}
+          <div className="grid grid-cols-1 gap-4 md:hidden">
+            {filteredRequests.map((req) => (
+              <div key={req.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-primary-600 text-base">
+                    {req.title}
+                  </span>
+                  {getStatusBadge(req.status)}
+                </div>
+
+                <div className="text-sm text-gray-500 space-y-1">
+                  <p>
+                    <span className="font-semibold text-gray-700">Ngày gửi:</span> {formatDate(req.created_at)}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-gray-700">Phòng:</span> {req.apartment_number}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-gray-700">Độ ưu tiên:</span> {getPriorityBadge(req.priority)}
+                  </p>
+                  <p className="text-xs text-gray-405 italic">
+                    <span className="font-semibold text-gray-700 not-italic">Mô tả:</span> {req.description}
+                  </p>
+                </div>
+
+                {req.status === "PENDING" && (
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                    <button
+                      onClick={() => handleCancelRequest(req.id)}
+                      className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+                    >
+                      <X size={14} /> Hủy yêu cầu
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Ngày gửi</TableHead>
-                <TableHead>Phòng</TableHead>
-                <TableHead>Tiêu đề</TableHead>
-                <TableHead>Mô tả chi tiết</TableHead>
-                <TableHead className="text-center">Độ ưu tiên</TableHead>
-                <TableHead className="text-center">Trạng thái</TableHead>
-                <TableHead className="text-right">Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredRequests.map((req) => (
-                <TableRow key={req.id}>
-                  <TableCell className="text-gray-600 whitespace-nowrap">{formatDate(req.created_at)}</TableCell>
-                  <TableCell className="font-medium text-gray-800 whitespace-nowrap">{req.apartment_number}</TableCell>
-                  <TableCell className="font-semibold text-primary-600">{req.title}</TableCell>
-                  <TableCell className="text-gray-655 max-w-xs truncate" title={req.description}>
-                    {req.description}
-                  </TableCell>
-                  <TableCell className="text-center">{getPriorityBadge(req.priority)}</TableCell>
-                  <TableCell className="text-center">{getStatusBadge(req.status)}</TableCell>
-                  <TableCell className="text-right">
-                    {req.status === "PENDING" && (
-                      <button
-                        onClick={() => handleCancelRequest(req.id)}
-                        className="p-2 rounded-lg text-gray-450 hover:text-red-600 hover:bg-red-50 cursor-pointer inline-flex items-center gap-1.5 text-xs font-semibold"
-                        title="Hủy yêu cầu"
-                      >
-                        <X size={14} /> Hủy
-                      </button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredRequests.length === 0 && (
+
+          {/* View List*/}
+          <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-sm rounded-xl">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-16 text-gray-500">
-                    <ClipboardList size={48} className="mx-auto mb-3 text-gray-300" />
-                    Không tìm thấy yêu cầu sửa chữa nào
-                  </TableCell>
+                  <TableHead>Ngày gửi</TableHead>
+                  <TableHead>Phòng</TableHead>
+                  <TableHead>Tiêu đề</TableHead>
+                  <TableHead>Mô tả chi tiết</TableHead>
+                  <TableHead className="text-center">Độ ưu tiên</TableHead>
+                  <TableHead className="text-center">Trạng thái</TableHead>
+                  <TableHead className="text-right">Thao tác</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        )}
-      </div>
+              </TableHeader>
+              <TableBody>
+                {filteredRequests.map((req) => (
+                  <TableRow key={req.id}>
+                    <TableCell className="text-gray-600 whitespace-nowrap">{formatDate(req.created_at)}</TableCell>
+                    <TableCell className="font-medium text-gray-800 whitespace-nowrap">{req.apartment_number}</TableCell>
+                    <TableCell className="font-semibold text-primary-600">{req.title}</TableCell>
+                    <TableCell className="text-gray-655 max-w-xs truncate" title={req.description}>
+                      {req.description}
+                    </TableCell>
+                    <TableCell className="text-center">{getPriorityBadge(req.priority)}</TableCell>
+                    <TableCell className="text-center">{getStatusBadge(req.status)}</TableCell>
+                    <TableCell className="text-right">
+                      {req.status === "PENDING" && (
+                        <button
+                          onClick={() => handleCancelRequest(req.id)}
+                          className="p-2 rounded-lg text-gray-450 hover:text-red-600 hover:bg-red-50 cursor-pointer inline-flex items-center gap-1.5 text-xs font-semibold"
+                          title="Hủy yêu cầu"
+                        >
+                          <X size={14} /> Hủy
+                        </button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
 
       {/* Modal gửi yêu cầu mới */}
       <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} title="Gửi Yêu Cầu Sửa Chữa Mới">
