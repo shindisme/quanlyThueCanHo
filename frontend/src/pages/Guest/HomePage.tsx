@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
 import {
   Search, ArrowRight, Building2, Users, Shield, Star,
-  MapPin, Maximize2, Phone, CheckCircle2, Loader2,
+  MapPin, Maximize2, Phone, CheckCircle2,
 } from "lucide-react";
-import { formatCurrency, formatApartmentDisplay } from "../../utils/format";
+import { formatCurrency } from "../../utils/currency";
+import { formatApartmentDisplay } from "../../utils/string";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import { useHomePage } from "../../hooks/useHomePage";
 import type { ApartmentData } from "../../services/apartmentService";
 import type { ApartmentImage } from "../../types";
@@ -145,7 +147,7 @@ export default function GuestHomePage() {
 
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="animate-spin text-primary-600" size={32} />
+              <LoadingSpinner size={32} />
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">

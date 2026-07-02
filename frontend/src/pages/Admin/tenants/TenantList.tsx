@@ -1,4 +1,4 @@
-import { Plus, Users, Eye, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Users, Eye, Pencil, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../../components/PageHeader";
 import Button from "../../../components/ui/Button";
@@ -6,10 +6,10 @@ import SearchInput from "../../../components/ui/SearchInput";
 import Badge from "../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../components/ui/DataTable";
 import Pagination from "../../../components/ui/Pagination";
-import { useAuthStore } from "../../../stores/auth.store";
 import type { Tenant } from "../../../types";
-import { maskPhone, maskCCCD } from "../../../utils/format";
+import { maskPhone, maskCCCD } from "../../../utils/string";
 import { useTenantList } from "../../../hooks/useTenantList";
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
 import TenantCreateModal from "./components/TenantCreateModal";
 import TenantModifyModal from "./components/TenantModifyModal";
@@ -18,7 +18,6 @@ import TenantDetailModal from "./components/TenantDetailModal";
 
 // Danh sách người thuê
 export default function TenantList() {
-  const { role, managedBuildingId } = useAuthStore();
   const navigate = useNavigate();
 
   const {
@@ -27,10 +26,10 @@ export default function TenantList() {
     currentPage,
     setCurrentPage,
     totalPages,
-    showCreateModal,
-    setShowCreateModal,
-    showModifyModal,
-    setShowModifyModal,
+    startIdx,
+    endIdx,
+    createModal,
+    modifyModal,
     editItem,
     setEditItem,
     deleteItem,
@@ -41,15 +40,16 @@ export default function TenantList() {
     loadData,
     handleDelete,
     loading,
-  } = useTenantList({ role, managedBuildingId });
+    role,
+  } = useTenantList();
 
-  const pageSize = 10;
-  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const paginated = filtered.slice(startIdx, endIdx);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-primary-600" size={32} />
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <LoadingSpinner size={32} />
+        <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải danh sách người thuê...</span>
       </div>
     );
   }
@@ -106,7 +106,7 @@ export default function TenantList() {
           <button
             onClick={() => {
               setEditItem(t);
-              setShowModifyModal(true);
+              modifyModal.onOpen();
             }}
             className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
             title="Chỉnh sửa"
@@ -134,7 +134,7 @@ export default function TenantList() {
         count={filtered.length}
         iconColor="linear-gradient(135deg, #8B5CF6, #A78BFA)"
         actions={
-          <Button onClick={() => setShowCreateModal(true)}>
+          <Button onClick={createModal.onOpen}>
             <Plus size={18} /> Thêm người thuê
           </Button>
         }
@@ -147,14 +147,93 @@ export default function TenantList() {
         className="max-w-md"
       />
 
-      <DataTable columns={columns} data={paginated} />
+      {filtered.length === 0 ? (
+        <div className="text-center py-16 text-gray-500 bg-white rounded-xl border border-gray-200">
+          <Users size={48} className="mx-auto mb-3 text-gray-300" />
+          <p className="font-medium">Không tìm thấy người thuê nào</p>
+          <p className="text-sm text-gray-400 mt-1">Thử tìm kiếm với từ khóa khác</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* View Card */}
+          <div className="grid grid-cols-1 gap-4 md:hidden">
+            {paginated.map((t) => {
+              const activeContract = t.contracts?.[0];
+              const apt = activeContract?.apartment;
+              const bld = apt?.building;
+              return (
+                <div key={t.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-800 text-base">
+                      {t.full_name}
+                    </span>
+                    <Badge variant={t.is_verified ? "success" : "warning"}>
+                      {t.is_verified ? "Đã xác thực" : "Chưa xác thực"}
+                    </Badge>
+                  </div>
 
-      <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+                  <div className="text-sm text-gray-500 space-y-1">
+                    <p>
+                      <span className="font-semibold text-gray-700">Số điện thoại:</span> {t.phone ? maskPhone(t.phone) : "-"}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-gray-700">Căn hộ:</span>{" "}
+                      {apt ? (
+                        <span className="text-primary-600 font-semibold">
+                          {bld?.branch_name || "YuKi House"} - P.{apt.floor}{apt.room_number}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 italic text-xs">Chưa thuê</span>
+                      )}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-gray-700">CCCD:</span> {maskCCCD(t.citizen_id)}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                    <button
+                      onClick={() => setViewItem(t)}
+                      className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-primary-600 hover:bg-primary-50 flex items-center gap-1 text-xs cursor-pointer"
+                    >
+                      <Eye size={14} /> Chi tiết
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditItem(t);
+                        modifyModal.onOpen();
+                      }}
+                      className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-primary-600 hover:bg-primary-50 flex items-center gap-1 text-xs cursor-pointer"
+                    >
+                      <Pencil size={14} /> Sửa
+                    </button>
+                    <button
+                      onClick={() => setDeleteItem(t)}
+                      className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1 text-xs cursor-pointer"
+                    >
+                      <Trash2 size={14} /> Xóa
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* View List */}
+          <div className="hidden md:block">
+            <DataTable columns={columns} data={paginated} />
+          </div>
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+      )}
 
       {/* Modals */}
       <TenantCreateModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        isOpen={createModal.isOpen}
+        onClose={createModal.onClose}
         onSuccess={(newTenantId) => {
           loadData();
           if (newTenantId) {
@@ -165,8 +244,8 @@ export default function TenantList() {
       />
 
       <TenantModifyModal
-        isOpen={showModifyModal}
-        onClose={() => { setShowModifyModal(false); setEditItem(null); }}
+        isOpen={modifyModal.isOpen}
+        onClose={() => { modifyModal.onClose(); setEditItem(null); }}
         onSuccess={loadData}
         editItem={editItem}
       />

@@ -1,5 +1,5 @@
 import {
-  Building2, Home, Users, DollarSign, Loader2, TrendingUp, TrendingDown, Calendar
+  Building2, Home, Users, DollarSign, TrendingUp, TrendingDown, Calendar
 } from "lucide-react";
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -15,6 +15,7 @@ import * as invoiceService from "../../../services/invoiceService";
 import type { Invoice } from "../../../types";
 import Combobox from "../../../components/ui/Combobox";
 import { toast } from "sonner";
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
 function StatCard({ icon: Icon, label, value, trend, trendValue, iconColor, iconBg, variant = "default" }: {
   icon: React.ComponentType<{ size?: number; className?: string }>;
@@ -258,8 +259,9 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-primary-600" size={32} />
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <LoadingSpinner size={32} />
+        <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải...</span>
       </div>
     );
   }

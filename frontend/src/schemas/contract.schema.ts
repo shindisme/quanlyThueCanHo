@@ -35,6 +35,34 @@ export const contractSchema = z.object({
         path: ["new_tenant_cccd"],
         message: "Số CCCD người thuê mới không được để trống",
       })
+    } else if (!/^\d{12}$/.test(data.new_tenant_cccd)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["new_tenant_cccd"],
+        message: "Số CCCD không hợp lệ (phải gồm đúng 12 chữ số)",
+      })
+    }
+
+    if (data.new_tenant_email && data.new_tenant_email.trim() !== "") {
+      const emailRes = z.string().email().safeParse(data.new_tenant_email);
+      if (!emailRes.success) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["new_tenant_email"],
+          message: "Email không hợp lệ",
+        })
+      }
+    }
+
+    if (data.new_tenant_phone && data.new_tenant_phone.trim() !== "") {
+      const phoneRegex = /^(0[123456789]\d{8})$/;
+      if (!phoneRegex.test(data.new_tenant_phone)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["new_tenant_phone"],
+          message: "Số điện thoại không hợp lệ",
+        })
+      }
     }
   } else {
     if (!data.tenant_id) {

@@ -30,6 +30,9 @@ import ManagerDashboard from "../pages/Manager/dashboard/Dashboard";
 // Trang Tenant
 import TenantHome from "../pages/Tenant/home/Home";
 import TenantContracts from "../pages/Tenant/contracts/MyContracts";
+import MyInvoices from "../pages/Tenant/invoices/MyInvoices";
+import MyMaintenance from "../pages/Tenant/maintenance/MyMaintenance";
+import MyUtilities from "../pages/Tenant/utilities/MyUtilities";
 import ProfilePage from "../pages/Tenant/profile/ProfilePage";
 
 // Trang Guest
@@ -135,10 +138,10 @@ const router = createBrowserRouter([
       { index: true, element: <Navigate to="home" replace /> },
       { path: "home", element: <TenantHome /> },
       { path: "contracts", element: <TenantContracts /> },
-      { path: "invoices", element: <InvoiceList /> },
+      { path: "invoices", element: <MyInvoices /> },
       { path: "payments", element: <PaymentList /> },
-      { path: "utilities", element: <UtilityList /> },
-      { path: "maintenance", element: <MaintenanceKanban /> },
+      { path: "utilities", element: <MyUtilities /> },
+      { path: "maintenance", element: <MyMaintenance /> },
       { path: "notifications", element: <NotificationList /> },
       { path: "profile", element: <ProfilePage /> },
     ],

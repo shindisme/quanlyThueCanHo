@@ -1,19 +1,13 @@
-import { useParams, Link } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { ArrowLeft, MapPin, Layers, Building2, Home, Pencil, Loader2, BedDouble, Bath, User } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowLeft, MapPin, Layers, Building2, Home, Pencil, BedDouble, Bath, User } from "lucide-react";
 import Badge from "../../../components/ui/Badge";
 import Button from "../../../components/ui/Button";
 import Card from "../../../components/ui/Card";
-import { toast } from "sonner";
-
-import * as buildingService from "../../../services/buildingService";
-import * as apartmentService from "../../../services/apartmentService";
-import type { BuildingData } from "../../../services/buildingService";
-import type { ApartmentData } from "../../../services/apartmentService";
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
 import BuildingModifyModal from "./components/BuildingModifyModal";
-import { formatApartmentDisplay } from "../../../utils/format";
-import { useAuthStore } from "../../../stores/auth.store";
+import { formatApartmentDisplay } from "../../../utils/string";
+import { useBuildingDetail } from "../../../hooks/useBuildingDetail";
 
 function getApartmentThumbnail(apt: any): string {
   if (apt && apt.images && Array.isArray(apt.images) && apt.images.length > 0) {
@@ -25,42 +19,23 @@ function getApartmentThumbnail(apt: any): string {
 }
 
 export default function BuildingDetail() {
-  const { id } = useParams();
-  const { role } = useAuthStore();
-  const [building, setBuilding] = useState<BuildingData | null>(null);
-  const [apartments, setApartments] = useState<ApartmentData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showModifyModal, setShowModifyModal] = useState(false);
-  const [selectedFloor, setSelectedFloor] = useState(1);
-
-  useEffect(() => {
-    if (!id) return;
-    fetchData();
-  }, [id]);
-
-  async function fetchData() {
-    try {
-      setLoading(true);
-      const [bData, aRes1, aRes2] = await Promise.all([
-        buildingService.getBuildingById(Number(id)),
-        apartmentService.getAllApartments({ building_id: Number(id), limit: 100, page: 1 }),
-        apartmentService.getAllApartments({ building_id: Number(id), limit: 100, page: 2 }),
-      ]);
-      setBuilding(bData);
-      const combined = [...aRes1.data, ...aRes2.data];
-      const unique = combined.filter((a, index, self) => self.findIndex(t => t.id === a.id) === index);
-      setApartments(unique);
-    } catch {
-      toast.error("Không thể tải dữ liệu");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const {
+    role,
+    building,
+    apartments,
+    loading,
+    showModifyModal,
+    setShowModifyModal,
+    selectedFloor,
+    setSelectedFloor,
+    fetchData,
+  } = useBuildingDetail();
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-primary-600" size={32} />
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <LoadingSpinner size={36} />
+        <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải chi tiết tòa nhà...</span>
       </div>
     );
   }

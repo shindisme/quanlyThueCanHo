@@ -1,108 +1,60 @@
-import { useState, useEffect } from "react";
-import { Plus, Briefcase, Eye, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Briefcase, Eye, Pencil, Trash2 } from "lucide-react";
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import PageHeader from "../../../components/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
 import Badge from "../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../components/ui/DataTable";
 import Pagination from "../../../components/ui/Pagination";
-import { useAuthStore } from "../../../stores/auth.store";
-import { toast } from "sonner";
 import Combobox from "../../../components/ui/Combobox";
-import { removeVietnameseTones, maskPhone } from "../../../utils/format";
+import { maskPhone } from "../../../utils/string";
 import type { Staff } from "../../../types";
-import * as staffService from "../../../services/staffService";
-import * as buildingService from "../../../services/buildingService";
-import type { BuildingData } from "../../../services/buildingService";
 
 import StaffCreateModal from "./components/StaffCreateModal";
 import StaffModifyModal from "./components/StaffModifyModal";
 import StaffDeleteModal from "./components/StaffDeleteModal";
 import StaffDetailModal from "./components/StaffDetailModal";
+import { useStaffList } from "../../../hooks/useStaffList";
 
 export default function StaffList() {
-  const { role, managedBuildingId } = useAuthStore();
+  const {
+    role,
+    buildings,
+    staffList,
+    loading,
+    search,
+    setSearch,
+    positionFilter,
+    setPositionFilter,
+    buildingFilter,
+    setBuildingFilter,
+    currentPage,
+    setCurrentPage,
+    showCreateModal,
+    setShowCreateModal,
+    showModifyModal,
+    setShowModifyModal,
+    editItem,
+    setEditItem,
+    deleteItem,
+    setDeleteItem,
+    viewItem,
+    setViewItem,
+    filtered,
+    totalPages,
+    paginated,
+    handleDelete,
+    getBuildingName,
+    loadData,
+  } = useStaffList();
 
-  const [staffList, setStaffList] = useState<Staff[]>([]);
-  const [buildings, setBuildings] = useState<BuildingData[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const [search, setSearch] = useState("");
-  const [positionFilter, setPositionFilter] = useState("");
-  const [buildingFilter, setBuildingFilter] = useState<number | "">("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
-
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showModifyModal, setShowModifyModal] = useState(false);
-  const [editItem, setEditItem] = useState<Staff | null>(null);
-  const [deleteItem, setDeleteItem] = useState<Staff | null>(null);
-  const [viewItem, setViewItem] = useState<Staff | null>(null);
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData() {
-    try {
-      setLoading(true);
-      const sRes = await staffService.getAllStaff();
-      setStaffList(sRes.data);
-
-      const bRes = await buildingService.getAllBuildings({ limit: 100 });
-      setBuildings(bRes.data);
-    } catch {
-      toast.error("Không thể tải danh sách nhân viên");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  const displayStaff = (() => {
-    if (role === "MANAGER" && managedBuildingId) {
-      return staffList.filter((s) => s.building_id === managedBuildingId);
-    }
-    return staffList;
-  })();
-
-  const filtered = displayStaff.filter((s) => {
-    const term = removeVietnameseTones(search);
-    const nameNorm = removeVietnameseTones(s.full_name);
-    const phoneNorm = removeVietnameseTones(s.phone || "");
-    const matchSearch = nameNorm.includes(term) || phoneNorm.includes(term);
-
-    const matchPosition = !positionFilter || s.position === positionFilter;
-    const matchBuilding =
-      buildingFilter === "" || s.building_id === Number(buildingFilter);
-
-    return matchSearch && matchPosition && matchBuilding;
-  });
-
-  const totalPages = Math.ceil(filtered.length / pageSize);
-
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-
-  async function handleDelete() {
-    if (!deleteItem) return;
-    try {
-      await staffService.deleteStaff(deleteItem.id);
-      toast.success("Đã xóa nhân viên thành công!");
-      setDeleteItem(null);
-      loadData();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Xóa nhân viên thất bại");
-    }
-  }
-
-  function getBuildingName(bId: number | null): string {
-    if (!bId) return "Chưa gán";
-    return buildings.find((b) => b.id === bId)?.branch_name || `Tòa nhà #${bId}`;
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <LoadingSpinner size={36} />
+        <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải danh sách nhân viên...</span>
+      </div>
+    );
   }
 
   const columns: Column<Staff>[] = [
@@ -192,7 +144,7 @@ export default function StaffList() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-primary-600" size={32} />
+        <LoadingSpinner size={32} />
       </div>
     );
   }

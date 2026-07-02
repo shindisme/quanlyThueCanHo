@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import * as buildingService from "../services/buildingService";
 import * as apartmentService from "../services/apartmentService";
-import type { BuildingData } from "../services/buildingService";
-import type { ApartmentData } from "../services/apartmentService";
 
 export function useHomePage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -41,27 +40,19 @@ export function useHomePage() {
     return [];
   });
 
-  const [apartments, setApartments] = useState<ApartmentData[]>([]);
-  const [buildings, setBuildings] = useState<BuildingData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: buildingsRes, isLoading: loadingBuildings } = useQuery({
+    queryKey: ["buildings"],
+    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
+  });
+  const buildings = buildingsRes?.data || [];
 
-  useEffect(() => {
-    Promise.all([
-      buildingService.getAllBuildings({ limit: 100 }),
-      apartmentService.getAllApartments({ limit: 100 })
-    ])
-      .then(([bRes, aRes]) => {
-        setBuildings(bRes.data);
-        setApartments(aRes.data);
-      })
-      .catch(() => {
-        setBuildings([]);
-        setApartments([]);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [featuredIds]);
+  const { data: apartmentsRes, isLoading: loadingApartments } = useQuery({
+    queryKey: ["apartments-landing"],
+    queryFn: () => apartmentService.getAllApartments({ limit: 100 }),
+  });
+  const apartments = apartmentsRes?.data || [];
+
+  const loading = loadingBuildings || loadingApartments;
 
   const featuredApartments = (() => {
     const validStatuses = ["available", "vacant", "AVAILABLE", "rented", "RENTED", "maintenance", "MAINTENANCE"];

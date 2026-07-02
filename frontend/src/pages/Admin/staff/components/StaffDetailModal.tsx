@@ -1,7 +1,7 @@
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import type { Staff } from "../../../../types";
-import { formatDate } from "../../../../utils/format";
+import { formatDate } from "../../../../utils/date";
 
 interface StaffDetailModalProps {
   isOpen: boolean;

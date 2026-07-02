@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import * as apartmentService from "../services/apartmentService";
 import type { BuildingData } from "../services/buildingService";
 import { apartmentSchema } from "../schemas/apartment.schema";
+import { isValidImageFile } from "../utils/file";
 
 interface UseApartmentCreateProps {
   isOpen: boolean;
@@ -64,6 +65,11 @@ export function useApartmentCreate({
   function handleThumbnailChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) {
+      const check = isValidImageFile(file);
+      if (!check.valid) {
+        toast.error(check.error || "Tệp không hợp lệ");
+        return;
+      }
       setLocalThumbnail(URL.createObjectURL(file));
       setThumbnailFile(file);
     }
@@ -72,6 +78,11 @@ export function useApartmentCreate({
   function handleDetailImageChange(e: React.ChangeEvent<HTMLInputElement>, index: number) {
     const file = e.target.files?.[0];
     if (file) {
+      const check = isValidImageFile(file);
+      if (!check.valid) {
+        toast.error(check.error || "Tệp không hợp lệ");
+        return;
+      }
       const url = URL.createObjectURL(file);
       setLocalImages((prev) => {
         const next = [...prev];

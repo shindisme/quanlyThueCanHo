@@ -1,16 +1,15 @@
-import { useState, useEffect } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { Search, Loader2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Search } from "lucide-react";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import Badge from "../../components/ui/Badge";
 import Combobox from "../../components/ui/Combobox";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../constants/enums";
-import { formatCurrency, formatApartmentDisplay, removeVietnameseTones } from "../../utils/format";
-import * as buildingService from "../../services/buildingService";
-import * as apartmentService from "../../services/apartmentService";
-import type { BuildingData } from "../../services/buildingService";
-import type { ApartmentData } from "../../services/apartmentService";
+import { formatCurrency } from "../../utils/currency";
+import { formatApartmentDisplay } from "../../utils/string";
 
+import type { ApartmentData } from "../../services/apartmentService";
 import type { ApartmentImage } from "../../types";
+import { useGuestApartmentListing } from "../../hooks/useGuestApartmentListing";
 
 function getApartmentThumbnail(apt: ApartmentData): string {
   if (apt && apt.images && Array.isArray(apt.images) && apt.images.length > 0) {
@@ -22,104 +21,22 @@ function getApartmentThumbnail(apt: ApartmentData): string {
 }
 
 export default function GuestApartmentListing() {
-  const [searchParams] = useSearchParams();
-  const searchParamVal = searchParams.get("search") || "";
-
-  const [search, setSearch] = useState(searchParamVal);
-  const [prevSearchParamVal, setPrevSearchParamVal] = useState(searchParamVal);
-  if (searchParamVal !== prevSearchParamVal) {
-    setSearch(searchParamVal);
-    setPrevSearchParamVal(searchParamVal);
-  }
-  const [priceFilter, setPriceFilter] = useState("");
-  const [buildingFilter, setBuildingFilter] = useState("");
-  const [floorFilter, setFloorFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("AVAILABLE");
-
-  // API State
-  const [apartments, setApartments] = useState<ApartmentData[]>([]);
-  const [buildings, setBuildings] = useState<BuildingData[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Load buildings once on mount
-  useEffect(() => {
-    buildingService.getAllBuildings({ limit: 100 }).then((res) => {
-      setBuildings(res.data);
-      if (res.data && res.data.length > 0) {
-        setBuildingFilter(String(res.data[0].id));
-      }
-    }).catch(() => {
-      setBuildings([]);
-    });
-  }, []);
-
-  // Fetch apartments when selected building changes
-  useEffect(() => {
-    async function fetchApartmentsForBuilding() {
-      try {
-        setLoading(true);
-        const bId = buildingFilter ? Number(buildingFilter) : undefined;
-        const [res1, res2] = await Promise.all([
-          apartmentService.getAllApartments({
-            building_id: bId,
-            limit: 100,
-            page: 1,
-          }),
-          apartmentService.getAllApartments({
-            building_id: bId,
-            limit: 100,
-            page: 2,
-          })
-        ]);
-        const combined = [...res1.data, ...res2.data];
-        const unique = combined.filter((a, index, self) => self.findIndex(t => t.id === a.id) === index);
-        setApartments(unique);
-      } catch {
-        setApartments([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchApartmentsForBuilding();
-  }, [buildingFilter]);
-
-  // Lay danh sach tang cua toa nha duoc chon
-  const floors = (() => {
-    if (!buildingFilter) return [];
-    const building = buildings.find((b) => b.id === Number(buildingFilter));
-    if (!building) return [];
-    return Array.from({ length: building.total_floors }, (_, i) => i + 1);
-  })();
-
-  // Loc can ho
-  const filtered = apartments.filter((a) => {
-    const building = buildings.find((b) => b.id === a.building_id);
-    const term = removeVietnameseTones(search);
-    const roomNorm = removeVietnameseTones(a.room_number);
-    const descNorm = removeVietnameseTones(a.description || "");
-    const buildingNameNorm = removeVietnameseTones(building?.name || "");
-    const branchNameNorm = removeVietnameseTones(building?.branch_name || "");
-    const addressNewNorm = removeVietnameseTones(building?.address_new || "");
-    const addressOldNorm = removeVietnameseTones(building?.address_old || "");
-
-    const matchSearch =
-      roomNorm.includes(term) ||
-      descNorm.includes(term) ||
-      buildingNameNorm.includes(term) ||
-      branchNameNorm.includes(term) ||
-      addressNewNorm.includes(term) ||
-      addressOldNorm.includes(term);
-
-    const matchStatus = !statusFilter || a.status === statusFilter;
-    const matchBuilding = !buildingFilter || a.building_id === Number(buildingFilter);
-    const matchFloor = !floorFilter || a.floor === Number(floorFilter);
-    let matchPrice = true;
-    if (priceFilter === "low") matchPrice = a.rental_price <= 6000000;
-    else if (priceFilter === "mid") matchPrice = a.rental_price > 6000000 && a.rental_price <= 15000000;
-    else if (priceFilter === "high") matchPrice = a.rental_price > 15000000;
-    return matchSearch && matchStatus && matchBuilding && matchFloor && matchPrice;
-  });
+  const {
+    search,
+    setSearch,
+    priceFilter,
+    setPriceFilter,
+    buildingFilter,
+    setBuildingFilter,
+    floorFilter,
+    setFloorFilter,
+    statusFilter,
+    setStatusFilter,
+    buildings,
+    loading,
+    floors,
+    filtered,
+  } = useGuestApartmentListing();
 
   return (
     <div className="pt-20 pb-16 font-sans">
@@ -201,7 +118,7 @@ export default function GuestApartmentListing() {
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="animate-spin text-primary-600" size={32} />
+            <LoadingSpinner size={32} />
           </div>
         ) : (
           <>

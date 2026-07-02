@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/auth.store";
 import { changePassword } from "../services/authService";
 import * as tenantService from "../services/tenantService";
@@ -34,48 +35,48 @@ export function useProfile() {
   const [confirmPass, setConfirmPass] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const [userContract, setUserContract] = useState<any | null>(null);
-  const [apartmentInfo, setApartmentInfo] = useState<any | null>(null);
-  const [buildingInfo, setBuildingInfo] = useState<any | null>(null);
+  const { data: tenantsRes } = useQuery({
+    queryKey: ["tenants"],
+    queryFn: () => tenantService.getAllTenants({ limit: 1000 }),
+    enabled: role === "TENANT" && !!email && !!token,
+  });
 
-  useEffect(() => {
-    if (role === "TENANT" && email && token) {
-      async function loadTenantContract() {
-        try {
-          const decoded = parseJwt(token);
-          const userId = decoded?.userId;
-          if (!userId) return;
+  const { data: contracts } = useQuery({
+    queryKey: ["contracts"],
+    queryFn: () => contractService.getAllContracts(),
+    enabled: role === "TENANT" && !!email && !!token,
+  });
 
-          const tenantsRes = await tenantService.getAllTenants({ limit: 1000 });
-          const currentT = tenantsRes.data.find((t) => t.user_id === userId);
-          if (!currentT) return;
+  const decoded = token ? parseJwt(token) : null;
+  const userId = decoded?.userId;
 
-          const contracts = await contractService.getAllContracts();
-          const activeContract = contracts.find((c) => c.tenant_id === currentT.id && c.status === "ACTIVE");
+  const currentT = userId && tenantsRes?.data
+    ? tenantsRes.data.find((t) => t.user_id === userId)
+    : null;
 
-          if (activeContract) {
-            setUserContract(activeContract);
+  const userContract = currentT && contracts
+    ? contracts.find((c) => c.tenant_id === currentT.id && c.status === "ACTIVE")
+    : null;
 
-            // Load apartment and building details
-            const apartmentsRes = await apartmentService.getAllApartments({ limit: 1000 });
-            const apt = apartmentsRes.data.find((a) => a.id === activeContract.apartment_id);
-            if (apt) {
-              setApartmentInfo(apt);
+  const { data: apartmentsRes } = useQuery({
+    queryKey: ["apartments"],
+    queryFn: () => apartmentService.getAllApartments({ limit: 1000 }),
+    enabled: !!userContract,
+  });
 
-              const buildingsRes = await buildingService.getAllBuildings({ limit: 100 });
-              const bld = buildingsRes.data.find((b) => b.id === apt.building_id);
-              if (bld) {
-                setBuildingInfo(bld);
-              }
-            }
-          }
-        } catch (err) {
-          console.error("Lỗi khi tải thông tin hợp đồng cho Profile:", err);
-        }
-      }
-      loadTenantContract();
-    }
-  }, [email, role, token]);
+  const apartmentInfo = userContract && apartmentsRes?.data
+    ? apartmentsRes.data.find((a) => a.id === userContract.apartment_id)
+    : null;
+
+  const { data: buildingsRes } = useQuery({
+    queryKey: ["buildings"],
+    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
+    enabled: !!apartmentInfo,
+  });
+
+  const buildingInfo = apartmentInfo && buildingsRes?.data
+    ? buildingsRes.data.find((b) => b.id === apartmentInfo.building_id)
+    : null;
 
   const [occupants, setOccupants] = useState<any[]>(() => {
     if (!email) return [];

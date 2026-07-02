@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { bookViewing } from "../services/scheduleService";
 import type { ApartmentData } from "../services/apartmentService";
@@ -21,6 +21,24 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
     note: "",
   });
 
+  const [holdTimeLeft, setHoldTimeLeft] = useState<number>(0);
+
+  useEffect(() => {
+    if (!selectedSlot || holdTimeLeft <= 0) return;
+    const timer = setInterval(() => {
+      setHoldTimeLeft((prev) => {
+        if (prev <= 1) {
+          setSelectedSlot("");
+          toast.error("Đã hết thời gian giữ khung giờ này. Vui lòng chọn lại!");
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [selectedSlot, holdTimeLeft]);
+
   const isSlotBooked = (slot: string) => {
     try {
       const stored = localStorage.getItem("booked-viewing-slots");
@@ -32,6 +50,25 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
     } catch {
       return false;
     }
+  };
+
+  const handleSelectSlot = (slot: string) => {
+    if (selectedSlot === slot) {
+      setSelectedSlot("");
+      setHoldTimeLeft(0);
+    } else {
+      setSelectedSlot(slot);
+      setHoldTimeLeft(600); // 10min
+      toast.info(`Khung giờ ${slot} đang được giữ tạm thời cho bạn trong 10 phút.`);
+    }
+  };
+
+  const handleResetBooking = () => {
+    setSelectedSlot("");
+    setHoldTimeLeft(0);
+    setShowScheduleForm(false);
+    setScheduleForm({ guest_name: "", guest_phone: "", guest_email: "", schedule_time: "", note: "" });
+    setSelectedDate("");
   };
 
   async function handleSubmitSchedule() {
@@ -68,7 +105,7 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
       const slotMinutes = parseInt(minutesStr, 10);
       const [year, month, day] = selectedDate.split("-").map(Number);
       const slotDateObj = new Date(year, month - 1, day, slotHours, slotMinutes);
-      
+
       const minSelectableDateObj = new Date();
       minSelectableDateObj.setHours(minSelectableDateObj.getHours() + 6);
       return slotDateObj < minSelectableDateObj;
@@ -101,11 +138,8 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
       });
       localStorage.setItem("booked-viewing-slots", JSON.stringify(list));
 
-      toast.success("Đã gửi yêu cầu đặt lịch xem phòng thành công!");
-      setShowScheduleForm(false);
-      setScheduleForm({ guest_name: "", guest_phone: "", guest_email: "", schedule_time: "", note: "" });
-      setSelectedDate("");
-      setSelectedSlot("");
+      toast.success("Đặt lịch xem phòng thành công!");
+      handleResetBooking();
     } catch (error: unknown) {
       const err = error as { response?: { data?: { error?: string } } };
       toast.error(err.response?.data?.error || "Gửi yêu cầu thất bại");
@@ -126,5 +160,9 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
     setScheduleForm,
     isSlotBooked,
     handleSubmitSchedule,
+    holdTimeLeft,
+    setHoldTimeLeft,
+    handleSelectSlot,
+    handleResetBooking,
   };
 }

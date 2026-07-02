@@ -1,6 +1,6 @@
 import ConfirmDialog from "../../../../components/ui/ConfirmDialog";
 import type { ScheduleData } from "../../../../services/scheduleService";
-import { parseGuestName } from "../../../../utils/format";
+import { parseGuestName } from "../../../../utils/string";
 
 interface ScheduleDeleteModalProps {
   isOpen: boolean;

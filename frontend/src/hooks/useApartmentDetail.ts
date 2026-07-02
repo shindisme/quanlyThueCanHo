@@ -1,15 +1,14 @@
 import { useParams } from "react-router-dom"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import * as apartmentService from "../services/apartmentService"
 import * as buildingService from "../services/buildingService"
 import * as contractService from "../services/contractService"
 import * as tenantService from "../services/tenantService"
 import * as authService from "../services/authService"
-import { getApartmentReviews, type ReviewData, type ReviewMeta } from "../services/reviewService"
-import type { ApartmentData } from "../services/apartmentService"
-import type { BuildingData } from "../services/buildingService"
-import type { ApartmentImage, RentalContract, Tenant, User } from "../types"
+import { getApartmentReviews } from "../services/reviewService"
+import type { ApartmentImage, User } from "../types"
 
 interface Occupant {
   id: string
@@ -21,19 +20,61 @@ interface Occupant {
 
 export function useApartmentDetail() {
   const { id } = useParams()
-  const [apartment, setApartment] = useState<ApartmentData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [images, setImages] = useState<ApartmentImage[]>([])
   const [uploading, setUploading] = useState(false)
-  const [buildings, setBuildings] = useState<BuildingData[]>([])
   const [showModifyModal, setShowModifyModal] = useState(false)
-  const [contracts, setContracts] = useState<RentalContract[]>([])
-  const [tenants, setTenants] = useState<Tenant[]>([])
-  const [users, setUsers] = useState<User[]>([])
   const [occupants, setOccupants] = useState<Occupant[]>([])
-  const [reviews, setReviews] = useState<ReviewData[]>([])
-  const [reviewMeta, setReviewMeta] = useState<ReviewMeta>({ averageRating: 0, totalReviews: 0, currentPage: 1, totalPages: 1 })
   const [activeTab, setActiveTab] = useState<"tenant" | "tenantHistory" | "reviews">("tenant")
+  const [images, setImages] = useState<ApartmentImage[]>([])
+
+  const { data: buildingsRes } = useQuery({
+    queryKey: ["buildings"],
+    queryFn: () => buildingService.getAllBuildings(),
+  })
+  const buildings = buildingsRes?.data || []
+
+  const { data: apartment, isLoading: loadingApartment, refetch: fetchApartment } = useQuery({
+    queryKey: ["apartment", id],
+    queryFn: () => apartmentService.getApartmentById(Number(id)),
+    enabled: !!id,
+  })
+
+  const { data: contracts = [], isLoading: loadingContracts } = useQuery({
+    queryKey: ["contracts"],
+    queryFn: () => contractService.getAllContracts().catch(() => []),
+  })
+
+  const { data: tenantsRes, isLoading: loadingTenants } = useQuery({
+    queryKey: ["tenants"],
+    queryFn: () => tenantService.getAllTenants({ limit: 1000 }).catch(() => ({ data: [] })),
+  })
+  const tenants = tenantsRes?.data || []
+
+  const { data: users = [], isLoading: loadingUsers } = useQuery({
+    queryKey: ["users"],
+    queryFn: async () => {
+      const uRes = await authService.getAllUsers().catch(() => []);
+      return uRes as unknown as User[];
+    }
+  })
+
+  const { data: reviewsRes, isLoading: loadingReviews } = useQuery({
+    queryKey: ["reviews", id],
+    queryFn: () => getApartmentReviews(Number(id)).catch(() => ({
+      data: [],
+      meta: { averageRating: 0, totalReviews: 0, currentPage: 1, totalPages: 1 }
+    })),
+    enabled: !!id,
+  })
+  const reviews = reviewsRes?.data || []
+  const reviewMeta = reviewsRes?.meta || { averageRating: 0, totalReviews: 0, currentPage: 1, totalPages: 1 }
+
+  const loading = loadingApartment || loadingContracts || loadingTenants || loadingUsers || loadingReviews
+
+  useEffect(() => {
+    if (apartment?.images) {
+      setImages(apartment.images)
+    }
+  }, [apartment])
 
   const activeContract = contracts.find(
     (c) => c.apartment_id === Number(id) && c.status === "ACTIVE"
@@ -74,39 +115,9 @@ export function useApartmentDetail() {
     }
   }, [activeTenantUser])
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true)
-      const [bRes, aptData, contractsData, tenantsRes, usersData, reviewsRes] = await Promise.all([
-        buildingService.getAllBuildings(),
-        apartmentService.getApartmentById(Number(id)),
-        contractService.getAllContracts().catch(() => []),
-        tenantService.getAllTenants({ limit: 1000 }).catch(() => ({ data: [] })),
-        authService.getAllUsers().catch(() => []),
-        getApartmentReviews(Number(id)).catch(() => ({ data: [], meta: { averageRating: 0, totalReviews: 0, currentPage: 1, totalPages: 1 } })),
-      ])
-      setBuildings(bRes.data)
-      setApartment(aptData)
-      setImages(aptData.images || [])
-      setContracts(contractsData)
-      setTenants(tenantsRes.data)
-      setUsers(usersData as unknown as User[])
-      setReviews(reviewsRes.data)
-      setReviewMeta(reviewsRes.meta)
-    } catch {
-      toast.error("Không thể tải dữ liệu")
-    } finally {
-      setLoading(false)
-    }
-  }, [id])
-
-  useEffect(() => {
-    if (!id) return
-    const handler = setTimeout(() => {
-      fetchData()
-    }, 0)
-    return () => clearTimeout(handler)
-  }, [id, fetchData])
+  const fetchData = async () => {
+    await fetchApartment()
+  }
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]

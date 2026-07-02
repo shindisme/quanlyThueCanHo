@@ -5,7 +5,7 @@ import { useAuthStore } from "../stores/auth.store";
 import { useSidebarStore } from "../stores/sidebar.store";
 import * as buildingService from "../services/buildingService";
 import * as apartmentService from "../services/apartmentService";
-import { formatApartmentDisplay } from "../utils/format";
+import { formatApartmentDisplay } from "../utils/string";
 import Avatar from "./ui/Avatar";
 import {
   DropdownMenu,

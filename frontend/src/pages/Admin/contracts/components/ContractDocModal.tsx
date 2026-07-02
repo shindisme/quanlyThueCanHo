@@ -3,12 +3,9 @@ import Button from "../../../../components/ui/Button";
 import type { RentalContract, Tenant, User as UserType } from "../../../../types";
 import type { BuildingData } from "../../../../services/buildingService";
 import type { ApartmentData } from "../../../../services/apartmentService";
-import {
-  formatCurrency,
-  formatDate,
-  formatApartmentDisplay,
-  numberToVietnameseWords,
-} from "../../../../utils/format";
+import { formatCurrency, numberToVietnameseWords } from "../../../../utils/currency";
+import { formatDate } from "../../../../utils/date";
+import { formatApartmentDisplay } from "../../../../utils/string";
 
 interface ContractDocModalProps {
   isOpen: boolean;

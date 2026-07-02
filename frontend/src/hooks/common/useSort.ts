@@ -49,14 +49,14 @@ export function useSort<T>(
           : (bVal ? 1 : -1);
       }
 
-      // Convert to number if possible, but avoid checking booleans
+      // Convert sang number nếu có thể
       const aNum = Number(aVal);
       const bNum = Number(bVal);
       if (!isNaN(aNum) && !isNaN(bNum)) {
         return sortConfig.direction === "asc" ? aNum - bNum : bNum - aNum;
       }
 
-      // Default string comparison
+      // Mặc định so sánh chuỗi
       const aStr = String(aVal).trim().toLowerCase();
       const bStr = String(bVal).trim().toLowerCase();
       return sortConfig.direction === "asc"

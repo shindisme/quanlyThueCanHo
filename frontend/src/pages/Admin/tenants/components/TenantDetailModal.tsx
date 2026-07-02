@@ -2,7 +2,7 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Badge from "../../../../components/ui/Badge";
 import type { Tenant } from "../../../../types";
-import { formatDate } from "../../../../utils/format";
+import { formatDate } from "../../../../utils/date";
 
 interface TenantDetailModalProps {
   isOpen: boolean;

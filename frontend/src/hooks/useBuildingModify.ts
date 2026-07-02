@@ -4,6 +4,8 @@ import * as buildingService from "../services/buildingService";
 import type { BuildingData } from "../services/buildingService";
 import { buildingSchema } from "../schemas/building.schema";
 
+import { isValidImageFile } from "../utils/file";
+
 interface UseBuildingModifyProps {
   isOpen: boolean;
   onClose: () => void;
@@ -72,6 +74,11 @@ export function useBuildingModify({ isOpen, onClose, onSuccess, editItem }: UseB
   function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) {
+      const check = isValidImageFile(file);
+      if (!check.valid) {
+        toast.error(check.error || "Tệp không hợp lệ");
+        return;
+      }
       setThumbnailFile(file);
       setPreviewUrl(URL.createObjectURL(file));
       toast.success("Đã chọn ảnh");

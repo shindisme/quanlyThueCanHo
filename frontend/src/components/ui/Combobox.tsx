@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react"
 import { Check, ChevronDown, X } from "lucide-react"
 import { cn } from "../../lib/utils"
-import { removeVietnameseTones } from "../../utils/format"
+import { removeVietnameseTones } from "../../utils/string"
 
 export interface ComboboxOption {
   value: string
