@@ -1,16 +1,74 @@
+import {
+    Role
+} from "@prisma/client";
 import { Router } from "express";
 import * as notificationController from "../controllers/notification.controller.js";
-import { authenticate, authorizeRole } from "../middleware/auth.middleware.js";
+import {
+    authenticate,
+    authorizeRole
+} from "../middleware/auth.middleware.js";
+import { validate } from "../middleware/validate.middleware.js";
+import {
+    listNotificationsRequestSchema,
+    markAllNotificationsReadRequestSchema,
+    markNotificationReadRequestSchema,
+    notificationIdRequestSchema,
+    sendBuildingNotificationRequestSchema,
+    sendInvoiceNotificationsRequestSchema
+} from "../schemas/notification.schema.js";
 
 const router = Router();
+const readRoles = [
+    Role.ADMIN,
+    Role.MANAGER,
+    Role.TENANT
+];
+const manageRoles = [
+    Role.ADMIN,
+    Role.MANAGER
+];
 
-router.use(authenticate);
-
-router.get("/", authorizeRole(["ADMIN", "MANAGER", "TENANT"]), notificationController.getAll);
-router.post("/building", authorizeRole(["ADMIN", "MANAGER"]), notificationController.sendToBuilding);
-router.post("/invoices", authorizeRole(["ADMIN", "MANAGER"]), notificationController.sendInvoices);
-router.patch("/read-all", authorizeRole(["ADMIN", "MANAGER", "TENANT"]), notificationController.markAllRead);
-router.patch("/:id/read", authorizeRole(["ADMIN", "MANAGER", "TENANT"]), notificationController.markRead);
-router.delete("/:id", authorizeRole(["ADMIN", "MANAGER", "TENANT"]), notificationController.remove);
+router.get(
+    "/",
+    authenticate,
+    authorizeRole(readRoles),
+    validate(listNotificationsRequestSchema),
+    notificationController.getAll
+);
+router.post(
+    "/building",
+    authenticate,
+    authorizeRole(manageRoles),
+    validate(sendBuildingNotificationRequestSchema),
+    notificationController.sendToBuilding
+);
+router.post(
+    "/invoices",
+    authenticate,
+    authorizeRole(manageRoles),
+    validate(sendInvoiceNotificationsRequestSchema),
+    notificationController.sendInvoices
+);
+router.patch(
+    "/read-all",
+    authenticate,
+    authorizeRole(readRoles),
+    validate(markAllNotificationsReadRequestSchema),
+    notificationController.markAllRead
+);
+router.patch(
+    "/:id/read",
+    authenticate,
+    authorizeRole(readRoles),
+    validate(markNotificationReadRequestSchema),
+    notificationController.markRead
+);
+router.delete(
+    "/:id",
+    authenticate,
+    authorizeRole(readRoles),
+    validate(notificationIdRequestSchema),
+    notificationController.remove
+);
 
 export default router;

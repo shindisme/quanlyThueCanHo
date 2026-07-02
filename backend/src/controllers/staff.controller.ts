@@ -1,33 +1,89 @@
-import { Request, Response } from "express";
+import type {
+    Request,
+    Response
+} from "express";
+import { getValidated } from "../middleware/validate.middleware.js";
+import type {
+    CreateStaffRequest,
+    ListStaffRequest,
+    StaffIdRequest,
+    UpdateStaffRequest
+} from "../schemas/staff.schema.js";
 import * as staffService from "../services/staff.service.js";
+import {
+    sendPaginated,
+    sendSuccess
+} from "../utils/api-response.js";
 
-export const getAll = async (req: Request, res: Response) => {
-    const data = await staffService.getAllStaffService();
-    res.json({ success: true, data });
-};
-export const create = async (req: Request, res: Response) => {
-    try {
-        const staff = await staffService.createStaffService(req.body);
-        res.status(201).json({ success: true, data: staff });
-    } catch (error: any) {
-        res.status(400).json({ success: false, message: error.message });
-    }
+export const getAll = async (
+    request: Request,
+    response: Response
+) => {
+    const { query } = getValidated<ListStaffRequest>(request);
+    const result = await staffService.getAllStaffService(
+        query,
+        request.actor!
+    );
+
+    return sendPaginated(
+        response,
+        result.data,
+        result.pagination
+    );
 };
 
-export const update = async (req: Request, res: Response) => {
-    try {
-        const updated = await staffService.updateStaffService(Number(req.params.id), req.body);
-        res.json({ success: true, data: updated });
-    } catch (error: any) {
-        res.status(400).json({ success: false, message: "Lỗi cập nhật nhân viên" });
-    }
+export const getById = async (
+    request: Request,
+    response: Response
+) => {
+    const { params } = getValidated<StaffIdRequest>(request);
+    const staff = await staffService.getStaffByIdService(
+        params.id,
+        request.actor!
+    );
+
+    return sendSuccess(response, staff);
 };
 
-export const remove = async (req: Request, res: Response) => {
-    try {
-        await staffService.deleteStaffService(Number(req.params.id));
-        res.status(204).send();
-    } catch (error: any) {
-        res.status(400).json({ success: false, message: "Lỗi xóa nhân viên" });
-    }
+export const create = async (
+    request: Request,
+    response: Response
+) => {
+    const { body } = getValidated<CreateStaffRequest>(request);
+    const staff = await staffService.createStaffService(
+        body,
+        request.actor!
+    );
+
+    return sendSuccess(response, staff, 201);
+};
+
+export const update = async (
+    request: Request,
+    response: Response
+) => {
+    const {
+        params,
+        body
+    } = getValidated<UpdateStaffRequest>(request);
+    const staff = await staffService.updateStaffService(
+        params.id,
+        body,
+        request.actor!
+    );
+
+    return sendSuccess(response, staff);
+};
+
+export const remove = async (
+    request: Request,
+    response: Response
+) => {
+    const { params } = getValidated<StaffIdRequest>(request);
+    await staffService.deleteStaffService(
+        params.id,
+        request.actor!
+    );
+
+    return sendSuccess(response, { deleted: true });
 };

@@ -1,30 +1,25 @@
-import { InvoiceStatus, PaymentStatus, Prisma } from "@prisma/client";
+import {
+    InvoiceStatus,
+    PaymentStatus,
+    Prisma,
+    Role
+} from "@prisma/client";
 import { prisma } from "../config/database.js";
+import { AppError } from "../errors/app-error.js";
+import type {
+    CreatePaymentRequest,
+    ListPaymentsRequest
+} from "../schemas/payment.schema.js";
+import type { Actor } from "../types/auth.js";
+import {
+    isDecimal12_2Amount,
+    toMoneyCents
+} from "../utils/money.js";
+import { getCurrentManagerAssignment } from "./manager-scope.js";
 
-export type PaymentActor = {
-    userId: number;
-    role: string;
-};
-
-export type PaymentFilters = {
-    status?: PaymentStatus;
-    payment_method?: string;
-    invoice_id?: number;
-    tenant_id?: number;
-    contract_id?: number;
-    building_id?: number;
-    search?: string;
-    page?: number;
-    limit?: number;
-};
-
-export type CreatePaymentInput = {
-    invoice_id: number;
-    payment_method: string;
-    transaction_code?: string;
-    amount?: number;
-    status?: PaymentStatus;
-};
+export type PaymentActor = Actor;
+export type PaymentFilters = ListPaymentsRequest["query"];
+export type CreatePaymentInput = CreatePaymentRequest["body"];
 
 export const PAYMENT_METHODS = {
     CASH: "CASH",
@@ -32,16 +27,8 @@ export const PAYMENT_METHODS = {
     E_WALLET: "E_WALLET"
 } as const;
 
-export type PaymentMethod = typeof PAYMENT_METHODS[keyof typeof PAYMENT_METHODS];
-
-export class PaymentError extends Error {
-    statusCode: number;
-
-    constructor(message: string, statusCode = 400) {
-        super(message);
-        this.statusCode = statusCode;
-    }
-}
+type PaymentMethod =
+    typeof PAYMENT_METHODS[keyof typeof PAYMENT_METHODS];
 
 const invoiceForPaymentInclude = {
     payments: {
@@ -93,19 +80,116 @@ type PaymentWithRelations = Prisma.PaymentGetPayload<{
     include: typeof paymentInclude;
 }>;
 
+const notFound = (resource: "invoice" | "payment") =>
+    new AppError(
+        404,
+        "NOT_FOUND",
+        resource === "invoice"
+            ? "Invoice was not found"
+            : "Payment was not found"
+    );
+
+const validationError = (message: string) =>
+    new AppError(400, "VALIDATION_ERROR", message);
+
+const concurrentModification = () =>
+    new AppError(
+        409,
+        "CONCURRENT_MODIFICATION",
+        "Payment changed during this operation"
+    );
+
+const SERIALIZABLE_RETRY_LIMIT = 3;
+
+const runSerializableTransaction = async <T>(
+    operation: (
+        transaction: Prisma.TransactionClient
+    ) => Promise<T>
+) => {
+    for (
+        let attempt = 1;
+        attempt <= SERIALIZABLE_RETRY_LIMIT;
+        attempt++
+    ) {
+        try {
+            return await prisma.$transaction(operation, {
+                isolationLevel:
+                    Prisma.TransactionIsolationLevel.Serializable
+            });
+        } catch (error) {
+            const isSerializationConflict =
+                error instanceof
+                    Prisma.PrismaClientKnownRequestError
+                && error.code === "P2034";
+
+            if (!isSerializationConflict) {
+                throw error;
+            }
+
+            if (attempt === SERIALIZABLE_RETRY_LIMIT) {
+                throw concurrentModification();
+            }
+        }
+    }
+
+    throw concurrentModification();
+};
+
 const toNumber = (value: Prisma.Decimal | number) => Number(value);
 
-const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+const getSuccessfulPaymentTotalCents = (
+    invoice: Pick<InvoiceForPayment, "payments">,
+    excludePaymentId?: number
+) => invoice.payments
+    .filter((payment) => (
+        payment.status === PaymentStatus.SUCCESS
+        && payment.id !== excludePaymentId
+    ))
+    .reduce(
+        (sum, payment) =>
+            sum + toMoneyCents(toNumber(payment.amount)),
+        0
+    );
 
-const assertFinitePositive = (value: number, label: string) => {
-    if (!Number.isFinite(value) || value <= 0) {
-        throw new PaymentError(`${label} phai la so lon hon 0.`);
-    }
+const normalizeInvoice = (invoice: InvoiceForPayment) => {
+    const totalAmount = toNumber(invoice.total_amount);
+    const totalAmountCents = toMoneyCents(totalAmount);
+    const paidAmountCents =
+        getSuccessfulPaymentTotalCents(invoice);
+
+    return {
+        ...invoice,
+        total_amount: totalAmount,
+        paid_amount: paidAmountCents / 100,
+        remaining_amount:
+            Math.max(totalAmountCents - paidAmountCents, 0)
+            / 100,
+        contract: {
+            ...invoice.contract,
+            deposit_amount:
+                toNumber(invoice.contract.deposit_amount),
+            monthly_rent:
+                toNumber(invoice.contract.monthly_rent),
+            apartment: {
+                ...invoice.contract.apartment,
+                area: toNumber(invoice.contract.apartment.area),
+                rental_price: toNumber(
+                    invoice.contract.apartment.rental_price
+                )
+            }
+        },
+        payments: invoice.payments.map((payment) => ({
+            ...payment,
+            amount: toNumber(payment.amount)
+        }))
+    };
 };
 
-const assertValidPaymentStatus = (status: unknown): status is PaymentStatus => {
-    return status === PaymentStatus.SUCCESS || status === PaymentStatus.PENDING || status === PaymentStatus.FAILED;
-};
+const normalizePayment = (payment: PaymentWithRelations) => ({
+    ...payment,
+    amount: toNumber(payment.amount),
+    invoice: normalizeInvoice(payment.invoice)
+});
 
 const paymentMethodAliases: Record<string, PaymentMethod> = {
     CASH: PAYMENT_METHODS.CASH,
@@ -122,294 +206,337 @@ const paymentMethodAliases: Record<string, PaymentMethod> = {
     VNPAY: PAYMENT_METHODS.E_WALLET
 };
 
-const normalizePaymentMethod = (value: unknown) => {
-    if (typeof value !== "string") {
-        throw new PaymentError("Vui long nhap phuong thuc thanh toan.");
-    }
-
-    const key = value.trim().toUpperCase().replace(/[\s-]+/g, "_");
+const normalizePaymentMethod = (value: string) => {
+    const key = value
+        .trim()
+        .toUpperCase()
+        .replace(/[\s-]+/g, "_");
     const method = paymentMethodAliases[key];
 
     if (!method) {
-        throw new PaymentError("Phuong thuc thanh toan khong hop le. Cac gia tri ho tro: CASH, BANK_TRANSFER, E_WALLET.");
+        throw validationError("Payment method is not supported");
     }
 
     return method;
 };
 
-const normalizeInvoice = (invoice: InvoiceForPayment) => {
-    const totalAmount = toNumber(invoice.total_amount);
-    const paidAmount = getSuccessfulPaymentTotal(invoice);
+const requireTenantId = (actor: Actor) => {
+    if (actor.tenantId === undefined) {
+        throw new AppError(
+            403,
+            "TENANT_PROFILE_REQUIRED",
+            "A linked tenant profile is required"
+        );
+    }
+
+    return actor.tenantId;
+};
+
+const getManagerApartmentScope = (actor: Actor) => {
+    const assignment = getCurrentManagerAssignment(actor);
 
     return {
-        ...invoice,
-        total_amount: totalAmount,
-        paid_amount: roundMoney(paidAmount),
-        remaining_amount: roundMoney(Math.max(totalAmount - paidAmount, 0)),
-        contract: {
-            ...invoice.contract,
-            deposit_amount: toNumber(invoice.contract.deposit_amount),
-            monthly_rent: toNumber(invoice.contract.monthly_rent),
-            apartment: {
-                ...invoice.contract.apartment,
-                area: toNumber(invoice.contract.apartment.area),
-                rental_price: toNumber(invoice.contract.apartment.rental_price)
-            }
-        },
-        payments: invoice.payments.map((payment) => ({
-            ...payment,
-            amount: toNumber(payment.amount)
-        }))
-    };
+        building_id: assignment.buildingId,
+        building: assignment.assignmentWhere
+    } satisfies Prisma.ApartmentWhereInput;
 };
 
-const normalizePayment = (payment: PaymentWithRelations) => ({
-    ...payment,
-    amount: toNumber(payment.amount),
-    invoice: normalizeInvoice(payment.invoice)
-});
-
-const getActorStaff = async (userId: number) => {
-    return prisma.staff.findUnique({
-        where: { user_id: userId },
-        select: {
-            id: true,
-            building_id: true
-        }
-    });
-};
-
-const getActorTenant = async (userId: number) => {
-    return prisma.tenant.findUnique({
-        where: { user_id: userId },
-        select: {
-            id: true,
-            user_id: true
-        }
-    });
-};
-
-const requireManagerBuildingId = async (actor: PaymentActor) => {
-    if (actor.role === "ADMIN") {
-        return undefined;
-    }
-
-    const staff = await getActorStaff(actor.userId);
-    if (!staff) {
-        throw new PaymentError("Tai khoan chua duoc lien ket voi ho so nhan vien.", 403);
-    }
-
-    if (!staff.building_id) {
-        throw new PaymentError("Nhan vien chua duoc phan cong toa nha.", 403);
-    }
-
-    return staff.building_id;
-};
-
-const requireTenantId = async (actor: PaymentActor) => {
-    const tenant = await getActorTenant(actor.userId);
-    if (!tenant) {
-        throw new PaymentError("Tai khoan chua duoc lien ket voi ho so nguoi thue.", 403);
-    }
-
-    return tenant.id;
-};
-
-const assertCanManagePayments = (actor: PaymentActor) => {
-    if (!["ADMIN", "MANAGER"].includes(actor.role)) {
-        throw new PaymentError("Ban khong co quyen quan ly thanh toan.", 403);
-    }
-};
-
-const getPaymentScopeWhere = async (actor: PaymentActor): Promise<Prisma.PaymentWhereInput> => {
-    if (actor.role === "ADMIN") {
+const getInvoiceScopeWhere = (
+    actor: Actor
+): Prisma.InvoiceWhereInput => {
+    if (actor.role === Role.ADMIN) {
         return {};
     }
 
-    if (actor.role === "MANAGER") {
-        const buildingId = await requireManagerBuildingId(actor);
+    if (actor.role === Role.MANAGER) {
         return {
-            invoice: {
-                contract: {
-                    apartment: {
-                        building_id: buildingId
-                    }
-                }
+            contract: {
+                apartment: getManagerApartmentScope(actor)
             }
         };
     }
 
-    if (actor.role === "TENANT") {
+    if (actor.role === Role.TENANT) {
         return {
-            invoice: {
-                tenant_id: await requireTenantId(actor)
-            }
+            tenant_id: requireTenantId(actor)
         };
     }
 
-    throw new PaymentError("Ban khong co quyen truy cap thanh toan.", 403);
+    throw new AppError(
+        403,
+        "FORBIDDEN",
+        "Payment access is forbidden"
+    );
 };
 
-const getInvoiceByIdOrThrow = async (id: number) => {
-    const invoice = await prisma.invoice.findUnique({
-        where: { id },
+const getPaymentScopeWhere = (
+    actor: Actor
+): Prisma.PaymentWhereInput => {
+    if (actor.role === Role.ADMIN) {
+        return {};
+    }
+
+    return {
+        invoice: getInvoiceScopeWhere(actor)
+    };
+};
+
+const getScopedInvoiceWhere = (
+    id: number,
+    actor: Actor
+) => {
+    if (actor.role === Role.ADMIN) {
+        return {
+            id
+        } satisfies Prisma.InvoiceWhereUniqueInput;
+    }
+
+    if (actor.role === Role.MANAGER) {
+        return {
+            id,
+            contract: {
+                apartment: getManagerApartmentScope(actor)
+            }
+        } satisfies Prisma.InvoiceWhereUniqueInput;
+    }
+
+    return {
+        id,
+        tenant_id: requireTenantId(actor)
+    } satisfies Prisma.InvoiceWhereUniqueInput;
+};
+
+const getScopedPaymentWhere = (
+    id: number,
+    actor: Actor
+) => {
+    if (actor.role === Role.ADMIN) {
+        return {
+            id
+        } satisfies Prisma.PaymentWhereUniqueInput;
+    }
+
+    if (actor.role === Role.MANAGER) {
+        return {
+            id,
+            invoice: {
+                contract: {
+                    apartment: getManagerApartmentScope(actor)
+                }
+            }
+        } satisfies Prisma.PaymentWhereUniqueInput;
+    }
+
+    return {
+        id,
+        invoice: {
+            tenant_id: requireTenantId(actor)
+        }
+    } satisfies Prisma.PaymentWhereUniqueInput;
+};
+
+const assertCanManagePayments = (actor: Actor) => {
+    if (
+        actor.role !== Role.ADMIN
+        && actor.role !== Role.MANAGER
+    ) {
+        throw new AppError(
+            403,
+            "FORBIDDEN",
+            "Payment management is forbidden"
+        );
+    }
+};
+
+const assertSuccessAmountWithinInvoice = (
+    invoice: InvoiceForPayment,
+    amount: number,
+    excludePaymentId?: number
+) => {
+    const successfulTotalCents =
+        getSuccessfulPaymentTotalCents(
+            invoice,
+            excludePaymentId
+        );
+
+    if (
+        successfulTotalCents + toMoneyCents(amount)
+        > toMoneyCents(toNumber(invoice.total_amount))
+    ) {
+        throw validationError(
+            "Successful payment total exceeds the invoice total"
+        );
+    }
+};
+
+const createPaidNotification = async (
+    transaction: Prisma.TransactionClient,
+    invoice: InvoiceForPayment
+) => {
+    const userId = invoice.contract.tenant.user_id;
+
+    if (userId === null) {
+        return;
+    }
+
+    await transaction.notification.create({
+        data: {
+            user_id: userId,
+            title: "Hoa don da thanh toan",
+            content:
+                `Hoa don ${invoice.invoice_code} `
+                + "da duoc ghi nhan thanh toan.",
+            type: "INVOICE_PAID"
+        }
+    });
+};
+
+const syncInvoicePaymentStatus = async (
+    transaction: Prisma.TransactionClient,
+    invoiceId: number,
+    actor: Actor
+) => {
+    const scopedWhere = getScopedInvoiceWhere(invoiceId, actor);
+    const invoice = await transaction.invoice.findFirst({
+        where: scopedWhere,
         include: invoiceForPaymentInclude
     });
 
     if (!invoice) {
-        throw new PaymentError("Hoa don khong ton tai.", 404);
+        throw notFound("invoice");
     }
 
-    return invoice;
+    const paidAmountCents =
+        getSuccessfulPaymentTotalCents(invoice);
+    const totalAmountCents = toMoneyCents(
+        toNumber(invoice.total_amount)
+    );
+    const isPaid =
+        totalAmountCents > 0
+        && paidAmountCents >= totalAmountCents;
+    const desiredStatus = isPaid
+        ? InvoiceStatus.PAID
+        : InvoiceStatus.UNPAID;
+
+    if (invoice.status === desiredStatus) {
+        return invoice;
+    }
+
+    let updated: InvoiceForPayment;
+
+    try {
+        updated = await transaction.invoice.update({
+            where: {
+                ...scopedWhere,
+                status: invoice.status
+            },
+            data: {
+                status: desiredStatus,
+                paid_at: isPaid ? new Date() : null
+            },
+            include: invoiceForPaymentInclude
+        });
+    } catch (error) {
+        if (
+            !(error instanceof
+                Prisma.PrismaClientKnownRequestError)
+            || error.code !== "P2025"
+        ) {
+            throw error;
+        }
+
+        const observed = await transaction.invoice.findFirst({
+            where: scopedWhere,
+            include: invoiceForPaymentInclude
+        });
+
+        if (!observed) {
+            throw notFound("invoice");
+        }
+
+        if (observed.status === desiredStatus) {
+            return observed;
+        }
+
+        throw concurrentModification();
+    }
+
+    if (desiredStatus === InvoiceStatus.PAID) {
+        await createPaidNotification(transaction, updated);
+    }
+
+    return updated;
 };
 
-const getPaymentByIdOrThrow = async (id: number) => {
-    const payment = await prisma.payment.findUnique({
-        where: { id },
+const findPaymentInScope = async (
+    transaction: Prisma.TransactionClient,
+    id: number,
+    actor: Actor
+) => {
+    const payment = await transaction.payment.findFirst({
+        where: getScopedPaymentWhere(id, actor),
         include: paymentInclude
     });
 
     if (!payment) {
-        throw new PaymentError("Giao dich thanh toan khong ton tai.", 404);
+        throw notFound("payment");
     }
 
     return payment;
 };
 
-const assertInvoiceAccessible = async (invoice: InvoiceForPayment, actor: PaymentActor) => {
-    if (actor.role === "ADMIN") {
-        return;
+const mapPaymentWriteError = (error: unknown): never => {
+    if (
+        error instanceof Prisma.PrismaClientKnownRequestError
+        && error.code === "P2002"
+    ) {
+        throw new AppError(
+            409,
+            "TRANSACTION_CODE_CONFLICT",
+            "Transaction code already exists"
+        );
     }
 
-    if (actor.role === "MANAGER") {
-        const buildingId = await requireManagerBuildingId(actor);
-        if (invoice.contract.apartment.building_id !== buildingId) {
-            throw new PaymentError("Ban khong co quyen thao tac voi thanh toan cua toa nha nay.", 403);
-        }
-        return;
-    }
-
-    if (actor.role === "TENANT") {
-        const tenantId = await requireTenantId(actor);
-        if (invoice.tenant_id !== tenantId) {
-            throw new PaymentError("Ban khong co quyen thao tac voi hoa don nay.", 403);
-        }
-        return;
-    }
-
-    throw new PaymentError("Ban khong co quyen truy cap thanh toan.", 403);
+    throw error;
 };
 
-const getSuccessfulPaymentTotal = (invoice: Pick<InvoiceForPayment, "payments">, excludePaymentId?: number) => {
-    return invoice.payments
-        .filter((payment) => payment.status === PaymentStatus.SUCCESS && payment.id !== excludePaymentId)
-        .reduce((sum, payment) => sum + toNumber(payment.amount), 0);
-};
-
-const createPaymentNotification = async (
-    tx: Prisma.TransactionClient,
-    invoice: InvoiceForPayment,
-    title: string,
-    content: string,
-    type: string
+export const getPaymentsService = async (
+    filters: PaymentFilters,
+    actor: Actor
 ) => {
-    const userId = invoice.contract.tenant.user_id;
-    if (!userId) {
-        return;
-    }
+    const skip = (filters.page - 1) * filters.limit;
+    const scope = getPaymentScopeWhere(actor);
+    const andFilters: Prisma.PaymentWhereInput[] =
+        actor.role === Role.ADMIN ? [] : [scope];
 
-    await tx.notification.create({
-        data: {
-            user_id: userId,
-            title,
-            content,
-            type
-        }
-    });
-};
-
-const syncInvoicePaymentStatus = async (tx: Prisma.TransactionClient, invoiceId: number) => {
-    const invoice = await tx.invoice.findUnique({
-        where: { id: invoiceId },
-        include: invoiceForPaymentInclude
-    });
-
-    if (!invoice) {
-        throw new PaymentError("Hoa don khong ton tai.", 404);
-    }
-
-    const totalAmount = toNumber(invoice.total_amount);
-    const paidAmount = getSuccessfulPaymentTotal(invoice);
-    const isPaid = totalAmount > 0 && paidAmount >= totalAmount;
-
-    return tx.invoice.update({
-        where: { id: invoiceId },
-        data: {
-            status: isPaid ? InvoiceStatus.PAID : InvoiceStatus.UNPAID,
-            paid_at: isPaid ? new Date() : null
-        },
-        include: invoiceForPaymentInclude
-    });
-};
-
-const assertSuccessAmountWithinInvoice = (
-    invoice: InvoiceForPayment,
-    paymentAmount: number,
-    excludePaymentId?: number
-) => {
-    const totalAmount = toNumber(invoice.total_amount);
-    const paidAmount = getSuccessfulPaymentTotal(invoice, excludePaymentId);
-
-    if (roundMoney(paidAmount + paymentAmount) > totalAmount) {
-        throw new PaymentError("Tong so tien thanh toan thanh cong vuot qua tong tien hoa don.");
-    }
-};
-
-export const getPaymentsService = async (filters: PaymentFilters, actor: PaymentActor) => {
-    const page = Math.max(1, filters.page || 1);
-    const limit = Math.min(100, Math.max(1, filters.limit || 10));
-    const skip = (page - 1) * limit;
-
-    const andFilters: Prisma.PaymentWhereInput[] = [await getPaymentScopeWhere(actor)];
-
-    if (filters.status) {
+    if (filters.status !== undefined) {
         andFilters.push({ status: filters.status });
     }
 
-    if (filters.payment_method) {
+    if (filters.payment_method !== undefined) {
         andFilters.push({
-            payment_method: normalizePaymentMethod(filters.payment_method)
+            payment_method:
+                normalizePaymentMethod(filters.payment_method)
         });
     }
 
-    if (filters.invoice_id) {
+    if (filters.invoice_id !== undefined) {
         andFilters.push({ invoice_id: filters.invoice_id });
     }
 
-    if (filters.tenant_id) {
+    if (filters.tenant_id !== undefined) {
         andFilters.push({
-            invoice: {
-                tenant_id: filters.tenant_id
-            }
+            invoice: { tenant_id: filters.tenant_id }
         });
     }
 
-    if (filters.contract_id) {
+    if (filters.contract_id !== undefined) {
         andFilters.push({
-            invoice: {
-                contract_id: filters.contract_id
-            }
+            invoice: { contract_id: filters.contract_id }
         });
     }
 
-    if (filters.building_id) {
-        if (actor.role === "MANAGER") {
-            const managerBuildingId = await requireManagerBuildingId(actor);
-            if (managerBuildingId !== filters.building_id) {
-                throw new PaymentError("Ban khong co quyen xem thanh toan cua toa nha nay.", 403);
-            }
-        }
-
+    if (filters.building_id !== undefined) {
         andFilters.push({
             invoice: {
                 contract: {
@@ -421,161 +548,315 @@ export const getPaymentsService = async (filters: PaymentFilters, actor: Payment
         });
     }
 
-    if (filters.search) {
+    if (filters.search !== undefined) {
         andFilters.push({
             OR: [
-                { payment_method: { contains: filters.search, mode: "insensitive" } },
-                { transaction_code: { contains: filters.search, mode: "insensitive" } },
-                { invoice: { invoice_code: { contains: filters.search, mode: "insensitive" } } },
-                { invoice: { contract: { tenant: { full_name: { contains: filters.search, mode: "insensitive" } } } } }
+                {
+                    payment_method: {
+                        contains: filters.search,
+                        mode: "insensitive"
+                    }
+                },
+                {
+                    transaction_code: {
+                        contains: filters.search,
+                        mode: "insensitive"
+                    }
+                },
+                {
+                    invoice: {
+                        invoice_code: {
+                            contains: filters.search,
+                            mode: "insensitive"
+                        }
+                    }
+                },
+                {
+                    invoice: {
+                        contract: {
+                            tenant: {
+                                full_name: {
+                                    contains: filters.search,
+                                    mode: "insensitive"
+                                }
+                            }
+                        }
+                    }
+                }
             ]
         });
     }
 
-    const whereClause: Prisma.PaymentWhereInput = { AND: andFilters };
-
+    const where: Prisma.PaymentWhereInput =
+        andFilters.length === 0
+            ? {}
+            : { AND: andFilters };
     const [payments, total] = await prisma.$transaction([
         prisma.payment.findMany({
-            where: whereClause,
+            where,
             skip,
-            take: limit,
+            take: filters.limit,
             orderBy: { paid_at: "desc" },
             include: paymentInclude
         }),
-        prisma.payment.count({ where: whereClause })
+        prisma.payment.count({ where })
     ]);
 
     return {
         data: payments.map(normalizePayment),
         pagination: {
             total,
-            page,
-            limit,
-            totalPages: Math.ceil(total / limit)
+            page: filters.page,
+            limit: filters.limit,
+            totalPages: Math.ceil(total / filters.limit)
         }
     };
 };
 
-export const getPaymentByIdService = async (id: number, actor: PaymentActor) => {
-    const payment = await getPaymentByIdOrThrow(id);
-    await assertInvoiceAccessible(payment.invoice, actor);
+export const getPaymentByIdService = async (
+    id: number,
+    actor: Actor
+) => {
+    const payment = await prisma.payment.findFirst({
+        where: getScopedPaymentWhere(id, actor),
+        include: paymentInclude
+    });
+
+    if (!payment) {
+        throw notFound("payment");
+    }
+
     return normalizePayment(payment);
 };
 
-export const createPaymentService = async (input: CreatePaymentInput, actor: PaymentActor) => {
-    const invoice = await getInvoiceByIdOrThrow(input.invoice_id);
-    await assertInvoiceAccessible(invoice, actor);
+export const createPaymentService = async (
+    input: CreatePaymentInput,
+    actor: Actor
+) => {
+    const paymentMethod = normalizePaymentMethod(
+        input.payment_method
+    );
+    const status = input.status
+        ?? (
+            actor.role === Role.TENANT
+                ? PaymentStatus.PENDING
+                : PaymentStatus.SUCCESS
+        );
 
-    if (invoice.status === InvoiceStatus.PAID) {
-        throw new PaymentError("Hoa don da duoc thanh toan.");
+    if (
+        actor.role === Role.TENANT
+        && status !== PaymentStatus.PENDING
+    ) {
+        throw new AppError(
+            403,
+            "FORBIDDEN",
+            "Tenants may only create pending payments"
+        );
     }
 
-    const paymentMethod = normalizePaymentMethod(input.payment_method);
-
-    const status = input.status ?? (actor.role === "TENANT" ? PaymentStatus.PENDING : PaymentStatus.SUCCESS);
-    if (!assertValidPaymentStatus(status)) {
-        throw new PaymentError("Trang thai thanh toan khong hop le.");
-    }
-
-    if (actor.role === "TENANT" && status !== PaymentStatus.PENDING) {
-        throw new PaymentError("Nguoi thue khong the tu xac nhan thanh toan thanh cong.", 403);
-    }
-
-    const totalAmount = toNumber(invoice.total_amount);
-    const paidAmount = getSuccessfulPaymentTotal(invoice);
-    const remainingAmount = roundMoney(Math.max(totalAmount - paidAmount, 0));
-    const amount = input.amount ?? remainingAmount;
-
-    assertFinitePositive(amount, "So tien thanh toan");
-    if (amount > remainingAmount) {
-        throw new PaymentError("So tien thanh toan vuot qua so tien con lai.");
-    }
-
-    if (status === PaymentStatus.SUCCESS) {
-        assertSuccessAmountWithinInvoice(invoice, amount);
+    if (
+        input.amount !== undefined
+        && !isDecimal12_2Amount(input.amount)
+    ) {
+        throw validationError(
+            "Payment amount must be a valid Decimal(12,2) amount"
+        );
     }
 
     try {
-        const payment = await prisma.$transaction(async (tx) => {
-            const created = await tx.payment.create({
-                data: {
-                    invoice_id: input.invoice_id,
-                    payment_method: paymentMethod,
-                    transaction_code: input.transaction_code?.trim() || undefined,
-                    amount,
-                    status
-                }
-            });
+        const payment = await runSerializableTransaction(
+            async (transaction) => {
+                const invoiceWhere = getScopedInvoiceWhere(
+                    input.invoice_id,
+                    actor
+                );
+                const invoice =
+                    await transaction.invoice.findFirst({
+                        where: invoiceWhere,
+                        include: invoiceForPaymentInclude
+                    });
 
-            const updatedInvoice = await syncInvoicePaymentStatus(tx, input.invoice_id);
-            if (updatedInvoice.status === InvoiceStatus.PAID && invoice.status !== InvoiceStatus.PAID) {
-                await createPaymentNotification(
-                    tx,
-                    updatedInvoice,
-                    "Hoa don da thanh toan",
-                    `Hoa don ${updatedInvoice.invoice_code} da duoc ghi nhan thanh toan.`,
-                    "INVOICE_PAID"
+                if (!invoice) {
+                    throw notFound("invoice");
+                }
+
+                if (invoice.status === InvoiceStatus.PAID) {
+                    throw new AppError(
+                        409,
+                        "INVOICE_ALREADY_PAID",
+                        "Invoice is already paid"
+                    );
+                }
+
+                const totalAmountCents = toMoneyCents(
+                    toNumber(invoice.total_amount)
+                );
+                const paidAmountCents =
+                    getSuccessfulPaymentTotalCents(invoice);
+                const remainingAmountCents = Math.max(
+                    totalAmountCents - paidAmountCents,
+                    0
+                );
+                const remainingAmount =
+                    remainingAmountCents / 100;
+                const amount =
+                    input.amount ?? remainingAmount;
+
+                if (!isDecimal12_2Amount(amount)) {
+                    throw validationError(
+                        "Payment amount must be a valid Decimal(12,2) amount"
+                    );
+                }
+
+                const amountCents = toMoneyCents(amount);
+
+                if (amountCents > remainingAmountCents) {
+                    throw validationError(
+                        "Payment amount exceeds the remaining balance"
+                    );
+                }
+
+                if (status === PaymentStatus.SUCCESS) {
+                    assertSuccessAmountWithinInvoice(
+                        invoice,
+                        amount
+                    );
+                }
+
+                let created;
+
+                try {
+                    created = await transaction.payment.create({
+                        data: {
+                            invoice: {
+                                connect: invoiceWhere
+                            },
+                            payment_method: paymentMethod,
+                            transaction_code:
+                                input.transaction_code,
+                            amount,
+                            status
+                        }
+                    });
+                } catch (error) {
+                    if (
+                        error instanceof
+                            Prisma.PrismaClientKnownRequestError
+                        && error.code === "P2025"
+                    ) {
+                        throw notFound("invoice");
+                    }
+
+                    throw error;
+                }
+
+                await syncInvoicePaymentStatus(
+                    transaction,
+                    input.invoice_id,
+                    actor
+                );
+
+                return findPaymentInScope(
+                    transaction,
+                    created.id,
+                    actor
                 );
             }
-
-            return tx.payment.findUniqueOrThrow({
-                where: { id: created.id },
-                include: paymentInclude
-            });
-        });
+        );
 
         return normalizePayment(payment);
     } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-            throw new PaymentError("Ma giao dich da ton tai.");
-        }
-
-        throw error;
+        return mapPaymentWriteError(error);
     }
 };
 
 export const updatePaymentStatusService = async (
     id: number,
     status: PaymentStatus,
-    actor: PaymentActor
+    actor: Actor
 ) => {
     assertCanManagePayments(actor);
-    if (!assertValidPaymentStatus(status)) {
-        throw new PaymentError("Trang thai thanh toan khong hop le.");
-    }
 
-    const current = await getPaymentByIdOrThrow(id);
-    await assertInvoiceAccessible(current.invoice, actor);
+    try {
+        const payment = await runSerializableTransaction(
+            async (transaction) => {
+                const current = await findPaymentInScope(
+                    transaction,
+                    id,
+                    actor
+                );
 
-    if (status === PaymentStatus.SUCCESS) {
-        assertSuccessAmountWithinInvoice(current.invoice, toNumber(current.amount), current.id);
-    }
+                if (current.status === status) {
+                    return current;
+                }
 
-    const payment = await prisma.$transaction(async (tx) => {
-        const updatedPayment = await tx.payment.update({
-            where: { id },
-            data: {
-                status,
-                paid_at: status === PaymentStatus.SUCCESS ? new Date() : current.paid_at
+                if (status === PaymentStatus.SUCCESS) {
+                    assertSuccessAmountWithinInvoice(
+                        current.invoice,
+                        toNumber(current.amount),
+                        current.id
+                    );
+                }
+
+                try {
+                    await transaction.payment.update({
+                        where: {
+                            ...getScopedPaymentWhere(id, actor),
+                            status: current.status
+                        },
+                        data: {
+                            status,
+                            paid_at:
+                                status === PaymentStatus.SUCCESS
+                                    ? new Date()
+                                    : current.paid_at
+                        }
+                    });
+                } catch (error) {
+                    if (
+                        !(error instanceof
+                            Prisma.PrismaClientKnownRequestError)
+                        || error.code !== "P2025"
+                    ) {
+                        throw error;
+                    }
+
+                    const observed =
+                        await transaction.payment.findFirst({
+                            where: getScopedPaymentWhere(
+                                id,
+                                actor
+                            ),
+                            include: paymentInclude
+                        });
+
+                    if (!observed) {
+                        throw notFound("payment");
+                    }
+
+                    if (observed.status === status) {
+                        return observed;
+                    }
+
+                    throw concurrentModification();
+                }
+
+                await syncInvoicePaymentStatus(
+                    transaction,
+                    current.invoice_id,
+                    actor
+                );
+
+                return findPaymentInScope(
+                    transaction,
+                    id,
+                    actor
+                );
             }
-        });
+        );
 
-        const updatedInvoice = await syncInvoicePaymentStatus(tx, current.invoice_id);
-        if (updatedInvoice.status === InvoiceStatus.PAID && current.invoice.status !== InvoiceStatus.PAID) {
-            await createPaymentNotification(
-                tx,
-                updatedInvoice,
-                "Hoa don da thanh toan",
-                `Hoa don ${updatedInvoice.invoice_code} da duoc ghi nhan thanh toan.`,
-                "INVOICE_PAID"
-            );
-        }
-
-        return tx.payment.findUniqueOrThrow({
-            where: { id: updatedPayment.id },
-            include: paymentInclude
-        });
-    });
-
-    return normalizePayment(payment);
+        return normalizePayment(payment);
+    } catch (error) {
+        return mapPaymentWriteError(error);
+    }
 };

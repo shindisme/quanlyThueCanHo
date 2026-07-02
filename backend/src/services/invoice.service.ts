@@ -1,43 +1,40 @@
-import { InvoiceStatus, PaymentStatus, Prisma } from "@prisma/client";
+import {
+    InvoiceStatus,
+    PaymentStatus,
+    Prisma,
+    Role
+} from "@prisma/client";
 import { prisma } from "../config/database.js";
+import { AppError } from "../errors/app-error.js";
+import type {
+    GenerateMonthlyInvoicesRequest,
+    ListInvoicesRequest
+} from "../schemas/invoice.schema.js";
+import type { Actor } from "../types/auth.js";
+import {
+    isNonNegativeDecimal12_2Amount,
+    MAX_DECIMAL_12_2
+} from "../utils/money.js";
+import { getCurrentManagerAssignment } from "./manager-scope.js";
 
-export type InvoiceActor = {
-    userId: number;
-    role: string;
-};
+export type InvoiceActor = Actor;
+export type InvoiceFilters = ListInvoicesRequest["query"];
+export type MonthlyInvoiceInput =
+    GenerateMonthlyInvoicesRequest["body"];
 
-export type InvoiceFilters = {
-    status?: InvoiceStatus;
-    tenant_id?: number;
-    contract_id?: number;
-    apartment_id?: number;
-    building_id?: number;
-    month?: number;
-    year?: number;
-    search?: string;
-    page?: number;
-    limit?: number;
-};
-
-export type MonthlyInvoiceInput = {
-    month?: number;
-    year?: number;
-    building_id?: number;
-    due_date?: string;
-    management_fee?: number;
-    management_fee_per_m2?: number;
-    electric_unit_price?: number;
-    water_unit_price?: number;
-    internet_fee?: number;
-    notify?: boolean;
-};
-
-export class InvoiceError extends Error {
-    statusCode: number;
-
+export class InvoiceError extends AppError {
     constructor(message: string, statusCode = 400) {
-        super(message);
-        this.statusCode = statusCode;
+        super(
+            statusCode,
+            statusCode === 404
+                ? "NOT_FOUND"
+                : statusCode === 403
+                    ? "FORBIDDEN"
+                    : statusCode === 500
+                        ? "INVOICE_CONFIGURATION_ERROR"
+                        : "VALIDATION_ERROR",
+            message
+        );
     }
 }
 
@@ -117,15 +114,61 @@ type ContractForBilling = Prisma.RentalContractGetPayload<{
     };
 }>;
 
+type MonthlyInvoiceItem = {
+    item_name: string;
+    quantity: number;
+    unit_price: number;
+    amount: number;
+};
+
+type PlannedMonthlyInvoice = {
+    contract: ContractForBilling;
+    invoiceCode: string;
+    items: MonthlyInvoiceItem[];
+    totalAmount: number;
+};
+
 const padMonth = (month: number) => month.toString().padStart(2, "0");
 
 const toNumber = (value: Prisma.Decimal | number) => Number(value);
 
-const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+const roundDecimalMoney = (
+    value: Prisma.Decimal
+) => value.toDecimalPlaces(
+    2,
+    Prisma.Decimal.ROUND_HALF_UP
+);
 
-const assertFiniteNonNegative = (value: number, label: string) => {
-    if (!Number.isFinite(value) || value < 0) {
-        throw new InvoiceError(`${label} phai la so khong am.`);
+const roundMoney = (
+    value: Prisma.Decimal | number | string
+) => roundDecimalMoney(
+    new Prisma.Decimal(value)
+).toNumber();
+
+const assertNonNegativeMoney = (
+    value: number,
+    label: string
+) => {
+    if (!isNonNegativeDecimal12_2Amount(value)) {
+        throw new InvoiceError(
+            `${label} phai la so khong am, nam trong Decimal(12,2) va co toi da hai chu so thap phan.`
+        );
+    }
+};
+
+const assertNonNegativeDecimalMoney = (
+    value: Prisma.Decimal,
+    label: string
+) => {
+    if (
+        !value.isFinite()
+        || value.isNegative()
+        || value.decimalPlaces() > 2
+        || value.greaterThan(MAX_DECIMAL_12_2)
+    ) {
+        throw new InvoiceError(
+            `${label} phai la so khong am, nam trong Decimal(12,2) va co toi da hai chu so thap phan.`
+        );
     }
 };
 
@@ -139,7 +182,11 @@ const assertValidMonthYear = (month: number, year: number) => {
     }
 };
 
-const getEnvNumber = (key: string, fallback: number) => {
+const getEnvNumber = (
+    key: string,
+    fallback: number,
+    invalidStatusCode = 500
+) => {
     const value = process.env[key];
     if (value === undefined || value === "") {
         return fallback;
@@ -147,7 +194,10 @@ const getEnvNumber = (key: string, fallback: number) => {
 
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) {
-        throw new InvoiceError(`Cau hinh ${key} khong hop le.`, 500);
+        throw new InvoiceError(
+            `Cau hinh ${key} khong hop le.`,
+            invalidStatusCode
+        );
     }
 
     return parsed;
@@ -155,18 +205,18 @@ const getEnvNumber = (key: string, fallback: number) => {
 
 const getFeeConfig = (input: MonthlyInvoiceInput) => {
     const config = {
-        managementFee: input.management_fee ?? getEnvNumber("INVOICE_MANAGEMENT_FEE", 0),
-        managementFeePerM2: input.management_fee_per_m2 ?? getEnvNumber("INVOICE_MANAGEMENT_FEE_PER_M2", 0),
-        electricUnitPrice: input.electric_unit_price ?? getEnvNumber("INVOICE_ELECTRIC_UNIT_PRICE", 0),
-        waterUnitPrice: input.water_unit_price ?? getEnvNumber("INVOICE_WATER_UNIT_PRICE", 0),
-        internetFee: input.internet_fee ?? getEnvNumber("INVOICE_INTERNET_FEE", 0)
+        managementFee: input.management_fee ?? getEnvNumber("INVOICE_MANAGEMENT_FEE", 0, 400),
+        managementFeePerM2: input.management_fee_per_m2 ?? getEnvNumber("INVOICE_MANAGEMENT_FEE_PER_M2", 0, 400),
+        electricUnitPrice: input.electric_unit_price ?? getEnvNumber("INVOICE_ELECTRIC_UNIT_PRICE", 0, 400),
+        waterUnitPrice: input.water_unit_price ?? getEnvNumber("INVOICE_WATER_UNIT_PRICE", 0, 400),
+        internetFee: input.internet_fee ?? getEnvNumber("INVOICE_INTERNET_FEE", 0, 400)
     };
 
-    assertFiniteNonNegative(config.managementFee, "Phi quan ly");
-    assertFiniteNonNegative(config.managementFeePerM2, "Phi quan ly theo m2");
-    assertFiniteNonNegative(config.electricUnitPrice, "Don gia dien");
-    assertFiniteNonNegative(config.waterUnitPrice, "Don gia nuoc");
-    assertFiniteNonNegative(config.internetFee, "Phi internet");
+    assertNonNegativeMoney(config.managementFee, "Phi quan ly");
+    assertNonNegativeMoney(config.managementFeePerM2, "Phi quan ly theo m2");
+    assertNonNegativeMoney(config.electricUnitPrice, "Don gia dien");
+    assertNonNegativeMoney(config.waterUnitPrice, "Don gia nuoc");
+    assertNonNegativeMoney(config.internetFee, "Phi internet");
 
     return config;
 };
@@ -215,12 +265,7 @@ const resolveDueDate = (input: MonthlyInvoiceInput, month: number, year: number)
         return getDefaultDueDate(month, year);
     }
 
-    const dueDate = new Date(input.due_date);
-    if (Number.isNaN(dueDate.getTime())) {
-        throw new InvoiceError("Ngay den han khong hop le.");
-    }
-
-    return dueDate;
+    return new Date(input.due_date.getTime());
 };
 
 const buildMonthlyInvoiceCode = (contractId: number, month: number, year: number) =>
@@ -257,82 +302,67 @@ const normalizeInvoice = (invoice: InvoiceWithRelations) => {
     };
 };
 
-const getActorStaff = async (userId: number) => {
-    return prisma.staff.findUnique({
-        where: { user_id: userId },
-        select: {
-            id: true,
-            building_id: true
-        }
-    });
+const getManagerApartmentScope = (actor: InvoiceActor) => {
+    const assignment = getCurrentManagerAssignment(actor);
+
+    return {
+        building_id: assignment.buildingId,
+        building: assignment.assignmentWhere
+    } satisfies Prisma.ApartmentWhereInput;
 };
 
-const getActorTenant = async (userId: number) => {
-    return prisma.tenant.findUnique({
-        where: { user_id: userId },
-        select: {
-            id: true,
-            user_id: true
-        }
-    });
+const requireTenantId = (actor: InvoiceActor) => {
+    if (actor.tenantId === undefined) {
+        throw new InvoiceError(
+            "Tai khoan chua duoc lien ket voi ho so nguoi thue.",
+            403
+        );
+    }
+
+    return actor.tenantId;
 };
 
-const requireManagerBuildingId = async (actor: InvoiceActor) => {
-    if (actor.role === "ADMIN") {
-        return undefined;
-    }
-
-    const staff = await getActorStaff(actor.userId);
-    if (!staff) {
-        throw new InvoiceError("Tai khoan chua duoc lien ket voi ho so nhan vien.", 403);
-    }
-
-    if (!staff.building_id) {
-        throw new InvoiceError("Nhan vien chua duoc phan cong toa nha.", 403);
-    }
-
-    return staff.building_id;
-};
-
-const requireTenantId = async (actor: InvoiceActor) => {
-    const tenant = await getActorTenant(actor.userId);
-    if (!tenant) {
-        throw new InvoiceError("Tai khoan chua duoc lien ket voi ho so nguoi thue.", 403);
-    }
-
-    return tenant.id;
-};
-
-const getInvoiceScopeWhere = async (actor: InvoiceActor): Promise<Prisma.InvoiceWhereInput> => {
-    if (actor.role === "ADMIN") {
+const getInvoiceScopeWhere = (
+    actor: InvoiceActor
+): Prisma.InvoiceWhereInput => {
+    if (actor.role === Role.ADMIN) {
         return {};
     }
 
-    if (actor.role === "MANAGER") {
-        const buildingId = await requireManagerBuildingId(actor);
+    if (actor.role === Role.MANAGER) {
         return {
             contract: {
-                apartment: {
-                    building_id: buildingId
-                }
+                apartment: getManagerApartmentScope(actor)
             }
         };
     }
 
-    if (actor.role === "TENANT") {
+    if (actor.role === Role.TENANT) {
         return {
-            tenant_id: await requireTenantId(actor)
+            tenant_id: requireTenantId(actor)
         };
     }
 
     throw new InvoiceError("Ban khong co quyen truy cap hoa don.", 403);
 };
 
-const getInvoiceByIdOrThrow = async (id: number) => {
-    const invoice = await prisma.invoice.findUnique({
-        where: { id },
-        include: invoiceInclude
-    });
+const getInvoiceByIdOrThrow = async (
+    id: number,
+    actor: InvoiceActor
+) => {
+    const scope = getInvoiceScopeWhere(actor);
+    const invoice = actor.role === Role.ADMIN
+        ? await prisma.invoice.findUnique({
+            where: { id },
+            include: invoiceInclude
+        })
+        : await prisma.invoice.findFirst({
+            where: {
+                id,
+                ...scope
+            },
+            include: invoiceInclude
+        });
 
     if (!invoice) {
         throw new InvoiceError("Hoa don khong ton tai.", 404);
@@ -341,32 +371,11 @@ const getInvoiceByIdOrThrow = async (id: number) => {
     return invoice;
 };
 
-const assertInvoiceAccessible = async (invoice: InvoiceWithRelations, actor: InvoiceActor) => {
-    if (actor.role === "ADMIN") {
-        return;
-    }
-
-    if (actor.role === "MANAGER") {
-        const buildingId = await requireManagerBuildingId(actor);
-        if (invoice.contract.apartment.building_id !== buildingId) {
-            throw new InvoiceError("Ban khong co quyen thao tac voi hoa don cua toa nha nay.", 403);
-        }
-        return;
-    }
-
-    if (actor.role === "TENANT") {
-        const tenantId = await requireTenantId(actor);
-        if (invoice.tenant_id !== tenantId) {
-            throw new InvoiceError("Ban khong co quyen thao tac voi hoa don nay.", 403);
-        }
-        return;
-    }
-
-    throw new InvoiceError("Ban khong co quyen truy cap hoa don.", 403);
-};
-
 const assertCanManageInvoices = (actor: InvoiceActor) => {
-    if (!["ADMIN", "MANAGER"].includes(actor.role)) {
+    if (
+        actor.role !== Role.ADMIN
+        && actor.role !== Role.MANAGER
+    ) {
         throw new InvoiceError("Ban khong co quyen quan ly hoa don.", 403);
     }
 };
@@ -404,25 +413,36 @@ const createInvoiceNotification = async (
 };
 
 export const getInvoicesService = async (filters: InvoiceFilters, actor: InvoiceActor) => {
-    const page = Math.max(1, filters.page || 1);
-    const limit = Math.min(100, Math.max(1, filters.limit || 10));
+    const page = filters.page;
+    const limit = filters.limit;
     const skip = (page - 1) * limit;
 
-    const andFilters: Prisma.InvoiceWhereInput[] = [await getInvoiceScopeWhere(actor)];
+    const scope = getInvoiceScopeWhere(actor);
+    const andFilters: Prisma.InvoiceWhereInput[] =
+        actor.role === Role.ADMIN ? [] : [scope];
 
     if (filters.status) {
         andFilters.push({ status: filters.status });
     }
 
-    if (filters.tenant_id) {
+    if (
+        actor.role !== Role.TENANT
+        && filters.tenant_id !== undefined
+    ) {
         andFilters.push({ tenant_id: filters.tenant_id });
     }
 
-    if (filters.contract_id) {
+    if (
+        actor.role !== Role.TENANT
+        && filters.contract_id !== undefined
+    ) {
         andFilters.push({ contract_id: filters.contract_id });
     }
 
-    if (filters.apartment_id) {
+    if (
+        actor.role !== Role.TENANT
+        && filters.apartment_id !== undefined
+    ) {
         andFilters.push({
             contract: {
                 apartment_id: filters.apartment_id
@@ -430,14 +450,10 @@ export const getInvoicesService = async (filters: InvoiceFilters, actor: Invoice
         });
     }
 
-    if (filters.building_id) {
-        if (actor.role === "MANAGER") {
-            const managerBuildingId = await requireManagerBuildingId(actor);
-            if (managerBuildingId !== filters.building_id) {
-                throw new InvoiceError("Ban khong co quyen xem hoa don cua toa nha nay.", 403);
-            }
-        }
-
+    if (
+        actor.role === Role.ADMIN
+        && filters.building_id !== undefined
+    ) {
         andFilters.push({
             contract: {
                 apartment: {
@@ -447,12 +463,10 @@ export const getInvoicesService = async (filters: InvoiceFilters, actor: Invoice
         });
     }
 
-    if (filters.month !== undefined || filters.year !== undefined) {
-        if (filters.month === undefined || filters.year === undefined) {
-            throw new InvoiceError("Can nhap day du month va year de loc hoa don.");
-        }
-
-        assertValidMonthYear(filters.month, filters.year);
+    if (
+        filters.month !== undefined
+        && filters.year !== undefined
+    ) {
         andFilters.push({
             invoice_code: {
                 contains: `-${filters.year}${padMonth(filters.month)}`
@@ -471,7 +485,10 @@ export const getInvoicesService = async (filters: InvoiceFilters, actor: Invoice
         });
     }
 
-    const whereClause: Prisma.InvoiceWhereInput = { AND: andFilters };
+    const whereClause: Prisma.InvoiceWhereInput =
+        andFilters.length === 0
+            ? {}
+            : { AND: andFilters };
 
     const [invoices, total] = await prisma.$transaction([
         prisma.invoice.findMany({
@@ -496,8 +513,7 @@ export const getInvoicesService = async (filters: InvoiceFilters, actor: Invoice
 };
 
 export const getInvoiceByIdService = async (id: number, actor: InvoiceActor) => {
-    const invoice = await getInvoiceByIdOrThrow(id);
-    await assertInvoiceAccessible(invoice, actor);
+    const invoice = await getInvoiceByIdOrThrow(id, actor);
     return normalizeInvoice(invoice);
 };
 
@@ -514,14 +530,13 @@ export const generateMonthlyInvoicesService = async (
     const feeConfig = getFeeConfig(input);
     const notify = input.notify !== false;
 
-    let buildingId = input.building_id;
-    if (actor?.role === "MANAGER") {
-        const managerBuildingId = await requireManagerBuildingId(actor);
-        if (buildingId && buildingId !== managerBuildingId) {
-            throw new InvoiceError("Ban khong co quyen tao hoa don cho toa nha nay.", 403);
-        }
-        buildingId = managerBuildingId;
-    }
+    const managerApartmentScope =
+        actor?.role === Role.MANAGER
+            ? getManagerApartmentScope(actor)
+            : undefined;
+    const buildingId = managerApartmentScope
+        ? undefined
+        : input.building_id;
 
     const periodStart = new Date(Date.UTC(year, month - 1, 1));
     const periodEnd = new Date(Date.UTC(year, month, 1));
@@ -531,7 +546,11 @@ export const generateMonthlyInvoicesService = async (
             status: "ACTIVE",
             start_date: { lt: periodEnd },
             end_date: { gte: periodStart },
-            ...(buildingId
+            ...(managerApartmentScope
+                ? {
+                    apartment: managerApartmentScope
+                }
+                : buildingId
                 ? {
                     apartment: {
                         building_id: buildingId
@@ -567,6 +586,7 @@ export const generateMonthlyInvoicesService = async (
     const created: InvoiceWithRelations[] = [];
     const skipped: Array<{ contract_id: number; invoice_code: string; reason: string }> = [];
     const missingUtilityReadings: Array<{ apartment_id: number; room_number: string; contract_id: number }> = [];
+    const plannedInvoices: PlannedMonthlyInvoice[] = [];
 
     for (const contract of contracts) {
         const invoiceCode = buildMonthlyInvoiceCode(contract.id, month, year);
@@ -583,52 +603,115 @@ export const generateMonthlyInvoicesService = async (
             continue;
         }
 
+        const reading = await prisma.utilityReading.findFirst({
+            where: {
+                apartment_id: contract.apartment_id,
+                month,
+                year
+            }
+        });
+
+        const electricConsumption = reading
+            ? nonNegativeDecimalDifference(
+                reading.electric_new,
+                reading.electric_old
+            )
+            : new Prisma.Decimal(0);
+        const waterConsumption = reading
+            ? nonNegativeDecimalDifference(
+                reading.water_new,
+                reading.water_old
+            )
+            : new Prisma.Decimal(0);
+
+        if (!reading) {
+            missingUtilityReadings.push({
+                apartment_id: contract.apartment_id,
+                room_number: contract.apartment.room_number,
+                contract_id: contract.id
+            });
+        }
+
+        const items = buildMonthlyItems(contract, {
+            month,
+            year,
+            electricConsumption,
+            waterConsumption,
+            feeConfig
+        });
+        const totalAmountDecimal = roundDecimalMoney(
+            items.reduce(
+                (sum, item) => {
+                    const itemAmount =
+                        new Prisma.Decimal(item.amount);
+
+                    assertNonNegativeDecimalMoney(
+                        itemAmount,
+                        item.item_name
+                    );
+                    assertNonNegativeMoney(
+                        item.amount,
+                        item.item_name
+                    );
+
+                    return sum.plus(itemAmount);
+                },
+                new Prisma.Decimal(0)
+            )
+        );
+
+        assertNonNegativeDecimalMoney(
+            totalAmountDecimal,
+            "Tong tien hoa don"
+        );
+
+        const totalAmount = totalAmountDecimal.toNumber();
+        assertNonNegativeMoney(
+            totalAmount,
+            "Tong tien hoa don"
+        );
+
+        plannedInvoices.push({
+            contract,
+            invoiceCode,
+            items,
+            totalAmount
+        });
+    }
+
+    for (const {
+        contract,
+        invoiceCode,
+        items,
+        totalAmount
+    } of plannedInvoices) {
         try {
             const invoice = await prisma.$transaction(async (tx) => {
-                const reading = await tx.utilityReading.findFirst({
-                    where: {
-                        apartment_id: contract.apartment_id,
-                        month,
-                        year
+                const invoiceData = {
+                    invoice_code: invoiceCode,
+                    due_date: dueDate,
+                    total_amount: totalAmount,
+                    status: InvoiceStatus.UNPAID,
+                    items: {
+                        create: items
                     }
-                });
-
-                const electricConsumption = reading
-                    ? Math.max(0, toNumber(reading.electric_new) - toNumber(reading.electric_old))
-                    : 0;
-                const waterConsumption = reading
-                    ? Math.max(0, toNumber(reading.water_new) - toNumber(reading.water_old))
-                    : 0;
-
-                if (!reading) {
-                    missingUtilityReadings.push({
-                        apartment_id: contract.apartment_id,
-                        room_number: contract.apartment.room_number,
-                        contract_id: contract.id
-                    });
-                }
-
-                const items = buildMonthlyItems(contract, {
-                    month,
-                    year,
-                    electricConsumption,
-                    waterConsumption,
-                    feeConfig
-                });
-                const totalAmount = roundMoney(items.reduce((sum, item) => sum + item.amount, 0));
-
-                const newInvoice = await tx.invoice.create({
-                    data: {
-                        contract_id: contract.id,
-                        tenant_id: contract.tenant_id,
-                        invoice_code: invoiceCode,
-                        due_date: dueDate,
-                        total_amount: totalAmount,
-                        status: InvoiceStatus.UNPAID,
-                        items: {
-                            create: items
-                        }
+                };
+                const createData: Prisma.InvoiceCreateInput = {
+                    ...invoiceData,
+                    tenant: {
+                        connect: { id: contract.tenant_id }
                     },
+                    contract: {
+                        connect: managerApartmentScope
+                            ? {
+                                id: contract.id,
+                                apartment: managerApartmentScope
+                            }
+                            : { id: contract.id }
+                    }
+                };
+                const newInvoice = await tx.invoice.create({
+                    data: createData,
                     include: invoiceInclude
                 });
 
@@ -674,25 +757,51 @@ export const generateMonthlyInvoicesService = async (
     };
 };
 
+const nonNegativeDecimalDifference = (
+    newer: Prisma.Decimal,
+    older: Prisma.Decimal
+) => {
+    const difference = new Prisma.Decimal(newer).minus(older);
+
+    return difference.isNegative()
+        ? new Prisma.Decimal(0)
+        : difference;
+};
+
 const buildMonthlyItems = (
     contract: ContractForBilling,
     options: {
         month: number;
         year: number;
-        electricConsumption: number;
-        waterConsumption: number;
+        electricConsumption: Prisma.Decimal;
+        waterConsumption: Prisma.Decimal;
         feeConfig: ReturnType<typeof getFeeConfig>;
     }
-) => {
+): MonthlyInvoiceItem[] => {
     const periodLabel = `${padMonth(options.month)}/${options.year}`;
-    const rentAmount = roundMoney(toNumber(contract.monthly_rent));
-    const apartmentArea = toNumber(contract.apartment.area);
-    const managementAmount = roundMoney(
-        options.feeConfig.managementFee + apartmentArea * options.feeConfig.managementFeePerM2
-    );
-    const electricAmount = roundMoney(options.electricConsumption * options.feeConfig.electricUnitPrice);
-    const waterAmount = roundMoney(options.waterConsumption * options.feeConfig.waterUnitPrice);
-    const internetAmount = roundMoney(options.feeConfig.internetFee);
+    const rentAmount = roundDecimalMoney(
+        new Prisma.Decimal(contract.monthly_rent)
+    ).toNumber();
+    const managementAmount = roundDecimalMoney(
+        new Prisma.Decimal(options.feeConfig.managementFee).plus(
+            new Prisma.Decimal(contract.apartment.area).mul(
+                options.feeConfig.managementFeePerM2
+            )
+        )
+    ).toNumber();
+    const electricAmount = roundDecimalMoney(
+        options.electricConsumption.mul(
+            options.feeConfig.electricUnitPrice
+        )
+    ).toNumber();
+    const waterAmount = roundDecimalMoney(
+        options.waterConsumption.mul(
+            options.feeConfig.waterUnitPrice
+        )
+    ).toNumber();
+    const internetAmount = roundDecimalMoney(
+        new Prisma.Decimal(options.feeConfig.internetFee)
+    ).toNumber();
 
     return [
         {
@@ -738,20 +847,74 @@ export const updateInvoiceStatusService = async (
         throw new InvoiceError("Trang thai hoa don khong hop le.");
     }
 
-    const current = await getInvoiceByIdOrThrow(id);
-    await assertInvoiceAccessible(current, actor);
+    const scope = getInvoiceScopeWhere(actor);
+    const scopedWhere: Prisma.InvoiceWhereInput = {
+        id,
+        ...scope
+    };
 
     const invoice = await prisma.$transaction(async (tx) => {
-        const updated = await tx.invoice.update({
-            where: { id },
+        const current = await tx.invoice.findFirst({
+            where: scopedWhere,
+            include: invoiceInclude
+        });
+
+        if (!current) {
+            throw new InvoiceError("Hoa don khong ton tai.", 404);
+        }
+
+        if (current.status === status) {
+            return current;
+        }
+
+        const result = await tx.invoice.updateMany({
+            where: {
+                ...scopedWhere,
+                status: current.status
+            },
             data: {
                 status,
                 paid_at: status === InvoiceStatus.PAID ? new Date() : null
+            }
+        });
+
+        if (result.count === 0) {
+            const observed = await tx.invoice.findFirst({
+                where: scopedWhere,
+                include: invoiceInclude
+            });
+
+            if (!observed) {
+                throw new InvoiceError(
+                    "Hoa don khong ton tai.",
+                    404
+                );
+            }
+
+            if (observed.status === status) {
+                return observed;
+            }
+
+            throw new AppError(
+                409,
+                "CONCURRENT_MODIFICATION",
+                "Invoice status changed during this operation"
+            );
+        }
+
+        const updated = await tx.invoice.findFirst({
+            where: {
+                ...scopedWhere,
+                status
             },
             include: invoiceInclude
         });
 
-        if (status === InvoiceStatus.PAID && current.status !== InvoiceStatus.PAID) {
+        if (!updated) {
+            throw new InvoiceError("Hoa don khong ton tai.", 404);
+        }
+
+        if (status === InvoiceStatus.PAID) {
             await createInvoiceNotification(
                 tx,
                 updated,
