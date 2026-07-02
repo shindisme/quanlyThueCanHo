@@ -1,4 +1,4 @@
-import { Plus, Users, Eye, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Users, Eye, Pencil, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../../components/PageHeader";
 import Button from "../../../components/ui/Button";
@@ -6,10 +6,10 @@ import SearchInput from "../../../components/ui/SearchInput";
 import Badge from "../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../components/ui/DataTable";
 import Pagination from "../../../components/ui/Pagination";
-import { useAuthStore } from "../../../stores/auth.store";
 import type { Tenant } from "../../../types";
-import { maskPhone, maskCCCD } from "../../../utils/format";
+import { maskPhone, maskCCCD } from "../../../utils/string";
 import { useTenantList } from "../../../hooks/useTenantList";
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
 import TenantCreateModal from "./components/TenantCreateModal";
 import TenantModifyModal from "./components/TenantModifyModal";
@@ -18,7 +18,6 @@ import TenantDetailModal from "./components/TenantDetailModal";
 
 // Danh sách người thuê
 export default function TenantList() {
-  const { role, managedBuildingId } = useAuthStore();
   const navigate = useNavigate();
 
   const {
@@ -27,10 +26,10 @@ export default function TenantList() {
     currentPage,
     setCurrentPage,
     totalPages,
-    showCreateModal,
-    setShowCreateModal,
-    showModifyModal,
-    setShowModifyModal,
+    startIdx,
+    endIdx,
+    createModal,
+    modifyModal,
     editItem,
     setEditItem,
     deleteItem,
@@ -41,15 +40,16 @@ export default function TenantList() {
     loadData,
     handleDelete,
     loading,
-  } = useTenantList({ role, managedBuildingId });
+    role,
+  } = useTenantList();
 
-  const pageSize = 10;
-  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const paginated = filtered.slice(startIdx, endIdx);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-primary-600" size={32} />
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <LoadingSpinner size={32} />
+        <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải danh sách người thuê...</span>
       </div>
     );
   }
@@ -106,7 +106,7 @@ export default function TenantList() {
           <button
             onClick={() => {
               setEditItem(t);
-              setShowModifyModal(true);
+              modifyModal.onOpen();
             }}
             className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
             title="Chỉnh sửa"
@@ -134,7 +134,7 @@ export default function TenantList() {
         count={filtered.length}
         iconColor="linear-gradient(135deg, #8B5CF6, #A78BFA)"
         actions={
-          <Button onClick={() => setShowCreateModal(true)}>
+          <Button onClick={createModal.onOpen}>
             <Plus size={18} /> Thêm người thuê
           </Button>
         }
@@ -149,12 +149,14 @@ export default function TenantList() {
 
       <DataTable columns={columns} data={paginated} />
 
-      <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+      {totalPages > 1 && (
+        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+      )}
 
       {/* Modals */}
       <TenantCreateModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        isOpen={createModal.isOpen}
+        onClose={createModal.onClose}
         onSuccess={(newTenantId) => {
           loadData();
           if (newTenantId) {
@@ -165,8 +167,8 @@ export default function TenantList() {
       />
 
       <TenantModifyModal
-        isOpen={showModifyModal}
-        onClose={() => { setShowModifyModal(false); setEditItem(null); }}
+        isOpen={modifyModal.isOpen}
+        onClose={() => { modifyModal.onClose(); setEditItem(null); }}
         onSuccess={loadData}
         editItem={editItem}
       />

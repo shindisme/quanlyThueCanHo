@@ -1,79 +1,90 @@
-import { useState, useEffect, useCallback } from "react"
-import { toast } from "sonner"
-import { removeVietnameseTones } from "../utils/format"
-import * as tenantService from "../services/tenantService"
-import * as contractService from "../services/contractService"
-import * as apartmentService from "../services/apartmentService"
-import * as buildingService from "../services/buildingService"
-import type { Tenant, RentalContract } from "../types"
-import type { ApartmentData } from "../services/apartmentService"
-import type { BuildingData } from "../services/buildingService"
+import { useState, useCallback } from "react";
+import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { removeVietnameseTones } from "../utils/string";
+import * as tenantService from "../services/tenantService";
+import * as contractService from "../services/contractService";
+import * as apartmentService from "../services/apartmentService";
+import * as buildingService from "../services/buildingService";
+import type { Tenant, RentalContract } from "../types";
 
-interface UseTenantListProps {
-  role: string | null
-  managedBuildingId: number | null
-}
+import { useDebounce } from "./common/useDebounce";
+import { useOnOff } from "./common/useOnOff";
+import { usePagination } from "./common/usePagination";
+import { useUserRole } from "./common/useUserRole";
 
-export function useTenantList({ role, managedBuildingId }: UseTenantListProps) {
-  const [search, setSearch] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showModifyModal, setShowModifyModal] = useState(false)
-  const [editItem, setEditItem] = useState<Tenant | null>(null)
-  const [deleteItem, setDeleteItem] = useState<Tenant | null>(null)
-  const [viewItem, setViewItem] = useState<Tenant | null>(null)
-  const [loading, setLoading] = useState(true)
+export function useTenantList() {
+  const { role, managedBuildingId } = useUserRole();
 
-  const [tenants, setTenants] = useState<Tenant[]>([])
-  const [contracts, setContracts] = useState<RentalContract[]>([])
-  const [apartments, setApartments] = useState<ApartmentData[]>([])
-  const [buildings, setBuildings] = useState<BuildingData[]>([])
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
+
+  const createModal = useOnOff();
+  const modifyModal = useOnOff();
+
+  const [editItem, setEditItem] = useState<Tenant | null>(null);
+  const [deleteItem, setDeleteItem] = useState<Tenant | null>(null);
+  const [viewItem, setViewItem] = useState<Tenant | null>(null);
+
+  const { data: tenantsRes, isLoading: loadingTenants, refetch: refetchTenants } = useQuery({
+    queryKey: ["tenants"],
+    queryFn: () => tenantService.getAllTenants({ limit: 1000 }),
+  });
+  const tenants = tenantsRes?.data || [];
+
+  const { data: contractsRes, isLoading: loadingContracts, refetch: refetchContracts } = useQuery({
+    queryKey: ["contracts"],
+    queryFn: () => contractService.getAllContracts(),
+  });
+  const contracts = contractsRes || [];
+
+  const { data: apartmentsRes, isLoading: loadingApartments, refetch: refetchApartments } = useQuery({
+    queryKey: ["apartments"],
+    queryFn: () => apartmentService.getAllApartments({ limit: 100 }),
+  });
+  const apartments = apartmentsRes?.data || [];
+
+  const { data: buildingsRes, isLoading: loadingBuildings, refetch: refetchBuildings } = useQuery({
+    queryKey: ["buildings"],
+    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
+  });
+  const buildings = buildingsRes?.data || [];
+
+  const loading = loadingTenants || loadingContracts || loadingApartments || loadingBuildings;
 
   const loadData = useCallback(async () => {
     try {
-      setLoading(true)
-      const res = await tenantService.getAllTenants({ limit: 1000 })
-      setTenants(res.data)
-
-      const [cRes, aptRes, bRes] = await Promise.all([
-        contractService.getAllContracts().catch(() => []),
-        apartmentService.getAllApartments({ limit: 100 }).catch(() => ({ data: [] })),
-        buildingService.getAllBuildings({ limit: 100 }).catch(() => ({ data: [] })),
-      ])
-      setContracts(cRes)
-      setApartments(aptRes.data)
-      setBuildings(bRes.data)
+      await Promise.all([
+        refetchTenants(),
+        refetchContracts(),
+        refetchApartments(),
+        refetchBuildings(),
+      ]);
     } catch {
-      toast.error("Không thể tải danh sách người thuê")
-    } finally {
-      setLoading(false)
+      toast.error("Không thể tải danh sách người thuê");
     }
-  }, [])
-
-  useEffect(() => {
-    loadData()
-  }, [loadData])
+  }, [refetchTenants, refetchContracts, refetchApartments, refetchBuildings]);
 
   const displayTenants = (() => {
     if (role === "MANAGER" && managedBuildingId) {
       const managerApartmentIds = apartments
         .filter((a) => a.building_id === managedBuildingId)
-        .map((a) => a.id)
+        .map((a) => a.id);
       const managerTenantIds = contracts
         .filter((c: RentalContract) => managerApartmentIds.includes(c.apartment_id))
-        .map((c: RentalContract) => c.tenant_id)
-      return tenants.filter((t) => managerTenantIds.includes(t.id))
+        .map((c: RentalContract) => c.tenant_id);
+      return tenants.filter((t) => managerTenantIds.includes(t.id));
     }
-    return tenants
-  })()
+    return tenants;
+  })();
 
   const displayTenantsWithContracts = displayTenants.map((t) => {
-    const tenantContracts = contracts.filter((c) => c.tenant_id === t.id)
-    const activeContract = tenantContracts.find((c) => c.status === "ACTIVE") || tenantContracts[0]
+    const tenantContracts = contracts.filter((c) => c.tenant_id === t.id);
+    const activeContract = tenantContracts.find((c) => c.status === "ACTIVE") || tenantContracts[0];
 
     if (activeContract) {
-      const apt = apartments.find((a) => a.id === activeContract.apartment_id)
-      const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null
+      const apt = apartments.find((a) => a.id === activeContract.apartment_id);
+      const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
       return {
         ...t,
         contracts: [
@@ -85,37 +96,40 @@ export function useTenantList({ role, managedBuildingId }: UseTenantListProps) {
             } : undefined,
           },
         ],
-      } as unknown as Tenant
+      } as unknown as Tenant;
     }
-    return { ...t, contracts: [] } as unknown as Tenant
-  })
+    return { ...t, contracts: [] } as unknown as Tenant;
+  });
 
   const filtered = displayTenantsWithContracts.filter((t) => {
-    const term = removeVietnameseTones(search)
-    const nameNorm = removeVietnameseTones(t.full_name)
-    const citizenNorm = removeVietnameseTones(t.citizen_id)
-    return nameNorm.includes(term) || citizenNorm.includes(term)
-  })
+    const term = removeVietnameseTones(debouncedSearch);
+    const nameNorm = removeVietnameseTones(t.full_name);
+    const citizenNorm = removeVietnameseTones(t.citizen_id);
+    return nameNorm.includes(term) || citizenNorm.includes(term);
+  });
 
-  const pageSize = 10;
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
+  // Pagination
+  const {
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    startIdx,
+    endIdx,
+  } = usePagination({
+    totalItems: filtered.length,
+    initialPageSize: 10,
+  });
 
   async function handleDelete() {
-    if (!deleteItem) return
+    if (!deleteItem) return;
     try {
-      await tenantService.deleteTenant(deleteItem.id)
-      setDeleteItem(null)
-      toast.success("Đã xóa người thuê")
-      loadData()
+      await tenantService.deleteTenant(deleteItem.id);
+      setDeleteItem(null);
+      toast.success("Đã xóa người thuê");
+      loadData();
     } catch (error: unknown) {
       const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Xóa người thuê thất bại")
+      toast.error(err.response?.data?.message || "Xóa người thuê thất bại");
     }
   }
 
@@ -125,10 +139,10 @@ export function useTenantList({ role, managedBuildingId }: UseTenantListProps) {
     currentPage,
     setCurrentPage,
     totalPages,
-    showCreateModal,
-    setShowCreateModal,
-    showModifyModal,
-    setShowModifyModal,
+    startIdx,
+    endIdx,
+    createModal,
+    modifyModal,
     editItem,
     setEditItem,
     deleteItem,
@@ -139,5 +153,7 @@ export function useTenantList({ role, managedBuildingId }: UseTenantListProps) {
     loadData,
     handleDelete,
     loading,
-  }
+    role,
+    managedBuildingId,
+  };
 }

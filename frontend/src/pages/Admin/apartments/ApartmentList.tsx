@@ -1,22 +1,16 @@
-import { useState, useEffect, useCallback } from "react";
-import { Plus, Pencil, Trash2, Loader2, Home, Star, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, Home, Star, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../../components/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
 import Badge from "../../../components/ui/Badge";
 import Pagination from "../../../components/ui/Pagination";
-import { toast } from "sonner";
 import Combobox from "../../../components/ui/Combobox";
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
-import * as apartmentService from "../../../services/apartmentService";
-import * as buildingService from "../../../services/buildingService";
-import type { ApartmentData } from "../../../services/apartmentService";
-import type { BuildingData } from "../../../services/buildingService";
-import { useAuthStore } from "../../../stores/auth.store";
-
-import { useSort } from "../../../hooks/useSort";
-import { formatApartmentDisplay } from "../../../utils/format";
+import { useApartmentList } from "../../../hooks/useApartmentList";
+import { formatApartmentDisplay } from "../../../utils/string";
+import { formatCurrency } from "../../../utils/currency";
 
 import ApartmentCreateModal from "./components/ApartmentCreateModal";
 import ApartmentModifyModal from "./components/ApartmentModifyModal";
@@ -32,129 +26,46 @@ import {
 
 export default function ApartmentList() {
   const navigate = useNavigate();
-  const { role, managedBuildingId } = useAuthStore();
+  const {
+    role,
+    search,
+    setSearch,
+    filterStatus,
+    setFilterStatus,
+    filterFeatured,
+    setFilterFeatured,
+    filterBuilding,
+    setFilterBuilding,
+    createModal,
+    modifyModal,
+    editItem,
+    setEditItem,
+    deleteItem,
+    setDeleteItem,
+    featuredIds,
+    buildings,
+    loading,
+    fetchApartments,
+    toggleFeatured,
+    filtered,
+    managedBuildingId,
+    requestSort,
+    getSortIcon,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    paginatedApartments,
+    handleDelete,
+  } = useApartmentList();
 
-  const [apartments, setApartments] = useState<ApartmentData[]>([]);
-  const [buildings, setBuildings] = useState<BuildingData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
-  const [filterFeatured, setFilterFeatured] = useState("");
-  const [filterBuilding, setFilterBuilding] = useState<number | undefined>(
-    role === "MANAGER" ? (managedBuildingId || undefined) : undefined
-  );
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showModifyModal, setShowModifyModal] = useState(false);
-  const [editItem, setEditItem] = useState<ApartmentData | null>(null);
-  const [deleteItem, setDeleteItem] = useState<ApartmentData | null>(null);
-  const [featuredIds, setFeaturedIds] = useState<number[]>([]);
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
-
-  // Lấy danh sách tòa nhà 
-  useEffect(() => {
-    buildingService.getAllBuildings().then((result) => {
-      setBuildings(result.data);
-    }).catch(() => { });
-
-    const stored = localStorage.getItem("featured-apartment-ids");
-    if (stored) {
-      try {
-        setFeaturedIds(JSON.parse(stored));
-      } catch { /* empty */ }
-    }
-  }, []);
-
-  function toggleFeatured(id: number) {
-    let updated: number[];
-    if (featuredIds.includes(id)) {
-      updated = featuredIds.filter((fid) => fid !== id);
-      toast.success("Đã bỏ nổi bật căn hộ");
-    } else {
-      if (featuredIds.length >= 6) {
-        toast.warning("Chỉ được phép đặt tối đa 6 căn hộ nổi bật");
-        return;
-      }
-      updated = [...featuredIds, id];
-      toast.success("Đã đặt làm nổi bật trên trang chủ");
-    }
-    setFeaturedIds(updated);
-    localStorage.setItem("featured-apartment-ids", JSON.stringify(updated));
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <LoadingSpinner size={36} />
+        <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải danh sách căn hộ...</span>
+      </div>
+    );
   }
-
-  const fetchApartments = useCallback(async () => {
-    try {
-      setLoading(true);
-      const result = await apartmentService.getAllApartments({
-        building_id: filterBuilding,
-        limit: 100,
-      });
-      setApartments(result.data);
-    } catch {
-      toast.error("Không thể tải dữ liệu");
-    } finally {
-      setLoading(false);
-    }
-  }, [filterBuilding]);
-
-  useEffect(() => {
-    fetchApartments();
-  }, [fetchApartments]);
-
-  const filtered = apartments.filter((apt) => {
-    if (search) {
-      const s = search.toLowerCase();
-      const roomMatch = apt.room_number.toLowerCase().includes(s);
-      const floorMatch = `tầng ${apt.floor}`.includes(s) || String(apt.floor).includes(s);
-      const buildingName = buildings.find((b) => b.id === apt.building_id)?.branch_name.toLowerCase() || "";
-      const buildingMatch = buildingName.includes(s);
-      if (!roomMatch && !floorMatch && !buildingMatch) {
-        return false;
-      }
-    }
-
-    if (filterStatus && apt.status !== filterStatus) {
-      return false;
-    }
-
-    if (filterFeatured === "featured" && !featuredIds.includes(apt.id)) {
-      return false;
-    }
-    if (filterFeatured === "non-featured" && featuredIds.includes(apt.id)) {
-      return false;
-    }
-
-    return true;
-  });
-
-  const defaultSortedFiltered = [...filtered].sort((a, b) => {
-    const branchA = a.building?.branch_name || "";
-    const branchB = b.building?.branch_name || "";
-    const branchCompare = branchA.localeCompare(branchB, "vi");
-    if (branchCompare !== 0) return branchCompare;
-
-    if (a.floor !== b.floor) {
-      return a.floor - b.floor;
-    }
-    return String(a.room_number).localeCompare(String(b.room_number), undefined, { numeric: true });
-  });
-
-  const { items: sortedApartments, requestSort, getSortIcon } = useSort(defaultSortedFiltered);
-
-  const totalCount = filtered.length;
-  const totalPages = Math.ceil(totalCount / pageSize);
-
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  const paginatedApartments = sortedApartments.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
 
   function getStatusBadge(status: string) {
     const map: Record<string, { label: string; variant: string }> = {
@@ -166,30 +77,7 @@ export default function ApartmentList() {
     return <Badge variant={s.variant as "success" | "info" | "warning" | "gray"}>{s.label}</Badge>;
   }
 
-  async function handleDelete() {
-    if (!deleteItem) return;
-    try {
-      await apartmentService.deleteApartment(deleteItem.id);
-      toast.success("Đã xóa căn hộ");
-      setDeleteItem(null);
-      fetchApartments();
-    } catch (error) {
-      const apiError = error as { response?: { data?: { error?: string } } };
-      toast.error(apiError.response?.data?.error || "Xóa thất bại");
-    }
-  }
 
-  function formatPrice(price: number) {
-    return new Intl.NumberFormat("vi-VN").format(price) + " đ";
-  }
-
-  if (loading && apartments.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-primary-600" size={32} />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -198,10 +86,10 @@ export default function ApartmentList() {
         icon={Home}
         title="Căn hộ"
         subtitle="Quản lý danh sách căn hộ"
-        count={totalCount}
+        count={filtered.length}
         iconColor="linear-gradient(135deg, #3B82F6, #60A5FA)"
         actions={
-          <Button onClick={() => setShowCreateModal(true)}><Plus size={18} /> Thêm căn hộ</Button>
+          <Button onClick={createModal.onOpen}><Plus size={18} /> Thêm căn hộ</Button>
         }
       />
       {/* Search + Filter */}
@@ -291,60 +179,61 @@ export default function ApartmentList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedApartments.map((apt) => (
-              <TableRow key={apt.id}>
-                <TableCell className="font-semibold text-primary-600">
-                  {formatApartmentDisplay(
-                    apt.room_number,
-                    apt.floor,
-                    role || undefined,
-                    buildings.find((b) => b.id === apt.building_id)?.branch_name
-                  )}
-                </TableCell>
-                <TableCell className="text-gray-600">{apt.area} m²</TableCell>
-                <TableCell className="text-gray-650">{apt.bedrooms}</TableCell>
-                <TableCell className="text-gray-650">{apt.bathrooms}</TableCell>
-                <TableCell className="font-semibold text-gray-850">{formatPrice(apt.rental_price)}</TableCell>
-                <TableCell>{getStatusBadge(apt.status)}</TableCell>
-                {role === "ADMIN" && (
-                  <TableCell className="text-center">
-                    <button
-                      onClick={() => toggleFeatured(apt.id)}
-                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${featuredIds.includes(apt.id)
-                        ? "text-amber-500 hover:text-amber-600"
-                        : "text-gray-300 hover:text-gray-400"
-                        }`}
-                      title={featuredIds.includes(apt.id) ? "Bỏ nổi bật" : "Bật nổi bật"}
-                    >
-                      <Star size={18} fill={featuredIds.includes(apt.id) ? "currentColor" : "none"} />
-                    </button>
-                  </TableCell>
-                )}
-                <TableCell>
-                  <div className="flex items-center justify-end gap-1">
-                    <button onClick={() => navigate(`/${role?.toLowerCase()}/apartments/${apt.id}`)}
-                      className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Xem chi tiết">
-                      <Eye size={16} />
-                    </button>
-                    <button onClick={() => { setEditItem(apt); setShowModifyModal(true); }}
-                      className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Sửa">
-                      <Pencil size={16} />
-                    </button>
-                    <button onClick={() => { setDeleteItem(apt); }}
-                      className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer" title="Xóa">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-            {paginatedApartments.length === 0 && (
+            {paginatedApartments.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={role === "ADMIN" ? 8 : 7} className="text-center py-12 text-gray-500">
                   <Home size={48} className="mx-auto mb-3 text-gray-300" />
                   Không tìm thấy căn hộ nào
                 </TableCell>
               </TableRow>
+            ) : (
+              paginatedApartments.map((apt) => (
+                <TableRow key={apt.id}>
+                  <TableCell className="font-semibold text-primary-600">
+                    {formatApartmentDisplay(
+                      apt.room_number,
+                      apt.floor,
+                      role || undefined,
+                      buildings.find((b) => b.id === apt.building_id)?.branch_name
+                    )}
+                  </TableCell>
+                  <TableCell className="text-gray-600">{apt.area} m²</TableCell>
+                  <TableCell className="text-gray-655">{apt.bedrooms}</TableCell>
+                  <TableCell className="text-gray-655">{apt.bathrooms}</TableCell>
+                  <TableCell className="font-semibold text-gray-855">{formatCurrency(apt.rental_price)}</TableCell>
+                  <TableCell>{getStatusBadge(apt.status)}</TableCell>
+                  {role === "ADMIN" && (
+                    <TableCell className="text-center">
+                      <button
+                        onClick={() => toggleFeatured(apt.id)}
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${featuredIds.includes(apt.id)
+                          ? "text-amber-500 hover:text-amber-600"
+                          : "text-gray-300 hover:text-gray-400"
+                          }`}
+                        title={featuredIds.includes(apt.id) ? "Bỏ nổi bật" : "Bật nổi bật"}
+                      >
+                        <Star size={18} fill={featuredIds.includes(apt.id) ? "currentColor" : "none"} />
+                      </button>
+                    </TableCell>
+                  )}
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      <button onClick={() => navigate(`/${role?.toLowerCase()}/apartments/${apt.id}`)}
+                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Xem chi tiết">
+                        <Eye size={16} />
+                      </button>
+                      <button onClick={() => { setEditItem(apt); modifyModal.onOpen(); }}
+                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Sửa">
+                        <Pencil size={16} />
+                      </button>
+                      <button onClick={() => { setDeleteItem(apt); }}
+                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer" title="Xóa">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>
@@ -357,8 +246,8 @@ export default function ApartmentList() {
 
       {/* Modals */}
       <ApartmentCreateModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        isOpen={createModal.isOpen}
+        onClose={createModal.onClose}
         onSuccess={fetchApartments}
         buildings={buildings}
         role={role}
@@ -366,8 +255,8 @@ export default function ApartmentList() {
       />
 
       <ApartmentModifyModal
-        isOpen={showModifyModal}
-        onClose={() => { setShowModifyModal(false); setEditItem(null); }}
+        isOpen={modifyModal.isOpen}
+        onClose={() => { modifyModal.onClose(); setEditItem(null); }}
         onSuccess={fetchApartments}
         editItem={editItem}
         buildings={buildings}

@@ -2,12 +2,12 @@ import Modal from "../../../../components/ui/Modal"
 import Button from "../../../../components/ui/Button"
 import Input from "../../../../components/ui/Input"
 import Combobox from "../../../../components/ui/Combobox"
-import { DatePicker } from "../../../../components/ui/DatePicker"
+import { Calendar } from "../../../../components/ui/Calendar"
 import type { ApartmentData } from "../../../../services/apartmentService"
 import type { BuildingData } from "../../../../services/buildingService"
 import type { Tenant } from "../../../../types"
 import { useContractCreate } from "../../../../hooks/useContractCreate"
-import { formatCurrency } from "../../../../utils/format"
+import { formatCurrency } from "../../../../utils/currency"
 
 interface ContractCreateModalProps {
   isOpen: boolean
@@ -139,7 +139,7 @@ export default function ContractCreateModal({
                 </div>
                 <div className="col-span-12 sm:col-span-6">
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày sinh</label>
-                  <DatePicker
+                  <Calendar
                     value={newTenantDobValue ? new Date(newTenantDobValue) : null}
                     onChange={(date) => {
                       if (!date) {
@@ -239,7 +239,7 @@ export default function ContractCreateModal({
 
           <div className="col-span-12 sm:col-span-6">
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày bắt đầu *</label>
-            <DatePicker
+            <Calendar
               value={startDateValue ? new Date(startDateValue) : null}
               onChange={(date) => {
                 if (!date) {
@@ -259,7 +259,7 @@ export default function ContractCreateModal({
           </div>
           <div className="col-span-12 sm:col-span-6">
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày kết thúc *</label>
-            <DatePicker
+            <Calendar
               value={endDateValue ? new Date(endDateValue) : null}
               onChange={(date) => {
                 if (!date) {

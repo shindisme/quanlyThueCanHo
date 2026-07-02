@@ -2,7 +2,7 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Badge from "../../../../components/ui/Badge";
 import type { ScheduleData } from "../../../../services/scheduleService";
-import { formatApartmentDisplay, parseGuestName } from "../../../../utils/format";
+import { formatApartmentDisplay, parseGuestName } from "../../../../utils/string";
 import type { BuildingData } from "../../../../services/buildingService";
 
 interface ScheduleDetailModalProps {

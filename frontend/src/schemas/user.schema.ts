@@ -16,7 +16,15 @@ export const changePasswordSchema = z.object({
 
 export const occupantSchema = z.object({
   name: z.string().min(1, { message: "Vui lòng nhập họ và tên" }),
-  cccd: z.string().min(1, { message: "Vui lòng nhập số CCCD" }),
+  cccd: z
+    .string()
+    .min(1, { message: "Vui lòng nhập số CCCD" })
+    .regex(/^\d{12}$/, { message: "CCCD không hợp lệ (phải gồm đúng 12 chữ số)" }),
   dob: z.string().optional().nullable(),
-  phone: z.string().optional().nullable(),
+  phone: z
+    .string()
+    .regex(/^(0[123456789]\d{8})$/, { message: "Số điện thoại không hợp lệ" })
+    .optional()
+    .or(z.literal(""))
+    .nullable(),
 });

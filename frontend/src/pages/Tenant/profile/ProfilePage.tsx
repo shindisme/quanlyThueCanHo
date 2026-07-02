@@ -3,8 +3,9 @@ import Button from "../../../components/ui/Button";
 import PageHeader from "../../../components/PageHeader";
 import Modal from "../../../components/ui/Modal";
 import Input from "../../../components/ui/Input";
-import { DatePicker } from "../../../components/ui/DatePicker";
-import { formatCurrency, formatDate } from "../../../utils/format";
+import { Calendar } from "../../../components/ui/Calendar";
+import { formatCurrency } from "../../../utils/currency";
+import { formatDate } from "../../../utils/date";
 import { useProfile } from "../../../hooks/useProfile";
 
 export default function ProfilePage() {
@@ -257,7 +258,7 @@ export default function ProfilePage() {
               />
               <div className="w-full">
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày sinh</label>
-                <DatePicker
+                <Calendar
                   value={occupantForm.dob ? new Date(occupantForm.dob) : null}
                   onChange={(date) => {
                     if (!date) {

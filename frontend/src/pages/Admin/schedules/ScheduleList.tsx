@@ -1,18 +1,16 @@
-import { useState, useEffect } from "react";
-import { CalendarDays, Check, X, Trash2, Loader2, Eye } from "lucide-react";
+import { CalendarDays, Check, X, Trash2, Eye } from "lucide-react";
 import PageHeader from "../../../components/PageHeader";
 import Badge from "../../../components/ui/Badge";
 import SearchInput from "../../../components/ui/SearchInput";
-import { toast } from "sonner";
 import Pagination from "../../../components/ui/Pagination";
 import Combobox from "../../../components/ui/Combobox";
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
-import { useAuthStore } from "../../../stores/auth.store";
-import * as scheduleService from "../../../services/scheduleService";
-import type { ScheduleData } from "../../../services/scheduleService";
-import * as buildingService from "../../../services/buildingService";
-import type { BuildingData } from "../../../services/buildingService";
+import { useScheduleList } from "../../../hooks/useScheduleList";
+import { formatApartmentDisplay, maskPhone, parseGuestName } from "../../../utils/string";
 
+import ScheduleDeleteModal from "./components/ScheduleDeleteModal";
+import ScheduleDetailModal from "./components/ScheduleDetailModal";
 import {
   Table,
   TableHeader,
@@ -22,133 +20,38 @@ import {
   TableCell,
 } from "../../../components/ui/Table";
 
-import { useSort } from "../../../hooks/useSort";
-import { formatApartmentDisplay, removeVietnameseTones, maskPhone, parseGuestName } from "../../../utils/format";
-
-import ScheduleDeleteModal from "./components/ScheduleDeleteModal";
-import ScheduleDetailModal from "./components/ScheduleDetailModal";
-
 export default function ScheduleList() {
-  const { role, managedBuildingId } = useAuthStore();
+  const {
+    role,
+    loading,
+    search,
+    setSearch,
+    statusFilter,
+    setStatusFilter,
+    deleteItem,
+    setDeleteItem,
+    viewItem,
+    setViewItem,
+    buildings,
+    schedules,
+    requestSort,
+    getSortIcon,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    paginatedSchedules,
+    handleConfirm,
+    handleCancel,
+    handleDelete,
+  } = useScheduleList();
 
-  const [schedules, setSchedules] = useState<ScheduleData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [deleteItem, setDeleteItem] = useState<ScheduleData | null>(null);
-  const [viewItem, setViewItem] = useState<ScheduleData | null>(null);
-
-  // Pagination states
-  const [currentPage, setCurrentPage] = useState(1);
-  const [buildings, setBuildings] = useState<BuildingData[]>([]);
-  const itemsPerPage = 10;
-
-
-
-  useEffect(() => {
-    fetchSchedules();
-    fetchBuildings();
-  }, []);
-
-  async function fetchSchedules() {
-    try {
-      setLoading(true);
-      const data = await scheduleService.getSchedules();
-      setSchedules(data);
-    } catch {
-      toast.error("Không thể tải danh sách lịch xem phòng");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function fetchBuildings() {
-    try {
-      const bRes = await buildingService.getAllBuildings({ limit: 100 });
-      setBuildings(bRes.data || []);
-    } catch (err) {
-      console.error("Lỗi khi tải danh sách tòa nhà:", err);
-    }
-  }
-
-  const displaySchedules = (() => {
-    if (role === "MANAGER" && managedBuildingId) {
-      return schedules.filter(
-        (s) => s.apartment?.building_id === managedBuildingId
-      );
-    }
-    return schedules;
-  })();
-
-  const filtered = displaySchedules.filter((s) => {
-    const term = removeVietnameseTones(search);
-    const cleanGuestName = parseGuestName(s.guest_name).name;
-    const nameNorm = removeVietnameseTones(cleanGuestName);
-    const phoneNorm = removeVietnameseTones(s.guest_phone);
-    const roomNorm = removeVietnameseTones(s.apartment?.room_number || "");
-
-    const matchesSearch = nameNorm.includes(term) ||
-      phoneNorm.includes(term) ||
-      roomNorm.includes(term);
-
-    const matchesStatus = !statusFilter || s.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
-
-  const { items: sortedSchedules, requestSort, getSortIcon } = useSort(filtered, null, {
-    apartment_id: (s) => s.apartment?.room_number || String(s.apartment_id),
-    schedule_time: (s) => new Date(s.schedule_time).getTime(),
-  });
-
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  const paginatedSchedules = sortedSchedules.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  async function handleConfirm(id: number) {
-    try {
-      await scheduleService.confirmSchedule(id);
-      toast.success("Đã xác nhận lịch xem phòng");
-
-      fetchSchedules();
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { error?: string } } };
-      toast.error(err.response?.data?.error || "Xác nhận thất bại");
-    }
-  }
-
-  async function handleCancel(id: number) {
-    try {
-      await scheduleService.cancelSchedule(id);
-      toast.success("Đã hủy lịch");
-
-      fetchSchedules();
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { error?: string } } };
-      toast.error(err.response?.data?.error || "Hủy thất bại");
-    }
-  }
-
-  async function handleDelete() {
-    if (!deleteItem) return;
-    try {
-      await scheduleService.deleteSchedule(deleteItem.id);
-      toast.success("Đã xóa lịch");
-      setDeleteItem(null);
-      fetchSchedules();
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { error?: string } } };
-      toast.error(err.response?.data?.error || "Xóa thất bại");
-    }
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <LoadingSpinner size={36} />
+        <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải lịch hẹn...</span>
+      </div>
+    );
   }
 
   function getStatusBadge(status: string) {
@@ -167,13 +70,6 @@ export default function ScheduleList() {
     return <Badge variant={variant}>{label}</Badge>;
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-primary-600" size={32} />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -233,77 +129,78 @@ export default function ScheduleList() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedSchedules.map((s) => (
-              <TableRow key={s.id}>
-                <TableCell className="font-semibold text-gray-800">{parseGuestName(s.guest_name).name}</TableCell>
-                <TableCell className="text-gray-650">
-                  {s.apartment ? (
-                    <span className="font-medium text-primary-600">
-                      {formatApartmentDisplay(
-                        s.apartment.room_number,
-                        s.apartment.floor,
-                        role || undefined,
-                        buildings.find((b) => b.id === s.apartment?.building_id)?.branch_name
-                      )}
-                    </span>
-                  ) : (
-                    <span className="text-gray-400">#{s.apartment_id}</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-gray-600">{maskPhone(s.guest_phone)}</TableCell>
-                <TableCell className="text-gray-650 font-medium">
-                  {s.guest_email || "-"}
-                </TableCell>
-                <TableCell className="text-gray-600">
-                  {new Date(s.schedule_time).toLocaleString("vi-VN")}
-                </TableCell>
-                <TableCell>{getStatusBadge(s.status)}</TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-end gap-1">
-                    <button
-                      onClick={() => setViewItem(s)}
-                      className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
-                      title="Xem chi tiết"
-                    >
-                      <Eye size={16} />
-                    </button>
-
-                    {s.status === "PENDING" && (
-                      <>
-                        <button
-                          onClick={() => handleConfirm(s.id)}
-                          className="p-2 rounded-lg text-green-600 hover:bg-green-50 cursor-pointer"
-                          title="Xác nhận"
-                        >
-                          <Check size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleCancel(s.id)}
-                          className="p-2 rounded-lg text-amber-600 hover:bg-amber-50 cursor-pointer"
-                          title="Hủy"
-                        >
-                          <X size={16} />
-                        </button>
-                      </>
-                    )}
-                    <button
-                      onClick={() => setDeleteItem(s)}
-                      className="p-2 rounded-lg text-gray-400 hover:text-red-650 hover:bg-red-55/60 cursor-pointer"
-                      title="Xóa"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-            {filtered.length === 0 && (
+            {paginatedSchedules.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-12 text-gray-500">
                   <CalendarDays size={48} className="mx-auto mb-3 text-gray-300" />
                   Chưa có lịch xem phòng nào
                 </TableCell>
               </TableRow>
+            ) : (
+              paginatedSchedules.map((s) => (
+                <TableRow key={s.id}>
+                  <TableCell className="font-semibold text-gray-800">{parseGuestName(s.guest_name).name}</TableCell>
+                  <TableCell className="text-gray-655">
+                    {s.apartment ? (
+                      <span className="font-medium text-primary-600">
+                        {formatApartmentDisplay(
+                          s.apartment.room_number,
+                          s.apartment.floor,
+                          role || undefined,
+                          buildings.find((b) => b.id === s.apartment?.building_id)?.branch_name
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-gray-400">#{s.apartment_id}</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-gray-600">{maskPhone(s.guest_phone)}</TableCell>
+                  <TableCell className="text-gray-650 font-medium">
+                    {s.guest_email || "-"}
+                  </TableCell>
+                  <TableCell className="text-gray-600">
+                    {new Date(s.schedule_time).toLocaleString("vi-VN")}
+                  </TableCell>
+                  <TableCell>{getStatusBadge(s.status)}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => setViewItem(s)}
+                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
+                        title="Xem chi tiết"
+                      >
+                        <Eye size={16} />
+                      </button>
+
+                      {s.status === "PENDING" && (
+                        <>
+                          <button
+                            onClick={() => handleConfirm(s.id)}
+                            className="p-2 rounded-lg text-green-600 hover:bg-green-50 cursor-pointer"
+                            title="Xác nhận"
+                          >
+                            <Check size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleCancel(s.id)}
+                            className="p-2 rounded-lg text-amber-600 hover:bg-amber-50 cursor-pointer"
+                            title="Hủy"
+                          >
+                            <X size={16} />
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={() => setDeleteItem(s)}
+                        className="p-2 rounded-lg text-gray-400 hover:text-red-655 hover:bg-red-55/60 cursor-pointer"
+                        title="Xóa"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>

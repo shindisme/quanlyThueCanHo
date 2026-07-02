@@ -1,27 +1,18 @@
-import { useState, useEffect, useCallback } from "react";
-import { Plus, Loader2, FileText, Eye, Calendar } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { Plus, FileText, Eye, Calendar as CalendarIcon } from "lucide-react";
 import PageHeader from "../../../components/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
 import Badge from "../../../components/ui/Badge";
 import Pagination from "../../../components/ui/Pagination";
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import Modal from "../../../components/ui/Modal";
+import { Calendar } from "../../../components/ui/Calendar";
 import { toast } from "sonner";
-import { DatePicker } from "../../../components/ui/DatePicker";
 
-import { useAuthStore } from "../../../stores/auth.store";
-
-import * as buildingService from "../../../services/buildingService";
-import * as apartmentService from "../../../services/apartmentService";
-import * as tenantService from "../../../services/tenantService";
-import * as authService from "../../../services/authService";
-import * as contractService from "../../../services/contractService";
-
-import { formatCurrency, formatDate, removeVietnameseTones, formatApartmentDisplay } from "../../../utils/format";
-import type { RentalContract, Tenant, User } from "../../../types";
-import type { BuildingData } from "../../../services/buildingService";
-import type { ApartmentData } from "../../../services/apartmentService";
+import { useContractList } from "../../../hooks/useContractList";
+import { formatCurrency } from "../../../utils/currency";
+import { formatDate } from "../../../utils/date";
+import { formatApartmentDisplay } from "../../../utils/string";
 
 import ContractCreateModal from "./components/ContractCreateModal";
 import ContractDetailModal from "./components/ContractDetailModal";
@@ -35,175 +26,37 @@ import {
   TableCell,
 } from "../../../components/ui/Table";
 
-interface LocationState {
-  openCreateModal?: boolean;
-  tenantId?: string | number;
-}
-
 export default function ContractList() {
-  const { role, managedBuildingId, email } = useAuthStore();
-  const location = useLocation();
-
-  const [contracts, setContracts] = useState<RentalContract[]>([]);
-  const [buildings, setBuildings] = useState<BuildingData[]>([]);
-  const [apartments, setApartments] = useState<ApartmentData[]>([]);
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
-
-  // Modals state
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedDetailContract, setSelectedDetailContract] = useState<RentalContract | null>(null);
-  const [selectedDocContract, setSelectedDocContract] = useState<RentalContract | null>(null);
-  const [selectedExtendContract, setSelectedExtendContract] = useState<RentalContract | null>(null);
-  const [extendEndDate, setExtendEndDate] = useState("");
-  const [initialTenantId, setInitialTenantId] = useState<number | undefined>();
-
-  const fetchContracts = useCallback(async () => {
-    try {
-      const data = await contractService.getAllContracts();
-      setContracts(data);
-    } catch {
-      setContracts([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    const loadAllData = async () => {
-      try {
-        // Load buildings
-        try {
-          const bRes = await buildingService.getAllBuildings({ limit: 100 });
-          setBuildings(bRes.data);
-        } catch {
-          setBuildings([]);
-        }
-
-        // Load apartments
-        try {
-          const pages = [1, 2, 3, 4, 5, 6, 7];
-          const resList = await Promise.all(
-            pages.map((p) => apartmentService.getAllApartments({ limit: 100, page: p }))
-          );
-          const combined = resList.flatMap((r) => r.data);
-          const unique = combined.filter((a, index, self) => self.findIndex(t => t.id === a.id) === index);
-          setApartments(unique);
-        } catch {
-          setApartments([]);
-        }
-
-        // Load tenants
-        try {
-          const tRes = await tenantService.getAllTenants({ limit: 1000 });
-          setTenants(tRes.data);
-        } catch {
-          setTenants([]);
-        }
-
-        // Load users
-        try {
-          const uRes = await authService.getAllUsers();
-          setUsers(uRes as unknown as User[]);
-        } catch {
-          setUsers([]);
-        }
-
-        await fetchContracts();
-      } catch {
-        toast.error("Không thể tải dữ liệu hợp đồng");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadAllData();
-  }, [fetchContracts]);
-
-  useEffect(() => {
-    if (location.state) {
-      const stateObj = location.state as LocationState;
-      if (stateObj.openCreateModal) {
-        setTimeout(() => {
-          if (stateObj.tenantId) {
-            setInitialTenantId(Number(stateObj.tenantId));
-          }
-          setShowCreateModal(true);
-        }, 0);
-        window.history.replaceState({}, document.title);
-      }
-    }
-  }, [location]);
-
-  const displayContracts = (() => {
-    if (role === "MANAGER" && managedBuildingId) {
-      const buildingApartmentIds = apartments
-        .filter((a) => a.building_id === managedBuildingId)
-        .map((a) => a.id);
-      return contracts.filter((c) => buildingApartmentIds.includes(c.apartment_id));
-    }
-    if (role === "TENANT") {
-      const currentUser = users.find((u) => u.username === email);
-      const currentTenant = currentUser
-        ? tenants.find((t) => t.user_id === currentUser.id)
-        : null;
-      if (currentTenant) {
-        return contracts.filter((c) => c.tenant_id === currentTenant.id);
-      }
-      return [];
-    }
-    return contracts;
-  })();
-
-  const filteredContracts = displayContracts.filter((c) => {
-    const term = removeVietnameseTones(search);
-    const code = `HD-${String(c.id).padStart(5, "0")}`;
-    const tenant = tenants.find((t) => t.id === c.tenant_id);
-    const tenantName = tenant ? removeVietnameseTones(tenant.full_name) : "";
-    const apt = apartments.find((a) => a.id === c.apartment_id);
-    const room = apt ? removeVietnameseTones(apt.room_number) : "";
-
-    return (
-      code.toLowerCase().includes(term.toLowerCase()) ||
-      tenantName.toLowerCase().includes(term.toLowerCase()) ||
-      room.toLowerCase().includes(term.toLowerCase())
-    );
-  });
-
-  // Pagination
-  const paginatedContracts = (() => {
-    const start = (currentPage - 1) * pageSize;
-    const end = start + pageSize;
-    return filteredContracts.slice(start, end);
-  })();
-
-  const totalPages = Math.max(1, Math.ceil(filteredContracts.length / pageSize));
-
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  async function handleExtendContract() {
-    if (!selectedExtendContract || !extendEndDate) {
-      toast.error("Vui lòng chọn ngày kết thúc mới!");
-      return;
-    }
-
-    try {
-      await contractService.extendContract(selectedExtendContract.id, extendEndDate);
-      toast.success("Gia hạn hợp đồng thành công!");
-      setSelectedExtendContract(null);
-      setExtendEndDate("");
-      fetchContracts();
-    } catch {
-      toast.error("Gia hạn hợp đồng thất bại!");
-    }
-  }
+  const {
+    role,
+    managedBuildingId,
+    buildings,
+    apartments,
+    tenants,
+    users,
+    loading,
+    search,
+    setSearch,
+    createModal,
+    selectedDetailContract,
+    setSelectedDetailContract,
+    selectedDocContract,
+    setSelectedDocContract,
+    selectedExtendContract,
+    setSelectedExtendContract,
+    extendEndDate,
+    setExtendEndDate,
+    initialTenantId,
+    filteredContracts,
+    requestSort,
+    getSortIcon,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    paginatedContracts,
+    handleExtendContract,
+    fetchContracts,
+  } = useContractList();
 
   function getStatusBadge(status: string) {
     if (status === "ACTIVE") return <Badge variant="success">Còn hạn</Badge>;
@@ -213,8 +66,9 @@ export default function ContractList() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-primary-600" size={32} />
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <LoadingSpinner size={36} />
+        <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải danh sách hợp đồng...</span>
       </div>
     );
   }
@@ -230,7 +84,7 @@ export default function ContractList() {
         iconColor="linear-gradient(135deg, #EF4444, #F87171)"
         actions={
           role !== "TENANT" ? (
-            <Button onClick={() => setShowCreateModal(true)}>
+            <Button onClick={createModal.onOpen}>
               <Plus size={18} /> Tạo hợp đồng
             </Button>
           ) : undefined
@@ -252,12 +106,24 @@ export default function ContractList() {
           <Table className="compact">
             <TableHeader>
               <TableRow>
-                <TableHead>Mã HĐ</TableHead>
-                <TableHead>Người thuê</TableHead>
-                <TableHead>Căn hộ</TableHead>
-                <TableHead>Giá thuê</TableHead>
-                <TableHead>Thời hạn</TableHead>
-                <TableHead>Trạng thái</TableHead>
+                <TableHead onClick={() => requestSort("id")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Mã HĐ {getSortIcon("id")}
+                </TableHead>
+                <TableHead onClick={() => requestSort("tenant")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Người thuê {getSortIcon("tenant")}
+                </TableHead>
+                <TableHead onClick={() => requestSort("apartment")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Căn hộ {getSortIcon("apartment")}
+                </TableHead>
+                <TableHead onClick={() => requestSort("monthly_rent")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Giá thuê {getSortIcon("monthly_rent")}
+                </TableHead>
+                <TableHead onClick={() => requestSort("end_date")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Thời hạn {getSortIcon("end_date")}
+                </TableHead>
+                <TableHead onClick={() => requestSort("status")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Trạng thái {getSortIcon("status")}
+                </TableHead>
                 <TableHead className="text-right">Chức năng</TableHead>
               </TableRow>
             </TableHeader>
@@ -273,7 +139,7 @@ export default function ContractList() {
                 return (
                   <TableRow key={c.id}>
                     <TableCell className="font-semibold text-gray-800">{code}</TableCell>
-                    <TableCell className="text-gray-650 font-medium">{tenantName}</TableCell>
+                    <TableCell className="text-gray-655 font-medium">{tenantName}</TableCell>
                     <TableCell className="text-primary-600 font-semibold">{aptDisplay}</TableCell>
                     <TableCell className="text-gray-600">{formatCurrency(c.monthly_rent)}</TableCell>
                     <TableCell className="text-xs text-gray-500 font-medium">
@@ -305,7 +171,7 @@ export default function ContractList() {
                             className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer"
                             title="Gia hạn"
                           >
-                            <Calendar size={16} />
+                            <CalendarIcon size={16} />
                           </button>
                         )}
                       </div>
@@ -329,8 +195,8 @@ export default function ContractList() {
 
       {/* Contract Create Modal */}
       <ContractCreateModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        isOpen={createModal.isOpen}
+        onClose={createModal.onClose}
         onSuccess={() => {
           fetchContracts();
           toast.success("Tạo hợp đồng thành công!");
@@ -398,9 +264,9 @@ export default function ContractList() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngày kết thúc mới *</label>
-              <DatePicker
+              <Calendar
                 value={extendEndDate ? new Date(extendEndDate) : null}
-                onChange={(date) => {
+                onChange={(date: Date | null) => {
                   if (!date) {
                     setExtendEndDate("");
                     return;

@@ -1,19 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { FileText, Star } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import Badge from "../../../components/ui/Badge";
 import SearchInput from "../../../components/ui/SearchInput";
 import PageHeader from "../../../components/PageHeader";
 import Modal from "../../../components/ui/Modal";
 import Button from "../../../components/ui/Button";
 import { toast } from "sonner";
+import { useDebounce } from "../../../hooks/common/useDebounce";
 
 import { useAuthStore } from "../../../stores/auth.store";
 import * as buildingService from "../../../services/buildingService";
 import * as apartmentService from "../../../services/apartmentService";
 import * as tenantService from "../../../services/tenantService";
 import * as contractService from "../../../services/contractService";
-import { formatApartmentDisplay, formatCurrency, formatDate, removeVietnameseTones, numberToVietnameseWords } from "../../../utils/format";
-import type { RentalContract, Tenant } from "../../../types";
+import { formatCurrency, numberToVietnameseWords } from "../../../utils/currency";
+import { formatDate } from "../../../utils/date";
+import { formatApartmentDisplay, removeVietnameseTones } from "../../../utils/string";
+import type { RentalContract } from "../../../types";
 
 function parseJwt(token: string) {
   try {
@@ -37,11 +41,7 @@ function parseJwt(token: string) {
 export default function MyContracts() {
   const { token } = useAuthStore();
   const [search, setSearch] = useState("");
-
-  const [contracts, setContracts] = useState<RentalContract[]>([]);
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [buildings, setBuildings] = useState<any[]>([]);
-  const [apartments, setApartments] = useState<any[]>([]);
+  const debouncedSearch = useDebounce(search, 300);
 
   const [viewContractDoc, setViewContractDoc] = useState<RentalContract | null>(null);
 
@@ -51,31 +51,29 @@ export default function MyContracts() {
   const [comment, setComment] = useState<string>("");
   const [submittingReview, setSubmittingReview] = useState<boolean>(false);
 
-  useEffect(() => {
-    buildingService.getAllBuildings({ limit: 100 }).then((res) => {
-      setBuildings(res.data);
-    }).catch(() => {
-      toast.error("Không thể tải danh sách tòa nhà");
-    });
+  const { data: buildingsData } = useQuery({
+    queryKey: ["buildings"],
+    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
+  });
+  const buildings = buildingsData?.data || [];
 
-    apartmentService.getAllApartments({ limit: 1000 }).then((res) => {
-      setApartments(res.data);
-    }).catch(() => {
-      toast.error("Không thể tải danh sách căn hộ");
-    });
+  const { data: apartmentsData } = useQuery({
+    queryKey: ["apartments"],
+    queryFn: () => apartmentService.getAllApartments({ limit: 1000 }),
+  });
+  const apartments = apartmentsData?.data || [];
 
-    tenantService.getAllTenants({ limit: 1000 }).then((res) => {
-      setTenants(res.data);
-    }).catch(() => {
-      toast.error("Không thể tải danh sách người thuê");
-    });
+  const { data: tenantsData } = useQuery({
+    queryKey: ["tenants"],
+    queryFn: () => tenantService.getAllTenants({ limit: 1000 }),
+  });
+  const tenants = tenantsData?.data || [];
 
-    contractService.getAllContracts().then((data) => {
-      setContracts(data);
-    }).catch(() => {
-      toast.error("Không thể tải danh sách hợp đồng");
-    });
-  }, []);
+  const { data: contractsData } = useQuery({
+    queryKey: ["contracts"],
+    queryFn: () => contractService.getAllContracts(),
+  });
+  const contracts = contractsData || [];
 
   const decoded = token ? parseJwt(token) : null;
   const userId = decoded?.userId;
@@ -89,7 +87,7 @@ export default function MyContracts() {
     : [];
 
   const filtered = myContracts.filter((c) => {
-    const term = removeVietnameseTones(search);
+    const term = removeVietnameseTones(debouncedSearch);
     const code = `HD-${String(c.id).padStart(5, "0")}`;
     const apt = apartments.find((a) => a.id === c.apartment_id);
     const room = apt ? apt.room_number : "";

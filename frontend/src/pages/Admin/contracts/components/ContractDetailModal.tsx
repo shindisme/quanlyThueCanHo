@@ -4,11 +4,9 @@ import Badge from "../../../../components/ui/Badge";
 import type { RentalContract, Tenant, User as UserType } from "../../../../types";
 import type { BuildingData } from "../../../../services/buildingService";
 import type { ApartmentData } from "../../../../services/apartmentService";
-import {
-  formatCurrency,
-  formatDate,
-  formatApartmentDisplay,
-} from "../../../../utils/format";
+import { formatCurrency } from "../../../../utils/currency";
+import { formatDate } from "../../../../utils/date";
+import { formatApartmentDisplay } from "../../../../utils/string";
 import { User, Home, CreditCard, Users, Calendar } from "lucide-react";
 
 interface ContractDetailModalProps {

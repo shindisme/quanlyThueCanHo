@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom"
-import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Home, Loader2, Trash2, Plus, Star } from "lucide-react"
+import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Home, Trash2, Plus, Star } from "lucide-react"
+import LoadingSpinner from "../../../components/ui/LoadingSpinner"
 import Card from "../../../components/ui/Card"
 import Badge, { type BadgeVariant } from "../../../components/ui/Badge"
 import Button from "../../../components/ui/Button"
 import ApartmentModifyModal from "./components/ApartmentModifyModal"
 import { useAuthStore } from "../../../stores/auth.store"
-import { formatApartmentDisplay, formatDate, maskCCCD } from "../../../utils/format"
+import { formatDate } from "../../../utils/date"
+import { formatApartmentDisplay, maskCCCD } from "../../../utils/string"
 import { useApartmentDetail } from "../../../hooks/useApartmentDetail"
 
 export default function ApartmentDetail() {
@@ -36,7 +38,7 @@ export default function ApartmentDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-primary-600" size={32} />
+        <LoadingSpinner size={32} />
       </div>
     )
   }
@@ -189,7 +191,7 @@ export default function ApartmentDetail() {
           <h3 className="font-semibold text-gray-800">Quản lý hình ảnh căn hộ</h3>
           <label className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors">
             {uploading ? (
-              <Loader2 className="animate-spin" size={14} />
+              <LoadingSpinner size={14} className="text-white" />
             ) : (
               <Plus size={14} />
             )}

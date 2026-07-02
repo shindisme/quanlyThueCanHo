@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import {
   Home as HomeIcon, FileText, Receipt, MapPin, Maximize2,
-  Calendar, CreditCard, ArrowUpRight, Wrench, Loader2, Users, Zap
+  Calendar, CreditCard, ArrowUpRight, Wrench, Users, Zap
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../../../stores/auth.store";
 import * as tenantService from "../../../services/tenantService";
 import * as contractService from "../../../services/contractService";
 import * as apartmentService from "../../../services/apartmentService";
 import * as buildingService from "../../../services/buildingService";
-import { formatCurrency } from "../../../utils/format";
+import { formatCurrency } from "../../../utils/currency";
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
 function parseJwt(token: string) {
   try {
@@ -32,12 +34,7 @@ function parseJwt(token: string) {
 
 export default function TenantHome() {
   const { email, token } = useAuthStore();
-
-  const [contract, setContract] = useState<any | null>(null);
-  const [apartment, setApartment] = useState<any | null>(null);
-  const [building, setBuilding] = useState<any | null>(null);
   const [occupants, setOccupants] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (email) {
@@ -46,68 +43,61 @@ export default function TenantHome() {
     }
   }, [email]);
 
-  useEffect(() => {
-    if (!token || !email) {
-      setLoading(false);
-      return;
-    }
+  const decoded = token ? parseJwt(token) : null;
+  const userId = decoded?.userId;
 
-    async function loadHomeData() {
-      try {
-        const decoded = token ? parseJwt(token) : null;
-        const userId = decoded?.userId;
-        if (!userId) {
-          setLoading(false);
-          return;
-        }
+  const { data: tenantsRes, isLoading: loadingTenants } = useQuery({
+    queryKey: ["tenants"],
+    queryFn: () => tenantService.getAllTenants({ limit: 1000 }),
+    enabled: !!userId,
+  });
 
-        const tenantsRes = await tenantService.getAllTenants({ limit: 1000 });
-        const currentT = tenantsRes.data.find((t) => t.user_id === userId);
-        if (!currentT) {
-          setLoading(false);
-          return;
-        }
+  const { data: contracts, isLoading: loadingContracts } = useQuery({
+    queryKey: ["contracts"],
+    queryFn: () => contractService.getAllContracts(),
+    enabled: !!userId,
+  });
 
-        const contracts = await contractService.getAllContracts();
-        const activeContract = contracts.find(
-          (c) => c.tenant_id === currentT.id && c.status === "ACTIVE"
-        );
+  const currentTenant = userId && tenantsRes?.data
+    ? tenantsRes.data.find((t) => t.user_id === userId)
+    : null;
 
-        if (activeContract) {
-          setContract(activeContract);
+  const activeContract = currentTenant && contracts
+    ? contracts.find((c) => c.tenant_id === currentTenant.id && c.status === "ACTIVE")
+    : null;
 
-          const apartmentsRes = await apartmentService.getAllApartments({ limit: 1000 });
-          const apt = apartmentsRes.data.find((a) => a.id === activeContract.apartment_id);
-          if (apt) {
-            setApartment(apt);
+  const { data: apartmentsRes, isLoading: loadingApartments } = useQuery({
+    queryKey: ["apartments"],
+    queryFn: () => apartmentService.getAllApartments({ limit: 1000 }),
+    enabled: !!activeContract,
+  });
 
-            const buildingsRes = await buildingService.getAllBuildings({ limit: 100 });
-            const bld = buildingsRes.data.find((b) => b.id === apt.building_id);
-            if (bld) {
-              setBuilding(bld);
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Error loading home page data:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
+  const apartment = activeContract && apartmentsRes?.data
+    ? apartmentsRes.data.find((a) => a.id === activeContract.apartment_id)
+    : null;
 
-    loadHomeData();
-  }, [email, token]);
+  const { data: buildingsRes, isLoading: loadingBuildings } = useQuery({
+    queryKey: ["buildings"],
+    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
+    enabled: !!apartment,
+  });
+
+  const building = apartment && buildingsRes?.data
+    ? buildingsRes.data.find((b) => b.id === apartment.building_id)
+    : null;
+
+  const loading = loadingTenants || loadingContracts || (!!activeContract && loadingApartments) || (!!apartment && loadingBuildings);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-primary-600" size={32} />
+        <LoadingSpinner size={32} />
       </div>
     );
   }
 
-  const daysUntilExpiry = contract?.end_date
-    ? Math.ceil((new Date(contract.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  const daysUntilExpiry = activeContract?.end_date
+    ? Math.ceil((new Date(activeContract.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : 0;
 
   return (
@@ -115,7 +105,7 @@ export default function TenantHome() {
 
       {/* APARTMENT INFO */}
       <div className="bg-white rounded-lg border border-gray-200 p-5">
-        {contract ? (
+        {activeContract ? (
           <div className="flex items-start gap-4">
             <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{ background: "linear-gradient(135deg, #7C3AED, #A78BFA)" }}>
@@ -148,7 +138,7 @@ export default function TenantHome() {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <CreditCard size={15} className="text-gray-400 shrink-0" />
-                  <span>{formatCurrency(contract.monthly_rent || apartment?.rental_price || 0)}/tháng</span>
+                  <span>{formatCurrency(activeContract.monthly_rent || apartment?.rental_price || 0)}/tháng</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Calendar size={15} className="text-gray-400 shrink-0" />

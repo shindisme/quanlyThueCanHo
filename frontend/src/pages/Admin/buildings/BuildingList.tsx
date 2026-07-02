@@ -1,21 +1,16 @@
-import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Loader2, Building2, User, Eye, Pencil, Trash2 } from "lucide-react";
+import { Plus, Building2, User, Eye, Pencil, Trash2 } from "lucide-react";
 import PageHeader from "../../../components/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
 import Badge from "../../../components/ui/Badge";
 import Pagination from "../../../components/ui/Pagination";
-import { toast } from "sonner";
-
-
-import * as buildingService from "../../../services/buildingService";
-import type { BuildingData } from "../../../services/buildingService";
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
 import BuildingCreateModal from "./components/BuildingCreateModal";
 import BuildingModifyModal from "./components/BuildingModifyModal";
 import BuildingDeleteModal from "./components/BuildingDeleteModal";
-import { useAuthStore } from "../../../stores/auth.store";
+import { useBuildingList } from "../../../hooks/useBuildingList";
 import {
   Table,
   TableHeader,
@@ -27,88 +22,36 @@ import {
 
 export default function BuildingList() {
   const navigate = useNavigate();
-  const { role, managedBuildingId } = useAuthStore();
-  const [buildings, setBuildings] = useState<BuildingData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showModifyModal, setShowModifyModal] = useState(false);
-  const [editItem, setEditItem] = useState<BuildingData | null>(null);
-  const [deleteItem, setDeleteItem] = useState<BuildingData | null>(null);
-
-  const [status] = useState<string>("");
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const pageSize = 10;
-
-  const fetchBuildings = useCallback(async () => {
-    try {
-      const result = await buildingService.getAllBuildings({
-        page: currentPage,
-        limit: pageSize,
-        search: search || undefined,
-        status: status || undefined,
-      });
-      setBuildings(result.data);
-      setTotalPages(result.pagination.totalPages);
-      setTotalCount(result.pagination.total);
-    } catch {
-      toast.error("Không thể tải danh sách tòa nhà");
-    } finally {
-      setLoading(false);
-    }
-  }, [currentPage, search, status, pageSize]);
-
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      try {
-        const result = await buildingService.getAllBuildings({
-          page: currentPage,
-          limit: pageSize,
-          search: search || undefined,
-          status: status || undefined,
-        });
-        if (active) {
-          setBuildings(result.data);
-          setTotalPages(result.pagination.totalPages);
-          setTotalCount(result.pagination.total);
-        }
-      } catch {
-        toast.error("Không thể tải danh sách tòa nhà");
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    };
-    load();
-    return () => { active = false; };
-  }, [currentPage, search, status, pageSize]);
-
-  const filtered = role === "MANAGER"
-    ? buildings.filter((b) => b.id === managedBuildingId)
-    : buildings;
-
-  async function handleDelete() {
-    if (!deleteItem) return;
-    try {
-      await buildingService.deleteBuilding(deleteItem.id);
-      toast.success(`Đã xóa tòa nhà "${deleteItem.name}"`);
-      setDeleteItem(null);
-      fetchBuildings();
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { error?: string } } };
-      toast.error(err.response?.data?.error || "Xóa thất bại");
-    }
-  }
+  const {
+    role,
+    search,
+    setSearch,
+    currentPage,
+    setCurrentPage,
+    showCreateModal,
+    setShowCreateModal,
+    showModifyModal,
+    setShowModifyModal,
+    editItem,
+    setEditItem,
+    deleteItem,
+    setDeleteItem,
+    loading,
+    totalCount,
+    totalPages,
+    filtered,
+    sortedBuildings,
+    requestSort,
+    getSortIcon,
+    handleDelete,
+    fetchBuildings,
+  } = useBuildingList();
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-primary-600" size={32} />
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <LoadingSpinner size={36} />
+        <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải danh sách tòa nhà...</span>
       </div>
     );
   }
@@ -162,15 +105,23 @@ export default function BuildingList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Tên chi nhánh</TableHead>
-                <TableHead>Địa chỉ</TableHead>
-                <TableHead>Quản lý bởi</TableHead>
-                <TableHead>Trạng thái</TableHead>
+                <TableHead onClick={() => requestSort("branch_name")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Tên chi nhánh {getSortIcon("branch_name")}
+                </TableHead>
+                <TableHead onClick={() => requestSort("address_new")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Địa chỉ {getSortIcon("address_new")}
+                </TableHead>
+                <TableHead onClick={() => requestSort("manager.fullName")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Quản lý bởi {getSortIcon("manager.fullName")}
+                </TableHead>
+                <TableHead onClick={() => requestSort("status")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Trạng thái {getSortIcon("status")}
+                </TableHead>
                 <TableHead className="text-right">Chức năng</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((building) => (
+              {sortedBuildings.map((building) => (
                 <TableRow key={building.id}>
                   <TableCell className="font-semibold text-primary-600">
                     <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/admin/buildings/${building.id}`)}>

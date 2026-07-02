@@ -1,6 +1,6 @@
 import {
   Home, Users, DollarSign, Wrench, TrendingUp, TrendingDown,
-  Loader2, CalendarDays, Clock, AlertCircle
+  CalendarDays, Clock, AlertCircle
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
@@ -14,6 +14,7 @@ import * as contractService from "../../../services/contractService";
 import * as scheduleService from "../../../services/scheduleService";
 import * as invoiceService from "../../../services/invoiceService";
 import type { Invoice } from "../../../types";
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
 function StatCard({ icon: Icon, label, value, trend, trendValue, iconColor, iconBg, variant = "default" }: {
   icon: React.ComponentType<{ size?: number; className?: string }>;
@@ -238,7 +239,7 @@ export default function ManagerDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-primary-600" size={32} />
+        <LoadingSpinner size={32} />
       </div>
     );
   }

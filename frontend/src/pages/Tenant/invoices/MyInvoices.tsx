@@ -1,8 +1,17 @@
 import { useState } from "react";
 import { Receipt } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import Badge from "../../../components/ui/Badge";
 import SearchInput from "../../../components/ui/SearchInput";
 import PageHeader from "../../../components/PageHeader";
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
+import { useAuthStore } from "../../../stores/auth.store";
+import * as tenantService from "../../../services/tenantService";
+import * as invoiceService from "../../../services/invoiceService";
+import { formatCurrency } from "../../../utils/currency";
+import { formatDate } from "../../../utils/date";
+import { removeVietnameseTones } from "../../../utils/string";
+import { useDebounce } from "../../../hooks/common/useDebounce";
 import {
   Table,
   TableHeader,
@@ -12,33 +21,51 @@ import {
   TableCell,
 } from "../../../components/ui/Table";
 
-const mockInvoices = [
-  {
-    id: 1, invoice_code: "INV-2026-06-001", billing_month: "06/2026",
-    rent: 6500000, electricity: 450000, water: 120000, service_fee: 350000,
-    total: 7420000, status: "UNPAID", due_date: "2026-06-30",
-  },
-  {
-    id: 2, invoice_code: "INV-2026-05-001", billing_month: "05/2026",
-    rent: 6500000, electricity: 380000, water: 100000, service_fee: 350000,
-    total: 7330000, status: "PAID", due_date: "2026-05-31",
-  },
-  {
-    id: 3, invoice_code: "INV-2026-04-001", billing_month: "04/2026",
-    rent: 6500000, electricity: 520000, water: 130000, service_fee: 350000,
-    total: 7500000, status: "PAID", due_date: "2026-04-30",
-  },
-];
+function parseJwt(token: string) {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      window
+        .atob(base64)
+        .split("")
+        .map(function (c) {
+          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+        })
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (e) {
+    return null;
+  }
+}
 
-type SortKey = "invoice_code" | "billing_month" | "rent" | "electricity" | "water" | "service_fee" | "total" | "status";
+type SortKey = "invoice_code" | "billing_month" | "total" | "status" | "due_date";
 
 export default function MyInvoices() {
+  const { token } = useAuthStore();
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
   const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: "asc" | "desc" } | null>(null);
 
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(val);
-  };
+  const { data: tenantsData, isLoading: loadingTenants } = useQuery({
+    queryKey: ["tenants"],
+    queryFn: () => tenantService.getAllTenants({ limit: 1000 }),
+  });
+  const tenants = tenantsData?.data || [];
+
+  const { data: invoicesData, isLoading: loadingInvoices } = useQuery({
+    queryKey: ["invoices"],
+    queryFn: () => invoiceService.getAllInvoices({ limit: 1000 }),
+  });
+  const invoices = invoicesData?.data || [];
+
+  const loading = loadingTenants || loadingInvoices;
+
+  const decoded = token ? parseJwt(token) : null;
+  const userId = decoded?.userId;
+  const currentTenant = userId ? tenants.find((t) => t.user_id === userId) : null;
+  const myInvoices = currentTenant ? invoices.filter((inv) => inv.tenant_id === currentTenant.id) : [];
 
   const getSortIcon = (key: SortKey) => {
     if (!sortConfig || sortConfig.key !== key) return "↕";
@@ -53,17 +80,43 @@ export default function MyInvoices() {
     setSortConfig({ key, direction });
   };
 
-  const filteredInvoices = mockInvoices.filter(
-    (inv) =>
-      inv.invoice_code.toLowerCase().includes(search.toLowerCase()) ||
-      inv.billing_month.includes(search)
-  );
+  const filteredInvoices = myInvoices.filter((inv) => {
+    const term = removeVietnameseTones(debouncedSearch.toLowerCase());
+    const codeNorm = removeVietnameseTones((inv.invoice_code || "").toLowerCase());
+    const dateObj = new Date(inv.created_at || inv.due_date);
+    const monthStr = `${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`;
+    return (
+      codeNorm.includes(term) ||
+      monthStr.includes(term)
+    );
+  });
 
   const sortedInvoices = [...filteredInvoices].sort((a, b) => {
     if (!sortConfig) return 0;
     const { key, direction } = sortConfig;
-    if (a[key] < b[key]) return direction === "asc" ? -1 : 1;
-    if (a[key] > b[key]) return direction === "asc" ? 1 : -1;
+
+    let valA: any = "";
+    let valB: any = "";
+
+    if (key === "invoice_code") {
+      valA = a.invoice_code || "";
+      valB = b.invoice_code || "";
+    } else if (key === "billing_month") {
+      valA = new Date(a.created_at || a.due_date).getTime();
+      valB = new Date(b.created_at || b.due_date).getTime();
+    } else if (key === "total") {
+      valA = a.total_amount || 0;
+      valB = b.total_amount || 0;
+    } else if (key === "status") {
+      valA = a.status || "";
+      valB = b.status || "";
+    } else if (key === "due_date") {
+      valA = new Date(a.due_date).getTime();
+      valB = new Date(b.due_date).getTime();
+    }
+
+    if (valA < valB) return direction === "asc" ? -1 : 1;
+    if (valA > valB) return direction === "asc" ? 1 : -1;
     return 0;
   });
 
@@ -79,7 +132,7 @@ export default function MyInvoices() {
         icon={Receipt}
         title="Hóa đơn của tôi"
         subtitle="Theo dõi và kiểm tra hóa đơn tiền thuê hàng tháng của bạn"
-        count={mockInvoices.length}
+        count={myInvoices.length}
         iconColor="linear-gradient(135deg, #F59E0B, #FBBF24)"
       />
 
@@ -87,50 +140,56 @@ export default function MyInvoices() {
 
       {/* Bảng hóa đơn */}
       <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead onClick={() => requestSort("invoice_code")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Mã HĐ {getSortIcon("invoice_code")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("billing_month")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Tháng {getSortIcon("billing_month")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("rent")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Tiền thuê {getSortIcon("rent")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("electricity")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Điện {getSortIcon("electricity")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("water")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Nước {getSortIcon("water")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("service_fee")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Dịch vụ {getSortIcon("service_fee")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("total")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Tổng {getSortIcon("total")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("status")} className="text-center cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Trạng thái {getSortIcon("status")}
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedInvoices.map((inv) => (
-              <TableRow key={inv.id}>
-                <TableCell className="font-semibold text-primary-600">{inv.invoice_code}</TableCell>
-                <TableCell className="text-gray-650">{inv.billing_month}</TableCell>
-                <TableCell className="text-gray-600 text-right">{formatCurrency(inv.rent)}</TableCell>
-                <TableCell className="text-gray-600 text-right">{formatCurrency(inv.electricity)}</TableCell>
-                <TableCell className="text-gray-600 text-right">{formatCurrency(inv.water)}</TableCell>
-                <TableCell className="text-gray-600 text-right">{formatCurrency(inv.service_fee)}</TableCell>
-                <TableCell className="font-bold text-gray-800 text-right">{formatCurrency(inv.total)}</TableCell>
-                <TableCell className="text-center">{getStatusBadge(inv.status)}</TableCell>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <LoadingSpinner size={36} />
+            <span className="text-sm text-gray-400 mt-2">Đang tải hóa đơn...</span>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead onClick={() => requestSort("invoice_code")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Mã HĐ {getSortIcon("invoice_code")}
+                </TableHead>
+                <TableHead onClick={() => requestSort("billing_month")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Tháng {getSortIcon("billing_month")}
+                </TableHead>
+                <TableHead onClick={() => requestSort("due_date")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Hạn thanh toán {getSortIcon("due_date")}
+                </TableHead>
+                <TableHead onClick={() => requestSort("total")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Tổng tiền {getSortIcon("total")}
+                </TableHead>
+                <TableHead onClick={() => requestSort("status")} className="text-center cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Trạng thái {getSortIcon("status")}
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {sortedInvoices.map((inv) => {
+                const dateObj = new Date(inv.created_at || inv.due_date);
+                const monthStr = `${String(dateObj.getMonth() + 1).padStart(2, "0")}/${dateObj.getFullYear()}`;
+                return (
+                  <TableRow key={inv.id}>
+                    <TableCell className="font-semibold text-primary-600">{inv.invoice_code}</TableCell>
+                    <TableCell className="text-gray-650">{monthStr}</TableCell>
+                    <TableCell className="text-gray-600">{formatDate(inv.due_date)}</TableCell>
+                    <TableCell className="font-bold text-gray-800 text-right">{formatCurrency(inv.total_amount)}</TableCell>
+                    <TableCell className="text-center">{getStatusBadge(inv.status)}</TableCell>
+                  </TableRow>
+                );
+              })}
+              {sortedInvoices.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-12 text-gray-500">
+                    Không có hóa đơn nào phù hợp
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
       </div>
     </div>
   );

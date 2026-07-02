@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, MapPin, Maximize2, Calendar, Phone, User, Loader2, Star, Mail } from "lucide-react";
+import { ArrowLeft, MapPin, Maximize2, Phone, User, Star, Mail } from "lucide-react";
+import LoadingSpinner from "../../components/ui/LoadingSpinner";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 import Badge from "../../components/ui/Badge";
 import Modal from "../../components/ui/Modal";
 import Input from "../../components/ui/Input";
-import { DatePicker } from "../../components/ui/DatePicker";
+import { Calendar } from "../../components/ui/Calendar";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../constants/enums";
-import { formatCurrency, formatApartmentDisplay } from "../../utils/format";
+import { formatCurrency } from "../../utils/currency";
+import { formatApartmentDisplay } from "../../utils/string";
 import { toast } from "sonner";
 import * as apartmentService from "../../services/apartmentService";
 import * as buildingService from "../../services/buildingService";
@@ -46,6 +48,9 @@ export default function GuestApartmentDetail() {
     setScheduleForm,
     isSlotBooked,
     handleSubmitSchedule,
+    holdTimeLeft,
+    handleSelectSlot,
+    handleResetBooking,
   } = useApartmentBooking({ apartment });
 
   const isSlotDisabled = (slot: string) => {
@@ -127,7 +132,7 @@ export default function GuestApartmentDetail() {
   if (loading) {
     return (
       <div className="pt-24 text-center font-sans flex flex-col items-center justify-center min-h-[300px]">
-        <Loader2 className="animate-spin text-primary-600 mb-2" size={32} />
+        <LoadingSpinner className="mb-2" size={32} />
         <p className="text-gray-500">Đang tải thông tin căn hộ...</p>
       </div>
     );
@@ -301,7 +306,6 @@ export default function GuestApartmentDetail() {
               <Card className="sticky top-24">
                 <h3 className="font-semibold text-gray-800 mb-4">Đặt lịch xem phòng</h3>
                 <Button className="w-full" onClick={() => setShowScheduleForm(true)}>
-                  <Calendar size={18} />
                   Đặt lịch ngay
                 </Button>
               </Card>
@@ -310,7 +314,6 @@ export default function GuestApartmentDetail() {
         </div>
       </div>
 
-      {/* Modal form dat lich */}
       <Modal
         isOpen={showScheduleForm}
         onClose={() => setShowScheduleForm(false)}
@@ -318,7 +321,7 @@ export default function GuestApartmentDetail() {
         size="md"
         footer={
           <>
-            <Button variant="outline" onClick={() => setShowScheduleForm(false)}>Hủy</Button>
+            <Button variant="outline" onClick={handleResetBooking}>Hủy</Button>
             <Button onClick={handleSubmitSchedule} isLoading={saving}>Gửi yêu cầu</Button>
           </>
         }
@@ -366,7 +369,7 @@ export default function GuestApartmentDetail() {
 
             <div className="col-span-12">
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày muốn xem *</label>
-              <DatePicker
+              <Calendar
                 value={selectedDate ? new Date(selectedDate) : null}
                 onChange={(date) => {
                   if (!date) {
@@ -403,7 +406,7 @@ export default function GuestApartmentDetail() {
                         key={slot}
                         type="button"
                         disabled={disabled}
-                        onClick={() => setSelectedSlot(slot)}
+                        onClick={() => handleSelectSlot(slot)}
                         className={`py-2.5 px-3 border rounded-md text-xs font-semibold text-center transition-all cursor-pointer ${disabled
                           ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                           : selected
@@ -411,7 +414,7 @@ export default function GuestApartmentDetail() {
                             : "bg-white text-gray-700 border-gray-300 hover:border-primary-500 hover:text-primary-600"
                           }`}
                       >
-                        {slot} {booked && " (Đã đặt)"}
+                        {slot} {selected && `(Giữ chỗ ${Math.floor(holdTimeLeft / 60)}:${String(holdTimeLeft % 60).padStart(2, "0")})`} {booked && " (Đã đặt)"}
                       </button>
                     );
                   })}

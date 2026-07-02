@@ -1,373 +1,102 @@
-import { useState, useEffect, useCallback } from "react";
-import { Zap, Pencil, Trash2, Loader2, Calendar, Sparkles, Eye } from "lucide-react";
+import { Zap, Plus } from "lucide-react";
 import PageHeader from "../../../components/PageHeader";
-import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
 import Combobox from "../../../components/ui/Combobox";
 import Pagination from "../../../components/ui/Pagination";
-import Modal from "../../../components/ui/Modal";
-import Input from "../../../components/ui/Input";
-import { toast } from "sonner";
-
-import { useAuthStore } from "../../../stores/auth.store";
-import * as utilityService from "../../../services/utilityService";
-import type { UtilityReadingData } from "../../../services/utilityService";
-import * as buildingService from "../../../services/buildingService";
-import type { BuildingData } from "../../../services/buildingService";
-import * as apartmentService from "../../../services/apartmentService";
-import type { ApartmentData } from "../../../services/apartmentService";
-
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "../../../components/ui/Table";
-import { useSort } from "../../../hooks/useSort";
-import { removeVietnameseTones, formatDate } from "../../../utils/format";
-
+import Button from "../../../components/ui/Button";
+import { useUtilityList } from "../../../hooks/useUtilityList";
+import UtilityTable from "./components/UtilityTable";
+import UtilityCreateModal from "./components/UtilityCreateModal";
+import UtilityModifyModal from "./components/UtilityModifyModal";
+import UtilityDeleteModal from "./components/UtilityDeleteModal";
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 export default function UtilityList() {
-  const { role, managedBuildingId } = useAuthStore();
-  const isWritable = role === "MANAGER" || role === "STAFF";
+  const {
+    role,
+    managedBuildingId,
+    isWritable,
+    readings,
+    buildings,
+    apartments,
+    loading,
+    search,
+    setSearch,
+    filterBuilding,
+    setFilterBuilding,
+    filterFloor,
+    setFilterFloor,
+    filterMonth,
+    setFilterMonth,
+    filterYear,
+    setFilterYear,
+    currentPage,
+    setCurrentPage,
+    // Modals
+    showCreateModal,
+    setShowCreateModal,
+    showModifyModal,
+    setShowModifyModal,
+    editItem,
+    setEditItem,
+    isViewOnly,
+    preselectedApartment,
+    deleteItem,
+    setDeleteItem,
+    // Handlers
+    fetchData,
+    handleOpenCreateModal,
+    handleOpenModifyModal,
+    handleOpenDeleteModal,
+    handleConfirmDelete,
+    filteredRentedApartments,
+    paginatedApartments,
+    requestSort,
+    getSortIcon,
+    totalPages,
+    pageSize,
+    isLockedMonth,
+    filterFloorOptions,
+    getMonthOptions,
+    getYearOptions,
+  } = useUtilityList();
 
-  const [readings, setReadings] = useState<UtilityReadingData[]>([]);
-  const [buildings, setBuildings] = useState<BuildingData[]>([]);
-  const [apartments, setApartments] = useState<ApartmentData[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // Filters
-  const [search, setSearch] = useState("");
-  const [filterBuilding, setFilterBuilding] = useState<string>("");
-  const [filterFloor, setFilterFloor] = useState<string>("");
-  const [filterMonth, setFilterMonth] = useState<string>(String(new Date().getMonth() + 1));
-  const [filterYear, setFilterYear] = useState<string>(String(new Date().getFullYear()));
-
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 15;
-
-  // Modal State
-  const [showModal, setShowModal] = useState(false);
-  const [editItem, setEditItem] = useState<UtilityReadingData | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [isViewOnly, setIsViewOnly] = useState(false);
-
-  // Form State
-  const [formBuildingId, setFormBuildingId] = useState<string>("");
-  const [formFloor, setFormFloor] = useState<string>("");
-  const [formApartmentId, setFormApartmentId] = useState<string>("");
-  const [formMonth, setFormMonth] = useState<number>(new Date().getMonth() + 1);
-  const [formYear, setFormYear] = useState<number>(new Date().getFullYear());
-  const [formElectricOld, setFormElectricOld] = useState<string>("");
-  const [formElectricNew, setFormElectricNew] = useState<string>("");
-  const [formWaterOld, setFormWaterOld] = useState<string>("");
-  const [formWaterNew, setFormWaterNew] = useState<string>("");
-
-  // Fetch all initial data
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      // Fetch utility readings
-      const readingsParams: any = { limit: 1000 };
-      if (role !== "ADMIN" && managedBuildingId) {
-        readingsParams.building_id = managedBuildingId;
-      }
-      const readingsRes = await utilityService.getAllUtilityReadings(readingsParams);
-      setReadings(readingsRes.data || []);
-
-      // Fetch buildings
-      const bRes = await buildingService.getAllBuildings({ limit: 100 });
-      setBuildings(bRes.data || []);
-
-      // Fetch apartments
-      const aptParams: any = { limit: 1000 };
-      if (role !== "ADMIN" && managedBuildingId) {
-        aptParams.building_id = managedBuildingId;
-      }
-      const aptRes = await apartmentService.getAllApartments(aptParams);
-      setApartments(aptRes.data || []);
-
-    } catch (error) {
-      toast.error("Không thể tải dữ liệu điện nước");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  }, [role, managedBuildingId]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-
-  useEffect(() => {
-    if (role !== "ADMIN" && managedBuildingId) {
-      setFilterBuilding(String(managedBuildingId));
-    }
-  }, [role, managedBuildingId]);
-
-  useEffect(() => {
-    if (formApartmentId && !editItem && showModal) {
-      const aptReadings = readings
-        .filter((r) => r.apartment_id === Number(formApartmentId))
-        .sort((a, b) => {
-          if (a.year !== b.year) return b.year - a.year;
-          return b.month - a.month;
-        });
-
-      if (aptReadings.length > 0) {
-        setFormElectricOld(String(aptReadings[0].electric_new));
-        setFormWaterOld(String(aptReadings[0].water_new));
-      } else {
-        setFormElectricOld("0");
-        setFormWaterOld("0");
-      }
-    }
-  }, [formApartmentId, editItem, showModal, readings]);
-
-  // Open modal for Create/Update/View
-  const handleOpenModal = (
-    item: UtilityReadingData | null = null,
-    viewOnly = false,
-    preselectedApartment: any = null
-  ) => {
-    setIsViewOnly(viewOnly);
-    setEditItem(item);
-    if (item) {
-      setFormBuildingId(String(item.apartment?.building_id || ""));
-      setFormFloor(String(item.apartment?.floor || ""));
-      setFormApartmentId(String(item.apartment_id));
-      setFormMonth(item.month);
-      setFormYear(item.year);
-      setFormElectricOld(String(item.electric_old));
-      setFormElectricNew(String(item.electric_new));
-      setFormWaterOld(String(item.water_old));
-      setFormWaterNew(String(item.water_new));
-    } else {
-      if (preselectedApartment) {
-        setFormBuildingId(String(preselectedApartment.building_id));
-        setFormFloor(String(preselectedApartment.floor));
-        setFormApartmentId(String(preselectedApartment.id));
-      } else {
-        const defaultBId = role !== "ADMIN" && managedBuildingId ? String(managedBuildingId) : "";
-        setFormBuildingId(defaultBId);
-        setFormFloor("");
-        setFormApartmentId("");
-      }
-      setFormMonth(Number(filterMonth) || new Date().getMonth() + 1);
-      setFormYear(Number(filterYear) || new Date().getFullYear());
-      setFormElectricOld("");
-      setFormElectricNew("");
-      setFormWaterOld("");
-      setFormWaterNew("");
-    }
-    setShowModal(true);
-  };
-
-  // Delete utility reading
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa bản ghi điện nước này?")) return;
-    try {
-      await utilityService.deleteUtilityReading(id);
-      toast.success("Xóa chỉ số điện nước thành công");
-      fetchData();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Không thể xóa bản ghi");
-    }
-  };
-
-  // Submit form (Save / Update)
-  const handleSave = async () => {
-    if (!formApartmentId) {
-      toast.error("Vui lòng chọn căn hộ");
-      return;
-    }
-    if (!formElectricNew || !formWaterNew) {
-      toast.error("Vui lòng nhập đầy đủ chỉ số mới");
-      return;
-    }
-
-    const electricNew = Number(formElectricNew);
-    const electricOld = Number(formElectricOld);
-    const waterNew = Number(formWaterNew);
-    const waterOld = Number(formWaterOld);
-
-    if (electricNew < electricOld) {
-      toast.error("Chỉ số điện mới không được nhỏ hơn chỉ số cũ");
-      return;
-    }
-    if (waterNew < waterOld) {
-      toast.error("Chỉ số nước mới không được nhỏ hơn chỉ số cũ");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const payload = {
-        apartment_id: Number(formApartmentId),
-        month: formMonth,
-        year: formYear,
-        electric_old: electricOld,
-        electric_new: electricNew,
-        water_old: waterOld,
-        water_new: waterNew,
-      };
-
-      if (editItem) {
-        await utilityService.updateUtilityReading(editItem.id, payload);
-        toast.success("Cập nhật chỉ số điện nước thành công");
-      } else {
-        await utilityService.createUtilityReading(payload);
-        toast.success("Ghi chỉ số điện nước thành công");
-      }
-      setShowModal(false);
-      fetchData();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Gặp lỗi khi lưu chỉ số");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Filter logic
-  const filteredRentedApartments = apartments.filter((apt) => {
-    const term = removeVietnameseTones(search);
-    const roomNorm = removeVietnameseTones(apt.room_number || "");
-    const buildingNorm = removeVietnameseTones(apt.building?.branch_name || "");
-
-    const matchesSearch = roomNorm.includes(term) || buildingNorm.includes(term);
-    const matchesBuilding = !filterBuilding || apt.building_id === Number(filterBuilding);
-    const matchesFloor = !filterFloor || apt.floor === Number(filterFloor);
-    const isRented = apt.status === "RENTED";
-
-    return matchesSearch && matchesBuilding && matchesFloor && isRented;
-  });
-
-  const defaultSorted = [...filteredRentedApartments].sort((a, b) => {
-    const branchA = a.building?.branch_name || "";
-    const branchB = b.building?.branch_name || "";
-    const branchCompare = branchA.localeCompare(branchB, "vi");
-    if (branchCompare !== 0) return branchCompare;
-
-    if (a.floor !== b.floor) return a.floor - b.floor;
-
-    const roomA = String(a.room_number);
-    const roomB = String(b.room_number);
-    return roomA.localeCompare(roomB, undefined, { numeric: true });
-  });
-
-  const { items: sortedApartments, requestSort, getSortIcon } = useSort(defaultSorted);
-
-  // Pagination slice
-  const totalPages = Math.ceil(filteredRentedApartments.length / pageSize);
-
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  const paginatedApartments = sortedApartments.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
-
-  const isLockedMonth = (selectedMonth: number, selectedYear: number) => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-
-    let prevMonth = currentMonth - 1;
-    let prevYear = currentYear;
-    if (prevMonth === 0) {
-      prevMonth = 12;
-      prevYear = currentYear - 1;
-    }
-
-    if (selectedYear < prevYear) return true;
-    if (selectedYear === prevYear && selectedMonth < prevMonth) return true;
-    return false;
-  };
-
-  const filterFloorOptions = (() => {
-    if (!filterBuilding) return [];
-    const b = buildings.find((x) => x.id === Number(filterBuilding));
-    if (!b) return [];
-    return Array.from({ length: b.total_floors }, (_, i) => ({
-      value: String(i + 1),
-      label: `Tầng ${i + 1}`,
-    }));
-  })();
-
-  const getMonthOptions = () => {
-    return Array.from({ length: 12 }).map((_, idx) => ({
-      value: String(idx + 1),
-      label: `Tháng ${idx + 1}`,
-    }));
-  };
-
-  const getYearOptions = () => {
-    const startYear = 2024;
-    const currentYear = new Date().getFullYear();
-    const years = [];
-    for (let y = startYear; y <= currentYear + 1; y++) {
-      years.push({ value: String(y), label: `Năm ${y}` });
-    }
-    return years.reverse();
-  };
-
-  const buildingOptions = buildings.map((b) => ({
-    value: String(b.id),
-    label: b.branch_name,
-  }));
-
-  const floorOptions = (() => {
-    if (!formBuildingId) return [];
-    const b = buildings.find((x) => x.id === Number(formBuildingId));
-    if (!b) return [];
-    return Array.from({ length: b.total_floors }, (_, i) => ({
-      value: String(i + 1),
-      label: `Tầng ${i + 1}`,
-    }));
-  })();
-
-  const modalApartmentOptions = apartments
-    .filter((apt) => {
-      const matchBuilding = !formBuildingId || apt.building_id === Number(formBuildingId);
-      const matchFloor = !formFloor || apt.floor === Number(formFloor);
-      const isRented = apt.status === "RENTED";
-      return matchBuilding && matchFloor && isRented;
-    })
-    .map((apt) => ({
-      value: String(apt.id),
-      label: `P.${apt.floor}${apt.room_number}`,
-    }));
-
-  if (loading && readings.length === 0) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-primary-600" size={32} />
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <LoadingSpinner size={36} />
+        <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải danh sách chỉ số điện nước...</span>
       </div>
     );
   }
 
   return (
     <div className="space-y-6 font-sans">
-      <PageHeader
-        icon={Zap}
-        title="Điện nước"
-        subtitle="Quản lý và ghi chỉ số tiêu thụ điện nước"
-        count={filteredRentedApartments.length}
-        iconColor="linear-gradient(135deg, #10B981, #34D399)"
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <PageHeader
+          icon={Zap}
+          title="Điện nước"
+          subtitle="Quản lý và ghi chỉ số tiêu thụ điện nước"
+          count={filteredRentedApartments.length}
+          iconColor="linear-gradient(135deg, #10B981, #34D399)"
+        />
+        {isWritable && (
+          <Button
+            onClick={() => handleOpenCreateModal()}
+            className="flex items-center gap-1.5 self-start sm:self-auto rounded-md shadow-sm"
+          >
+            <Plus size={16} /> Ghi chỉ số mới
+          </Button>
+        )}
+      </div>
 
       {/* Filter Options */}
       <div className="flex flex-col sm:flex-row gap-3 w-full sm:items-center">
         <SearchInput
           value={search}
-          onChange={(v) => { setSearch(v); setCurrentPage(1); }}
+          onChange={(v) => {
+            setSearch(v);
+            setCurrentPage(1);
+          }}
           placeholder="Tìm phòng, tòa nhà, người ghi..."
           className="flex-1 max-w-md w-full sm:w-72"
         />
@@ -376,7 +105,10 @@ export default function UtilityList() {
           <Combobox
             options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
             value={filterBuilding}
-            onChange={(val) => { setFilterBuilding(val); setCurrentPage(1); }}
+            onChange={(val) => {
+              setFilterBuilding(val);
+              setCurrentPage(1);
+            }}
             placeholder="Tất cả chi nhánh"
             className="w-full sm:w-48"
             triggerClassName="h-10 border-gray-300"
@@ -387,7 +119,10 @@ export default function UtilityList() {
         <Combobox
           options={filterFloorOptions}
           value={filterFloor}
-          onChange={(val) => { setFilterFloor(val); setCurrentPage(1); }}
+          onChange={(val) => {
+            setFilterFloor(val);
+            setCurrentPage(1);
+          }}
           placeholder={filterBuilding ? "Tất cả tầng" : "Chọn tòa nhà trước"}
           searchable={false}
           className="w-full sm:w-36"
@@ -399,7 +134,10 @@ export default function UtilityList() {
         <Combobox
           options={getMonthOptions()}
           value={filterMonth}
-          onChange={(val) => { setFilterMonth(val); setCurrentPage(1); }}
+          onChange={(val) => {
+            setFilterMonth(val);
+            setCurrentPage(1);
+          }}
           placeholder="Tất cả tháng"
           searchable={false}
           className="w-full sm:w-36"
@@ -410,7 +148,10 @@ export default function UtilityList() {
         <Combobox
           options={getYearOptions()}
           value={filterYear}
-          onChange={(val) => { setFilterYear(val); setCurrentPage(1); }}
+          onChange={(val) => {
+            setFilterYear(val);
+            setCurrentPage(1);
+          }}
           placeholder="Tất cả năm"
           searchable={false}
           className="w-full sm:w-36"
@@ -419,272 +160,65 @@ export default function UtilityList() {
         />
       </div>
 
-      <div className="border border-gray-200 overflow-hidden bg-white shadow-sm">
-        <Table className="compact">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12 text-center">STT</TableHead>
-              <TableHead onClick={() => requestSort("building.branch_name")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Chi nhánh {getSortIcon("building.branch_name")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("room_number")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Căn hộ {getSortIcon("room_number")}
-              </TableHead>
-              <TableHead className="text-center">Tháng / Năm</TableHead>
-              <TableHead className="text-right font-semibold text-emerald-600 bg-emerald-50/30">Điện dùng (kWh)</TableHead>
-              <TableHead className="text-right font-semibold text-blue-600 bg-blue-50/30">Nước dùng (m³)</TableHead>
-              <TableHead>Người ghi</TableHead>
-              <TableHead>Ngày ghi</TableHead>
-              <TableHead className="text-center w-28">Hành động</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedApartments.map((apt, index) => {
-              const r = readings.find(
-                (x) =>
-                  x.apartment_id === apt.id &&
-                  x.month === Number(filterMonth) &&
-                  x.year === Number(filterYear)
-              );
-
-              const electricDiff = r ? Number(r.electric_new) - Number(r.electric_old) : "-";
-              const waterDiff = r ? Number(r.water_new) - Number(r.water_old) : "-";
-              const staffName = r?.staff?.full_name || (r ? "Hệ thống" : "-");
-              const createdAt = r ? formatDate(r.created_at) : "-";
-
-              const locked = isLockedMonth(Number(filterMonth), Number(filterYear));
-
-              return (
-                <TableRow key={apt.id}>
-                  <TableCell className="text-center text-gray-500 font-medium">
-                    {(currentPage - 1) * pageSize + index + 1}
-                  </TableCell>
-                  <TableCell className="font-semibold text-gray-800">
-                    {apt.building?.branch_name || "Yuki House"}
-                  </TableCell>
-                  <TableCell className="font-semibold text-[#3f6ad8]">
-                    P.{apt.floor}{apt.room_number}
-                  </TableCell>
-                  <TableCell className="text-center font-medium">
-                    {filterMonth}/{filterYear}
-                  </TableCell>
-                  <TableCell className="text-right font-bold text-emerald-650 bg-emerald-50/20 font-mono">{electricDiff}</TableCell>
-                  <TableCell className="text-right font-bold text-blue-650 bg-blue-50/20 font-mono">{waterDiff}</TableCell>
-                  <TableCell className="font-medium text-gray-700">{staffName}</TableCell>
-                  <TableCell className="text-xs text-gray-500">{createdAt}</TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex items-center justify-center gap-1.5">
-                      {r && (
-                        <button
-                          onClick={() => handleOpenModal(r, true)}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer"
-                          title="Xem chi tiết"
-                        >
-                          <Eye size={15} />
-                        </button>
-                      )}
-                      {isWritable && !locked && (
-                        <>
-                          <button
-                            onClick={() => handleOpenModal(r || null, false, apt)}
-                            className={`p-1.5 rounded-lg cursor-pointer ${r
-                                ? "text-gray-400 hover:text-primary-600 hover:bg-primary-50"
-                                : "text-emerald-600 hover:bg-emerald-55/70 hover:bg-emerald-50 font-semibold"
-                              }`}
-                            title={r ? "Sửa chỉ số" : "Ghi chỉ số mới"}
-                          >
-                            <Pencil size={15} />
-                          </button>
-                          {r && (
-                            <button
-                              onClick={() => handleDelete(r.id)}
-                              className="p-1.5 text-gray-400 hover:text-red-650 hover:bg-red-50 rounded-lg cursor-pointer"
-                              title="Xóa bản ghi"
-                            >
-                              <Trash2 size={15} />
-                            </button>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-            {filteredRentedApartments.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={9} className="text-center py-16 text-gray-500">
-                  <Sparkles size={48} className="mx-auto mb-3 text-gray-300" />
-                  Không tìm thấy căn hộ đang thuê nào
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      {/* Table Component */}
+      <UtilityTable
+        paginatedApartments={paginatedApartments}
+        readings={readings}
+        filterMonth={filterMonth}
+        filterYear={filterYear}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        requestSort={requestSort}
+        getSortIcon={getSortIcon}
+        isLockedMonth={isLockedMonth}
+        isWritable={isWritable}
+        handleOpenCreateModal={handleOpenCreateModal}
+        handleOpenModifyModal={handleOpenModifyModal}
+        handleOpenDeleteModal={handleOpenDeleteModal}
+        filteredRentedApartmentsLength={filteredRentedApartments.length}
+      />
 
       {/* Pagination */}
       {totalPages > 1 && (
         <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
       )}
 
-      {/* Write/Edit/View Reading Modal */}
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title={isViewOnly ? "Chi tiết chỉ số điện nước" : editItem ? "Cập nhật chỉ số điện nước" : "Ghi chỉ số điện nước mới"}
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setShowModal(false)}>{isViewOnly ? "Đóng" : "Hủy"}</Button>
-            {!isViewOnly && (
-              <Button onClick={handleSave} isLoading={saving}>Lưu thông tin</Button>
-            )}
-          </>
-        }
-      >
-        <div className="space-y-5">
-          {/* Building selection*/}
-          {role === "ADMIN" && (
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1.5">Chi nhánh / Tòa nhà *</label>
-              <Combobox
-                options={buildingOptions}
-                value={formBuildingId}
-                onChange={(val) => {
-                  setFormBuildingId(val);
-                  setFormFloor("");
-                  setFormApartmentId("");
-                }}
-                disabled={isViewOnly || !!editItem || !!formApartmentId}
-                placeholder="Chọn chi nhánh"
-                searchPlaceholder="Tìm kiếm chi nhánh..."
-                triggerClassName="h-10 border-gray-300"
-                clearable={false}
-              />
-            </div>
-          )}
+      {/* Create Modal Component */}
+      <UtilityCreateModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={fetchData}
+        buildings={buildings}
+        apartments={apartments}
+        readings={readings}
+        preselectedApartment={preselectedApartment}
+        defaultMonth={Number(filterMonth) || new Date().getMonth() + 1}
+        defaultYear={Number(filterYear) || new Date().getFullYear()}
+        role={role}
+        managedBuildingId={managedBuildingId}
+      />
 
-          <div className="grid grid-cols-2 gap-4">
-            {/* Floor selection */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1.5">Tầng *</label>
-              <Combobox
-                options={floorOptions}
-                value={formFloor}
-                onChange={(val) => {
-                  setFormFloor(val);
-                  setFormApartmentId("");
-                }}
-                disabled={isViewOnly || !!editItem || !!formApartmentId || !formBuildingId}
-                placeholder={formBuildingId ? "Chọn tầng" : "Chọn tòa nhà trước"}
-                searchable={false}
-                triggerClassName="h-10 border-gray-300"
-                clearable={false}
-              />
-            </div>
+      {/* Modify/View Modal Component */}
+      <UtilityModifyModal
+        isOpen={showModifyModal}
+        onClose={() => {
+          setShowModifyModal(false);
+          setEditItem(null);
+        }}
+        onSuccess={fetchData}
+        editItem={editItem}
+        isViewOnly={isViewOnly}
+        buildings={buildings}
+        apartments={apartments}
+      />
 
-            {/* Room selection */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1.5">Căn hộ / Phòng *</label>
-              <Combobox
-                options={modalApartmentOptions}
-                value={formApartmentId}
-                onChange={(val) => setFormApartmentId(val)}
-                disabled={isViewOnly || !!editItem || !!formApartmentId || !formFloor}
-                placeholder={formFloor ? "Chọn phòng" : "Chọn tầng trước"}
-                searchPlaceholder="Tìm phòng..."
-                triggerClassName="h-10 border-gray-300"
-                clearable={false}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1.5">Tháng ghi *</label>
-              <Combobox
-                options={getMonthOptions()}
-                value={String(formMonth)}
-                onChange={(val) => setFormMonth(Number(val))}
-                disabled={isViewOnly || !!editItem || !!formApartmentId}
-                placeholder="Chọn tháng"
-                searchable={false}
-                triggerClassName="h-10 border-gray-300"
-                clearable={false}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-1.5">Năm ghi *</label>
-              <Combobox
-                options={getYearOptions()}
-                value={String(formYear)}
-                onChange={(val) => setFormYear(Number(val))}
-                disabled={isViewOnly || !!editItem || !!formApartmentId}
-                placeholder="Chọn năm"
-                searchable={false}
-                triggerClassName="h-10 border-gray-300"
-                clearable={false}
-              />
-            </div>
-          </div>
-
-          {/* Electric readings */}
-          <div className="bg-emerald-50/25 p-4 border border-emerald-100 rounded-lg space-y-4">
-            <h4 className="font-bold text-emerald-800 text-sm flex items-center gap-1.5">
-              <Zap size={16} /> Chỉ số Điện (kWh)
-            </h4>
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Chỉ số điện cũ"
-                type="number"
-                value={formElectricOld}
-                onChange={(e) => setFormElectricOld(e.target.value)}
-                disabled={true}
-                placeholder="0"
-              />
-              <Input
-                label="Chỉ số điện mới *"
-                type="number"
-                value={formElectricNew}
-                onChange={(e) => setFormElectricNew(e.target.value)}
-                disabled={isViewOnly}
-                placeholder="Nhập số điện mới"
-              />
-            </div>
-            <p className="text-xs text-emerald-700 font-semibold text-right">
-              Điện năng sử dụng: {Math.max(0, (Number(formElectricNew) || 0) - (Number(formElectricOld) || 0))} kWh
-            </p>
-          </div>
-
-          {/* Water readings */}
-          <div className="bg-blue-50/25 p-4 border border-blue-100 rounded-lg space-y-4">
-            <h4 className="font-bold text-blue-800 text-sm flex items-center gap-1.5">
-              <Calendar size={16} /> Chỉ số Nước (m³)
-            </h4>
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Chỉ số nước cũ"
-                type="number"
-                value={formWaterOld}
-                onChange={(e) => setFormWaterOld(e.target.value)}
-                disabled={true}
-                placeholder="0"
-              />
-              <Input
-                label="Chỉ số nước mới *"
-                type="number"
-                value={formWaterNew}
-                onChange={(e) => setFormWaterNew(e.target.value)}
-                disabled={isViewOnly}
-                placeholder="Nhập số nước mới"
-              />
-            </div>
-            <p className="text-xs text-blue-700 font-semibold text-right">
-              Lượng nước sử dụng: {Math.max(0, (Number(formWaterNew) || 0) - (Number(formWaterOld) || 0))} m³
-            </p>
-          </div>
-        </div>
-      </Modal>
+      {/* Delete Confirmation Modal */}
+      <UtilityDeleteModal
+        isOpen={deleteItem !== null}
+        onClose={() => setDeleteItem(null)}
+        onConfirm={handleConfirmDelete}
+        item={deleteItem}
+      />
     </div>
   );
 }
