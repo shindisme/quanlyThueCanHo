@@ -6,6 +6,8 @@
 # Dependencies
 node_modules/
 
+package-lock.json
+
 # Build & test
 dist/
 coverage/
