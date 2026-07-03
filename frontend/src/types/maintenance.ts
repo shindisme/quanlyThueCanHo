@@ -11,8 +11,18 @@ export interface MaintenanceRequest {
   image_url: string | null;
   priority: Priority;
   status: RequestStatus;
+  assigned_staff_id?: number | null;
+  scheduled_at?: string | null;
+  unable_reason?: string | null;
   created_at: string;
   updated_at: string;
   tenant?: Tenant;
   apartment?: Apartment;
+  assigned_staff?: {
+    id: number;
+    full_name: string;
+    phone: string;
+    position: string;
+    building_id?: number | null;
+  } | null;
 }

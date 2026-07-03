@@ -1,4 +1,6 @@
 import api from "../lib/api";
+import { getAllStaff } from "./staffService";
+import type { Staff } from "../types";
 
 export interface BuildingData {
   id: number;
@@ -52,6 +54,19 @@ interface RawBuildingData {
   }[];
 }
 
+function mapBuildingWithManager(building: RawBuildingData, staff: Staff | undefined): BuildingData {
+  return {
+    ...building,
+    manager_id: staff ? staff.id : null,
+    manager: staff ? {
+      id: staff.id,
+      username: staff.user?.username || staff.full_name,
+      fullName: staff.full_name,
+      role: staff.user?.role || "MANAGER",
+    } : null,
+  };
+}
+
 export async function getAllBuildings(params?: {
   search?: string;
   branch_name?: string;
@@ -67,22 +82,22 @@ export async function getAllBuildings(params?: {
     };
     pagination?: BuildingPagination;
   }
+
+  // Tải danh sách tòa nhà raw từ API
   const res = await api.get<BuildingsResponse>("/buildings", { params });
   const rawData = res.data.data || [];
   const pagination = res.data.meta?.pagination || res.data.pagination || { total: rawData.length, page: 1, limit: 10, totalPages: 1 };
 
+  // get quản lý để phân công
+  const staffListRes = await getAllStaff().catch(() => ({ data: [] }));
+  const staffList = staffListRes.data || [];
+
+  // ghép dữ liệu nhân viên quản lý vào từng tòa nhà
   const mappedData = rawData.map((b: RawBuildingData) => {
-    const staff = b.assigned_staff?.[0];
-    return {
-      ...b,
-      manager_id: staff ? staff.id : null,
-      manager: staff ? {
-        id: staff.id,
-        username: staff.user?.username || staff.full_name,
-        fullName: staff.full_name,
-        role: staff.user?.role || "MANAGER",
-      } : null
-    };
+    const staff = staffList.find(
+      (s) => s.building_id === b.id && (s.position === "Quản lý" || s.user?.role === "MANAGER")
+    );
+    return mapBuildingWithManager(b, staff);
   });
 
   return { data: mappedData, pagination };
@@ -91,17 +106,14 @@ export async function getAllBuildings(params?: {
 export async function getBuildingById(id: number): Promise<BuildingData> {
   const res = await api.get<{ data: RawBuildingData }>(`/buildings/${id}`);
   const b = res.data.data;
-  const staff = b.assigned_staff?.[0];
-  return {
-    ...b,
-    manager_id: staff ? staff.id : null,
-    manager: staff ? {
-      id: staff.id,
-      username: staff.user?.username || staff.full_name,
-      fullName: staff.full_name,
-      role: staff.user?.role || "MANAGER",
-    } : null
-  };
+
+  // get quản lý để phân công
+  const staffListRes = await getAllStaff({ building_id: id }).catch(() => ({ data: [] }));
+  const staff = staffListRes.data.find(
+    (s) => s.position === "Quản lý" || s.user?.role === "MANAGER"
+  );
+
+  return mapBuildingWithManager(b, staff);
 }
 
 export async function createBuilding(data: FormData | Partial<BuildingData>) {
