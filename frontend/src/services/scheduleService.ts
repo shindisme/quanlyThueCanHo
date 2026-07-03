@@ -33,6 +33,14 @@ export async function bookViewing(data: {
   return res.data;
 }
 
+export async function getViewingAvailability(apartmentId: number, date: string) {
+  const res = await api.get<{ data: { available_hours: number[] } }>(
+    "/schedules/availability",
+    { params: { apartment_id: apartmentId, date } },
+  );
+  return res.data.data;
+}
+
 export async function getSchedules(): Promise<ScheduleData[]> {
   const res = await api.get<{ data?: ScheduleData[] }>("/schedules");
   return res.data.data || (res.data as ScheduleData[]);

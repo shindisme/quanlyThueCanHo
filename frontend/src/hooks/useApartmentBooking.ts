@@ -1,14 +1,8 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { bookViewing } from "../services/scheduleService";
+import { bookViewing, getViewingAvailability } from "../services/scheduleService";
 import type { ApartmentData } from "../services/apartmentService";
 import { scheduleSchema } from "../schemas/schedule.schema";
-
-interface BookedSlot {
-  apartmentId: number;
-  date: string;
-  slot: string;
-}
 
 interface UseApartmentBookingProps {
   apartment: ApartmentData | null;
@@ -19,6 +13,7 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlot, setSelectedSlot] = useState("");
   const [saving, setSaving] = useState(false);
+  const [availability, setAvailability] = useState<{ date: string; hours: number[] } | null>(null);
   const [scheduleForm, setScheduleForm] = useState({
     guest_name: "",
     guest_phone: "",
@@ -45,18 +40,23 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
     return () => clearInterval(timer);
   }, [selectedSlot, holdTimeLeft]);
 
-  const isSlotBooked = (slot: string) => {
-    try {
-      const stored = localStorage.getItem("booked-viewing-slots");
-      const list = stored ? JSON.parse(stored) : [];
-      if (!apartment) return false;
-      return list.some(
-        (b: BookedSlot) => b.apartmentId === apartment.id && b.date === selectedDate && b.slot === slot
-      );
-    } catch {
-      return false;
-    }
-  };
+  useEffect(() => {
+    setAvailability(null);
+    if (!showScheduleForm || !apartment || !selectedDate) return;
+
+    let ignore = false;
+    getViewingAvailability(apartment.id, selectedDate)
+      .then(({ available_hours }) => {
+        if (!ignore) setAvailability({ date: selectedDate, hours: available_hours });
+      })
+      .catch(() => undefined);
+
+    return () => { ignore = true; };
+  }, [apartment, selectedDate, showScheduleForm]);
+
+  const isSlotBooked = (slot: string) =>
+    availability?.date === selectedDate
+    && !availability.hours.includes(Number.parseInt(slot, 10));
 
   const handleSelectSlot = (slot: string) => {
     if (selectedSlot === slot) {
@@ -98,12 +98,7 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
     }
 
     const isTooCloseOrBooked = () => {
-      const stored = localStorage.getItem("booked-viewing-slots");
-      const list = stored ? JSON.parse(stored) : [];
-      const isBooked = list.some(
-        (b: BookedSlot) => b.apartmentId === apartment.id && b.date === selectedDate && b.slot === selectedSlot
-      );
-      if (isBooked) return true;
+      if (isSlotBooked(selectedSlot)) return true;
 
       if (!selectedDate || !selectedSlot) return true;
       const [hoursStr, minutesStr] = selectedSlot.split("h");
@@ -134,15 +129,6 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
         guest_email: scheduleForm.guest_email,
         schedule_time: combinedTime,
       });
-
-      const stored = localStorage.getItem("booked-viewing-slots");
-      const list = stored ? JSON.parse(stored) : [];
-      list.push({
-        apartmentId: apartment.id,
-        date: selectedDate,
-        slot: selectedSlot,
-      });
-      localStorage.setItem("booked-viewing-slots", JSON.stringify(list));
 
       toast.success("Đặt lịch xem phòng thành công!");
       handleResetBooking();
