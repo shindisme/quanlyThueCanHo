@@ -8,7 +8,7 @@
   "main": "api/server.js",
   "scripts": {
     "dev": "dotenv -e .env -- tsx watch ./src/server.ts",
-    "build": "tsc && tsc-alias",
+    "build": "prisma generate && tsc && tsc-alias",
     "start": "node ./dist/server.js",
     "prisma:gen": "prisma generate",
     "test": "vitest run",
