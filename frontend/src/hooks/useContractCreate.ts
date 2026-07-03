@@ -5,7 +5,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { contractSchema, type ContractFormValues } from "../schemas/contract.schema"
 import * as apartmentService from "../services/apartmentService"
-import * as authService from "../services/authService"
 import * as tenantService from "../services/tenantService"
 import { createContract } from "../services/contractService"
 import type { ApartmentData } from "../services/apartmentService"
@@ -73,31 +72,17 @@ export function useContractCreate({
           }
         }
 
-        const userRes = await authService.createUser({
-          username,
-          role: "TENANT",
+        const tenant = await tenantService.createTenant({
+          full_name: data.new_tenant_name!,
+          citizen_id: cleanCCCD,
+          date_of_birth: data.new_tenant_dob || null,
+          address: data.new_tenant_address || null,
+          email: finalEmail,
+          phone: finalPhone,
         })
 
-        let tenant
-        try {
-          tenant = await tenantService.createTenant({
-            full_name: data.new_tenant_name!,
-            citizen_id: cleanCCCD,
-            date_of_birth: data.new_tenant_dob ? new Date(data.new_tenant_dob).toISOString() : null,
-            address: data.new_tenant_address || null,
-            email: finalEmail,
-            phone: finalPhone,
-            user_id: userRes.userId,
-          })
-        } catch (tenantError) {
-          await authService.deleteUser(userRes.userId).catch((err) => {
-            console.error("Cleanup user account failed:", err);
-          });
-          throw tenantError;
-        }
-
         finalTenantId = tenant.id
-        toast.success(`Đã tự động tạo tài khoản "${username}" cho người thuê mới!`)
+        toast.success(`Đã tự động tạo tài khoản "${tenant.user?.username || username}" cho người thuê mới!`)
       } else {
         finalTenantId = Number(data.tenant_id)
       }

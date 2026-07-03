@@ -13,7 +13,12 @@ export async function getAllTenants(params?: {
 }
 
 export async function createTenant(data: Partial<Tenant>): Promise<Tenant> {
-  const res = await api.post("/tenants", data);
+  const payload = {
+    ...data,
+    date_of_birth: data.date_of_birth?.slice(0, 10) ?? null,
+  };
+  delete payload.user_id;
+  const res = await api.post("/tenants", payload);
   return res.data.data || res.data;
 }
 
