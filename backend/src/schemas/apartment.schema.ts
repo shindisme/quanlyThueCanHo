@@ -11,7 +11,7 @@ const apartmentFields = {
     floor: z.coerce.number().int().positive(),
     room_number: z.string().trim().min(1).max(50),
     area: positiveNumberSchema,
-    bedrooms: z.coerce.number().int().positive(),
+    bedrooms: z.coerce.number().int().nonnegative(),
     bathrooms: z.coerce.number().int().positive(),
     rental_price: positiveNumberSchema,
     description: z.string().trim().max(5000).nullable().optional(),
