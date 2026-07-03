@@ -1,4 +1,5 @@
 import "dotenv/config";
+import type {} from "./types/express/index.js";
 import cors from "cors";
 import express from "express";
 import apartmentRouter from "./routes/apartment.route.js";
