@@ -18,12 +18,12 @@ export interface UserData {
 }
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
-  const res = await api.post<any>("/auth/login", { username, password });
+  const res = await api.post<{ data: LoginResponse }>("/auth/login", { username, password });
   return res.data.data;
 }
 
 export async function getAllUsers(): Promise<UserData[]> {
-  const res = await api.get<any>("/auth/users");
+  const res = await api.get<{ data: UserData[] }>("/auth/users");
   return res.data.data;
 }
 

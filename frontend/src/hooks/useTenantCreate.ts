@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as tenantService from "../services/tenantService";
 import * as authService from "../services/authService";
 import { tenantSchema } from "../schemas/tenant.schema";
+import type { Tenant } from "../types";
 
 interface UseTenantCreateProps {
   onClose: () => void;
@@ -16,9 +18,85 @@ export function useTenantCreate({ onClose, onSuccess }: UseTenantCreateProps) {
   const [formAddress, setFormAddress] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formPhone, setFormPhone] = useState("");
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const createMutation = useMutation({
+    mutationFn: async ({ payload, username, finalEmail, finalPhone, cleanCCCD }: {
+      payload: Partial<Tenant>;
+      username: string;
+      finalEmail: string;
+      finalPhone: string | null;
+      cleanCCCD: string;
+    }) => {
+      const allTenantsRes = await tenantService.getAllTenants({ limit: 100 }).catch(() => ({ data: [] }));
+      const allTenants = allTenantsRes.data || [];
 
-  async function handleSaveTenantAndUser() {
+      if (finalPhone) {
+        const dup = allTenants.find((t) => t.phone === finalPhone);
+        if (dup) {
+          throw new Error("Số điện thoại này đã tồn tại trong hệ thống.");
+        }
+      }
+
+      if (finalEmail) {
+        const dup = allTenants.find(
+          (t) => t.email && t.email.toLowerCase() === finalEmail.toLowerCase()
+        );
+        if (dup) {
+          throw new Error("Email này đã tồn tại trong hệ thống.");
+        }
+      }
+
+      if (cleanCCCD) {
+        const dup = allTenants.find((t) => t.citizen_id === cleanCCCD);
+        if (dup) {
+          throw new Error("Số CCCD này đã tồn tại trong hệ thống.");
+        }
+      }
+
+      const userRes = await authService.createUser({
+        username,
+        role: "TENANT",
+      });
+
+      let tenant;
+      try {
+        tenant = await tenantService.createTenant({
+          full_name: payload.full_name,
+          citizen_id: payload.citizen_id,
+          date_of_birth: payload.date_of_birth ? new Date(payload.date_of_birth).toISOString() : null,
+          address: payload.address || null,
+          email: finalEmail,
+          phone: finalPhone,
+          user_id: userRes.userId,
+        });
+      } catch (tenantError) {
+        await authService.deleteUser(userRes.userId).catch((err) => {
+          console.error("failed:", err);
+        });
+        throw tenantError;
+      }
+      return { tenant, username };
+    },
+    onSuccess: (data) => {
+      toast.success(`Đã tự động tạo tài khoản "${data.username}" cho người thuê mới!`);
+      setFormFullName("");
+      setFormCitizenId("");
+      setFormDob("");
+      setFormAddress("");
+      setFormEmail("");
+      setFormPhone("");
+      queryClient.invalidateQueries({ queryKey: ["tenants"] });
+      onSuccess(data.tenant.id);
+      onClose();
+    },
+    onError: (error: unknown) => {
+      const err = error as { message?: string; response?: { data?: { message?: string } } };
+      toast.error(err.message || err.response?.data?.message || "Không thể tạo người thuê");
+    }
+  });
+  const loading = createMutation.isPending;
+
+  function handleSaveTenantAndUser() {
     const payload = {
       full_name: formFullName,
       citizen_id: formCitizenId,
@@ -40,84 +118,7 @@ export function useTenantCreate({ onClose, onSuccess }: UseTenantCreateProps) {
     const finalEmail = formEmail.trim() || defaultEmail;
     const finalPhone = formPhone.trim() || null;
 
-    setLoading(true);
-    try {
-      const allTenantsRes = await tenantService.getAllTenants({ limit: 100 }).catch(() => ({ data: [] }));
-      const allTenants = allTenantsRes.data || [];
-
-      if (finalPhone) {
-        const dup = allTenants.find((t) => t.phone === finalPhone);
-        if (dup) {
-          toast.error("Số điện thoại này đã tồn tại trong hệ thống.");
-          setLoading(false);
-          return;
-        }
-      }
-
-      if (finalEmail) {
-        const dup = allTenants.find(
-          (t) => t.email && t.email.toLowerCase() === finalEmail.toLowerCase()
-        );
-        if (dup) {
-          toast.error("Email này đã tồn tại trong hệ thống.");
-          setLoading(false);
-          return;
-        }
-      }
-
-      if (cleanCCCD) {
-        const dup = allTenants.find((t) => t.citizen_id === cleanCCCD);
-        if (dup) {
-          toast.error("Số CCCD này đã tồn tại trong hệ thống.");
-          setLoading(false);
-          return;
-        }
-      }
-
-      let createdUserId: number | null = null;
-      const userRes = await authService.createUser({
-        username,
-        role: "TENANT",
-      });
-      createdUserId = userRes.userId;
-
-      let tenant;
-      try {
-        tenant = await tenantService.createTenant({
-          full_name: formFullName,
-          citizen_id: formCitizenId,
-          date_of_birth: formDob ? new Date(formDob).toISOString() : null,
-          address: formAddress || null,
-          email: finalEmail,
-          phone: finalPhone,
-          user_id: userRes.userId,
-        });
-      } catch (tenantError) {
-        if (createdUserId) {
-          await authService.deleteUser(createdUserId).catch((err) => {
-            console.error("failed:", err);
-          });
-        }
-        throw tenantError;
-      }
-
-      toast.success(`Đã tự động tạo tài khoản "${username}" cho người thuê mới!`);
-
-      // Reset fields
-      setFormFullName("");
-      setFormCitizenId("");
-      setFormDob("");
-      setFormAddress("");
-      setFormEmail("");
-      setFormPhone("");
-
-      onSuccess(tenant.id);
-      onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Không thể tạo người thuê");
-    } finally {
-      setLoading(false);
-    }
+    createMutation.mutate({ payload, username, finalEmail, finalPhone, cleanCCCD });
   }
 
   return {

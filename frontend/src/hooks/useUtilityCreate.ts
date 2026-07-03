@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { utilitySchema } from "../schemas/utility.schema";
 import * as utilityService from "../services/utilityService";
@@ -33,7 +34,25 @@ export function useUtilityCreate({
   role,
   managedBuildingId,
 }: UseUtilityCreateProps) {
-  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
+  const createMutation = useMutation({
+    mutationFn: (data: Parameters<typeof utilityService.createUtilityReading>[0]) => utilityService.createUtilityReading(data),
+    onSuccess: () => {
+      toast.success("Thêm chỉ số điện nước thành công");
+      setFormElectricOld("");
+      setFormElectricNew("");
+      setFormWaterOld("");
+      setFormWaterNew("");
+      queryClient.invalidateQueries({ queryKey: ["utilityReadings"] });
+      onSuccess();
+      onClose();
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || "Không thể lưu chỉ số");
+    }
+  });
+  const saving = createMutation.isPending;
   const [formBuildingId, setFormBuildingId] = useState<string>("");
   const [formFloor, setFormFloor] = useState<string>("");
   const [formApartmentId, setFormApartmentId] = useState<string>("");
@@ -85,7 +104,7 @@ export function useUtilityCreate({
     }
   }, [formApartmentId, isOpen, readings]);
 
-  async function handleSave() {
+  function handleSave() {
     const payload = {
       apartment_id: formApartmentId ? Number(formApartmentId) : 0,
       month: formMonth,
@@ -101,18 +120,7 @@ export function useUtilityCreate({
       toast.error(validationResult.error.issues[0].message);
       return;
     }
-
-    setSaving(true);
-    try {
-      await utilityService.createUtilityReading(payload);
-      toast.success("Ghi chỉ số điện nước thành công");
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Gặp lỗi khi lưu chỉ số");
-    } finally {
-      setSaving(false);
-    }
+    createMutation.mutate(payload);
   }
 
   // Helpers

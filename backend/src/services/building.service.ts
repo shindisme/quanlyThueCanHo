@@ -136,7 +136,7 @@ export const getAllBuildingsService = async (filters: {
             skip,
             take: limit,
             orderBy: { created_at: "desc" },
-            select: publicBuildingSelect
+            select: privateBuildingSelect
         }),
         prisma.building.count({ where })
     ]);
@@ -155,7 +155,7 @@ export const getAllBuildingsService = async (filters: {
 export const getBuildingByIdService = async (id: number) => {
     return prisma.building.findUnique({
         where: { id },
-        select: publicBuildingSelect
+        select: privateBuildingSelect
     });
 };
 

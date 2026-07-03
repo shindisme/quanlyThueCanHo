@@ -3,6 +3,7 @@ import { X, Building2 } from "lucide-react";
 import { useAuthStore } from "../stores/auth.store";
 import { useSidebarStore } from "../stores/sidebar.store";
 import { getSidebarMenu } from "../constants/sidebar";
+import type { Role } from "../constants/enums";
 
 export default function Sidebar() {
   const { role } = useAuthStore();
@@ -11,7 +12,7 @@ export default function Sidebar() {
 
   if (!role) return null;
 
-  const menuGroups = getSidebarMenu(role as any);
+  const menuGroups = getSidebarMenu(role as Role);
 
   const sidebarContent = (
     <div className="flex flex-col h-full">

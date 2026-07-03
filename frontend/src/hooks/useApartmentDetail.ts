@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom"
 import { useState, useEffect } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import * as apartmentService from "../services/apartmentService"
 import * as buildingService from "../services/buildingService"
@@ -20,7 +20,18 @@ interface Occupant {
 
 export function useApartmentDetail() {
   const { id } = useParams()
-  const [uploading, setUploading] = useState(false)
+  const queryClient = useQueryClient();
+  const uploadMutation = useMutation({
+    mutationFn: (data: FormData) => apartmentService.updateApartment(Number(id), data),
+    onSuccess: () => {
+      toast.success("Tải ảnh lên thành công");
+      queryClient.invalidateQueries({ queryKey: ["apartment", id] });
+    },
+    onError: () => {
+      toast.error("Không thể tải ảnh lên");
+    }
+  });
+  const uploading = uploadMutation.isPending;
   const [showModifyModal, setShowModifyModal] = useState(false)
   const [occupants, setOccupants] = useState<Occupant[]>([])
   const [activeTab, setActiveTab] = useState<"tenant" | "tenantHistory" | "reviews">("tenant")
@@ -119,23 +130,13 @@ export function useApartmentDetail() {
     await fetchApartment()
   }
 
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    setUploading(true)
-    try {
-      const formDataToSend = new FormData()
-      formDataToSend.append("images", file)
-
-      await apartmentService.updateApartment(Number(id), formDataToSend)
-      toast.success("Tải ảnh lên thành công")
-      await fetchData()
-    } catch {
-      toast.error("Không thể tải ảnh lên")
-    } finally {
-      setUploading(false)
-    }
+    const formDataToSend = new FormData()
+    formDataToSend.append("images", file)
+    uploadMutation.mutate(formDataToSend)
   }
 
   function handleSetThumbnail(imgId: number) {

@@ -51,14 +51,21 @@ export async function getAllUtilityReadings(params?: {
   page?: number;
   limit?: number;
 }): Promise<{ data: UtilityReadingData[]; pagination: UtilityPagination }> {
-  const res = await api.get<any>("/utility-readings", { params });
-  const rawData = res.data.data || (Array.isArray(res.data) ? res.data : []);
+  interface UtilityReadingsResponse {
+    data: UtilityReadingData[];
+    meta?: {
+      pagination?: UtilityPagination;
+    };
+    pagination?: UtilityPagination;
+  }
+  const res = await api.get<UtilityReadingsResponse>("/utility-readings", { params });
+  const rawData = res.data.data || [];
   const pagination = res.data.meta?.pagination || res.data.pagination || { total: rawData.length, page: 1, limit: 10, totalPages: 1 };
   return { data: rawData, pagination };
 }
 
 export async function getUtilityReadingById(id: number): Promise<UtilityReadingData> {
-  const res = await api.get<any>(`/utility-readings/${id}`);
+  const res = await api.get<{ data: UtilityReadingData }>(`/utility-readings/${id}`);
   return res.data.data;
 }
 

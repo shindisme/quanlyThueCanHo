@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/auth.store";
 import { useDebounce } from "./common/useDebounce";
 import { useSort } from "./common/useSort";
@@ -8,6 +8,7 @@ import type { BuildingData } from "../services/buildingService";
 import { toast } from "sonner";
 
 export function useBuildingList() {
+  const queryClient = useQueryClient();
   const { role, managedBuildingId } = useAuthStore();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
@@ -41,17 +42,24 @@ export function useBuildingList() {
 
   const { items: sortedBuildings, requestSort, getSortIcon } = useSort(filtered);
 
-  async function handleDelete() {
-    if (!deleteItem) return;
-    try {
-      await buildingService.deleteBuilding(deleteItem.id);
-      toast.success(`Đã xóa tòa nhà "${deleteItem.name}"`);
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => buildingService.deleteBuilding(id),
+    onSuccess: () => {
+      if (deleteItem) {
+        toast.success(`Đã xóa tòa nhà "${deleteItem.name}"`);
+      }
       setDeleteItem(null);
-      fetchBuildings();
-    } catch (error: unknown) {
+      queryClient.invalidateQueries({ queryKey: ["buildings"] });
+    },
+    onError: (error: unknown) => {
       const err = error as { response?: { data?: { error?: string } } };
       toast.error(err.response?.data?.error || "Xóa thất bại");
-    }
+    },
+  });
+
+  function handleDelete() {
+    if (!deleteItem) return;
+    deleteMutation.mutate(deleteItem.id);
   }
 
   return {

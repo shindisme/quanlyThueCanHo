@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { contractSchema, type ContractFormValues } from "../schemas/contract.schema"
 import * as apartmentService from "../services/apartmentService"
@@ -33,7 +34,111 @@ export function useContractCreate({
   initialBuildingId,
   apartments,
 }: UseContractCreateProps) {
-  const [saving, setSaving] = useState(false)
+  const queryClient = useQueryClient();
+  const createMutation = useMutation({
+    mutationFn: async (data: ContractFormValues) => {
+      let finalTenantId: number
+
+      if (data.is_new_tenant) {
+        const cleanCCCD = data.new_tenant_cccd!.trim()
+        const last6Digits = cleanCCCD.slice(-6)
+        const username = `YH${last6Digits}`
+        const defaultEmail = `${username}@yukihouse.vn`
+        const finalEmail = data.new_tenant_email?.trim() || defaultEmail
+        const finalPhone = data.new_tenant_phone?.trim() || null
+
+        const allTenantsRes = await tenantService.getAllTenants({ limit: 100 }).catch(() => ({ data: [] }));
+        const allTenants = allTenantsRes.data || [];
+
+        if (finalPhone) {
+          const dup = allTenants.find((t) => t.phone === finalPhone);
+          if (dup) {
+            throw new Error("Số điện thoại này đã tồn tại trong hệ thống.");
+          }
+        }
+
+        if (finalEmail) {
+          const dup = allTenants.find(
+            (t) => t.email && t.email.toLowerCase() === finalEmail.toLowerCase()
+          );
+          if (dup) {
+            throw new Error("Email này đã tồn tại trong hệ thống.");
+          }
+        }
+
+        if (cleanCCCD) {
+          const dup = allTenants.find((t) => t.citizen_id === cleanCCCD);
+          if (dup) {
+            throw new Error("Số CCCD này đã tồn tại trong hệ thống.");
+          }
+        }
+
+        const userRes = await authService.createUser({
+          username,
+          role: "TENANT",
+        })
+
+        let tenant
+        try {
+          tenant = await tenantService.createTenant({
+            full_name: data.new_tenant_name!,
+            citizen_id: cleanCCCD,
+            date_of_birth: data.new_tenant_dob ? new Date(data.new_tenant_dob).toISOString() : null,
+            address: data.new_tenant_address || null,
+            email: finalEmail,
+            phone: finalPhone,
+            user_id: userRes.userId,
+          })
+        } catch (tenantError) {
+          await authService.deleteUser(userRes.userId).catch((err) => {
+            console.error("Cleanup user account failed:", err);
+          });
+          throw tenantError;
+        }
+
+        finalTenantId = tenant.id
+        toast.success(`Đã tự động tạo tài khoản "${username}" cho người thuê mới!`)
+      } else {
+        finalTenantId = Number(data.tenant_id)
+      }
+
+      const newContract = {
+        tenant_id: finalTenantId,
+        apartment_id: Number(data.apartment_id),
+        start_date: data.start_date,
+        end_date: data.end_date,
+        monthly_rent: data.monthly_rent,
+        deposit_amount: data.deposit_amount,
+        status: "ACTIVE",
+        contractFile: null,
+        signedAt: new Date().toISOString().split("T")[0],
+        createdBy: currentUser?.id || 1,
+        actual_occupants: Number(data.actual_occupants) || 1,
+        max_occupants: maxOccupants,
+      }
+
+      await createContract(newContract as unknown as Partial<RentalContract>)
+
+      try {
+        await apartmentService.updateApartment(Number(data.apartment_id), { status: "RENTED" })
+      } catch (err) {
+        console.error("Failed to update apartment status:", err);
+      }
+    },
+    onSuccess: () => {
+      toast.success("Đã tạo hợp đồng thành công và cập nhật trạng thái căn hộ!")
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["apartments"] });
+      queryClient.invalidateQueries({ queryKey: ["tenants"] });
+      onSuccess()
+      onClose()
+    },
+    onError: (error: unknown) => {
+      const err = error as { message?: string; response?: { data?: { message?: string } } };
+      toast.error(err.message || err.response?.data?.message || "Không thể tạo hợp đồng")
+    }
+  });
+  const saving = createMutation.isPending;
   const [buildingApartments, setBuildingApartments] = useState<ApartmentData[]>([])
   const [maxOccupants, setMaxOccupants] = useState<number>(2)
   const [prevApartmentId, setPrevApartmentId] = useState<number | undefined>()
@@ -100,7 +205,6 @@ export function useContractCreate({
         deposit_amount: 0,
       })
       setTimeout(() => {
-        setSaving(false)
         setPrevApartmentId(undefined)
       }, 0)
     }
@@ -184,109 +288,8 @@ export function useContractCreate({
     )
   })()
 
-  async function onSubmit(data: ContractFormValues) {
-    setSaving(true)
-    try {
-      let finalTenantId: number
-
-      if (data.is_new_tenant) {
-        const cleanCCCD = data.new_tenant_cccd!.trim()
-        const last6Digits = cleanCCCD.slice(-6)
-        const username = `YH${last6Digits}`
-        const defaultEmail = `${username}@yukihouse.vn`
-        const finalEmail = data.new_tenant_email?.trim() || defaultEmail
-        const finalPhone = data.new_tenant_phone?.trim() || null
-
-        const allTenantsRes = await tenantService.getAllTenants({ limit: 100 }).catch(() => ({ data: [] }));
-        const allTenants = allTenantsRes.data || [];
-
-        if (finalPhone) {
-          const dup = allTenants.find((t) => t.phone === finalPhone);
-          if (dup) {
-            toast.error("Số điện thoại này đã tồn tại trong hệ thống.");
-            return;
-          }
-        }
-
-        if (finalEmail) {
-          const dup = allTenants.find(
-            (t) => t.email && t.email.toLowerCase() === finalEmail.toLowerCase()
-          );
-          if (dup) {
-            toast.error("Email này đã tồn tại trong hệ thống.");
-            return;
-          }
-        }
-
-        if (cleanCCCD) {
-          const dup = allTenants.find((t) => t.citizen_id === cleanCCCD);
-          if (dup) {
-            toast.error("Số CCCD này đã tồn tại trong hệ thống.");
-            return;
-          }
-        }
-
-        const userRes = await authService.createUser({
-          username,
-          role: "TENANT",
-        })
-
-        let tenant
-        try {
-          tenant = await tenantService.createTenant({
-            full_name: data.new_tenant_name!,
-            citizen_id: cleanCCCD,
-            date_of_birth: data.new_tenant_dob ? new Date(data.new_tenant_dob).toISOString() : null,
-            address: data.new_tenant_address || null,
-            email: finalEmail,
-            phone: finalPhone,
-            user_id: userRes.userId,
-          })
-        } catch (tenantError) {
-          await authService.deleteUser(userRes.userId).catch((err) => {
-            console.error("Cleanup user account failed:", err);
-          });
-          throw tenantError;
-        }
-
-        finalTenantId = tenant.id
-        toast.success(`Đã tự động tạo tài khoản "${username}" cho người thuê mới!`)
-      } else {
-        finalTenantId = Number(data.tenant_id)
-      }
-
-      const newContract = {
-        tenant_id: finalTenantId,
-        apartment_id: Number(data.apartment_id),
-        start_date: data.start_date,
-        end_date: data.end_date,
-        monthly_rent: data.monthly_rent,
-        deposit_amount: data.deposit_amount,
-        status: "ACTIVE",
-        contractFile: null,
-        signedAt: new Date().toISOString().split("T")[0],
-        createdBy: currentUser?.id || 1,
-        actual_occupants: Number(data.actual_occupants) || 1,
-        max_occupants: maxOccupants,
-      }
-
-      await createContract(newContract as unknown as Partial<RentalContract>)
-
-      try {
-        await apartmentService.updateApartment(Number(data.apartment_id), { status: "RENTED" })
-        toast.success("Đã tạo hợp đồng và cập nhật trạng thái căn hộ thành 'Đang thuê'!")
-      } catch {
-        toast.success("Đã tạo hợp đồng thành công!")
-      }
-
-      onSuccess()
-      onClose()
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Không thể tạo hợp đồng")
-    } finally {
-      setSaving(false)
-    }
+  function onSubmit(data: ContractFormValues) {
+    createMutation.mutate(data)
   }
 
   const handleFormSubmit = handleSubmit(onSubmit)

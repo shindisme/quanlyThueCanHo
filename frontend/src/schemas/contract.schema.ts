@@ -18,9 +18,19 @@ export const contractSchema = z.object({
   start_date: z.string().min(1, { message: "Ngày bắt đầu không được để trống" }),
   end_date: z.string().min(1, { message: "Ngày kết thúc không được để trống" }),
   actual_occupants: z.number({ message: "Số người ở phải là một số" }).min(1, { message: "Số người ở phải ít nhất là 1" }),
-  monthly_rent: z.number().min(0, { message: "Tiền thuê phải lớn hơn hoặc bằng 0" }),
-  deposit_amount: z.number().min(0, { message: "Tiền cọc phải lớn hơn hoặc bằng 0" }),
+  monthly_rent: z.number().positive({ message: "Tiền thuê phải lớn hơn 0" }),
+  deposit_amount: z.number().positive({ message: "Tiền cọc phải lớn hơn 0" }),
 }).superRefine((data, ctx) => {
+  if (data.start_date && data.end_date) {
+    if (new Date(data.end_date) <= new Date(data.start_date)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["end_date"],
+        message: "Ngày kết thúc phải sau ngày bắt đầu",
+      })
+    }
+  }
+
   if (data.is_new_tenant) {
     if (!data.new_tenant_name || data.new_tenant_name.trim() === "") {
       ctx.addIssue({

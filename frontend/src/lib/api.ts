@@ -35,6 +35,9 @@ api.interceptors.response.use(
 
   // Nếu lỗi → kiểm tra và xử lý
   (error) => {
+    if (typeof error.response?.data?.error?.message === "string") {
+      error.response.data.error = error.response.data.error.message;
+    }
     if (error.response?.status === 401 && !error.config.url?.includes("/auth/login")) {
       localStorage.removeItem("auth-storage");
       window.location.href = "/system/login";

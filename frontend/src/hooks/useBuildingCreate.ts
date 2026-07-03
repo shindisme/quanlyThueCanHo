@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { buildingSchema, type BuildingFormValues } from "../schemas/building.schema"
 import * as buildingService from "../services/buildingService"
@@ -15,7 +16,21 @@ interface UseBuildingCreateProps {
 }
 
 export function useBuildingCreate({ isOpen, onClose, onSuccess }: UseBuildingCreateProps) {
-  const [saving, setSaving] = useState(false)
+  const queryClient = useQueryClient();
+  const createMutation = useMutation({
+    mutationFn: (formDataToSend: FormData) => buildingService.createBuilding(formDataToSend),
+    onSuccess: () => {
+      toast.success("Đã thêm tòa nhà mới");
+      queryClient.invalidateQueries({ queryKey: ["buildings"] });
+      onSuccess();
+      onClose();
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string; message?: string } } };
+      toast.error(err.response?.data?.error || err.response?.data?.message || "Thao tác thất bại");
+    }
+  });
+  const saving = createMutation.isPending;
   const [staffList, setStaffList] = useState<Staff[]>([])
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string>("")
@@ -96,33 +111,21 @@ export function useBuildingCreate({ isOpen, onClose, onSuccess }: UseBuildingCre
     setPreviewUrl("")
   }
 
-  async function onSubmit(data: BuildingFormValues) {
-    setSaving(true)
-    try {
-      const formDataToSend = new FormData()
-      formDataToSend.append("name", data.branch_name)
-      formDataToSend.append("branch_name", data.branch_name)
-      formDataToSend.append("address_old", data.address_old)
-      formDataToSend.append("address_new", data.address_new)
-      formDataToSend.append("total_floors", String(data.total_floors))
-      formDataToSend.append("description", data.description || "")
-      if (data.staff_id) {
-        formDataToSend.append("staff_id", String(data.staff_id))
-      }
-      if (thumbnailFile) {
-        formDataToSend.append("image", thumbnailFile)
-      }
-
-      await buildingService.createBuilding(formDataToSend)
-      toast.success("Đã thêm tòa nhà mới")
-      onSuccess()
-      onClose()
-    } catch (error: unknown) {
-      const err = error as { response?: { data?: { error?: string; message?: string } } };
-      toast.error(err.response?.data?.error || err.response?.data?.message || "Thao tác thất bại")
-    } finally {
-      setSaving(false)
+  function onSubmit(data: BuildingFormValues) {
+    const formDataToSend = new FormData()
+    formDataToSend.append("branch_name", data.branch_name)
+    formDataToSend.append("address_old", data.address_old)
+    formDataToSend.append("address_new", data.address_new)
+    formDataToSend.append("total_floors", String(data.total_floors))
+    formDataToSend.append("description", data.description || "")
+    if (data.staff_id) {
+      formDataToSend.append("staff_id", String(data.staff_id))
     }
+    if (thumbnailFile) {
+      formDataToSend.append("image", thumbnailFile)
+    }
+
+    createMutation.mutate(formDataToSend)
   }
 
   return {

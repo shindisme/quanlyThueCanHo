@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as apartmentService from "../services/apartmentService";
 import type { BuildingData } from "../services/buildingService";
@@ -22,7 +23,21 @@ export function useApartmentCreate({
   role,
   managerBuildingId,
 }: UseApartmentCreateProps) {
-  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
+  const createMutation = useMutation({
+    mutationFn: (data: FormData) => apartmentService.createApartment(data),
+    onSuccess: () => {
+      toast.success("Đã thêm căn hộ mới");
+      queryClient.invalidateQueries({ queryKey: ["apartments"] });
+      onSuccess();
+      onClose();
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || "Thao tác thất bại");
+    }
+  });
+  const saving = createMutation.isPending;
   const [localThumbnail, setLocalThumbnail] = useState<string>("");
   const [localImages, setLocalImages] = useState<string[]>([]);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
@@ -115,7 +130,7 @@ export function useApartmentCreate({
     });
   }
 
-  async function handleSave() {
+  function handleSave() {
     const result = apartmentSchema.safeParse(formData);
     if (!result.success) {
       toast.error(result.error.issues[0].message);
@@ -128,38 +143,28 @@ export function useApartmentCreate({
         return;
       }
     }
-    setSaving(true);
-    try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("room_number", formData.room_number);
-      formDataToSend.append("building_id", String(formData.building_id));
-      formDataToSend.append("floor", String(formData.floor));
-      formDataToSend.append("area", String(formData.area));
-      formDataToSend.append("bedrooms", String(formData.bedrooms));
-      formDataToSend.append("bathrooms", String(formData.bathrooms));
-      formDataToSend.append("rental_price", String(formData.rental_price));
-      formDataToSend.append("description", formData.description || "");
-      formDataToSend.append("status", formData.status);
+    const formDataToSend = new FormData();
+    formDataToSend.append("room_number", formData.room_number);
+    formDataToSend.append("building_id", String(formData.building_id));
+    formDataToSend.append("floor", String(formData.floor));
+    formDataToSend.append("area", String(formData.area));
+    formDataToSend.append("bedrooms", String(formData.bedrooms));
+    formDataToSend.append("bathrooms", String(formData.bathrooms));
+    formDataToSend.append("rental_price", String(formData.rental_price));
+    formDataToSend.append("description", formData.description || "");
+    formDataToSend.append("status", formData.status);
 
-      if (thumbnailFile) {
-        formDataToSend.append("images", thumbnailFile);
-      }
-
-      detailFiles.forEach((file) => {
-        if (file) {
-          formDataToSend.append("images", file);
-        }
-      });
-
-      await apartmentService.createApartment(formDataToSend);
-      toast.success("Đã thêm căn hộ mới");
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Thao tác thất bại");
-    } finally {
-      setSaving(false);
+    if (thumbnailFile) {
+      formDataToSend.append("images", thumbnailFile);
     }
+
+    detailFiles.forEach((file) => {
+      if (file) {
+        formDataToSend.append("images", file);
+      }
+    });
+
+    createMutation.mutate(formDataToSend);
   }
 
   return {

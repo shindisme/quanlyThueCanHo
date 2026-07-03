@@ -40,7 +40,7 @@ export async function createReview(data: {
   apartment_id: number;
   rating: number;
   comment?: string;
-}): Promise<any> {
+}): Promise<unknown> {
   const res = await api.post("/reviews", data);
   return res.data;
 }

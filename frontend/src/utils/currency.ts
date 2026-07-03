@@ -24,9 +24,9 @@ export function numberToVietnameseWords(num: number): string {
   const units = ["", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"];
 
   function readThreeDigits(n: number, showZeroHundred: boolean): string {
-    let hundred = Math.floor(n / 100);
-    let ten = Math.floor((n % 100) / 10);
-    let unit = n % 10;
+    const hundred = Math.floor(n / 100);
+    const ten = Math.floor((n % 100) / 10);
+    const unit = n % 10;
     let res = "";
 
     if (hundred > 0 || showZeroHundred) {
@@ -50,7 +50,7 @@ export function numberToVietnameseWords(num: number): string {
 
   const groups = ["", "nghìn", "triệu", "tỷ", "nghìn tỷ", "triệu tỷ"];
   let temp = num;
-  let parts = [];
+  const parts = [];
   while (temp > 0) {
     parts.push(temp % 1000);
     temp = Math.floor(temp / 1000);
@@ -58,7 +58,7 @@ export function numberToVietnameseWords(num: number): string {
 
   let result = "";
   for (let i = parts.length - 1; i >= 0; i--) {
-    let text = readThreeDigits(parts[i], i < parts.length - 1 && parts[i] > 0);
+    const text = readThreeDigits(parts[i], i < parts.length - 1 && parts[i] > 0);
     if (text !== "") {
       result += text + " " + groups[i] + " ";
     }

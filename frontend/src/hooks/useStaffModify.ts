@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as staffService from "../services/staffService";
 import * as buildingService from "../services/buildingService";
@@ -23,6 +24,56 @@ export function useStaffModify({
   editItem,
   positions,
 }: UseStaffModifyProps) {
+  const queryClient = useQueryClient();
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, fullName, phone, position, buildingId, editItem, nextUsername }: {
+      id: number;
+      fullName: string;
+      phone: string | null;
+      position: string;
+      buildingId: number | "";
+      editItem: Staff;
+      nextUsername: string;
+    }) => {
+      let linkedUserId = editItem.user_id;
+
+      // Nếu chưa có tài khoản, tự động tạo tài khoản theo thứ tự dựa trên chức vụ mới
+      if (!editItem.user_id) {
+        const isManager = position === "Quản lý";
+        const roleToCreate = isManager ? "MANAGER" : "STAFF";
+
+        const res = await authService.createUser({
+          username: nextUsername,
+          role: roleToCreate,
+        });
+        linkedUserId = res.userId;
+      }
+
+      await staffService.updateStaff(id, {
+        full_name: fullName,
+        phone: phone || null,
+        position,
+        building_id: buildingId ? Number(buildingId) : null,
+        user_id: linkedUserId,
+      });
+
+      return { hasPriorUser: !!editItem.user_id, nextUsername };
+    },
+    onSuccess: (data) => {
+      if (!data.hasPriorUser) {
+        toast.success(`Đã tự động cấp tài khoản "${data.nextUsername}" (mật khẩu mặc định: 123456) và cập nhật thành công!`);
+      } else {
+        toast.success("Cập nhật thông tin nhân viên thành công!");
+      }
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
+      onSuccess();
+      onClose();
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string; message?: string } } };
+      toast.error(err.response?.data?.error || err.response?.data?.message || "Không thể cập nhật nhân viên");
+    }
+  });
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [position, setPosition] = useState(positions[0]);
@@ -84,7 +135,7 @@ export function useStaffModify({
     }
   }
 
-  async function handleSave() {
+  function handleSave() {
     if (!editItem) return;
 
     const validation = staffSchema.safeParse({
@@ -99,43 +150,15 @@ export function useStaffModify({
       return;
     }
 
-    setLoading(true);
-    try {
-      let linkedUserId = editItem.user_id;
-
-      // Nếu chưa có tài khoản, tự động tạo tài khoản theo thứ tự dựa trên chức vụ mới
-      if (!editItem.user_id) {
-        const isManager = position === "Quản lý";
-        const roleToCreate = isManager ? "MANAGER" : "STAFF";
-
-        const res = await authService.createUser({
-          username: nextUsername,
-          role: roleToCreate,
-        });
-        linkedUserId = res.userId;
-      }
-
-      await staffService.updateStaff(editItem.id, {
-        full_name: fullName,
-        phone: phone || null,
-        position,
-        building_id: buildingId ? Number(buildingId) : null,
-        user_id: linkedUserId,
-      });
-
-      if (!editItem.user_id) {
-        toast.success(`Đã tự động cấp tài khoản "${nextUsername}" (mật khẩu mặc định: 123456) và cập nhật thành công!`);
-      } else {
-        toast.success("Cập nhật thông tin nhân viên thành công!");
-      }
-
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || error.response?.data?.message || "Không thể cập nhật nhân viên");
-    } finally {
-      setLoading(false);
-    }
+    updateMutation.mutate({
+      id: editItem.id,
+      fullName,
+      phone: phone || null,
+      position,
+      buildingId,
+      editItem,
+      nextUsername,
+    });
   }
 
   const hasLinkedUser = !!(editItem && editItem.user_id);
@@ -155,7 +178,7 @@ export function useStaffModify({
     buildingId,
     setBuildingId,
     buildings,
-    loading,
+    loading: loading || updateMutation.isPending,
     nextUsername,
     handleSave,
     hasLinkedUser,
