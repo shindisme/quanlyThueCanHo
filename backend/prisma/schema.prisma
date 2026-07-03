@@ -57,7 +57,9 @@ enum Priority {
 enum RequestStatus {
   PENDING
   PROCESSING
+  NEEDS_RESCHEDULE
   DONE
+  CANCELLED
 }
 
 enum ScheduleStatus {
@@ -156,6 +158,7 @@ model Staff {
   user           User?            @relation(fields: [user_id], references: [id])
   building       Building?        @relation("BuildingStaff", fields: [building_id], references: [id])
   UtilityReading UtilityReading[]
+  maintenance_requests MaintenanceRequest[] @relation("MaintenanceTechnician")
 
   @@index([building_id])
   @@map("staffs")
@@ -281,23 +284,28 @@ model Payment {
 }
 
 model MaintenanceRequest {
-  id           Int           @id @default(autoincrement())
-  tenant_id    Int
-  apartment_id Int
-  title        String
-  description  String        @db.Text
-  image_url    String?
-  priority     Priority      @default(MEDIUM)
-  status       RequestStatus @default(PENDING)
-  created_at   DateTime      @default(now())
-  updated_at   DateTime      @updatedAt
+  id                Int           @id @default(autoincrement())
+  tenant_id         Int
+  apartment_id      Int
+  assigned_staff_id Int?
+  title             String
+  description       String        @db.Text
+  image_url         String?
+  priority          Priority      @default(MEDIUM)
+  status            RequestStatus @default(PENDING)
+  scheduled_at      DateTime?
+  unable_reason     String?       @db.Text
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
 
-  tenant    Tenant    @relation(fields: [tenant_id], references: [id])
-  apartment Apartment @relation(fields: [apartment_id], references: [id])
+  tenant         Tenant    @relation(fields: [tenant_id], references: [id])
+  apartment      Apartment @relation(fields: [apartment_id], references: [id])
+  assigned_staff Staff?    @relation("MaintenanceTechnician", fields: [assigned_staff_id], references: [id], onDelete: SetNull)
 
   @@index([tenant_id])
   @@index([apartment_id])
   @@index([status, created_at])
+  @@index([assigned_staff_id, status])
   @@map("maintenance_requests")
 }
 

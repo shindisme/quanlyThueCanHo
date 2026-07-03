@@ -8,6 +8,7 @@ import buildingRouter from "./routes/building.route.js";
 import chatbotRouter from "./routes/chatbot.route.js";
 import contractRouter from "./routes/contract.routes.js";
 import invoiceRouter from "./routes/invoice.routes.js";
+import maintenanceRouter from "./routes/maintenance.routes.js";
 import notificationRouter from "./routes/notification.routes.js";
 import paymentRouter from "./routes/payment.routes.js";
 import reviewRouter from "./routes/review.routes.js";
@@ -39,6 +40,7 @@ export const ROUTE_MOUNTS = [
     ["/reviews", reviewRouter],
     ["/utility-readings", utilityReadingRouter],
     ["/invoices", invoiceRouter],
+    ["/maintenance", maintenanceRouter],
     ["/payments", paymentRouter],
     ["/notifications", notificationRouter],
     ["/uploads", uploadRouter]
