@@ -10,6 +10,10 @@
       "node",
       "express"
     ],
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ],
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,

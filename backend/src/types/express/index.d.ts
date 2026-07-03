@@ -1,6 +1,6 @@
 declare namespace Express {
     interface Request {
-        actor?: import("./auth.js").Actor;
+        actor?: import("../../services/auth.service.js").Actor;
         validated?: unknown;
     }
 }
