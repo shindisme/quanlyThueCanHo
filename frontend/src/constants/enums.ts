@@ -17,7 +17,7 @@ export type PaymentStatus = "PENDING" | "SUCCESS" | "FAILED";
 
 export type Priority = "LOW" | "MEDIUM" | "HIGH";
 
-export type RequestStatus = "PENDING" | "PROCESSING" | "DONE" | "CANCELLED";
+export type RequestStatus = "PENDING" | "PROCESSING" | "NEEDS_RESCHEDULE" | "DONE" | "CANCELLED";
 
 export type ScheduleStatus = "PENDING" | "CONFIRMED" | "DONE" | "CANCELLED";
 
@@ -79,6 +79,7 @@ export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
   PROCESSING: "Đang xử lý",
   DONE: "Hoàn thành",
   CANCELLED: "Đã huỷ",
+  NEEDS_RESCHEDULE: "Hẹn lại lịch",
 };
 
 export const SCHEDULE_STATUS_LABELS: Record<ScheduleStatus, string> = {
@@ -124,4 +125,5 @@ export const REQUEST_STATUS_COLORS: Record<RequestStatus, string> = {
   PROCESSING: "info",
   DONE: "success",
   CANCELLED: "gray",
+  NEEDS_RESCHEDULE: "danger",
 };
