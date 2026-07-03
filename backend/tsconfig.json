@@ -7,7 +7,8 @@
     "removeComments": true,
     "strict": true,
     "types": [
-      "node"
+      "node",
+      "express"
     ],
     "esModuleInterop": true,
     "skipLibCheck": true,

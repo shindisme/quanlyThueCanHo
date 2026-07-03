@@ -1,12 +1,6 @@
-import type { Actor } from "./auth.js";
-
-declare global {
-    namespace Express {
-        interface Request {
-            actor?: Actor;
-            validated?: unknown;
-        }
+declare namespace Express {
+    interface Request {
+        actor?: import("./auth.js").Actor;
+        validated?: unknown;
     }
 }
-
-export {};
