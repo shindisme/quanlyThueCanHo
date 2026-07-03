@@ -1,11 +1,32 @@
+# Environment
 .env
+.env.*
+!.env.example
 
-node_modules
+# Dependencies
+node_modules/
 
-package-lock.json
+# Build & test
+dist/
+coverage/
+*.tsbuildinfo
 
-.vscode/*
-/src/generated/prisma
+# Generated
+/src/generated/prisma/
 
-dist
-api
+# Logs/cache
+*.log
+npm-debug.log*
+.cache/
+tmp/
+
+# IDE/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Worktrees
+.worktrees/
+
+docs

@@ -1,43 +1,26 @@
-import { Prisma } from "@prisma/client";
+import {
+    Prisma,
+    Role
+} from "@prisma/client";
 import { prisma } from "../config/database.js";
+import { AppError } from "../errors/app-error.js";
+import type {
+    CreateUtilityReadingRequest,
+    ListUtilityReadingsRequest,
+    UpdateUtilityReadingRequest
+} from "../schemas/utility-reading.schema.js";
+import type { Actor } from "../types/auth.js";
+import {
+    getCurrentManagerAssignment,
+    getCurrentStaffAssignment
+} from "./manager-scope.js";
 
-export type UtilityReadingActor = {
-    userId: number;
-    role: string;
-};
-
-export type CreateUtilityReadingInput = {
-    apartment_id: number;
-    month: number;
-    year: number;
-    electric_old?: number;
-    electric_new: number;
-    water_old?: number;
-    water_new: number;
-    recorded_by?: number;
-};
-
-export type UpdateUtilityReadingInput = Partial<CreateUtilityReadingInput>;
-
-export type UtilityReadingFilters = {
-    apartment_id?: number;
-    building_id?: number;
-    month?: number;
-    year?: number;
-    recorded_by?: number;
-    search?: string;
-    page?: number;
-    limit?: number;
-};
-
-export class UtilityReadingError extends Error {
-    statusCode: number;
-
-    constructor(message: string, statusCode = 400) {
-        super(message);
-        this.statusCode = statusCode;
-    }
-}
+export type CreateUtilityReadingInput =
+    CreateUtilityReadingRequest["body"];
+export type UpdateUtilityReadingInput =
+    UpdateUtilityReadingRequest["body"];
+export type UtilityReadingFilters =
+    ListUtilityReadingsRequest["query"];
 
 const readingInclude = {
     apartment: {
@@ -70,6 +53,58 @@ type UtilityReadingWithRelations = Prisma.UtilityReadingGetPayload<{
     include: typeof readingInclude;
 }>;
 
+type Assignment = ReturnType<typeof getCurrentManagerAssignment>;
+
+const notFound = () => new AppError(
+    404,
+    "NOT_FOUND",
+    "Utility reading was not found"
+);
+
+const validationError = (message: string) => new AppError(
+    400,
+    "VALIDATION_ERROR",
+    message
+);
+
+const forbidden = (message: string) => new AppError(
+    403,
+    "FORBIDDEN",
+    message
+);
+
+const getUtilityAssignment = (actor: Actor) => {
+    if (actor.role === Role.ADMIN) {
+        return undefined;
+    }
+
+    if (
+        actor.role !== Role.MANAGER
+        && actor.role !== Role.STAFF
+    ) {
+        throw forbidden("You do not have access to utility readings");
+    }
+
+    return actor.role === Role.MANAGER
+        ? getCurrentManagerAssignment(actor)
+        : getCurrentStaffAssignment(actor);
+};
+
+const getApartmentScope = (assignment: Assignment) => ({
+    building_id: assignment.buildingId,
+    building: assignment.assignmentWhere
+}) satisfies Prisma.ApartmentWhereInput;
+
+const getReadingScope = (
+    actor: Actor,
+    assignment: Assignment
+) => ({
+    apartment: getApartmentScope(assignment),
+    ...(actor.role === Role.STAFF
+        ? { recorded_by: actor.staffId }
+        : {})
+}) satisfies Prisma.UtilityReadingWhereInput;
+
 const toNumber = (value: Prisma.Decimal | number) => Number(value);
 
 const normalizeReading = (reading: UtilityReadingWithRelations) => {
@@ -89,105 +124,59 @@ const normalizeReading = (reading: UtilityReadingWithRelations) => {
     };
 };
 
-const assertValidMonthYear = (month: number, year: number) => {
-    if (!Number.isInteger(month) || month < 1 || month > 12) {
-        throw new UtilityReadingError("Thang ghi chi so khong hop le.");
-    }
-
-    if (!Number.isInteger(year) || year < 2000 || year > 3000) {
-        throw new UtilityReadingError("Nam ghi chi so khong hop le.");
-    }
-};
-
 const assertValidMeters = (data: {
     electric_old: number;
     electric_new: number;
     water_old: number;
     water_new: number;
 }) => {
-    const values = [
-        data.electric_old,
-        data.electric_new,
-        data.water_old,
-        data.water_new
-    ];
-
-    if (values.some((value) => !Number.isFinite(value) || value < 0)) {
-        throw new UtilityReadingError("Chi so dien nuoc phai la so khong am.");
-    }
-
     if (data.electric_new < data.electric_old) {
-        throw new UtilityReadingError("Chi so dien moi khong duoc nho hon chi so dien cu.");
+        throw validationError(
+            "electric_new must not be less than electric_old"
+        );
     }
 
     if (data.water_new < data.water_old) {
-        throw new UtilityReadingError("Chi so nuoc moi khong duoc nho hon chi so nuoc cu.");
+        throw validationError(
+            "water_new must not be less than water_old"
+        );
     }
 };
 
-const getActorStaff = async (userId: number) => {
-    return prisma.staff.findUnique({
-        where: { user_id: userId }
-    });
-};
-
-const requireActorStaff = async (actor: UtilityReadingActor) => {
-    const staff = await getActorStaff(actor.userId);
-
-    if (!staff) {
-        throw new UtilityReadingError("Tai khoan chua duoc lien ket voi ho so nhan vien.", 403);
-    }
-
-    if (!staff.building_id && actor.role !== "ADMIN") {
-        throw new UtilityReadingError("Nhan vien chua duoc phan cong toa nha.", 403);
-    }
-
-    return staff;
-};
-
-const resolveManagerBuildingId = async (actor: UtilityReadingActor) => {
-    if (actor.role === "ADMIN" || actor.role === "TENANT") {
-        return undefined;
-    }
-
-    const staff = await requireActorStaff(actor);
-    return staff.building_id ?? undefined;
-};
-
-const assertApartmentInScope = (
-    apartment: { building_id: number },
-    buildingId?: number
-) => {
-    if (buildingId !== undefined && apartment.building_id !== buildingId) {
-        throw new UtilityReadingError("Ban khong co quyen thao tac voi can ho thuoc toa nha nay.", 403);
-    }
-};
-
-const findPreviousReading = async (apartmentId: number, month: number, year: number) => {
-    return prisma.utilityReading.findFirst({
-        where: {
-            apartment_id: apartmentId,
-            OR: [
-                { year: { lt: year } },
-                { year, month: { lt: month } }
-            ]
-        },
-        orderBy: [
-            { year: "desc" },
-            { month: "desc" },
-            { created_at: "desc" }
+const findPreviousReading = async (
+    apartmentId: number,
+    month: number,
+    year: number
+) => prisma.utilityReading.findFirst({
+    where: {
+        apartment_id: apartmentId,
+        OR: [
+            { year: { lt: year } },
+            { year, month: { lt: month } }
         ]
-    });
-};
+    },
+    orderBy: [
+        { year: "desc" },
+        { month: "desc" },
+        { created_at: "desc" }
+    ]
+});
 
 const resolveOldMeters = async (data: CreateUtilityReadingInput) => {
-    const previous = await findPreviousReading(data.apartment_id, data.month, data.year);
-
-    const electricOld = data.electric_old ?? (previous ? toNumber(previous.electric_new) : undefined);
-    const waterOld = data.water_old ?? (previous ? toNumber(previous.water_new) : undefined);
+    const previous = await findPreviousReading(
+        data.apartment_id,
+        data.month,
+        data.year
+    );
+    const electricOld = data.electric_old
+        ?? (previous ? toNumber(previous.electric_new) : undefined);
+    const waterOld = data.water_old
+        ?? (previous ? toNumber(previous.water_new) : undefined);
 
     if (electricOld === undefined || waterOld === undefined) {
-        throw new UtilityReadingError("Lan ghi dau tien can nhap chi so dien cu va nuoc cu.");
+        throw validationError(
+            "The first utility reading requires old meter values"
+        );
     }
 
     return {
@@ -196,66 +185,81 @@ const resolveOldMeters = async (data: CreateUtilityReadingInput) => {
     };
 };
 
-const getReadingByIdOrThrow = async (id: number) => {
-    const reading = await prisma.utilityReading.findUnique({
-        where: { id },
-        include: readingInclude
-    });
+const getReadingById = async (
+    id: number,
+    actor: Actor
+) => {
+    const assignment = getUtilityAssignment(actor);
+    const reading = assignment
+        ? await prisma.utilityReading.findFirst({
+            where: {
+                id,
+                ...getReadingScope(actor, assignment)
+            },
+            include: readingInclude
+        })
+        : await prisma.utilityReading.findUnique({
+            where: { id },
+            include: readingInclude
+        });
 
     if (!reading) {
-        throw new UtilityReadingError("Ban ghi dien nuoc khong ton tai.", 404);
+        throw notFound();
     }
 
-    return reading;
+    return {
+        reading,
+        assignment
+    };
+};
+
+const getRecordedBy = (
+    data: { recorded_by?: number },
+    actor: Actor,
+    assignment?: Assignment
+) => {
+    if (assignment) {
+        if (data.recorded_by !== undefined) {
+            throw validationError(
+                "recorded_by is derived from the authenticated actor"
+            );
+        }
+
+        return actor.staffId!;
+    }
+
+    const recordedBy = data.recorded_by ?? actor.staffId;
+    if (recordedBy === undefined) {
+        throw validationError(
+            "recorded_by is required when an Admin has no staff profile"
+        );
+    }
+
+    return recordedBy;
 };
 
 export const createUtilityReadingService = async (
     data: CreateUtilityReadingInput,
-    actor: UtilityReadingActor
+    actor: Actor
 ) => {
-    assertValidMonthYear(data.month, data.year);
-
-    const apartment = await prisma.apartment.findUnique({
-        where: { id: data.apartment_id },
-        select: { id: true, building_id: true }
+    const assignment = getUtilityAssignment(actor);
+    const recordedBy = getRecordedBy(data, actor, assignment);
+    const apartmentWhere: Prisma.ApartmentWhereInput = assignment
+        ? {
+            id: data.apartment_id,
+            ...getApartmentScope(assignment)
+        }
+        : { id: data.apartment_id };
+    const apartment = await prisma.apartment.findFirst({
+        where: apartmentWhere,
+        select: {
+            id: true,
+            building_id: true
+        }
     });
 
     if (!apartment) {
-        throw new UtilityReadingError("Can ho khong ton tai.", 404);
-    }
-
-    const managerBuildingId = await resolveManagerBuildingId(actor);
-    assertApartmentInScope(apartment, managerBuildingId);
-
-    const actorStaff = await getActorStaff(actor.userId);
-    let recordedBy = actorStaff?.id;
-
-    if (actor.role === "ADMIN" && data.recorded_by) {
-        const selectedStaff = await prisma.staff.findUnique({
-            where: { id: data.recorded_by }
-        });
-
-        if (!selectedStaff) {
-            throw new UtilityReadingError("Nhan vien ghi chi so khong ton tai.", 404);
-        }
-
-        recordedBy = selectedStaff.id;
-    }
-
-    if (!recordedBy) {
-        throw new UtilityReadingError("Can co ho so nhan vien de ghi chi so dien nuoc.", 403);
-    }
-
-    const existing = await prisma.utilityReading.findFirst({
-        where: {
-            apartment_id: data.apartment_id,
-            month: data.month,
-            year: data.year
-        }
-    });
-
-    if (existing) {
-        throw new UtilityReadingError("Can ho nay da co ban ghi dien nuoc trong thang.");
+        throw notFound();
     }
 
     const oldMeters = await resolveOldMeters(data);
@@ -265,17 +269,36 @@ export const createUtilityReadingService = async (
         water_old: oldMeters.water_old,
         water_new: data.water_new
     };
-
     assertValidMeters(meterData);
 
     const reading = await prisma.utilityReading.create({
-        data: {
-            apartment_id: data.apartment_id,
-            month: data.month,
-            year: data.year,
-            recorded_by: recordedBy,
-            ...meterData
-        },
+        data: assignment
+            ? {
+                month: data.month,
+                year: data.year,
+                ...meterData,
+                apartment: {
+                    connect: {
+                        id: data.apartment_id,
+                        ...getApartmentScope(assignment)
+                    }
+                },
+                staff: {
+                    connect: {
+                        id: recordedBy,
+                        user_id: actor.userId,
+                        building_id: assignment.buildingId,
+                        building: assignment.assignmentWhere
+                    }
+                }
+            }
+            : {
+                apartment_id: data.apartment_id,
+                month: data.month,
+                year: data.year,
+                recorded_by: recordedBy,
+                ...meterData
+            },
         include: readingInclude
     });
 
@@ -284,59 +307,69 @@ export const createUtilityReadingService = async (
 
 export const getUtilityReadingsService = async (
     filters: UtilityReadingFilters,
-    actor: UtilityReadingActor
+    actor: Actor
 ) => {
-    const page = Math.max(1, filters.page || 1);
-    const limit = Math.min(100, Math.max(1, filters.limit || 10));
-    const skip = (page - 1) * limit;
+    const assignment = getUtilityAssignment(actor);
+    const page = filters.page;
+    const limit = filters.limit;
+    const where: Prisma.UtilityReadingWhereInput = {};
 
-    const whereClause: Prisma.UtilityReadingWhereInput = {};
-    const apartmentWhere: Prisma.ApartmentWhereInput = {};
-
-    if (filters.apartment_id) {
-        whereClause.apartment_id = filters.apartment_id;
+    if (filters.apartment_id !== undefined) {
+        where.apartment_id = filters.apartment_id;
+    }
+    if (filters.month !== undefined) {
+        where.month = filters.month;
+    }
+    if (filters.year !== undefined) {
+        where.year = filters.year;
+    }
+    if (filters.recorded_by !== undefined) {
+        where.recorded_by = filters.recorded_by;
     }
 
-    if (filters.month) {
-        whereClause.month = filters.month;
-    }
-
-    if (filters.year) {
-        whereClause.year = filters.year;
-    }
-
-    if (filters.recorded_by) {
-        whereClause.recorded_by = filters.recorded_by;
-    }
-
-    if (filters.building_id) {
-        apartmentWhere.building_id = filters.building_id;
-    }
-
-    const managerBuildingId = await resolveManagerBuildingId(actor);
-    if (managerBuildingId !== undefined) {
-        if (filters.building_id && filters.building_id !== managerBuildingId) {
-            throw new UtilityReadingError("Ban khong co quyen xem ban ghi cua toa nha nay.", 403);
-        }
-
-        apartmentWhere.building_id = managerBuildingId;
-    }
-
-    if (Object.keys(apartmentWhere).length > 0) {
-        whereClause.apartment = apartmentWhere;
+    if (assignment) {
+        Object.assign(where, getReadingScope(actor, assignment));
+    } else if (filters.building_id !== undefined) {
+        where.apartment = {
+            building_id: filters.building_id
+        };
     }
 
     if (filters.search) {
-        whereClause.OR = [
-            { apartment: { room_number: { contains: filters.search, mode: "insensitive" } } },
-            { apartment: { building: { branch_name: { contains: filters.search, mode: "insensitive" } } } },
-            { staff: { full_name: { contains: filters.search, mode: "insensitive" } } }
+        where.OR = [
+            {
+                apartment: {
+                    room_number: {
+                        contains: filters.search,
+                        mode: "insensitive"
+                    }
+                }
+            },
+            {
+                apartment: {
+                    building: {
+                        branch_name: {
+                            contains: filters.search,
+                            mode: "insensitive"
+                        }
+                    }
+                }
+            },
+            {
+                staff: {
+                    full_name: {
+                        contains: filters.search,
+                        mode: "insensitive"
+                    }
+                }
+            }
         ];
     }
 
+    const skip = (page - 1) * limit;
     const [readings, total] = await prisma.$transaction([
         prisma.utilityReading.findMany({
-            where: whereClause,
+            where,
             skip,
             take: limit,
             orderBy: [
@@ -346,7 +379,7 @@ export const getUtilityReadingsService = async (
             ],
             include: readingInclude
         }),
-        prisma.utilityReading.count({ where: whereClause })
+        prisma.utilityReading.count({ where })
     ]);
 
     return {
@@ -362,97 +395,89 @@ export const getUtilityReadingsService = async (
 
 export const getUtilityReadingByIdService = async (
     id: number,
-    actor: UtilityReadingActor
+    actor: Actor
 ) => {
-    const reading = await getReadingByIdOrThrow(id);
-
-    if (actor.role === "STAFF") {
-        const staff = await requireActorStaff(actor);
-        if (reading.recorded_by !== staff.id) {
-            throw new UtilityReadingError("Ban khong co quyen xem ban ghi nay.", 403);
-        }
-    } else {
-        const managerBuildingId = await resolveManagerBuildingId(actor);
-        assertApartmentInScope(reading.apartment, managerBuildingId);
-    }
-
+    const { reading } = await getReadingById(id, actor);
     return normalizeReading(reading);
 };
 
 export const updateUtilityReadingService = async (
     id: number,
     data: UpdateUtilityReadingInput,
-    actor: UtilityReadingActor
+    actor: Actor
 ) => {
-    const current = await getReadingByIdOrThrow(id);
-    const managerBuildingId = await resolveManagerBuildingId(actor);
-    assertApartmentInScope(current.apartment, managerBuildingId);
-
+    const {
+        reading: current,
+        assignment
+    } = await getReadingById(id, actor);
+    const recordedBy = assignment
+        ? getRecordedBy(data, actor, assignment)
+        : data.recorded_by ?? current.recorded_by;
     const apartmentId = data.apartment_id ?? current.apartment_id;
     const month = data.month ?? current.month;
     const year = data.year ?? current.year;
-
-    assertValidMonthYear(month, year);
-
-    const apartment = await prisma.apartment.findUnique({
-        where: { id: apartmentId },
-        select: { id: true, building_id: true }
+    const apartmentWhere: Prisma.ApartmentWhereInput = assignment
+        ? {
+            id: apartmentId,
+            ...getApartmentScope(assignment)
+        }
+        : { id: apartmentId };
+    const apartment = await prisma.apartment.findFirst({
+        where: apartmentWhere,
+        select: { id: true }
     });
 
     if (!apartment) {
-        throw new UtilityReadingError("Can ho khong ton tai.", 404);
-    }
-
-    assertApartmentInScope(apartment, managerBuildingId);
-
-    const duplicate = await prisma.utilityReading.findFirst({
-        where: {
-            id: { not: id },
-            apartment_id: apartmentId,
-            month,
-            year
-        }
-    });
-
-    if (duplicate) {
-        throw new UtilityReadingError("Can ho nay da co ban ghi dien nuoc trong thang.");
-    }
-
-    let recordedBy = data.recorded_by ?? current.recorded_by;
-    if (data.recorded_by) {
-        const staff = await prisma.staff.findUnique({
-            where: { id: data.recorded_by }
-        });
-
-        if (!staff) {
-            throw new UtilityReadingError("Nhan vien ghi chi so khong ton tai.", 404);
-        }
-
-        if (managerBuildingId !== undefined && staff.building_id !== managerBuildingId) {
-            throw new UtilityReadingError("Nhan vien ghi chi so khong thuoc toa nha ban quan ly.", 403);
-        }
-
-        recordedBy = staff.id;
+        throw notFound();
     }
 
     const meterData = {
-        electric_old: data.electric_old ?? toNumber(current.electric_old),
-        electric_new: data.electric_new ?? toNumber(current.electric_new),
-        water_old: data.water_old ?? toNumber(current.water_old),
-        water_new: data.water_new ?? toNumber(current.water_new)
+        electric_old: data.electric_old
+            ?? toNumber(current.electric_old),
+        electric_new: data.electric_new
+            ?? toNumber(current.electric_new),
+        water_old: data.water_old
+            ?? toNumber(current.water_old),
+        water_new: data.water_new
+            ?? toNumber(current.water_new)
     };
-
     assertValidMeters(meterData);
 
+    const where: Prisma.UtilityReadingWhereUniqueInput = assignment
+        ? {
+            id,
+            ...getReadingScope(actor, assignment)
+        }
+        : { id };
     const reading = await prisma.utilityReading.update({
-        where: { id },
-        data: {
-            apartment_id: apartmentId,
-            month,
-            year,
-            recorded_by: recordedBy,
-            ...meterData
-        },
+        where,
+        data: assignment
+            ? {
+                month,
+                year,
+                ...meterData,
+                apartment: {
+                    connect: {
+                        id: apartmentId,
+                        ...getApartmentScope(assignment)
+                    }
+                },
+                staff: {
+                    connect: {
+                        id: recordedBy,
+                        user_id: actor.userId,
+                        building_id: assignment.buildingId,
+                        building: assignment.assignmentWhere
+                    }
+                }
+            }
+            : {
+                apartment_id: apartmentId,
+                month,
+                year,
+                recorded_by: recordedBy,
+                ...meterData
+            },
         include: readingInclude
     });
 
@@ -461,11 +486,23 @@ export const updateUtilityReadingService = async (
 
 export const deleteUtilityReadingService = async (
     id: number,
-    actor: UtilityReadingActor
+    actor: Actor
 ) => {
-    const current = await getReadingByIdOrThrow(id);
-    const managerBuildingId = await resolveManagerBuildingId(actor);
-    assertApartmentInScope(current.apartment, managerBuildingId);
+    const assignment = getUtilityAssignment(actor);
+
+    if (assignment) {
+        const result = await prisma.utilityReading.deleteMany({
+            where: {
+                id,
+                ...getReadingScope(actor, assignment)
+            }
+        });
+
+        if (result.count === 0) {
+            throw notFound();
+        }
+        return;
+    }
 
     await prisma.utilityReading.delete({
         where: { id }

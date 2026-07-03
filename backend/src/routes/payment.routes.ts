@@ -1,15 +1,55 @@
+import { Role } from "@prisma/client";
 import { Router } from "express";
 import * as paymentController from "../controllers/payment.controller.js";
 import { authenticate, authorizeRole } from "../middleware/auth.middleware.js";
+import { validate } from "../middleware/validate.middleware.js";
+import {
+    createPaymentRequestSchema,
+    listPaymentsRequestSchema,
+    paymentIdRequestSchema,
+    paymentMethodsRequestSchema,
+    updatePaymentStatusRequestSchema
+} from "../schemas/payment.schema.js";
 
 const router = Router();
 
 router.use(authenticate);
 
-router.get("/", authorizeRole(["ADMIN", "MANAGER", "TENANT"]), paymentController.getAll);
-router.post("/", authorizeRole(["ADMIN", "MANAGER", "TENANT"]), paymentController.create);
-router.get("/methods", authorizeRole(["ADMIN", "MANAGER", "TENANT"]), paymentController.getMethods);
-router.get("/:id", authorizeRole(["ADMIN", "MANAGER", "TENANT"]), paymentController.getById);
-router.patch("/:id/status", authorizeRole(["ADMIN", "MANAGER"]), paymentController.updateStatus);
+const paymentRoles = [
+    Role.ADMIN,
+    Role.MANAGER,
+    Role.TENANT
+];
+
+router.get(
+    "/",
+    authorizeRole(paymentRoles),
+    validate(listPaymentsRequestSchema),
+    paymentController.getAll
+);
+router.post(
+    "/",
+    authorizeRole(paymentRoles),
+    validate(createPaymentRequestSchema),
+    paymentController.create
+);
+router.get(
+    "/methods",
+    authorizeRole(paymentRoles),
+    validate(paymentMethodsRequestSchema),
+    paymentController.getMethods
+);
+router.get(
+    "/:id",
+    authorizeRole(paymentRoles),
+    validate(paymentIdRequestSchema),
+    paymentController.getById
+);
+router.patch(
+    "/:id/status",
+    authorizeRole([Role.ADMIN, Role.MANAGER]),
+    validate(updatePaymentStatusRequestSchema),
+    paymentController.updateStatus
+);
 
 export default router;

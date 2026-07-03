@@ -1,58 +1,169 @@
-import { Request, Response, NextFunction } from "express";
+import {
+    Role,
+    UserStatus,
+} from "@prisma/client";
+import type { RequestHandler } from "express";
 import jwt from "jsonwebtoken";
-export interface JwtPayload {
-    id: number;
-    userId?: number;
-    role: string;
-    username?: string;
-}
-declare global {
-    namespace Express {
-        interface Request {
-            user?: JwtPayload; 
-        }
-    }
-}
+import { prisma } from "../config/database.js";
+import { AppError } from "../errors/app-error.js";
+import type { Actor } from "../types/auth.js";
 
-export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+const invalidTokenError = () => new AppError(
+    401,
+    "INVALID_TOKEN",
+    "Authentication token is invalid or expired"
+);
 
-    if (!token) {
-        res.status(401).json({ message: "Yêu cầu đăng nhập để truy cập!" });
-        return; 
+const getBearerToken = (authorization: string | undefined) => {
+    const match = authorization?.match(/^Bearer ([^\s]+)$/);
+
+    if (!match) {
+        throw new AppError(
+            401,
+            "AUTHENTICATION_REQUIRED",
+            "Authentication is required"
+        );
     }
 
-    if (!process.env.JWT_SECRET) {
-        console.error("CRITICAL ERROR: Chưa cấu hình JWT_SECRET trong file .env");
-        res.status(500).json({ message: "Lỗi máy chủ nội bộ!" });
-        return;
-    }
-
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET) as JwtPayload;
-        if (!decoded.id && decoded.userId) {
-            decoded.id = decoded.userId;
-        }
-        req.user = decoded;
-        
-        next();
-    } catch (error: any) {
-        if (error.name === "TokenExpiredError") {
-            res.status(401).json({ message: "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!" });
-            return;
-        }
-        res.status(403).json({ message: "Token không hợp lệ!" });
-        return;
-    }
+    return match[1];
 };
 
-export const authorizeRole = (roles: string[]) => {
-    return (req: Request, res: Response, next: NextFunction): void => {
-        if (!req.user || !roles.includes(req.user.role)) {
-            res.status(403).json({ message: "Bạn không có quyền thực hiện thao tác này!" });
-            return;
+const getSubjectUserId = (payload: string | jwt.JwtPayload) => {
+    if (
+        typeof payload === "string"
+        || typeof payload.sub !== "string"
+        || !/^[1-9]\d*$/.test(payload.sub)
+    ) {
+        throw invalidTokenError();
+    }
+
+    const userId = Number(payload.sub);
+
+    if (!Number.isSafeInteger(userId)) {
+        throw invalidTokenError();
+    }
+
+    return userId;
+};
+
+export const authenticate: RequestHandler = async (request, _response, next) => {
+    const token = getBearerToken(request.headers.authorization);
+    const secret = process.env.JWT_SECRET;
+
+    if (!secret) {
+        throw new AppError(
+            500,
+            "JWT_NOT_CONFIGURED",
+            "JWT authentication is not configured"
+        );
+    }
+
+    const payload = jwt.verify(token, secret, {
+        algorithms: ["HS256"]
+    });
+    const userId = getSubjectUserId(payload);
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            id: true,
+            role: true,
+            status: true,
+            staff: {
+                select: {
+                    id: true,
+                    building_id: true
+                }
+            },
+            tenant: {
+                select: {
+                    id: true
+                }
+            }
         }
+    });
+
+    if (!user) {
+        throw invalidTokenError();
+    }
+
+    if (user.status !== UserStatus.ACTIVE) {
+        throw new AppError(
+            403,
+            "ACCOUNT_DISABLED",
+            "This account is disabled"
+        );
+    }
+
+    const actor: Actor = {
+        userId: user.id,
+        role: user.role,
+        status: user.status
+    };
+
+    if (user.staff) {
+        actor.staffId = user.staff.id;
+
+        if (user.staff.building_id !== null) {
+            actor.buildingId = user.staff.building_id;
+        }
+    }
+
+    if (user.tenant) {
+        actor.tenantId = user.tenant.id;
+    }
+
+    request.actor = actor;
+    next();
+};
+
+export const authorizeRole = (roles: Role[]): RequestHandler => {
+    return (request, _response, next) => {
+        if (!request.actor) {
+            throw new AppError(
+                401,
+                "AUTHENTICATION_REQUIRED",
+                "Authentication is required"
+            );
+        }
+
+        if (!roles.includes(request.actor.role)) {
+            throw new AppError(
+                403,
+                "FORBIDDEN",
+                "You do not have permission to perform this action"
+            );
+        }
+
         next();
     };
+};
+
+export const requireManagerBuildingAssignment: RequestHandler = (
+    request,
+    _response,
+    next
+) => {
+    if (!request.actor) {
+        throw new AppError(
+            401,
+            "AUTHENTICATION_REQUIRED",
+            "Authentication is required"
+        );
+    }
+
+    if (
+        request.actor.role === Role.MANAGER
+        && (
+            request.actor.staffId === undefined
+            || request.actor.buildingId === undefined
+        )
+    ) {
+        throw new AppError(
+            403,
+            "MANAGER_BUILDING_REQUIRED",
+            "A current building assignment is required"
+        );
+    }
+
+    next();
 };

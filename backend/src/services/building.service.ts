@@ -1,18 +1,15 @@
+import {
+    Prisma,
+    Role
+} from "@prisma/client";
 import { prisma } from "../config/database.js";
-import { Prisma } from "@prisma/client";
-
-const normalizePagination = (page = 1, limit = 10) => {
-    const pageValue = Number.isFinite(page) ? Math.trunc(page) : 1;
-    const limitValue = Number.isFinite(limit) ? Math.trunc(limit) : 10;
-    const normalizedPage = Math.max(1, pageValue);
-    const normalizedLimit = Math.min(100, Math.max(1, limitValue));
-
-    return {
-        page: normalizedPage,
-        limit: normalizedLimit,
-        skip: (normalizedPage - 1) * normalizedLimit
-    };
-};
+import { AppError } from "../errors/app-error.js";
+import type {
+    CreateBuildingRequest,
+    UpdateBuildingRequest
+} from "../schemas/building.schema.js";
+import type { Actor } from "../types/auth.js";
+import { getCurrentManagerAssignment } from "./manager-scope.js";
 
 const staffSummarySelect = {
     id: true,
@@ -26,7 +23,7 @@ const staffSummarySelect = {
     }
 } satisfies Prisma.StaffSelect;
 
-const buildingSummarySelect = {
+const publicBuildingSelect = {
     id: true,
     branch_name: true,
     address_old: true,
@@ -39,18 +36,52 @@ const buildingSummarySelect = {
     created_at: true,
     _count: {
         select: { apartments: true }
-    },
+    }
+} satisfies Prisma.BuildingSelect;
+
+const privateBuildingSelect = {
+    ...publicBuildingSelect,
     assigned_staff: {
         select: staffSummarySelect
     }
 } satisfies Prisma.BuildingSelect;
 
-export const createBuildingService = async (data: any, imageUrl: string) => {
-    return await prisma.building.create({
+const notFound = () => new AppError(
+    404,
+    "NOT_FOUND",
+    "Building was not found"
+);
+
+const assertManagerBuildingTarget = (id: number, actor: Actor) => {
+    const assignment = getCurrentManagerAssignment(actor);
+
+    if (id !== assignment.buildingId) {
+        throw notFound();
+    }
+
+    return assignment;
+};
+
+export const createBuildingService = async (
+    data: CreateBuildingRequest["body"],
+    imageUrl?: string
+) => {
+    const {
+        staff_id,
+        ...buildingData
+    } = data;
+
+    return prisma.building.create({
         data: {
-            ...data,
-            thumbnail_url: imageUrl,
-        }
+            ...buildingData,
+            thumbnail_url: imageUrl ?? null,
+            assigned_staff: staff_id
+                ? {
+                    connect: { id: staff_id }
+                }
+                : undefined
+        },
+        select: privateBuildingSelect
     });
 };
 
@@ -61,72 +92,161 @@ export const getAllBuildingsService = async (filters: {
     limit?: number;
     staffId?: number;
 }) => {
-    const pagination = normalizePagination(filters.page, filters.limit);
-
-    const whereClause: Prisma.BuildingWhereInput = {};
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 10;
+    const where: Prisma.BuildingWhereInput = {};
 
     if (filters.search) {
-        whereClause.OR = [
-            { branch_name: { contains: filters.search, mode: 'insensitive' } },
-            { address_old: { contains: filters.search, mode: 'insensitive' } },
-            { address_new: { contains: filters.search, mode: 'insensitive' } },
+        where.OR = [
+            {
+                branch_name: {
+                    contains: filters.search,
+                    mode: "insensitive"
+                }
+            },
+            {
+                address_old: {
+                    contains: filters.search,
+                    mode: "insensitive"
+                }
+            },
+            {
+                address_new: {
+                    contains: filters.search,
+                    mode: "insensitive"
+                }
+            }
         ];
     }
 
     if (filters.branch_name) {
-        whereClause.branch_name = { equals: filters.branch_name };
+        where.branch_name = { equals: filters.branch_name };
     }
 
-    if (filters.staffId) {
-        whereClause.assigned_staff = {
-            some: {
-                id: filters.staffId
-            }
+    if (filters.staffId !== undefined) {
+        where.assigned_staff = {
+            some: { id: filters.staffId }
         };
     }
 
+    const skip = (page - 1) * limit;
     const [buildings, total] = await prisma.$transaction([
         prisma.building.findMany({
-            where: whereClause,
-            skip: pagination.skip,
-            take: pagination.limit,
+            where,
+            skip,
+            take: limit,
             orderBy: { created_at: "desc" },
-            select: buildingSummarySelect
+            select: publicBuildingSelect
         }),
-        prisma.building.count({ where: whereClause }),
+        prisma.building.count({ where })
     ]);
 
     return {
         data: buildings,
         pagination: {
             total,
-            page: pagination.page,
-            limit: pagination.limit,
-            totalPages: Math.ceil(total / pagination.limit),
-        },
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        }
     };
 };
 
 export const getBuildingByIdService = async (id: number) => {
-    return await prisma.building.findUnique({
+    return prisma.building.findUnique({
         where: { id },
-        select: buildingSummarySelect,
+        select: publicBuildingSelect
     });
+};
+
+export const assertBuildingUpdateAccessService = (
+    id: number,
+    data: UpdateBuildingRequest["body"],
+    actor: Actor
+) => {
+    if (actor.role === Role.MANAGER) {
+        assertManagerBuildingTarget(id, actor);
+
+        if (data.staff_id !== undefined) {
+            throw new AppError(
+                403,
+                "FORBIDDEN",
+                "Managers cannot change building staff assignments"
+            );
+        }
+    }
 };
 
 export const updateBuildingService = async (
     id: number,
-    data: Prisma.BuildingUpdateInput
+    data: UpdateBuildingRequest["body"],
+    actor: Actor,
+    imageUrl?: string
 ) => {
-    return await prisma.building.update({
+    assertBuildingUpdateAccessService(id, data, actor);
+
+    const {
+        staff_id,
+        ...scalarData
+    } = data;
+    const updateData = {
+        ...scalarData,
+        ...(imageUrl === undefined
+            ? {}
+            : { thumbnail_url: imageUrl })
+    };
+
+    if (actor.role === Role.MANAGER) {
+        const { buildingId, assignmentWhere } =
+            assertManagerBuildingTarget(id, actor);
+
+        return prisma.$transaction(async (transaction) => {
+            const result = await transaction.building.updateMany({
+                where: {
+                    id: buildingId,
+                    ...assignmentWhere
+                },
+                data: updateData
+            });
+
+            if (result.count === 0) {
+                throw notFound();
+            }
+
+            const updated = await transaction.building.findUnique({
+                where: { id: buildingId },
+                select: privateBuildingSelect
+            });
+
+            if (!updated) {
+                throw notFound();
+            }
+
+            return updated;
+        });
+    }
+
+    const adminUpdateData: Prisma.BuildingUpdateInput = {
+        ...updateData
+    };
+
+    if (staff_id !== undefined) {
+        adminUpdateData.assigned_staff = {
+            set: staff_id === null
+                ? []
+                : [{ id: staff_id }]
+        };
+    }
+
+    return prisma.building.update({
         where: { id },
-        data,
-        select: buildingSummarySelect,
+        data: adminUpdateData,
+        select: privateBuildingSelect
     });
 };
 
 export const deleteBuildingService = async (id: number) => {
-    return await prisma.building.delete({
-        where: { id },
+    return prisma.building.delete({
+        where: { id }
     });
 };
