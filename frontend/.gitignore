@@ -23,4 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
-package-lock.json
+# Vercel
+.vercel/
+
+/package-lock.json

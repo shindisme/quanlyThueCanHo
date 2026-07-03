@@ -7,7 +7,12 @@
     "removeComments": true,
     "strict": true,
     "types": [
-      "node"
+      "node",
+      "express"
+    ],
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
     ],
     "esModuleInterop": true,
     "skipLibCheck": true,
