@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/auth.store";
 import { toast } from "sonner";
 import * as staffService from "../services/staffService";
@@ -9,6 +9,7 @@ import { useDebounce } from "./common/useDebounce";
 import { removeVietnameseTones } from "../utils/string";
 
 export function useStaffList() {
+  const queryClient = useQueryClient();
   const { role, managedBuildingId } = useAuthStore();
 
   const [search, setSearch] = useState("");
@@ -72,16 +73,22 @@ export function useStaffList() {
 
   const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  async function handleDelete() {
-    if (!deleteItem) return;
-    try {
-      await staffService.deleteStaff(deleteItem.id);
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => staffService.deleteStaff(id),
+    onSuccess: () => {
       toast.success("Đã xóa nhân viên thành công!");
       setDeleteItem(null);
-      loadData();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Xóa nhân viên thất bại");
-    }
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || "Xóa nhân viên thất bại");
+    },
+  });
+
+  function handleDelete() {
+    if (!deleteItem) return;
+    deleteMutation.mutate(deleteItem.id);
   }
 
   function getBuildingName(bId: number | null): string {

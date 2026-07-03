@@ -40,18 +40,25 @@ export async function getAllApartments(params?: {
   limit?: number;
   status?: string;
 }): Promise<{ data: ApartmentData[]; pagination: ApartmentPagination }> {
-  const res = await api.get<any>("/apartments", { params });
-  const rawData = res.data.data || (Array.isArray(res.data) ? res.data : []);
+  interface ApartmentsResponse {
+    data: ApartmentData[];
+    meta?: {
+      pagination?: ApartmentPagination;
+    };
+    pagination?: ApartmentPagination;
+  }
+  const res = await api.get<ApartmentsResponse>("/apartments", { params });
+  const rawData = res.data.data || [];
   const pagination = res.data.meta?.pagination || res.data.pagination || { total: rawData.length, page: 1, limit: 10, totalPages: 1 };
   return { data: rawData, pagination };
 }
 
 export async function getApartmentById(id: number): Promise<ApartmentData> {
-  const res = await api.get<ApartmentData>(`/apartments/${id}`);
-  return res.data;
+  const res = await api.get<{ data: ApartmentData }>(`/apartments/${id}`);
+  return res.data.data;
 }
 
-export async function createApartment(data: FormData | any) {
+export async function createApartment(data: FormData | Partial<ApartmentData>) {
   const headers: Record<string, string> = {};
   if (data instanceof FormData) {
     headers["Content-Type"] = "multipart/form-data";

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/auth.store";
 import { changePassword } from "../services/authService";
 import * as tenantService from "../services/tenantService";
@@ -8,6 +8,14 @@ import * as contractService from "../services/contractService";
 import * as apartmentService from "../services/apartmentService";
 import * as buildingService from "../services/buildingService";
 import { changePasswordSchema, occupantSchema } from "../schemas/user.schema";
+
+interface Occupant {
+  id: string;
+  name: string;
+  cccd: string;
+  dob: string;
+  phone: string;
+}
 
 function parseJwt(token: string) {
   try {
@@ -23,7 +31,7 @@ function parseJwt(token: string) {
         .join("")
     );
     return JSON.parse(jsonPayload);
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -33,7 +41,20 @@ export function useProfile() {
   const [oldPass, setOldPass] = useState("");
   const [newPass, setNewPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
-  const [saving, setSaving] = useState(false);
+  const changePasswordMutation = useMutation({
+    mutationFn: ({ oldPass, newPass }: { oldPass: string; newPass: string }) => changePassword(oldPass, newPass),
+    onSuccess: () => {
+      toast.success("Đổi mật khẩu thành công!");
+      setOldPass("");
+      setNewPass("");
+      setConfirmPass("");
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || "Đổi mật khẩu thất bại");
+    }
+  });
+  const saving = changePasswordMutation.isPending;
 
   const { data: tenantsRes } = useQuery({
     queryKey: ["tenants"],
@@ -78,13 +99,13 @@ export function useProfile() {
     ? buildingsRes.data.find((b) => b.id === apartmentInfo.building_id)
     : null;
 
-  const [occupants, setOccupants] = useState<any[]>(() => {
+  const [occupants, setOccupants] = useState<Occupant[]>(() => {
     if (!email) return [];
     const stored = localStorage.getItem(`tenant-occupants-${email}`);
     return stored ? JSON.parse(stored) : [];
   });
   const [showOccupantModal, setShowOccupantModal] = useState(false);
-  const [editOccupant, setEditOccupant] = useState<any | null>(null);
+  const [editOccupant, setEditOccupant] = useState<Occupant | null>(null);
   const [occupantForm, setOccupantForm] = useState({
     name: "",
     cccd: "",
@@ -92,7 +113,7 @@ export function useProfile() {
     phone: ""
   });
 
-  const handleOpenOccupantForm = (occ: any | null) => {
+  const handleOpenOccupantForm = (occ: Occupant | null) => {
     setEditOccupant(occ);
     if (occ) {
       setOccupantForm({
@@ -128,7 +149,7 @@ export function useProfile() {
       toast.error(result.error.issues[0].message);
       return;
     }
-    let updated: any[];
+    let updated: Occupant[];
     if (editOccupant) {
       updated = occupants.map((occ) =>
         occ.id === editOccupant.id ? { ...occ, ...occupantForm } : occ
@@ -149,22 +170,13 @@ export function useProfile() {
     setShowOccupantModal(false);
   };
 
-  async function handleChangePassword() {
+  function handleChangePassword() {
     const result = changePasswordSchema.safeParse({ oldPass, newPass, confirmPass });
     if (!result.success) {
       toast.error(result.error.issues[0].message);
       return;
     }
-    setSaving(true);
-    try {
-      await changePassword(oldPass, newPass);
-      toast.success("Đổi mật khẩu thành công!");
-      setOldPass(""); setNewPass(""); setConfirmPass("");
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Đổi mật khẩu thất bại");
-    } finally {
-      setSaving(false);
-    }
+    changePasswordMutation.mutate({ oldPass, newPass });
   }
 
   return {

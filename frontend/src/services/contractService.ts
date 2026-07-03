@@ -1,14 +1,36 @@
 import api from "../lib/api";
 import type { RentalContract } from "../types";
+import type { ContractStatus } from "../constants/enums";
 
-function mapBackendToFrontend(c: any): RentalContract {
+interface RawContract {
+  id: number;
+  apartment_id: number;
+  tenant_id: number;
+  start_date: string;
+  end_date: string;
+  deposit_amount: number;
+  monthly_rent: number;
+  status: string;
+  contract_file?: string | null;
+  signed_at?: string | null;
+  created_by?: number | null;
+  created_at: string;
+}
+
+function mapBackendToFrontend(c: RawContract): RentalContract {
   return {
-    ...c,
+    id: c.id,
+    apartment_id: c.apartment_id,
+    tenant_id: c.tenant_id,
+    status: c.status as ContractStatus,
+    monthly_rent: c.monthly_rent,
+    deposit_amount: c.deposit_amount,
     contractFile: c.contract_file || null,
-    signedAt: c.signed_at ? c.signed_at.split("T")[0] : null,
+    signedAt: c.signed_at ? c.signed_at.split("T")[0] : "",
     createdBy: c.created_by || 1,
     start_date: c.start_date ? c.start_date.split("T")[0] : "",
     end_date: c.end_date ? c.end_date.split("T")[0] : "",
+    created_at: c.created_at,
   };
 }
 
@@ -18,7 +40,7 @@ export async function getAllContracts(params?: {
   search?: string;
   tenantId?: number;
 }): Promise<RentalContract[]> {
-  const res = await api.get<{ success: boolean; data: any[] }>("/contracts", {
+  const res = await api.get<{ success: boolean; data: RawContract[] }>("/contracts", {
     params: {
       buildingId: params?.buildingId,
       status: params?.status,
@@ -33,7 +55,7 @@ export async function getAllContracts(params?: {
 
 export async function getContractById(id: number): Promise<RentalContract | null> {
   try {
-    const res = await api.get<{ success: boolean; data: any }>(`/contracts/${id}`);
+    const res = await api.get<{ success: boolean; data: RawContract }>(`/contracts/${id}`);
     const data = res.data.data;
     return data ? mapBackendToFrontend(data) : null;
   } catch (error) {
@@ -43,7 +65,7 @@ export async function getContractById(id: number): Promise<RentalContract | null
 }
 
 export async function createContract(data: Partial<RentalContract>): Promise<RentalContract> {
-  const res = await api.post<{ success: boolean; data: any }>("/contracts", {
+  const res = await api.post<{ success: boolean; data: RawContract }>("/contracts", {
     apartment_id: Number(data.apartment_id),
     tenant_id: Number(data.tenant_id),
     start_date: data.start_date,
@@ -58,7 +80,7 @@ export async function createContract(data: Partial<RentalContract>): Promise<Ren
 }
 
 export async function extendContract(id: number, newEndDate: string): Promise<RentalContract> {
-  const res = await api.patch<{ success: boolean; data: any }>(`/contracts/${id}/extend`, {
+  const res = await api.patch<{ success: boolean; data: RawContract }>(`/contracts/${id}/extend`, {
     new_end_date: newEndDate,
   });
 

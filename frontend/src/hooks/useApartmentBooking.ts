@@ -4,6 +4,12 @@ import { bookViewing } from "../services/scheduleService";
 import type { ApartmentData } from "../services/apartmentService";
 import { scheduleSchema } from "../schemas/schedule.schema";
 
+interface BookedSlot {
+  apartmentId: number;
+  date: string;
+  slot: string;
+}
+
 interface UseApartmentBookingProps {
   apartment: ApartmentData | null;
 }
@@ -45,7 +51,7 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
       const list = stored ? JSON.parse(stored) : [];
       if (!apartment) return false;
       return list.some(
-        (b: any) => b.apartmentId === apartment.id && b.date === selectedDate && b.slot === slot
+        (b: BookedSlot) => b.apartmentId === apartment.id && b.date === selectedDate && b.slot === slot
       );
     } catch {
       return false;
@@ -95,7 +101,7 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
       const stored = localStorage.getItem("booked-viewing-slots");
       const list = stored ? JSON.parse(stored) : [];
       const isBooked = list.some(
-        (b: any) => b.apartmentId === apartment.id && b.date === selectedDate && b.slot === selectedSlot
+        (b: BookedSlot) => b.apartmentId === apartment.id && b.date === selectedDate && b.slot === selectedSlot
       );
       if (isBooked) return true;
 

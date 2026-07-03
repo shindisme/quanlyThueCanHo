@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { removeVietnameseTones } from "../utils/string";
 import * as tenantService from "../services/tenantService";
 import * as contractService from "../services/contractService";
@@ -14,6 +14,7 @@ import { usePagination } from "./common/usePagination";
 import { useUserRole } from "./common/useUserRole";
 
 export function useTenantList() {
+  const queryClient = useQueryClient();
   const { role, managedBuildingId } = useUserRole();
 
   const [search, setSearch] = useState("");
@@ -120,17 +121,23 @@ export function useTenantList() {
     initialPageSize: 10,
   });
 
-  async function handleDelete() {
-    if (!deleteItem) return;
-    try {
-      await tenantService.deleteTenant(deleteItem.id);
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => tenantService.deleteTenant(id),
+    onSuccess: () => {
       setDeleteItem(null);
       toast.success("Đã xóa người thuê");
-      loadData();
-    } catch (error: unknown) {
+      queryClient.invalidateQueries({ queryKey: ["tenants"] });
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+    },
+    onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string } } };
       toast.error(err.response?.data?.message || "Xóa người thuê thất bại");
-    }
+    },
+  });
+
+  function handleDelete() {
+    if (!deleteItem) return;
+    deleteMutation.mutate(deleteItem.id);
   }
 
   return {

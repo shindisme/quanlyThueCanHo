@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as authService from "../services/authService";
 import type { UserData } from "../services/authService";
@@ -10,6 +10,7 @@ import { useUserRole } from "./common/useUserRole";
 import { removeVietnameseTones } from "../utils/string";
 
 export function useUserList() {
+  const queryClient = useQueryClient();
   const { isAdmin } = useUserRole();
   const createModal = useOnOff();
 
@@ -35,29 +36,40 @@ export function useUserList() {
 
   const { items: sortedUsers, requestSort, getSortIcon } = useSort(filtered);
 
-  // Xóa
-  async function handleDelete() {
-    if (!deleteItem) return;
-    try {
-      await authService.deleteUser(deleteItem.id);
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => authService.deleteUser(id),
+    onSuccess: () => {
       toast.success("Đã xóa tài khoản");
       setDeleteItem(null);
-      fetchUsers();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Xóa thất bại");
-    }
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || "Xóa thất bại");
+    },
+  });
+
+  function handleDelete() {
+    if (!deleteItem) return;
+    deleteMutation.mutate(deleteItem.id);
   }
 
-  // Reset password
-  async function confirmResetPassword() {
-    if (!resetItem) return;
-    try {
-      await authService.resetPassword(resetItem.id);
-      toast.success(`Đã đặt lại mật khẩu cho tài khoản "${resetItem.username}" về mặc định "123456"`);
+  const resetMutation = useMutation({
+    mutationFn: (id: number) => authService.resetPassword(id),
+    onSuccess: () => {
+      if (resetItem) {
+        toast.success(`Đã đặt lại mật khẩu cho tài khoản "${resetItem.username}" về mặc định "123456"`);
+      }
       setResetItem(null);
-    } catch {
+    },
+    onError: () => {
       toast.error("Đặt lại mật khẩu thất bại");
-    }
+    },
+  });
+
+  function confirmResetPassword() {
+    if (!resetItem) return;
+    resetMutation.mutate(resetItem.id);
   }
 
   return {

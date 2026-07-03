@@ -5,7 +5,7 @@ export async function getAllStaff(params?: {
   building_id?: number;
   position?: string;
 }): Promise<{ data: Staff[] }> {
-  const res = await api.get<any>("/staff", { params });
+  const res = await api.get<{ success?: boolean; data?: Staff[] }>("/staff", { params });
   if (res.data.success && Array.isArray(res.data.data)) {
     return { data: res.data.data };
   }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as tenantService from "../services/tenantService";
 import type { Tenant } from "../types";
@@ -18,7 +19,22 @@ export function useTenantModify({ isOpen, onClose, onSuccess, editItem }: UseTen
   const [formAddress, setFormAddress] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formPhone, setFormPhone] = useState("");
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<Tenant> }) => tenantService.updateTenant(id, data),
+    onSuccess: () => {
+      toast.success("Đã cập nhật thông tin người thuê thành công");
+      queryClient.invalidateQueries({ queryKey: ["tenants"] });
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      onSuccess();
+      onClose();
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || "Cập nhật thất bại");
+    }
+  });
+  const loading = updateMutation.isPending;
 
   useEffect(() => {
     if (editItem && isOpen) {
@@ -35,7 +51,7 @@ export function useTenantModify({ isOpen, onClose, onSuccess, editItem }: UseTen
     }
   }, [editItem, isOpen]);
 
-  async function handleEditSave() {
+  function handleEditSave() {
     if (!editItem) return;
     const payload = {
       full_name: formFullName,
@@ -50,25 +66,17 @@ export function useTenantModify({ isOpen, onClose, onSuccess, editItem }: UseTen
       toast.error(result.error.issues[0].message);
       return;
     }
-    setLoading(true);
-    try {
-      await tenantService.updateTenant(editItem.id, {
+    updateMutation.mutate({
+      id: editItem.id,
+      data: {
         full_name: formFullName,
         citizen_id: formCitizenId,
         date_of_birth: formDob ? new Date(formDob).toISOString() : null,
         address: formAddress || null,
         email: formEmail.trim() || null,
         phone: formPhone.trim() || null,
-      });
-
-      toast.success("Đã cập nhật thông tin người thuê thành công");
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Cập nhật thất bại");
-    } finally {
-      setLoading(false);
-    }
+      }
+    });
   }
 
   return {

@@ -5,7 +5,7 @@ export async function getAllTenants(params?: {
   page?: number;
   limit?: number;
 }): Promise<{ data: Tenant[] }> {
-  const res = await api.get<any>("/tenants", { params });
+  const res = await api.get<{ success?: boolean; data?: Tenant[] }>("/tenants", { params });
   if (res.data.success && Array.isArray(res.data.data)) {
     return { data: res.data.data };
   }

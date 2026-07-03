@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { utilitySchema } from "../schemas/utility.schema";
 import * as utilityService from "../services/utilityService";
@@ -25,7 +26,21 @@ export function useUtilityModify({
   buildings,
   apartments,
 }: UseUtilityModifyProps) {
-  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<utilityService.UtilityReadingData> }) => utilityService.updateUtilityReading(id, data),
+    onSuccess: () => {
+      toast.success("Cập nhật chỉ số điện nước thành công");
+      queryClient.invalidateQueries({ queryKey: ["utilityReadings"] });
+      onSuccess();
+      onClose();
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || "Gặp lỗi khi lưu chỉ số");
+    }
+  });
+  const saving = updateMutation.isPending;
   const [formBuildingId, setFormBuildingId] = useState<string>("");
   const [formFloor, setFormFloor] = useState<string>("");
   const [formApartmentId, setFormApartmentId] = useState<string>("");
@@ -50,7 +65,7 @@ export function useUtilityModify({
     }
   }, [editItem, isOpen]);
 
-  async function handleSave() {
+  function handleSave() {
     if (isViewOnly) return;
     if (!editItem) return;
     const payload = {
@@ -68,18 +83,7 @@ export function useUtilityModify({
       toast.error(validationResult.error.issues[0].message);
       return;
     }
-
-    setSaving(true);
-    try {
-      await utilityService.updateUtilityReading(editItem.id, payload);
-      toast.success("Cập nhật chỉ số điện nước thành công");
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Gặp lỗi khi lưu chỉ số");
-    } finally {
-      setSaving(false);
-    }
+    updateMutation.mutate({ id: editItem.id, data: payload });
   }
 
   // Helpers

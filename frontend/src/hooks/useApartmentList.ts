@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as apartmentService from "../services/apartmentService";
 import * as buildingService from "../services/buildingService";
@@ -12,6 +12,7 @@ import { useSort } from "./common/useSort";
 import { removeVietnameseTones } from "../utils/string";
 
 export function useApartmentList() {
+  const queryClient = useQueryClient();
   const { role, managedBuildingId } = useUserRole();
 
   const [search, setSearch] = useState("");
@@ -126,17 +127,22 @@ export function useApartmentList() {
 
   const paginatedApartments = sortedApartments.slice(startIdx, endIdx);
 
-  async function handleDelete() {
-    if (!deleteItem) return;
-    try {
-      await apartmentService.deleteApartment(deleteItem.id);
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apartmentService.deleteApartment(id),
+    onSuccess: () => {
       toast.success("Đã xóa căn hộ");
       setDeleteItem(null);
-      fetchApartments();
-    } catch (error) {
-      const apiError = error as { response?: { data?: { error?: string } } };
-      toast.error(apiError.response?.data?.error || "Xóa thất bại");
-    }
+      queryClient.invalidateQueries({ queryKey: ["apartments"] });
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || "Xóa thất bại");
+    },
+  });
+
+  function handleDelete() {
+    if (!deleteItem) return;
+    deleteMutation.mutate(deleteItem.id);
   }
 
   return {

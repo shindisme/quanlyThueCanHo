@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as staffService from "../services/staffService";
 import * as buildingService from "../services/buildingService";
@@ -16,6 +17,46 @@ interface UseStaffCreateProps {
 }
 
 export function useStaffCreate({ isOpen, onClose, onSuccess, positions }: UseStaffCreateProps) {
+  const queryClient = useQueryClient();
+  const createMutation = useMutation({
+    mutationFn: async ({ username, role, full_name, phone, position, building_id }: {
+      username: string;
+      role: "MANAGER" | "STAFF";
+      full_name: string;
+      phone: string | null;
+      position: string;
+      building_id: number | null;
+    }) => {
+      const res = await authService.createUser({ username, role });
+      try {
+        await staffService.createStaff({
+          full_name,
+          phone,
+          position,
+          building_id,
+          user_id: res.userId,
+        });
+      } catch (staffError) {
+        await authService.deleteUser(res.userId).catch(() => {});
+        throw staffError;
+      }
+      return { username };
+    },
+    onSuccess: (data) => {
+      toast.success(`Đã tự động cấp tài khoản "${data.username}" (mật khẩu mặc định: 123456) và thêm nhân viên thành công!`);
+      setFullName("");
+      setPhone("");
+      setPosition(positions[0]);
+      setBuildingId("");
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
+      onSuccess();
+      onClose();
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string; message?: string } } };
+      toast.error(err.response?.data?.error || err.response?.data?.message || "Không thể thêm nhân viên");
+    }
+  });
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [position, setPosition] = useState(positions[0]);
@@ -68,7 +109,7 @@ export function useStaffCreate({ isOpen, onClose, onSuccess, positions }: UseSta
     }
   }
 
-  async function handleSave() {
+  function handleSave() {
     const validation = staffSchema.safeParse({
       fullName,
       phone: phone || null,
@@ -81,38 +122,17 @@ export function useStaffCreate({ isOpen, onClose, onSuccess, positions }: UseSta
       return;
     }
 
-    setLoading(true);
-    try {
-      const isManager = position === "Quản lý";
-      const roleToCreate = isManager ? "MANAGER" : "STAFF";
+    const isManager = position === "Quản lý";
+    const roleToCreate = isManager ? "MANAGER" : "STAFF";
 
-      // Tự động tạo tài khoản theo thứ tự
-      const res = await authService.createUser({
-        username: nextUsername,
-        role: roleToCreate,
-      });
-
-      await staffService.createStaff({
-        full_name: fullName,
-        phone: phone || null,
-        position,
-        building_id: buildingId ? Number(buildingId) : null,
-        user_id: res.userId,
-      });
-
-      toast.success(`Đã tự động cấp tài khoản "${nextUsername}" (mật khẩu mặc định: 123456) và thêm nhân viên thành công!`);
-
-      setFullName("");
-      setPhone("");
-      setPosition(positions[0]);
-      setBuildingId("");
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || error.response?.data?.message || "Không thể thêm nhân viên");
-    } finally {
-      setLoading(false);
-    }
+    createMutation.mutate({
+      username: nextUsername,
+      role: roleToCreate,
+      full_name: fullName,
+      phone: phone || null,
+      position,
+      building_id: buildingId ? Number(buildingId) : null,
+    });
   }
 
   // Danh sách ID các tòa nhà đã có Quản lý phụ trách
@@ -130,7 +150,7 @@ export function useStaffCreate({ isOpen, onClose, onSuccess, positions }: UseSta
     buildingId,
     setBuildingId,
     buildings,
-    loading,
+    loading: loading || createMutation.isPending,
     nextUsername,
     handleSave,
     managedBuildingIds,

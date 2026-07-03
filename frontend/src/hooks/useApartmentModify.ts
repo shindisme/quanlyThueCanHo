@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as apartmentService from "../services/apartmentService";
 import type { ApartmentData } from "../services/apartmentService";
@@ -21,7 +22,21 @@ export function useApartmentModify({
   editItem,
   buildings,
 }: UseApartmentModifyProps) {
-  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: FormData }) => apartmentService.updateApartment(id, data),
+    onSuccess: () => {
+      toast.success("Đã cập nhật căn hộ");
+      queryClient.invalidateQueries({ queryKey: ["apartments"] });
+      onSuccess();
+      onClose();
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || "Thao tác thất bại");
+    }
+  });
+  const saving = updateMutation.isPending;
   const [localThumbnail, setLocalThumbnail] = useState<string>("");
   const [localImages, setLocalImages] = useState<string[]>([]);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
@@ -114,7 +129,7 @@ export function useApartmentModify({
     });
   }
 
-  async function handleSave() {
+  function handleSave() {
     if (!editItem) return;
     const result = apartmentSchema.safeParse(formData);
     if (!result.success) {
@@ -128,38 +143,28 @@ export function useApartmentModify({
         return;
       }
     }
-    setSaving(true);
-    try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("room_number", formData.room_number);
-      formDataToSend.append("building_id", String(formData.building_id));
-      formDataToSend.append("floor", String(formData.floor));
-      formDataToSend.append("area", String(formData.area));
-      formDataToSend.append("bedrooms", String(formData.bedrooms));
-      formDataToSend.append("bathrooms", String(formData.bathrooms));
-      formDataToSend.append("rental_price", String(formData.rental_price));
-      formDataToSend.append("description", formData.description || "");
-      formDataToSend.append("status", formData.status);
+    const formDataToSend = new FormData();
+    formDataToSend.append("room_number", formData.room_number);
+    formDataToSend.append("building_id", String(formData.building_id));
+    formDataToSend.append("floor", String(formData.floor));
+    formDataToSend.append("area", String(formData.area));
+    formDataToSend.append("bedrooms", String(formData.bedrooms));
+    formDataToSend.append("bathrooms", String(formData.bathrooms));
+    formDataToSend.append("rental_price", String(formData.rental_price));
+    formDataToSend.append("description", formData.description || "");
+    formDataToSend.append("status", formData.status);
 
-      if (thumbnailFile) {
-        formDataToSend.append("images", thumbnailFile);
-      }
-
-      detailFiles.forEach((file) => {
-        if (file) {
-          formDataToSend.append("images", file);
-        }
-      });
-
-      await apartmentService.updateApartment(editItem.id, formDataToSend);
-      toast.success("Đã cập nhật căn hộ");
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Thao tác thất bại");
-    } finally {
-      setSaving(false);
+    if (thumbnailFile) {
+      formDataToSend.append("images", thumbnailFile);
     }
+
+    detailFiles.forEach((file) => {
+      if (file) {
+        formDataToSend.append("images", file);
+      }
+    });
+
+    updateMutation.mutate({ id: editItem.id, data: formDataToSend });
   }
 
   return {

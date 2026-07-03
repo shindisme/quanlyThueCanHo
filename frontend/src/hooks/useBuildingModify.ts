@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as buildingService from "../services/buildingService";
 import type { BuildingData } from "../services/buildingService";
 import { buildingSchema } from "../schemas/building.schema";
+import type { Staff } from "../types";
 
 import { isValidImageFile } from "../utils/file";
 
@@ -14,8 +16,31 @@ interface UseBuildingModifyProps {
 }
 
 export function useBuildingModify({ isOpen, onClose, onSuccess, editItem }: UseBuildingModifyProps) {
-  const [saving, setSaving] = useState(false);
-  const [staffList, setStaffList] = useState<any[]>([]);
+  const queryClient = useQueryClient();
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, jsonPayload, thumbnailFile }: { id: number; jsonPayload: Record<string, unknown>; thumbnailFile: File | null }) => {
+      const payloadWithoutName = { ...jsonPayload };
+      delete payloadWithoutName.name;
+      await buildingService.updateBuilding(id, payloadWithoutName);
+      if (thumbnailFile) {
+        const formDataToSend = new FormData();
+        formDataToSend.append("image", thumbnailFile);
+        await buildingService.updateBuilding(id, formDataToSend);
+      }
+    },
+    onSuccess: () => {
+      toast.success("Đã cập nhật tòa nhà");
+      queryClient.invalidateQueries({ queryKey: ["buildings"] });
+      onSuccess();
+      onClose();
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string; message?: string } } };
+      toast.error(err.response?.data?.error || err.response?.data?.message || "Thao tác thất bại");
+    }
+  });
+  const saving = updateMutation.isPending;
+  const [staffList, setStaffList] = useState<Staff[]>([]);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [formData, setFormData] = useState({
@@ -28,6 +53,16 @@ export function useBuildingModify({ isOpen, onClose, onSuccess, editItem }: UseB
     staff_id: null as number | null,
     image_url: "",
   });
+
+  async function fetchManagers() {
+    try {
+      const { getAllStaff } = await import("../services/staffService");
+      const staffRes = await getAllStaff();
+      setStaffList(staffRes.data);
+    } catch {
+      toast.error("Không thể tải danh sách người quản lý");
+    }
+  }
 
   useEffect(() => {
     if (isOpen) {
@@ -51,16 +86,6 @@ export function useBuildingModify({ isOpen, onClose, onSuccess, editItem }: UseB
       setThumbnailFile(null);
     }
   }, [editItem, isOpen]);
-
-  async function fetchManagers() {
-    try {
-      const { getAllStaff } = await import("../services/staffService");
-      const staffRes = await getAllStaff();
-      setStaffList(staffRes.data);
-    } catch {
-      toast.error("Không thể tải danh sách người quản lý");
-    }
-  }
 
   const availableManagers = staffList.filter((m) => {
     const isManager = m.position === "Quản lý" || m.user?.role === "MANAGER";
@@ -90,42 +115,25 @@ export function useBuildingModify({ isOpen, onClose, onSuccess, editItem }: UseB
     setPreviewUrl("");
   }
 
-  async function handleSave() {
+  function handleSave() {
     if (!editItem) return;
     const result = buildingSchema.safeParse(formData);
     if (!result.success) {
       toast.error(result.error.issues[0].message);
       return;
     }
-    setSaving(true);
-    try {
-      const jsonPayload: any = {
-        name: formData.name,
-        branch_name: formData.branch_name,
-        address_old: formData.address_old,
-        address_new: formData.address_new,
-        total_floors: Number(formData.total_floors),
-        description: formData.description || "",
-      };
+    const jsonPayload: Record<string, unknown> = {
+      name: formData.name,
+      branch_name: formData.branch_name,
+      address_old: formData.address_old,
+      address_new: formData.address_new,
+      total_floors: Number(formData.total_floors),
+      description: formData.description || "",
+    };
 
-      jsonPayload.staff_id = formData.staff_id !== null && formData.staff_id !== undefined ? Number(formData.staff_id) : null;
+    jsonPayload.staff_id = formData.staff_id !== null && formData.staff_id !== undefined ? Number(formData.staff_id) : null;
 
-      await buildingService.updateBuilding(editItem.id, jsonPayload);
-
-      if (thumbnailFile) {
-        const formDataToSend = new FormData();
-        formDataToSend.append("image", thumbnailFile);
-        await buildingService.updateBuilding(editItem.id, formDataToSend);
-      }
-
-      toast.success("Đã cập nhật tòa nhà");
-      onSuccess();
-      onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || error.response?.data?.message || "Thao tác thất bại");
-    } finally {
-      setSaving(false);
-    }
+    updateMutation.mutate({ id: editItem.id, jsonPayload, thumbnailFile });
   }
 
   return {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import * as buildingService from "../services/buildingService";
@@ -21,6 +21,7 @@ interface LocationState {
 }
 
 export function useContractList() {
+  const queryClient = useQueryClient();
   const { role, managedBuildingId, email } = useUserRole();
   const location = useLocation();
 
@@ -157,21 +158,25 @@ export function useContractList() {
 
   const paginatedContracts = sortedContracts.slice(startIdx, endIdx);
 
-  async function handleExtendContract() {
+  const extendMutation = useMutation({
+    mutationFn: ({ id, date }: { id: number; date: string }) => contractService.extendContract(id, date),
+    onSuccess: () => {
+      toast.success("Gia hạn hợp đồng thành công!");
+      setSelectedExtendContract(null);
+      setExtendEndDate("");
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+    },
+    onError: () => {
+      toast.error("Gia hạn hợp đồng thất bại!");
+    },
+  });
+
+  function handleExtendContract() {
     if (!selectedExtendContract || !extendEndDate) {
       toast.error("Vui lòng chọn ngày kết thúc mới!");
       return;
     }
-
-    try {
-      await contractService.extendContract(selectedExtendContract.id, extendEndDate);
-      toast.success("Gia hạn hợp đồng thành công!");
-      setSelectedExtendContract(null);
-      setExtendEndDate("");
-      fetchContracts();
-    } catch {
-      toast.error("Gia hạn hợp đồng thất bại!");
-    }
+    extendMutation.mutate({ id: selectedExtendContract.id, date: extendEndDate });
   }
 
   return {

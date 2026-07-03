@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/auth.store";
 import { useSort } from "./common/useSort";
 import { useDebounce } from "./common/useDebounce";
@@ -13,6 +13,7 @@ import * as apartmentService from "../services/apartmentService";
 import type { ApartmentData } from "../services/apartmentService";
 
 export function useUtilityList() {
+  const queryClient = useQueryClient();
   const { role, managedBuildingId } = useAuthStore();
   const isWritable = role === "MANAGER" || role === "STAFF";
 
@@ -33,7 +34,7 @@ export function useUtilityList() {
   const [preselectedApartment, setPreselectedApartment] = useState<ApartmentData | null>(null);
   const [deleteItem, setDeleteItem] = useState<UtilityReadingData | null>(null);
 
-  const readingsParams: any = { limit: 100 };
+  const readingsParams: Parameters<typeof utilityService.getAllUtilityReadings>[0] = { limit: 100 };
   if (role !== "ADMIN" && managedBuildingId) {
     readingsParams.building_id = managedBuildingId;
   }
@@ -50,7 +51,7 @@ export function useUtilityList() {
   });
   const buildings = buildingsRes?.data || [];
 
-  const aptParams: any = { limit: 100 };
+  const aptParams: Parameters<typeof apartmentService.getAllApartments>[0] = { limit: 100 };
   if (role !== "ADMIN" && managedBuildingId) {
     aptParams.building_id = managedBuildingId;
   }
@@ -100,16 +101,22 @@ export function useUtilityList() {
   };
 
   // Confirm delete handler
-  const handleConfirmDelete = async () => {
-    if (!deleteItem) return;
-    try {
-      await utilityService.deleteUtilityReading(deleteItem.id);
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => utilityService.deleteUtilityReading(id),
+    onSuccess: () => {
       toast.success("Xóa chỉ số điện nước thành công");
       setDeleteItem(null);
-      fetchData();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Không thể xóa bản ghi");
+      queryClient.invalidateQueries({ queryKey: ["utilityReadings"] });
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || "Không thể xóa bản ghi");
     }
+  });
+
+  const handleConfirmDelete = () => {
+    if (!deleteItem) return;
+    deleteMutation.mutate(deleteItem.id);
   };
 
   // Filter logic
