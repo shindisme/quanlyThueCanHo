@@ -37,7 +37,7 @@ export function useProfile() {
 
   const { data: tenantsRes } = useQuery({
     queryKey: ["tenants"],
-    queryFn: () => tenantService.getAllTenants({ limit: 1000 }),
+    queryFn: () => tenantService.getAllTenants({ limit: 100 }),
     enabled: role === "TENANT" && !!email && !!token,
   });
 
@@ -60,7 +60,7 @@ export function useProfile() {
 
   const { data: apartmentsRes } = useQuery({
     queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartments({ limit: 1000 }),
+    queryFn: () => apartmentService.getAllApartments({ limit: 100 }),
     enabled: !!userContract,
   });
 

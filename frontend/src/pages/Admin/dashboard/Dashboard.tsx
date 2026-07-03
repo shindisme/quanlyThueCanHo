@@ -96,10 +96,10 @@ export default function Dashboard() {
       try {
         setLoading(true);
         const [bRes, aptRes, cRes, invRes] = await Promise.all([
-          buildingService.getAllBuildings({ limit: 1000 }),
-          apartmentService.getAllApartments({ limit: 1000 }),
+          buildingService.getAllBuildings({ limit: 100 }),
+          apartmentService.getAllApartments({ limit: 100 }),
           contractService.getAllContracts(),
-          invoiceService.getAllInvoices({ limit: 1000 })
+          invoiceService.getAllInvoices({ limit: 100 })
         ]);
 
         setBuildings(bRes.data || []);

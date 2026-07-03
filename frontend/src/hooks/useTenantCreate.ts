@@ -42,7 +42,7 @@ export function useTenantCreate({ onClose, onSuccess }: UseTenantCreateProps) {
 
     setLoading(true);
     try {
-      const allTenantsRes = await tenantService.getAllTenants({ limit: 1000 }).catch(() => ({ data: [] }));
+      const allTenantsRes = await tenantService.getAllTenants({ limit: 100 }).catch(() => ({ data: [] }));
       const allTenants = allTenantsRes.data || [];
 
       if (finalPhone) {

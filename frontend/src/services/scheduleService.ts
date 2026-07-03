@@ -31,8 +31,8 @@ export async function bookViewing(data: {
 }
 
 export async function getSchedules(): Promise<ScheduleData[]> {
-  const res = await api.get<ScheduleData[]>("/schedules");
-  return res.data;
+  const res = await api.get<any>("/schedules");
+  return res.data.data || res.data;
 }
 
 export async function confirmSchedule(id: number) {

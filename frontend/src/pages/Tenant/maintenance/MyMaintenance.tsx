@@ -70,7 +70,7 @@ export default function MyMaintenance() {
 
   const { data: tenantsData, isLoading: loadingTenants } = useQuery({
     queryKey: ["tenants"],
-    queryFn: () => tenantService.getAllTenants({ limit: 1000 }),
+    queryFn: () => tenantService.getAllTenants({ limit: 100 }),
   });
   const tenants = tenantsData?.data || [];
 

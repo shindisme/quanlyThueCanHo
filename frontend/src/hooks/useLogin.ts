@@ -56,16 +56,17 @@ export function useLogin() {
       const result = await login(resolvedEmail, data.password)
 
       const decoded = parseJwt(result.token)
+      const userId = decoded ? (decoded.userId ? Number(decoded.userId) : (decoded.sub ? Number(decoded.sub) : null)) : null
       let managedBuildingId: number | null = null
       let managedBuildingName: string | null = null
 
-      if ((result.role === "MANAGER" || result.role === "STAFF") && decoded && decoded.userId) {
+      if ((result.role === "MANAGER" || result.role === "STAFF") && userId) {
         try {
           const { getAllStaff } = await import("../services/staffService")
           const { getAllBuildings } = await import("../services/buildingService")
 
           const staffRes = await getAllStaff()
-          const currentStaff = staffRes.data.find((s) => s.user_id === decoded.userId)
+          const currentStaff = staffRes.data.find((s) => s.user_id === userId)
 
           if (currentStaff && currentStaff.building_id) {
             managedBuildingId = currentStaff.building_id

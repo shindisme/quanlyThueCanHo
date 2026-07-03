@@ -18,13 +18,13 @@ export interface UserData {
 }
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
-  const res = await api.post<LoginResponse>("/auth/login", { username, password });
-  return res.data;
+  const res = await api.post<any>("/auth/login", { username, password });
+  return res.data.data;
 }
 
 export async function getAllUsers(): Promise<UserData[]> {
-  const res = await api.get<UserData[]>("/auth/users");
-  return res.data;
+  const res = await api.get<any>("/auth/users");
+  return res.data.data;
 }
 
 export async function createUser(data: {
@@ -32,7 +32,7 @@ export async function createUser(data: {
   role: string;
 }) {
   const res = await api.post("/auth/create-user", data);
-  return res.data;
+  return res.data.data;
 }
 
 export async function updateUser(
@@ -40,20 +40,20 @@ export async function updateUser(
   data: { username?: string; role?: string }
 ) {
   const res = await api.put(`/auth/users/${id}`, data);
-  return res.data;
+  return res.data.data;
 }
 
 export async function deleteUser(id: number) {
   const res = await api.delete(`/auth/delete-user/${id}`);
-  return res.data;
+  return res.data.data;
 }
 
 export async function resetPassword(id: number) {
   const res = await api.post(`/auth/reset-password/${id}`);
-  return res.data;
+  return res.data.data;
 }
 
 export async function changePassword(oldPass: string, newPass: string) {
   const res = await api.post("/auth/change-password", { oldPass, newPass });
-  return res.data;
+  return res.data.data;
 }

@@ -15,9 +15,9 @@ export interface InvoiceFilters {
 }
 
 export async function getAllInvoices(params?: InvoiceFilters): Promise<{ data: Invoice[]; pagination?: any }> {
-  const res = await api.get<{ success: boolean; data: Invoice[]; pagination?: any }>("/invoices", { params });
+  const res = await api.get<any>("/invoices", { params });
   return {
     data: res.data.data || [],
-    pagination: res.data.pagination
+    pagination: res.data.meta?.pagination || res.data.pagination
   };
 }

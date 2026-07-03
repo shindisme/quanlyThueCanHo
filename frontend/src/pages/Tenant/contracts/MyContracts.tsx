@@ -59,13 +59,13 @@ export default function MyContracts() {
 
   const { data: apartmentsData } = useQuery({
     queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartments({ limit: 1000 }),
+    queryFn: () => apartmentService.getAllApartments({ limit: 100 }),
   });
   const apartments = apartmentsData?.data || [];
 
   const { data: tenantsData } = useQuery({
     queryKey: ["tenants"],
-    queryFn: () => tenantService.getAllTenants({ limit: 1000 }),
+    queryFn: () => tenantService.getAllTenants({ limit: 100 }),
   });
   const tenants = tenantsData?.data || [];
 

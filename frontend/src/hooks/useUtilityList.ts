@@ -33,7 +33,7 @@ export function useUtilityList() {
   const [preselectedApartment, setPreselectedApartment] = useState<ApartmentData | null>(null);
   const [deleteItem, setDeleteItem] = useState<UtilityReadingData | null>(null);
 
-  const readingsParams: any = { limit: 1000 };
+  const readingsParams: any = { limit: 100 };
   if (role !== "ADMIN" && managedBuildingId) {
     readingsParams.building_id = managedBuildingId;
   }
@@ -50,7 +50,7 @@ export function useUtilityList() {
   });
   const buildings = buildingsRes?.data || [];
 
-  const aptParams: any = { limit: 1000 };
+  const aptParams: any = { limit: 100 };
   if (role !== "ADMIN" && managedBuildingId) {
     aptParams.building_id = managedBuildingId;
   }

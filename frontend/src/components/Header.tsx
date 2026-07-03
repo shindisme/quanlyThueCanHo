@@ -74,7 +74,7 @@ export default function Header() {
           }
         } else if (role === "TENANT") {
           const { getAllTenants } = await import("../services/tenantService");
-          const tenantsRes = await getAllTenants({ limit: 1000 });
+          const tenantsRes = await getAllTenants({ limit: 100 });
           const currentTenant = tenantsRes.data.find((t) => t.user_id === decoded.userId);
           if (currentTenant) {
             setUserFullName(currentTenant.full_name);
