@@ -28,7 +28,7 @@ export function useTenantList() {
 
   const { data: tenantsRes, isLoading: loadingTenants, refetch: refetchTenants } = useQuery({
     queryKey: ["tenants"],
-    queryFn: () => tenantService.getAllTenants({ limit: 1000 }),
+    queryFn: () => tenantService.getAllTenants({ limit: 100 }),
   });
   const tenants = tenantsRes?.data || [];
 

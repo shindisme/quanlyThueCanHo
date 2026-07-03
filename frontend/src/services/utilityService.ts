@@ -52,7 +52,9 @@ export async function getAllUtilityReadings(params?: {
   limit?: number;
 }): Promise<{ data: UtilityReadingData[]; pagination: UtilityPagination }> {
   const res = await api.get<any>("/utility-readings", { params });
-  return res.data;
+  const rawData = res.data.data || (Array.isArray(res.data) ? res.data : []);
+  const pagination = res.data.meta?.pagination || res.data.pagination || { total: rawData.length, page: 1, limit: 10, totalPages: 1 };
+  return { data: rawData, pagination };
 }
 
 export async function getUtilityReadingById(id: number): Promise<UtilityReadingData> {

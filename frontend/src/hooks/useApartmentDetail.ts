@@ -45,7 +45,7 @@ export function useApartmentDetail() {
 
   const { data: tenantsRes, isLoading: loadingTenants } = useQuery({
     queryKey: ["tenants"],
-    queryFn: () => tenantService.getAllTenants({ limit: 1000 }).catch(() => ({ data: [] })),
+    queryFn: () => tenantService.getAllTenants({ limit: 100 }).catch(() => ({ data: [] })),
   })
   const tenants = tenantsRes?.data || []
 

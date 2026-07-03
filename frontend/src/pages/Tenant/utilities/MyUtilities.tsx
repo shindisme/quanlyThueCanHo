@@ -45,7 +45,7 @@ export default function MyUtilities() {
 
   const { data: tenantsRes, isLoading: loadingTenants } = useQuery({
     queryKey: ["tenants"],
-    queryFn: () => tenantService.getAllTenants({ limit: 1000 }),
+    queryFn: () => tenantService.getAllTenants({ limit: 100 }),
     enabled: !!userId,
   });
   const currentTenant = userId && tenantsRes?.data
@@ -63,7 +63,7 @@ export default function MyUtilities() {
 
   const { data: apartmentsRes, isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartments({ limit: 1000 }),
+    queryFn: () => apartmentService.getAllApartments({ limit: 100 }),
     enabled: !!activeContract,
   });
   const apartment = activeContract && apartmentsRes?.data
@@ -72,7 +72,7 @@ export default function MyUtilities() {
 
   const { data: readingsRes, isLoading: loadingReadings } = useQuery({
     queryKey: ["utilityReadings", activeContract?.apartment_id],
-    queryFn: () => utilityService.getAllUtilityReadings({ apartment_id: activeContract?.apartment_id, limit: 1000 }),
+    queryFn: () => utilityService.getAllUtilityReadings({ apartment_id: activeContract?.apartment_id, limit: 100 }),
     enabled: !!activeContract?.apartment_id,
   });
   const readings = readingsRes?.data || [];

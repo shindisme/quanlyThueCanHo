@@ -197,7 +197,7 @@ export function useContractCreate({
         const finalEmail = data.new_tenant_email?.trim() || defaultEmail
         const finalPhone = data.new_tenant_phone?.trim() || null
 
-        const allTenantsRes = await tenantService.getAllTenants({ limit: 1000 }).catch(() => ({ data: [] }));
+        const allTenantsRes = await tenantService.getAllTenants({ limit: 100 }).catch(() => ({ data: [] }));
         const allTenants = allTenantsRes.data || [];
 
         if (finalPhone) {

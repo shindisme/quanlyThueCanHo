@@ -61,7 +61,7 @@ export function useContractList() {
 
   const { data: tenantsRes, isLoading: loadingTenants } = useQuery({
     queryKey: ["tenants"],
-    queryFn: () => tenantService.getAllTenants({ limit: 1000 }),
+    queryFn: () => tenantService.getAllTenants({ limit: 100 }),
   });
   const tenants = tenantsRes?.data || [];
 

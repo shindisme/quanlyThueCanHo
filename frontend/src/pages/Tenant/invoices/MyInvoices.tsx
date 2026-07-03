@@ -50,13 +50,13 @@ export default function MyInvoices() {
 
   const { data: tenantsData, isLoading: loadingTenants } = useQuery({
     queryKey: ["tenants"],
-    queryFn: () => tenantService.getAllTenants({ limit: 1000 }),
+    queryFn: () => tenantService.getAllTenants({ limit: 100 }),
   });
   const tenants = tenantsData?.data || [];
 
   const { data: invoicesData, isLoading: loadingInvoices } = useQuery({
     queryKey: ["invoices"],
-    queryFn: () => invoiceService.getAllInvoices({ limit: 1000 }),
+    queryFn: () => invoiceService.getAllInvoices({ limit: 100 }),
   });
   const invoices = invoicesData?.data || [];
 

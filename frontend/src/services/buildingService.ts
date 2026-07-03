@@ -38,27 +38,10 @@ export async function getAllBuildings(params?: {
   status?: string;
 }): Promise<{ data: BuildingData[]; pagination: BuildingPagination }> {
   const res = await api.get<any>("/buildings", { params });
-  if (res.data.data && res.data.pagination) {
-    const mappedData = res.data.data.map((b: any) => {
-      const staff = b.assigned_staff?.[0];
-      return {
-        ...b,
-        manager_id: staff ? staff.id : null,
-        manager: staff ? {
-          id: staff.id,
-          username: staff.user?.username || staff.full_name,
-          fullName: staff.full_name,
-          role: staff.user?.role || "MANAGER",
-        } : null
-      };
-    });
-    return {
-      ...res.data,
-      data: mappedData
-    };
-  }
-  const rawList = Array.isArray(res.data) ? res.data : [];
-  const mappedList = rawList.map((b: any) => {
+  const rawData = res.data.data || (Array.isArray(res.data) ? res.data : []);
+  const pagination = res.data.meta?.pagination || res.data.pagination || { total: rawData.length, page: 1, limit: 10, totalPages: 1 };
+  
+  const mappedData = rawData.map((b: any) => {
     const staff = b.assigned_staff?.[0];
     return {
       ...b,
@@ -71,7 +54,8 @@ export async function getAllBuildings(params?: {
       } : null
     };
   });
-  return { data: mappedList, pagination: { total: mappedList.length, page: 1, limit: 10, totalPages: 1 } };
+  
+  return { data: mappedData, pagination };
 }
 
 export async function getBuildingById(id: number): Promise<BuildingData> {

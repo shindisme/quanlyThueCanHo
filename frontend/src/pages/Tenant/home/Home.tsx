@@ -48,7 +48,7 @@ export default function TenantHome() {
 
   const { data: tenantsRes, isLoading: loadingTenants } = useQuery({
     queryKey: ["tenants"],
-    queryFn: () => tenantService.getAllTenants({ limit: 1000 }),
+    queryFn: () => tenantService.getAllTenants({ limit: 100 }),
     enabled: !!userId,
   });
 
@@ -68,7 +68,7 @@ export default function TenantHome() {
 
   const { data: apartmentsRes, isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartments({ limit: 1000 }),
+    queryFn: () => apartmentService.getAllApartments({ limit: 100 }),
     enabled: !!activeContract,
   });
 

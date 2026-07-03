@@ -104,14 +104,14 @@ export default function ManagerDashboard() {
             building_id: managedBuildingId || undefined,
             limit: 100
           }),
-          tenantService.getAllTenants({ limit: 1000 }),
+          tenantService.getAllTenants({ limit: 100 }),
           contractService.getAllContracts({
             buildingId: managedBuildingId || undefined
           }),
           scheduleService.getSchedules(),
           invoiceService.getAllInvoices({
             building_id: managedBuildingId || undefined,
-            limit: 1000
+            limit: 100
           })
         ]);
 

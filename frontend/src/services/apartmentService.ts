@@ -41,11 +41,9 @@ export async function getAllApartments(params?: {
   status?: string;
 }): Promise<{ data: ApartmentData[]; pagination: ApartmentPagination }> {
   const res = await api.get<any>("/apartments", { params });
-  if (res.data.data && res.data.pagination) {
-    return res.data;
-  }
-  const rawData = Array.isArray(res.data) ? res.data : [];
-  return { data: rawData, pagination: { total: rawData.length, page: 1, limit: 10, totalPages: 1 } };
+  const rawData = res.data.data || (Array.isArray(res.data) ? res.data : []);
+  const pagination = res.data.meta?.pagination || res.data.pagination || { total: rawData.length, page: 1, limit: 10, totalPages: 1 };
+  return { data: rawData, pagination };
 }
 
 export async function getApartmentById(id: number): Promise<ApartmentData> {
