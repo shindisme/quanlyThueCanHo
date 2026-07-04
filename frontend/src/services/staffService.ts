@@ -17,7 +17,10 @@ export async function createStaff(data: Partial<Staff>): Promise<Staff> {
   return res.data.data || res.data;
 }
 
-export async function updateStaff(id: number, data: Partial<Staff>): Promise<Staff> {
+export async function updateStaff(
+  id: number,
+  data: Partial<Pick<Staff, "full_name" | "phone" | "position" | "building_id">>,
+): Promise<Staff> {
   const res = await api.put(`/staff/${id}`, data);
   return res.data.data || res.data;
 }

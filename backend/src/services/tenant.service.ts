@@ -14,7 +14,7 @@ import {
     createInitialCredential,
     tenantUsername
 } from "./account.service.js";
-import { getCurrentManagerAssignment } from "./manager-scope.js";
+import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
 
 const tenantSelect = {
     id: true,

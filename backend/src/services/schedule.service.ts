@@ -10,7 +10,7 @@ import type {
     ListSchedulesRequest
 } from "../schemas/schedule.schema.js";
 import type { Actor } from "../types/auth.js";
-import { getCurrentManagerAssignment } from "./manager-scope.js";
+import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
 import {
     sendViewingScheduleCancelledEmail,
     sendViewingScheduleConfirmationEmail,

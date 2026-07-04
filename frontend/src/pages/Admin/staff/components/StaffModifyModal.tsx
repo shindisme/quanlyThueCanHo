@@ -33,9 +33,7 @@ export default function StaffModifyModal({
     buildings,
     loading,
     saving,
-    nextUsername,
     handleSave,
-    hasLinkedUser,
     managedBuildingIds,
   } = useStaffModify({
     isOpen,
@@ -117,21 +115,16 @@ export default function StaffModifyModal({
             />
           </div>
 
-          {!hasLinkedUser ? (
-            <div className="col-span-12">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Cấp tài khoản tự động</label>
-              <div className="premium-input rounded-md bg-gray-50 border border-gray-300 py-2.5 px-3 text-sm text-gray-600 font-semibold">
-                Tài khoản: <span className="text-primary-600">{nextUsername || "Đang tính..."}</span> (Mật khẩu ngẫu nhiên sẽ được tạo tự động)
-              </div>
+          <div className="col-span-12">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Tài khoản liên kết
+            </label>
+            <div className="premium-input rounded-md bg-gray-50 border border-gray-300 py-2.5 px-3 text-sm text-gray-500 font-semibold">
+              {editItem?.user?.username
+                ? `Tài khoản: @${editItem.user.username}`
+                : "Chưa có tài khoản liên kết"}
             </div>
-          ) : (
-            <div className="col-span-12">
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tài khoản liên kết đã có</label>
-              <div className="premium-input rounded-md bg-gray-50 border border-gray-300 py-2.5 px-3 text-sm text-gray-500 font-semibold">
-                Tài khoản: @{editItem?.user?.username}
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       </div>
       )}
