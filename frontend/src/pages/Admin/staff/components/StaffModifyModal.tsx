@@ -35,6 +35,8 @@ export default function StaffModifyModal({
     saving,
     handleSave,
     managedBuildingIds,
+    hasLinkedUser,
+    nextUsername,
   } = useStaffModify({
     isOpen,
     onClose,

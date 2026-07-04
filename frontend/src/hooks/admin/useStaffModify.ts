@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import * as staffService from "../../services/staffService";
 import * as buildingService from "../../services/buildingService";
 import type { BuildingData } from "../../services/buildingService";
+import * as authService from "../../services/authService";
+import type { UserData } from "../../services/authService";
 import type { Staff } from "../../types";
 import { staffSchema } from "../../schemas/staff.schema";
 
@@ -31,7 +33,9 @@ export function useStaffModify({
       position: string;
       buildingId: number | "";
     }) => {
-      let linkedUserId = editItem.user_id;
+      if (!editItem) {
+        throw new Error("Không tìm thấy thông tin nhân viên chỉnh sửa");
+      }
       let initialPassword = "";
 
       // Nếu chưa có tài khoản, tự động tạo tài khoản theo thứ tự dựa trên chức vụ mới
@@ -43,7 +47,6 @@ export function useStaffModify({
           username: nextUsername,
           role: roleToCreate,
         });
-        linkedUserId = res.userId;
         initialPassword = (res as any).initial_password;
       }
 
@@ -77,8 +80,10 @@ export function useStaffModify({
   const [buildingId, setBuildingId] = useState<number | "">("");
 
   const [buildings, setBuildings] = useState<BuildingData[]>([]);
+  const [users, setUsers] = useState<UserData[]>([]);
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(false);
+  const [nextUsername, setNextUsername] = useState("");
 
   useEffect(() => {
     if (isOpen) {
@@ -100,11 +105,32 @@ export function useStaffModify({
     }
   }, [editItem, isOpen]);
 
+  useEffect(() => {
+    if (users.length > 0 && editItem && !editItem.user_id) {
+      const isManager = position === "Quản lý";
+      const prefix = isManager ? "quanly" : "nhanvien";
+      const filteredUsers = users.filter((u) => u.username.startsWith(prefix));
+      let nextIndex = 1;
+      if (filteredUsers.length > 0) {
+        const indices = filteredUsers.map((u) => {
+          const match = u.username.match(new RegExp(`^${prefix}(\\d+)$`));
+          return match ? parseInt(match[1], 10) : 0;
+        });
+        nextIndex = Math.max(...indices, 0) + 1;
+      }
+      setNextUsername(`${prefix}${nextIndex}`);
+    } else {
+      setNextUsername("");
+    }
+  }, [position, users, editItem]);
+
   async function fetchData() {
     try {
       setLoading(true);
       const bRes = await buildingService.getAllBuildings({ limit: 100 });
       setBuildings(bRes.data);
+      const uRes = await authService.getAllUsers();
+      setUsers(uRes);
       const sRes = await staffService.getAllStaff();
       setStaffList(sRes.data);
     } catch {
@@ -143,6 +169,8 @@ export function useStaffModify({
     .filter((s) => s.position === "Quản lý" && s.building_id)
     .map((s) => s.building_id as number);
 
+  const hasLinkedUser = !!(editItem && editItem.user_id);
+
   return {
     fullName,
     setFullName,
@@ -157,5 +185,7 @@ export function useStaffModify({
     saving: updateMutation.isPending,
     handleSave,
     managedBuildingIds,
+    hasLinkedUser,
+    nextUsername,
   };
 }
