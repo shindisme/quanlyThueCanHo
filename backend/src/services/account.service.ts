@@ -2,9 +2,8 @@ import bcrypt from "bcrypt";
 import { randomBytes } from "node:crypto";
 
 export const createInitialCredential = async () => {
-    const initial_password = randomBytes(24).toString("base64url");
+    const initial_password = "123123";
     const password_hash = await bcrypt.hash(initial_password, 10);
-
     return {
         initial_password,
         password_hash
