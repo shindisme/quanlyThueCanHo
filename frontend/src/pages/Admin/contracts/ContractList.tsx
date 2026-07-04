@@ -9,7 +9,7 @@ import Modal from "../../../components/ui/Modal";
 import { Calendar } from "../../../components/ui/Calendar";
 import { toast } from "sonner";
 
-import { useContractList } from "../../../hooks/useContractList";
+import { useContractList } from "../../../hooks/admin/useContractList";
 import { formatCurrency } from "../../../utils/currency";
 import { formatDate } from "../../../utils/date";
 import { formatApartmentDisplay } from "../../../utils/string";
@@ -96,7 +96,7 @@ export default function ContractList() {
 
       {/* Table list */}
       {paginatedContracts.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 bg-white rounded-lg border border-gray-200">
+        <div className="text-center py-16 text-gray-500 bg-white rounded-lg border border-gray-200 shadow-lg">
           <FileText size={48} className="mx-auto mb-3 text-gray-300" />
           <p className="font-medium">Không tìm thấy hợp đồng nào</p>
           <p className="text-sm text-gray-400 mt-1">Thử tìm kiếm với từ khóa khác</p>
@@ -168,7 +168,7 @@ export default function ContractList() {
           </div>
 
           {/* View List */}
-          <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-sm">
+          <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-lg">
             <Table className="compact">
               <TableHeader>
                 <TableRow>

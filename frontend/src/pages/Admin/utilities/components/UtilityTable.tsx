@@ -143,7 +143,7 @@ export default function UtilityTable({
       </div>
 
       {/* View List */}
-      <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-sm">
+      <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-lg">
         <Table className="compact">
           <TableHeader>
             <TableRow>

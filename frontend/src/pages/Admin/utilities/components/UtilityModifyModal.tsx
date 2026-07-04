@@ -3,7 +3,7 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Combobox from "../../../../components/ui/Combobox";
 import Input from "../../../../components/ui/Input";
-import { useUtilityModify } from "../../../../hooks/useUtilityModify";
+import { useUtilityModify } from "../../../../hooks/admin/useUtilityModify";
 import type { BuildingData } from "../../../../services/buildingService";
 import type { ApartmentData } from "../../../../services/apartmentService";
 import type { UtilityReadingData } from "../../../../services/utilityService";

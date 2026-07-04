@@ -9,7 +9,7 @@ import Combobox from "../../../components/ui/Combobox";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import { formatDate } from "../../../utils/date";
 import { removeVietnameseTones } from "../../../utils/string";
-import { useTenantMaintenance } from "../../../hooks/useTenantMaintenance";
+import { useTenantMaintenance } from "../../../hooks/tenant/useTenantMaintenance";
 import {
   Table,
   TableHeader,
@@ -60,6 +60,15 @@ export default function MyMaintenance() {
     return <Badge variant="gray">Thấp</Badge>;
   }
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <LoadingSpinner size={36} />
+        <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải danh sách yêu cầu...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -78,13 +87,8 @@ export default function MyMaintenance() {
       <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm yêu cầu..." className="max-w-md" />
 
       {/* Bảng danh sách yêu cầu */}
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
-          <LoadingSpinner size={36} />
-          <span className="text-sm text-gray-400 mt-2">Đang tải danh sách...</span>
-        </div>
-      ) : filteredRequests.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 bg-white rounded-xl border border-gray-200 shadow-sm">
+      {filteredRequests.length === 0 ? (
+        <div className="text-center py-16 text-gray-500 bg-white  border border-gray-200 shadow-sm">
           <ClipboardList size={48} className="mx-auto mb-3 text-gray-300" />
           <p className="font-medium">Không tìm thấy yêu cầu sửa chữa nào</p>
           {!activeContract && (
@@ -143,7 +147,7 @@ export default function MyMaintenance() {
           </div>
 
           {/* View List*/}
-          <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-sm rounded-xl">
+          <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-xl rounded-none">
             <Table>
               <TableHeader>
                 <TableRow>

@@ -5,14 +5,8 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, PieChart, Pie, Cell,
 } from "recharts";
-import { useState, useEffect } from "react";
-import { useAuthStore } from "../../../stores/auth.store";
-import * as buildingService from "../../../services/buildingService";
-import type { BuildingData } from "../../../services/buildingService";
-import * as apartmentService from "../../../services/apartmentService";
-import * as contractService from "../../../services/contractService";
-import * as invoiceService from "../../../services/invoiceService";
-import type { Invoice } from "../../../types";
+import { useState } from "react";
+import { useAdminDashboard } from "../../../hooks/admin/useAdminDashboard";
 import Combobox from "../../../components/ui/Combobox";
 import { toast } from "sonner";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
@@ -79,41 +73,17 @@ function ChartCard({ title, subtitle, children, action }: {
 }
 
 export default function Dashboard() {
-  const { email } = useAuthStore();
-  const displayName = email?.split("@")[0] || "Admin";
-
-  const [buildings, setBuildings] = useState<BuildingData[]>([]);
-  const [apartments, setApartments] = useState<any[]>([]);
-  const [contracts, setContracts] = useState<any[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    displayName,
+    buildings,
+    apartments,
+    contracts,
+    invoices,
+    isLoading
+  } = useAdminDashboard();
 
   const [selectedBranch, setSelectedBranch] = useState("");
   const [timeFrame, setTimeFrame] = useState<"month" | "year">("month");
-
-  useEffect(() => {
-    async function loadData() {
-      try {
-        setLoading(true);
-        const [bRes, aptRes, cRes, invRes] = await Promise.all([
-          buildingService.getAllBuildings({ limit: 100 }),
-          apartmentService.getAllApartments({ limit: 100 }),
-          contractService.getAllContracts(),
-          invoiceService.getAllInvoices({ limit: 100 })
-        ]);
-
-        setBuildings(bRes.data || []);
-        setApartments(aptRes.data || []);
-        setContracts(cRes || []);
-        setInvoices(invRes.data || []);
-      } catch (err) {
-        console.error("Lỗi khi tải dữ liệu dashboard:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
-  }, []);
 
   function formatCurrency(amount: number) {
     if (amount >= 1000000000) {
@@ -257,7 +227,7 @@ export default function Dashboard() {
     }))
   ];
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
         <LoadingSpinner size={32} />

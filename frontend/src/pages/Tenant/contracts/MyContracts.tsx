@@ -1,90 +1,45 @@
-import { useState } from "react";
 import { FileText, Star } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import Badge from "../../../components/ui/Badge";
 import SearchInput from "../../../components/ui/SearchInput";
 import PageHeader from "../../../components/PageHeader";
 import Modal from "../../../components/ui/Modal";
 import Button from "../../../components/ui/Button";
-import { toast } from "sonner";
+import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import { useDebounce } from "../../../hooks/common/useDebounce";
-
-import { useAuthStore } from "../../../stores/auth.store";
-import * as buildingService from "../../../services/buildingService";
-import * as apartmentService from "../../../services/apartmentService";
-import * as tenantService from "../../../services/tenantService";
-import * as contractService from "../../../services/contractService";
+import { useTenantContracts } from "../../../hooks/tenant/useTenantContracts";
 import { formatCurrency, numberToVietnameseWords } from "../../../utils/currency";
 import { formatDate } from "../../../utils/date";
 import { formatApartmentDisplay, removeVietnameseTones } from "../../../utils/string";
-import type { RentalContract } from "../../../types";
-
-function parseJwt(token: string) {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      window
-        .atob(base64)
-        .split("")
-        .map(function (c) {
-          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-        })
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch (e) {
-    return null;
-  }
-}
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "../../../components/ui/Table";
 
 export default function MyContracts() {
-  const { token } = useAuthStore();
-  const [search, setSearch] = useState("");
+  const {
+    search,
+    setSearch,
+    viewContractDoc,
+    setViewContractDoc,
+    reviewContractItem,
+    setReviewContractItem,
+    rating,
+    setRating,
+    comment,
+    setComment,
+    buildings,
+    apartments,
+    myContracts,
+    submittingReview,
+    submitReview,
+    isLoading,
+  } = useTenantContracts();
+
   const debouncedSearch = useDebounce(search, 300);
-
-  const [viewContractDoc, setViewContractDoc] = useState<RentalContract | null>(null);
-
-  // Review states
-  const [reviewContractItem, setReviewContractItem] = useState<RentalContract | null>(null);
-  const [rating, setRating] = useState<number>(5);
-  const [comment, setComment] = useState<string>("");
-  const [submittingReview, setSubmittingReview] = useState<boolean>(false);
-
-  const { data: buildingsData } = useQuery({
-    queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
-  });
-  const buildings = buildingsData?.data || [];
-
-  const { data: apartmentsData } = useQuery({
-    queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartments({ limit: 100 }),
-  });
-  const apartments = apartmentsData?.data || [];
-
-  const { data: tenantsData } = useQuery({
-    queryKey: ["tenants"],
-    queryFn: () => tenantService.getAllTenants({ limit: 100 }),
-  });
-  const tenants = tenantsData?.data || [];
-
-  const { data: contractsData } = useQuery({
-    queryKey: ["contracts"],
-    queryFn: () => contractService.getAllContracts(),
-  });
-  const contracts = contractsData || [];
-
-  const decoded = token ? parseJwt(token) : null;
-  const userId = decoded?.userId;
-
-  const currentTenant = userId
-    ? tenants.find((t) => t.user_id === userId)
-    : null;
-
-  const myContracts = currentTenant
-    ? contracts.filter((c) => c.tenant_id === currentTenant.id)
-    : [];
 
   const filtered = myContracts.filter((c) => {
     const term = removeVietnameseTones(debouncedSearch);
@@ -100,6 +55,15 @@ export default function MyContracts() {
     return <Badge variant="danger">Thanh lý</Badge>;
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
+        <LoadingSpinner size={32} />
+        <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải danh sách hợp đồng...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -112,71 +76,82 @@ export default function MyContracts() {
 
       <SearchInput value={search} onChange={setSearch} placeholder="Tìm theo mã hợp đồng hoặc số phòng..." className="max-w-md" />
 
-      <div className="space-y-4 font-sans">
-        {filtered.map((c) => {
-          const apt = apartments.find((a) => a.id === c.apartment_id);
-          const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
-          const code = `HD-${String(c.id).padStart(5, "0")}`;
+      <div className="border border-gray-200 bg-white rounded-none shadow-xl overflow-x-auto mt-6">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Mã hợp đồng</TableHead>
+              <TableHead>Căn hộ</TableHead>
+              <TableHead>Bắt đầu</TableHead>
+              <TableHead>Kết thúc</TableHead>
+              <TableHead className="text-right">Tiền thuê/tháng</TableHead>
+              <TableHead className="text-right">Tiền cọc</TableHead>
+              <TableHead className="text-center">Trạng thái</TableHead>
+              <TableHead className="text-right">Chức năng</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((c) => {
+              const apt = apartments.find((a) => a.id === c.apartment_id);
+              const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
+              const code = `HD-${String(c.id).padStart(5, "0")}`;
 
-          return (
-            <div key={c.id} className="premium-card p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center">
-                    <FileText size={20} className="text-primary-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-800">{code}</h3>
-                    <p className="text-xs text-gray-400">
-                      {apt ? formatApartmentDisplay(apt.room_number, apt.floor, "TENANT", bld?.branch_name) : "-"} - {bld?.name || "-"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  {getStatusBadge(c.status)}
-                  <button
-                    type="button"
-                    onClick={() => setViewContractDoc(c)}
-                    className="p-1 px-2.5 rounded-lg text-primary-600 hover:text-primary-700 hover:bg-primary-50 border border-primary-200 cursor-pointer flex items-center gap-1 text-xs font-semibold transition-colors"
-                  >
-                    <FileText size={14} /> Xem HĐ
-                  </button>
-                  {c.status === "ENDED" && (
-                    <button
-                      type="button"
-                      onClick={() => setReviewContractItem(c)}
-                      className="p-1 px-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white cursor-pointer flex items-center gap-1 text-xs font-semibold transition-colors"
-                    >
-                      <Star size={14} className="fill-white" /> Đánh giá
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mt-4">
-                <div>
-                  <p className="text-gray-400">Bắt đầu</p>
-                  <p className="font-medium text-gray-800">{formatDate(c.start_date)}</p>
-                </div>
-                <div>
-                  <p className="text-gray-400">Kết thúc</p>
-                  <p className="font-medium text-gray-800">{formatDate(c.end_date)}</p>
-                </div>
-                <div>
-                  <p className="text-gray-400">Tiền thuê/tháng</p>
-                  <p className="font-medium text-gray-800">{formatCurrency(c.monthly_rent)}</p>
-                </div>
-                <div>
-                  <p className="text-gray-400">Tiền cọc</p>
-                  <p className="font-medium text-gray-800">{formatCurrency(c.deposit_amount)}</p>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+              return (
+                <TableRow key={c.id}>
+                  <TableCell className="font-semibold text-gray-800 whitespace-nowrap">
+                    {code}
+                  </TableCell>
+                  <TableCell className="font-medium text-gray-800 whitespace-nowrap">
+                    <div className="flex flex-col">
+                      <span>P.{apt?.room_number || "Chưa rõ"}</span>
+                      <span className="text-xs text-gray-400 font-normal">{bld?.branch_name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-gray-600 whitespace-nowrap">
+                    {formatDate(c.start_date)}
+                  </TableCell>
+                  <TableCell className="text-gray-600 whitespace-nowrap">
+                    {formatDate(c.end_date)}
+                  </TableCell>
+                  <TableCell className="text-right font-medium text-gray-800 whitespace-nowrap">
+                    {formatCurrency(c.monthly_rent)}
+                  </TableCell>
+                  <TableCell className="text-right font-medium text-gray-800 whitespace-nowrap">
+                    {formatCurrency(c.deposit_amount)}
+                  </TableCell>
+                  <TableCell className="text-center whitespace-nowrap">
+                    {getStatusBadge(c.status)}
+                  </TableCell>
+                  <TableCell className="text-right whitespace-nowrap">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setViewContractDoc(c)}
+                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer transition-colors"
+                        title="Xem hợp đồng"
+                      >
+                        <FileText size={16} />
+                      </button>
+                      {c.status === "ENDED" && (
+                        <button
+                          type="button"
+                          onClick={() => setReviewContractItem(c)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 cursor-pointer transition-colors"
+                          title="Đánh giá"
+                        >
+                          <Star size={16} />
+                        </button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
 
         {filtered.length === 0 && (
-          <div className="premium-card p-8 text-center text-gray-400">
+          <div className="p-8 text-center text-gray-400 bg-white border-t border-gray-100">
             Không tìm thấy hợp đồng nào.
           </div>
         )}
@@ -226,7 +201,7 @@ export default function MyContracts() {
         }
       >
         {viewContractDoc && (() => {
-          const tenant = tenants.find((t) => t.id === viewContractDoc.tenant_id);
+          const tenant = viewContractDoc.tenant;
           const apt = apartments.find((a) => a.id === viewContractDoc.apartment_id);
           const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
 
@@ -516,25 +491,9 @@ export default function MyContracts() {
             </Button>
             <Button
               isLoading={submittingReview}
-              onClick={async () => {
+              onClick={() => {
                 if (!reviewContractItem) return;
-                setSubmittingReview(true);
-                try {
-                  const { createReview } = await import("../../../services/reviewService");
-                  await createReview({
-                    apartment_id: reviewContractItem.apartment_id,
-                    rating,
-                    comment,
-                  });
-                  toast.success("Cảm ơn bạn đã gửi đánh giá cho căn hộ!");
-                  setReviewContractItem(null);
-                  setComment("");
-                  setRating(5);
-                } catch (error: any) {
-                  toast.error(error.response?.data?.message || error.message || "Đánh giá thất bại. Vui lòng thử lại sau.");
-                } finally {
-                  setSubmittingReview(false);
-                }
+                submitReview(reviewContractItem.apartment_id);
               }}
             >
               Gửi đánh giá

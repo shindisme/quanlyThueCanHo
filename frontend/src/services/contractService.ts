@@ -15,6 +15,8 @@ interface RawContract {
   signed_at?: string | null;
   created_by?: number | null;
   created_at: string;
+  tenant?: any;
+  apartment?: any;
 }
 
 function mapBackendToFrontend(c: RawContract): RentalContract {
@@ -31,6 +33,8 @@ function mapBackendToFrontend(c: RawContract): RentalContract {
     start_date: c.start_date ? c.start_date.split("T")[0] : "",
     end_date: c.end_date ? c.end_date.split("T")[0] : "",
     created_at: c.created_at,
+    tenant: c.tenant,
+    apartment: c.apartment,
   };
 }
 

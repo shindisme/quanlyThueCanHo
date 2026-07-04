@@ -8,7 +8,7 @@ import DataTable, { type Column } from "../../../components/ui/DataTable";
 import Pagination from "../../../components/ui/Pagination";
 import type { Tenant } from "../../../types";
 import { maskPhone, maskCCCD } from "../../../utils/string";
-import { useTenantList } from "../../../hooks/useTenantList";
+import { useTenantList } from "../../../hooks/admin/useTenantList";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
 import TenantCreateModal from "./components/TenantCreateModal";

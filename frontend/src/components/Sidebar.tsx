@@ -113,7 +113,7 @@ export default function Sidebar() {
       {/* DESKTOP SIDEBAR */}
       <aside
         className={[
-          "hidden lg:flex flex-col bg-white border-r border-gray-200",
+          "hidden lg:flex flex-col bg-white border-r border-gray-200 sticky top-0 h-screen",
           "transition-[width] duration-300 ease-in-out shrink-0",
           isOpen ? "w-72" : "w-[80px]",
         ].join(" ")}

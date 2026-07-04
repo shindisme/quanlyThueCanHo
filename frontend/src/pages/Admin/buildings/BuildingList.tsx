@@ -10,7 +10,7 @@ import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import BuildingCreateModal from "./components/BuildingCreateModal";
 import BuildingModifyModal from "./components/BuildingModifyModal";
 import BuildingDeleteModal from "./components/BuildingDeleteModal";
-import { useBuildingList } from "../../../hooks/useBuildingList";
+import { useBuildingList } from "../../../hooks/admin/useBuildingList";
 import {
   Table,
   TableHeader,
@@ -164,7 +164,7 @@ export default function BuildingList() {
           </div>
 
           {/* View List */}
-          <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-sm">
+          <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-xl rounded-none">
             <Table>
               <TableHeader>
                 <TableRow>

@@ -59,10 +59,10 @@ const notFound = () => new AppError(
     "Maintenance request was not found"
 );
 
-const forbidden = () => new AppError(
+const forbidden = (message = "You do not have access to maintenance requests") => new AppError(
     403,
     "FORBIDDEN",
-    "You do not have access to maintenance requests"
+    message
 );
 
 const conflict = (message: string) => new AppError(
@@ -200,6 +200,19 @@ export const createMaintenanceRequestService = async (
         throw forbidden();
     }
 
+    // Kiểm tra hợp đồng có hoạt động ko
+    const hasActiveContract = await prisma.rentalContract.count({
+        where: {
+            apartment_id: input.apartment_id,
+            tenant_id: actor.tenantId,
+            status: ContractStatus.ACTIVE
+        }
+    }) > 0;
+
+    if (!hasActiveContract) {
+        throw forbidden("Hợp đồng tại căn hộ này đã hết hạn hoặc không tồn tại");
+    }
+
     try {
         return await prisma.maintenanceRequest.create({
             data: {
@@ -209,19 +222,12 @@ export const createMaintenanceRequestService = async (
                 image_url: input.image_url,
                 tenant: {
                     connect: {
-                        id: actor.tenantId,
-                        user_id: actor.userId
+                        id: actor.tenantId
                     }
                 },
                 apartment: {
                     connect: {
-                        id: input.apartment_id,
-                        contracts: {
-                            some: {
-                                tenant_id: actor.tenantId,
-                                status: ContractStatus.ACTIVE
-                            }
-                        }
+                        id: input.apartment_id
                     }
                 }
             },

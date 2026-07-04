@@ -1,4 +1,4 @@
-import { User, Mail, Save, Plus, Pencil, Trash2, FileText } from "lucide-react";
+import { User, Mail, Save, Plus, Pencil, Trash2, FileText, Phone } from "lucide-react";
 import Button from "../../../components/ui/Button";
 import PageHeader from "../../../components/PageHeader";
 import Modal from "../../../components/ui/Modal";
@@ -6,7 +6,7 @@ import Input from "../../../components/ui/Input";
 import { Calendar } from "../../../components/ui/Calendar";
 import { formatCurrency } from "../../../utils/currency";
 import { formatDate } from "../../../utils/date";
-import { useProfile } from "../../../hooks/useProfile";
+import { useProfile } from "../../../hooks/common/useProfile";
 
 export default function ProfilePage() {
   const {
@@ -32,9 +32,20 @@ export default function ProfilePage() {
     handleDeleteOccupant,
     handleSaveOccupant,
     handleChangePassword,
+    fullName,
+    phone,
+    editFullName,
+    setEditFullName,
+    editPhone,
+    setEditPhone,
+    showEditProfileModal,
+    setShowEditProfileModal,
+    handleOpenEditProfile,
+    handleSaveProfile,
+    maxOccupantsLimit,
   } = useProfile();
 
-  const displayName = email?.split("@")[0] || "User";
+  const displayName = fullName || email?.split("@")[0] || "User";
   const roleLabel =
     role === "ADMIN" ? "Quản trị viên" :
       role === "MANAGER" ? "Quản lý" : "Người thuê";
@@ -49,8 +60,18 @@ export default function ProfilePage() {
       />
 
       {/* Thông tin cá nhân */}
-      <div className="premium-card p-6">
-        <h3 className="font-semibold text-gray-800 mb-4">Thông tin tài khoản</h3>
+      <div className="premium-card p-6 relative">
+        <div className="flex justify-between items-start mb-4">
+          <h3 className="font-semibold text-gray-800">Thông tin tài khoản</h3>
+          {role !== "ADMIN" && (
+            <button
+              onClick={handleOpenEditProfile}
+              className="text-xs px-2.5 py-1.5 rounded-lg border border-primary-200 text-primary-600 hover:bg-primary-50 cursor-pointer flex items-center gap-1 font-semibold transition-all"
+            >
+              <Pencil size={12} /> Sửa thông tin
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-4 mb-6">
           <div className="w-16 h-16 rounded-full flex items-center justify-center shadow-md text-white text-2xl font-bold" style={{ background: "linear-gradient(135deg, #7C3AED, #A78BFA)" }}>
             {displayName.charAt(0).toUpperCase()}
@@ -62,13 +83,25 @@ export default function ProfilePage() {
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <Mail size={18} className="text-gray-400" />
-            <div>
-              <p className="text-xs text-gray-400">Email</p>
-              <p className="text-sm font-medium text-gray-800">{email}</p>
+          {role === "ADMIN" ? (
+            <div className="flex items-center gap-3">
+              <Mail size={18} className="text-gray-400" />
+              <div>
+                <p className="text-xs text-gray-400">Email</p>
+                <p className="text-sm font-medium text-gray-800">{email}</p>
+              </div>
             </div>
-          </div>
+          ) : (
+            phone && (
+              <div className="flex items-center gap-3">
+                <Phone size={18} className="text-gray-400" />
+                <div>
+                  <p className="text-xs text-gray-400">Số điện thoại</p>
+                  <p className="text-sm font-medium text-gray-800">{phone}</p>
+                </div>
+              </div>
+            )
+          )}
           <div className="flex items-center gap-3">
             <User size={18} className="text-gray-400" />
             <div>
@@ -175,7 +208,10 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-gray-800">Khai báo người ở cùng</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Khai báo thông tin những người sinh hoạt cùng căn hộ của bạn</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Khai báo thông tin những người sinh hoạt cùng căn hộ của bạn.
+                Giới hạn tối đa theo hợp đồng: <span className="font-bold text-primary-600">{maxOccupantsLimit} người</span>.
+              </p>
             </div>
             <Button size="sm" onClick={() => handleOpenOccupantForm(null)}>
               <Plus size={16} /> Khai báo người ở
@@ -278,6 +314,46 @@ export default function ProfilePage() {
                 value={occupantForm.phone}
                 onChange={(e) => setOccupantForm({ ...occupantForm, phone: e.target.value })}
                 placeholder="Nhập số điện thoại"
+              />
+            </div>
+          </Modal>
+
+          {/* Modal Sửa Thông Tin Tài Khoản */}
+          <Modal
+            isOpen={showEditProfileModal}
+            onClose={() => setShowEditProfileModal(false)}
+            title="Chỉnh sửa thông tin tài khoản"
+            footer={
+              <>
+                <Button variant="outline" onClick={() => setShowEditProfileModal(false)}>
+                  Hủy
+                </Button>
+                <Button onClick={handleSaveProfile}>
+                  Lưu thay đổi
+                </Button>
+              </>
+            }
+          >
+            <div className="space-y-4 font-sans text-xs sm:text-sm">
+              <Input
+                label="Tên tài khoản (Email)"
+                value={email || ""}
+                disabled
+                className="bg-gray-50 text-gray-500 rounded-xl"
+              />
+              <Input
+                label="Họ và tên"
+                value={editFullName}
+                onChange={(e) => setEditFullName(e.target.value)}
+                placeholder="Nhập họ và tên..."
+                className="rounded-xl"
+              />
+              <Input
+                label="Số điện thoại"
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                placeholder="Nhập số điện thoại..."
+                className="rounded-xl"
               />
             </div>
           </Modal>

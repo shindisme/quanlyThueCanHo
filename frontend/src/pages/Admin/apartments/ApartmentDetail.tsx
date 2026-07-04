@@ -8,7 +8,7 @@ import ApartmentModifyModal from "./components/ApartmentModifyModal"
 import { useAuthStore } from "../../../stores/auth.store"
 import { formatDate } from "../../../utils/date"
 import { formatApartmentDisplay, maskCCCD } from "../../../utils/string"
-import { useApartmentDetail } from "../../../hooks/useApartmentDetail"
+import { useApartmentDetail } from "../../../hooks/guest/useApartmentDetail"
 
 export default function ApartmentDetail() {
   const { role } = useAuthStore()

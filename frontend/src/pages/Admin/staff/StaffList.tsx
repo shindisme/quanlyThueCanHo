@@ -14,7 +14,7 @@ import StaffCreateModal from "./components/StaffCreateModal";
 import StaffModifyModal from "./components/StaffModifyModal";
 import StaffDeleteModal from "./components/StaffDeleteModal";
 import StaffDetailModal from "./components/StaffDetailModal";
-import { useStaffList } from "../../../hooks/useStaffList";
+import { useStaffList } from "../../../hooks/admin/useStaffList";
 
 export default function StaffList() {
   const {

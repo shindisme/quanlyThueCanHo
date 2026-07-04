@@ -125,7 +125,7 @@ export default function DataTable<T extends { id: number | string }>({
       </div>
 
       {/* Desktop Table View */}
-      <div className={cn("hidden md:block border border-gray-200 overflow-hidden bg-white shadow-sm", className)}>
+      <div className={cn("hidden md:block border border-gray-200 overflow-hidden bg-white shadow-xl rounded-none", className)}>
         <Table className={cn(density === "compact" && "[&_td]:p-2 [&_td]:text-xs [&_th]:h-8 [&_th]:px-3")}>
           <TableHeader>
             <TableRow>

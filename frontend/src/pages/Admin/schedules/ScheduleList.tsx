@@ -6,7 +6,7 @@ import Pagination from "../../../components/ui/Pagination";
 import Combobox from "../../../components/ui/Combobox";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
-import { useScheduleList } from "../../../hooks/useScheduleList";
+import { useScheduleList } from "../../../hooks/admin/useScheduleList";
 import { formatApartmentDisplay, maskPhone, parseGuestName } from "../../../utils/string";
 
 import ScheduleDeleteModal from "./components/ScheduleDeleteModal";
@@ -193,7 +193,7 @@ export default function ScheduleList() {
           </div>
 
           {/* View List */}
-          <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-sm">
+          <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-lg">
             <Table className="compact">
               <TableHeader>
                 <TableRow>

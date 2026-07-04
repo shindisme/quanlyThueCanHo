@@ -7,7 +7,7 @@ import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
 import BuildingModifyModal from "./components/BuildingModifyModal";
 import { formatApartmentDisplay } from "../../../utils/string";
-import { useBuildingDetail } from "../../../hooks/useBuildingDetail";
+import { useBuildingDetail } from "../../../hooks/admin/useBuildingDetail";
 
 function getApartmentThumbnail(apt: any): string {
   if (apt && apt.images && Array.isArray(apt.images) && apt.images.length > 0) {
@@ -174,11 +174,10 @@ export default function BuildingDetail() {
                   key={floor}
                   type="button"
                   onClick={() => setSelectedFloor(floor)}
-                  className={`min-w-[125px] text-center px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
-                    isSelected
+                  className={`min-w-[125px] text-center px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${isSelected
                       ? "bg-primary-600 text-white shadow-sm"
                       : "bg-gray-50 text-gray-650 hover:bg-gray-100 border border-gray-200"
-                  }`}
+                    }`}
                 >
                   Tầng {floor} ({floorApts.length})
                 </button>

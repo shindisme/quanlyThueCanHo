@@ -7,9 +7,10 @@ interface UserDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: UserData | null;
+  fullName: string;
 }
 
-export default function UserDetailModal({ isOpen, onClose, user }: UserDetailModalProps) {
+export default function UserDetailModal({ isOpen, onClose, user, fullName }: UserDetailModalProps) {
   function getRoleBadge(role: string) {
     const map: Record<string, { label: string; variant: string }> = {
       ADMIN: { label: "Admin", variant: "danger" },
@@ -35,6 +36,12 @@ export default function UserDetailModal({ isOpen, onClose, user }: UserDetailMod
           <div className="flex justify-between border-b pb-2 border-gray-100">
             <span className="text-gray-500 font-medium">Mã tài khoản (ID):</span>
             <span className="font-semibold text-gray-800">#{user.id}</span>
+          </div>
+          <div className="flex justify-between border-b pb-2 border-gray-100">
+            <span className="text-gray-500 font-medium">Họ và tên:</span>
+            <span className="font-semibold text-gray-800">
+              {fullName}
+            </span>
           </div>
           <div className="flex justify-between border-b pb-2 border-gray-100">
             <span className="text-gray-500 font-medium">Username:</span>

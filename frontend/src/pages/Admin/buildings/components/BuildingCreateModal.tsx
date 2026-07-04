@@ -3,7 +3,8 @@ import Modal from "../../../../components/ui/Modal"
 import Button from "../../../../components/ui/Button"
 import Combobox from "../../../../components/ui/Combobox"
 import Input from "../../../../components/ui/Input"
-import { useBuildingCreate } from "../../../../hooks/useBuildingCreate"
+import LoadingSpinner from "../../../../components/ui/LoadingSpinner"
+import { useBuildingCreate } from "../../../../hooks/admin/useBuildingCreate"
 
 interface BuildingCreateModalProps {
   isOpen: boolean
@@ -23,6 +24,7 @@ export default function BuildingCreateModal({
     onSubmit,
     errors,
     saving,
+    loading,
     availableManagers,
     previewUrl,
     handleImageUpload,
@@ -38,12 +40,18 @@ export default function BuildingCreateModal({
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>Hủy</Button>
-          <Button onClick={handleSubmit(onSubmit)} isLoading={saving}>Thêm mới</Button>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Hủy</Button>
+          <Button onClick={handleSubmit(onSubmit)} isLoading={saving} disabled={loading}>Thêm mới</Button>
         </>
       }
     >
-      <div className="space-y-6">
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <LoadingSpinner size={36} />
+          <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải...</span>
+        </div>
+      ) : (
+        <div className="space-y-6">
         <div className="grid grid-cols-12 gap-6">
           {/* Tên chi nhánh */}
           <div className="col-span-6 sm:col-span-6">
@@ -149,6 +157,7 @@ export default function BuildingCreateModal({
           </div>
         </div>
       </div>
+      )}
     </Modal>
   )
 }

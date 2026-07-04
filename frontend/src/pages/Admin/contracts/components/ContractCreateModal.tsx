@@ -6,7 +6,7 @@ import { Calendar } from "../../../../components/ui/Calendar"
 import type { ApartmentData } from "../../../../services/apartmentService"
 import type { BuildingData } from "../../../../services/buildingService"
 import type { Tenant } from "../../../../types"
-import { useContractCreate } from "../../../../hooks/useContractCreate"
+import { useContractCreate } from "../../../../hooks/admin/useContractCreate"
 import { formatCurrency } from "../../../../utils/currency"
 
 interface ContractCreateModalProps {
@@ -42,6 +42,7 @@ export default function ContractCreateModal({
     setValue,
     errors,
     saving,
+    loadingApartments,
     isNewTenant,
     tenantIdValue,
     buildingIdValue,
@@ -215,8 +216,8 @@ export default function ContractCreateModal({
                 setValue("floor", val ? Number(val) : (undefined as unknown as number))
                 setValue("apartment_id", undefined as unknown as number)
               }}
-              disabled={!buildingIdValue}
-              placeholder="Chọn tầng"
+              disabled={!buildingIdValue || loadingApartments}
+              placeholder={loadingApartments ? "Đang tải căn hộ..." : "Chọn tầng"}
               searchable={false}
               triggerClassName="rounded-md"
               error={errors.floor?.message}
@@ -229,8 +230,8 @@ export default function ContractCreateModal({
               options={formApartments.map((a) => ({ value: String(a.id), label: `P.${a.room_number} (${a.area}m²)` }))}
               value={apartmentIdValue ? String(apartmentIdValue) : ""}
               onChange={(val) => setValue("apartment_id", val ? Number(val) : (undefined as unknown as number))}
-              disabled={!floorValue}
-              placeholder="Chọn căn hộ"
+              disabled={!floorValue || loadingApartments}
+              placeholder={loadingApartments ? "Đang tải căn hộ..." : "Chọn căn hộ"}
               searchPlaceholder="Tìm căn hộ..."
               triggerClassName="rounded-md"
               error={errors.apartment_id?.message}

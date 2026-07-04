@@ -8,7 +8,7 @@ import Pagination from "../../../components/ui/Pagination";
 import Combobox from "../../../components/ui/Combobox";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
-import { useApartmentList } from "../../../hooks/useApartmentList";
+import { useApartmentList } from "../../../hooks/admin/useApartmentList";
 import { formatApartmentDisplay } from "../../../utils/string";
 import { formatCurrency } from "../../../utils/currency";
 
@@ -234,7 +234,7 @@ export default function ApartmentList() {
           </div>
 
           {/* View List*/}
-          <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-sm">
+          <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-xl rounded-none">
             <Table>
               <TableHeader>
                 <TableRow>

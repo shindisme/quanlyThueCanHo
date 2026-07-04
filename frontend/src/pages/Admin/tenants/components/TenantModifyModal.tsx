@@ -3,7 +3,7 @@ import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
 import { Calendar } from "../../../../components/ui/Calendar";
 import type { Tenant } from "../../../../types";
-import { useTenantModify } from "../../../../hooks/useTenantModify";
+import { useTenantModify } from "../../../../hooks/admin/useTenantModify";
 
 interface TenantModifyModalProps {
   isOpen: boolean;

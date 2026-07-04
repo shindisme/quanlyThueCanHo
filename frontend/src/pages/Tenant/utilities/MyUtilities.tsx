@@ -1,12 +1,7 @@
 import { Receipt, Zap, Droplet } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import PageHeader from "../../../components/PageHeader";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
-import { useAuthStore } from "../../../stores/auth.store";
-import * as tenantService from "../../../services/tenantService";
-import * as contractService from "../../../services/contractService";
-import * as apartmentService from "../../../services/apartmentService";
-import * as utilityService from "../../../services/utilityService";
+import { useTenantUtilities } from "../../../hooks/tenant/useTenantUtilities";
 import { formatDate } from "../../../utils/date";
 import { formatApartmentDisplay } from "../../../utils/string";
 import {
@@ -18,68 +13,14 @@ import {
   TableCell,
 } from "../../../components/ui/Table";
 
-function parseJwt(token: string) {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      window
-        .atob(base64)
-        .split("")
-        .map(function (c) {
-          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-        })
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch {
-    return null;
-  }
-}
-
 export default function MyUtilities() {
-  const { token } = useAuthStore();
+  const {
+    apartment,
+    readings,
+    isLoading
+  } = useTenantUtilities();
 
-  const decoded = token ? parseJwt(token) : null;
-  const userId = decoded?.userId;
-
-  const { data: tenantsRes, isLoading: loadingTenants } = useQuery({
-    queryKey: ["tenants"],
-    queryFn: () => tenantService.getAllTenants({ limit: 100 }),
-    enabled: !!userId,
-  });
-  const currentTenant = userId && tenantsRes?.data
-    ? tenantsRes.data.find((t) => t.user_id === userId)
-    : null;
-
-  const { data: contracts, isLoading: loadingContracts } = useQuery({
-    queryKey: ["contracts"],
-    queryFn: () => contractService.getAllContracts(),
-    enabled: !!currentTenant,
-  });
-  const activeContract = currentTenant && contracts
-    ? contracts.find((c) => c.tenant_id === currentTenant.id && c.status === "ACTIVE")
-    : null;
-
-  const { data: apartmentsRes, isLoading: loadingApartments } = useQuery({
-    queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartments({ limit: 100 }),
-    enabled: !!activeContract,
-  });
-  const apartment = activeContract && apartmentsRes?.data
-    ? apartmentsRes.data.find((a) => a.id === activeContract.apartment_id)
-    : null;
-
-  const { data: readingsRes, isLoading: loadingReadings } = useQuery({
-    queryKey: ["utilityReadings", activeContract?.apartment_id],
-    queryFn: () => utilityService.getAllUtilityReadings({ apartment_id: activeContract?.apartment_id, limit: 100 }),
-    enabled: !!activeContract?.apartment_id,
-  });
-  const readings = readingsRes?.data || [];
-
-  const loading = loadingTenants || loadingContracts || (!!activeContract && loadingApartments) || (!!activeContract?.apartment_id && loadingReadings);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
         <LoadingSpinner size={36} />
@@ -181,7 +122,7 @@ export default function MyUtilities() {
           </div>
 
           {/* View List */}
-          <div className="hidden md:block border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+          <div className="hidden md:block border border-gray-200 rounded-none overflow-hidden bg-white shadow-xl">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50/75 border-b border-gray-200">

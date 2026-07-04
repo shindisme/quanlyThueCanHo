@@ -1,97 +1,27 @@
-import { useState, useEffect } from "react";
 import {
   Home as HomeIcon, FileText, Receipt, MapPin, Maximize2,
   Calendar, CreditCard, ArrowUpRight, Wrench, Users, Zap
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { useAuthStore } from "../../../stores/auth.store";
-import * as tenantService from "../../../services/tenantService";
-import * as contractService from "../../../services/contractService";
-import * as apartmentService from "../../../services/apartmentService";
-import * as buildingService from "../../../services/buildingService";
+import { useTenantHome } from "../../../hooks/tenant/useTenantHome";
 import { formatCurrency } from "../../../utils/currency";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
-function parseJwt(token: string) {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      window
-        .atob(base64)
-        .split("")
-        .map(function (c) {
-          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-        })
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch (e) {
-    return null;
-  }
-}
-
 export default function TenantHome() {
-  const { email, token } = useAuthStore();
-  const [occupants, setOccupants] = useState<any[]>([]);
+  const {
+    displayName,
+    occupants,
+    activeContract,
+    apartment,
+    building,
+    isLoading
+  } = useTenantHome();
 
-  useEffect(() => {
-    if (email) {
-      const stored = localStorage.getItem(`tenant-occupants-${email}`);
-      setOccupants(stored ? JSON.parse(stored) : []);
-    }
-  }, [email]);
-
-  const decoded = token ? parseJwt(token) : null;
-  const userId = decoded?.userId;
-
-  const { data: tenantsRes, isLoading: loadingTenants } = useQuery({
-    queryKey: ["tenants"],
-    queryFn: () => tenantService.getAllTenants({ limit: 100 }),
-    enabled: !!userId,
-  });
-
-  const { data: contracts, isLoading: loadingContracts } = useQuery({
-    queryKey: ["contracts"],
-    queryFn: () => contractService.getAllContracts(),
-    enabled: !!userId,
-  });
-
-  const currentTenant = userId && tenantsRes?.data
-    ? tenantsRes.data.find((t) => t.user_id === userId)
-    : null;
-
-  const activeContract = currentTenant && contracts
-    ? contracts.find((c) => c.tenant_id === currentTenant.id && c.status === "ACTIVE")
-    : null;
-
-  const { data: apartmentsRes, isLoading: loadingApartments } = useQuery({
-    queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartments({ limit: 100 }),
-    enabled: !!activeContract,
-  });
-
-  const apartment = activeContract && apartmentsRes?.data
-    ? apartmentsRes.data.find((a) => a.id === activeContract.apartment_id)
-    : null;
-
-  const { data: buildingsRes, isLoading: loadingBuildings } = useQuery({
-    queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
-    enabled: !!apartment,
-  });
-
-  const building = apartment && buildingsRes?.data
-    ? buildingsRes.data.find((b) => b.id === apartment.building_id)
-    : null;
-
-  const loading = loadingTenants || loadingContracts || (!!activeContract && loadingApartments) || (!!apartment && loadingBuildings);
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex flex-col items-center justify-center min-h-[400px]">
         <LoadingSpinner size={32} />
+        <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải tổng quan...</span>
       </div>
     );
   }
@@ -102,12 +32,21 @@ export default function TenantHome() {
 
   return (
     <div className="space-y-6 font-sans">
+      <div>
+        <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">
+          {new Date().toLocaleDateString("vi-VN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+        </p>
+        <h1 className="text-2xl font-bold text-gray-800">
+          Xin chào, <span className="text-primary-600">{displayName}</span>
+        </h1>
+        <p className="text-sm text-gray-500 mt-1">Thông tin tổng quan nơi cư trú của bạn</p>
+      </div>
 
       {/* APARTMENT INFO */}
-      <div className="bg-white rounded-lg border border-gray-200 p-5">
+      <div className="bg-white rounded-none border border-gray-200 p-5 shadow-md">
         {activeContract ? (
           <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0"
+            <div className="w-14 h-14 rounded-none flex items-center justify-center shrink-0"
               style={{ background: "linear-gradient(135deg, #7C3AED, #A78BFA)" }}>
               <HomeIcon size={28} className="text-white" />
             </div>
@@ -157,38 +96,38 @@ export default function TenantHome() {
       </div>
 
       {/* QUICK SHORTCUT ACTIONS */}
-      <div className="bg-white rounded-lg border border-gray-200 p-5">
+      <div className="bg-white rounded-none border border-gray-200 p-5 shadow-md">
         <h4 className="font-semibold text-gray-800 mb-4">Lối tắt chức năng</h4>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-          <Link to="/tenant/contracts" className="p-4 border border-gray-100 rounded-lg hover:bg-primary-50/30 hover:border-primary-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer">
+          <Link to="/tenant/contracts" className="p-4 border border-gray-105 rounded-none shadow-sm hover:bg-primary-50/30 hover:border-primary-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer">
             <div className="w-10 h-10 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center group-hover:scale-110 transition-transform">
               <FileText size={20} />
             </div>
             <span className="text-xs font-semibold text-gray-700">Hợp đồng của tôi</span>
           </Link>
 
-          <Link to="/tenant/invoices" className="p-4 border border-gray-100 rounded-lg hover:bg-warning-50/30 hover:border-warning-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer">
+          <Link to="/tenant/invoices" className="p-4 border border-gray-105 rounded-none shadow-sm hover:bg-warning-50/30 hover:border-warning-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer">
             <div className="w-10 h-10 rounded-full bg-warning-50 text-warning-600 flex items-center justify-center group-hover:scale-110 transition-transform">
               <Receipt size={20} />
             </div>
             <span className="text-xs font-semibold text-gray-700">Hóa đơn</span>
           </Link>
 
-          <Link to="/tenant/utilities" className="p-4 border border-gray-100 rounded-lg hover:bg-emerald-50/30 hover:border-emerald-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer">
+          <Link to="/tenant/utilities" className="p-4 border border-gray-105 rounded-none shadow-sm hover:bg-emerald-50/30 hover:border-emerald-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer">
             <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
               <Zap size={20} />
             </div>
             <span className="text-xs font-semibold text-gray-700">Điện nước</span>
           </Link>
 
-          <Link to="/tenant/maintenance" className="p-4 border border-gray-100 rounded-lg hover:bg-danger-50/30 hover:border-danger-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer">
+          <Link to="/tenant/maintenance" className="p-4 border border-gray-105 rounded-none shadow-sm hover:bg-danger-50/30 hover:border-danger-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer">
             <div className="w-10 h-10 rounded-full bg-danger-50 text-danger-600 flex items-center justify-center group-hover:scale-110 transition-transform">
               <Wrench size={20} />
             </div>
             <span className="text-xs font-semibold text-gray-700">Yêu cầu sửa chữa</span>
           </Link>
 
-          <Link to="/tenant/profile" className="p-4 border border-gray-100 rounded-lg hover:bg-info-50/30 hover:border-info-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer col-span-2 sm:col-span-1">
+          <Link to="/tenant/profile" className="p-4 border border-gray-105 rounded-none shadow-sm hover:bg-info-50/30 hover:border-info-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer col-span-2 sm:col-span-1">
             <div className="w-10 h-10 rounded-full bg-info-50 text-info-600 flex items-center justify-center group-hover:scale-110 transition-transform">
               <Users size={20} />
             </div>
@@ -198,10 +137,10 @@ export default function TenantHome() {
       </div>
 
       {/* ROOMMATES */}
-      <div className="bg-white rounded-lg border border-gray-200 p-5">
+      <div className="bg-white rounded-none border border-gray-200 p-5 shadow-md">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center animate-pulse-dot">
+            <div className="w-10 h-10 bg-primary-50 rounded-none flex items-center justify-center animate-pulse-dot">
               <Users size={20} className="text-primary-600" />
             </div>
             <div>
@@ -219,7 +158,7 @@ export default function TenantHome() {
           {occupants.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {occupants.map((occ) => (
-                <div key={occ.id} className="p-3 border border-gray-100 rounded-lg bg-gray-50/50 flex flex-col justify-center">
+                <div key={occ.id} className="p-3 border border-gray-100 rounded-none bg-gray-50/50 flex flex-col justify-center shadow-sm">
                   <p className="text-sm font-semibold text-gray-850">{occ.name}</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-xs text-gray-500">
                     <span>CCCD: {occ.cccd}</span>

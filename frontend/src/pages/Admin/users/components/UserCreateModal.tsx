@@ -2,7 +2,7 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Combobox from "../../../../components/ui/Combobox";
 import Input from "../../../../components/ui/Input";
-import { useUserCreate } from "../../../../hooks/useUserCreate";
+import { useUserCreate } from "../../../../hooks/admin/useUserCreate";
 
 interface UserCreateModalProps {
   isOpen: boolean;
@@ -27,6 +27,16 @@ export default function UserCreateModal({ isOpen, onClose, onSuccess }: UserCrea
     >
       <div className="space-y-6">
         <div className="grid grid-cols-12 gap-6">
+          <div className="col-span-12">
+            <Input
+              label="Họ và tên"
+              type="text"
+              value={formData.fullName}
+              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+              placeholder="Nhập họ và tên người dùng"
+              className="rounded-md"
+            />
+          </div>
           <div className="col-span-12">
             <Input
               label="Username *"

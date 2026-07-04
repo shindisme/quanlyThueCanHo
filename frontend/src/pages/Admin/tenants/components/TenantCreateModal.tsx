@@ -2,7 +2,7 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
 import { Calendar } from "../../../../components/ui/Calendar";
-import { useTenantCreate } from "../../../../hooks/useTenantCreate";
+import { useTenantCreate } from "../../../../hooks/admin/useTenantCreate";
 
 interface TenantCreateModalProps {
   isOpen: boolean;

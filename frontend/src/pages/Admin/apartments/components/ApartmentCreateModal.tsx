@@ -3,7 +3,7 @@ import Button from "../../../../components/ui/Button";
 import type { BuildingData } from "../../../../services/buildingService";
 import Combobox from "../../../../components/ui/Combobox";
 import Input from "../../../../components/ui/Input";
-import { useApartmentCreate } from "../../../../hooks/useApartmentCreate";
+import { useApartmentCreate } from "../../../../hooks/admin/useApartmentCreate";
 
 interface ApartmentCreateModalProps {
   isOpen: boolean;

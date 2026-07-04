@@ -19,7 +19,7 @@ import type { BuildingData } from "../../services/buildingService";
 import { getApartmentReviews } from "../../services/reviewService";
 import type { ReviewData } from "../../services/reviewService";
 import type { ApartmentImage } from "../../types";
-import { useApartmentBooking } from "../../hooks/useApartmentBooking";
+import { useApartmentBooking } from "../../hooks/guest/useApartmentBooking";
 
 const timeSlots = [
   "09h00",

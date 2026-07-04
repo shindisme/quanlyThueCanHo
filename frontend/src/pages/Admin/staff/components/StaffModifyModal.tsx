@@ -2,8 +2,9 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
 import Combobox from "../../../../components/ui/Combobox";
+import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import type { Staff } from "../../../../types";
-import { useStaffModify } from "../../../../hooks/useStaffModify";
+import { useStaffModify } from "../../../../hooks/admin/useStaffModify";
 
 interface StaffModifyModalProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export default function StaffModifyModal({
     setBuildingId,
     buildings,
     loading,
+    saving,
     nextUsername,
     handleSave,
     hasLinkedUser,
@@ -51,14 +53,20 @@ export default function StaffModifyModal({
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>Hủy</Button>
-          <Button onClick={handleSave} disabled={loading}>Cập nhật</Button>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Hủy</Button>
+          <Button onClick={handleSave} isLoading={saving} disabled={loading}>Cập nhật</Button>
         </>
       }
     >
-      <div className="space-y-6">
-        <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-12 sm:col-span-6">
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <LoadingSpinner size={36} />
+          <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải...</span>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="grid grid-cols-12 gap-6">
+            <div className="col-span-12 sm:col-span-6">
             <Input
               label="Họ tên *"
               value={fullName}
@@ -126,6 +134,7 @@ export default function StaffModifyModal({
           )}
         </div>
       </div>
+      )}
     </Modal>
   );
 }

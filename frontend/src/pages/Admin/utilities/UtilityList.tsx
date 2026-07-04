@@ -4,7 +4,7 @@ import SearchInput from "../../../components/ui/SearchInput";
 import Combobox from "../../../components/ui/Combobox";
 import Pagination from "../../../components/ui/Pagination";
 import Button from "../../../components/ui/Button";
-import { useUtilityList } from "../../../hooks/useUtilityList";
+import { useUtilityList } from "../../../hooks/admin/useUtilityList";
 import UtilityTable from "./components/UtilityTable";
 import UtilityCreateModal from "./components/UtilityCreateModal";
 import UtilityModifyModal from "./components/UtilityModifyModal";

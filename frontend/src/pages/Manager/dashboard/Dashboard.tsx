@@ -2,18 +2,12 @@ import {
   Home, Users, DollarSign, Wrench, TrendingUp, TrendingDown,
   CalendarDays, Clock, AlertCircle
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, PieChart, Pie, Cell
 } from "recharts";
-import { useAuthStore } from "../../../stores/auth.store";
-import * as apartmentService from "../../../services/apartmentService";
-import * as tenantService from "../../../services/tenantService";
-import * as contractService from "../../../services/contractService";
-import * as scheduleService from "../../../services/scheduleService";
-import * as invoiceService from "../../../services/invoiceService";
-import type { Invoice } from "../../../types";
+import { useManagerDashboard } from "../../../hooks/manager/useManagerDashboard";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
 function StatCard({ icon: Icon, label, value, trend, trendValue, iconColor, iconBg, variant = "default" }: {
@@ -28,29 +22,24 @@ function StatCard({ icon: Icon, label, value, trend, trendValue, iconColor, icon
 }) {
   const isGreen = variant === "green";
   return (
-    <div className={`border transition-all duration-200 p-5 shadow-lg hover:shadow-xl rounded-none h-full flex flex-col justify-between ${
-      isGreen ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white border-gray-200"
-    }`}>
+    <div className={`border transition-all duration-200 p-5 shadow-lg hover:shadow-xl rounded-none h-full flex flex-col justify-between ${isGreen ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white border-gray-200"
+      }`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className={`text-xs font-medium uppercase tracking-wide mb-2 ${
-            isGreen ? "text-emerald-100" : "text-gray-500"
-          }`}>{label}</p>
-          <p className={`text-2xl font-bold ${
-            isGreen ? "text-white" : "text-gray-800"
-          }`}>{value}</p>
+          <p className={`text-xs font-medium uppercase tracking-wide mb-2 ${isGreen ? "text-emerald-100" : "text-gray-500"
+            }`}>{label}</p>
+          <p className={`text-2xl font-bold ${isGreen ? "text-white" : "text-gray-800"
+            }`}>{value}</p>
           {trend && trendValue && (
-            <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${
-              isGreen ? "text-emerald-200" : trend === "up" ? "text-success-600" : "text-danger-600"
-            }`}>
+            <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${isGreen ? "text-emerald-200" : trend === "up" ? "text-success-600" : "text-danger-600"
+              }`}>
               {trend === "up" ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
               <span>{trendValue}</span>
             </div>
           )}
         </div>
-        <div className={`w-12 h-12 rounded-none flex items-center justify-center flex-shrink-0 ${
-          isGreen ? "bg-white/20" : iconBg
-        }`}>
+        <div className={`w-12 h-12 rounded-none flex items-center justify-center shrink-0 ${isGreen ? "bg-white/20" : iconBg
+          }`}>
           <Icon size={22} className={isGreen ? "text-white" : iconColor} />
         </div>
       </div>
@@ -83,51 +72,19 @@ function ChartCard({ title, subtitle, children, action }: {
 }
 
 export default function ManagerDashboard() {
-  const { email, managedBuildingId, managedBuildingName } = useAuthStore();
-  const displayName = email?.split("@")[0] || "Quản lý";
-
-  const [apartments, setApartments] = useState<any[]>([]);
-  const [tenants, setTenants] = useState<any[]>([]);
-  const [contracts, setContracts] = useState<any[]>([]);
-  const [schedules, setSchedules] = useState<any[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    displayName,
+    managedBuildingName,
+    managedBuildingId,
+    apartments,
+    tenants,
+    contracts,
+    schedules,
+    invoices,
+    isLoading
+  } = useManagerDashboard();
 
   const [timeFrame, setTimeFrame] = useState<"month" | "year">("month");
-
-  useEffect(() => {
-    async function loadData() {
-      try {
-        setLoading(true);
-        const [aptRes, tRes, cRes, sRes, invRes] = await Promise.all([
-          apartmentService.getAllApartments({
-            building_id: managedBuildingId || undefined,
-            limit: 100
-          }),
-          tenantService.getAllTenants({ limit: 100 }),
-          contractService.getAllContracts({
-            buildingId: managedBuildingId || undefined
-          }),
-          scheduleService.getSchedules(),
-          invoiceService.getAllInvoices({
-            building_id: managedBuildingId || undefined,
-            limit: 100
-          })
-        ]);
-
-        setApartments(aptRes.data || []);
-        setTenants(tRes.data || []);
-        setContracts(cRes || []);
-        setSchedules(sRes || []);
-        setInvoices(invRes.data || []);
-      } catch (err) {
-        console.error("Lỗi khi tải dữ liệu dashboard quản lý:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadData();
-  }, [managedBuildingId]);
 
   function formatCurrency(amount: number) {
     if (amount >= 1000000) return (amount / 1000000).toFixed(0) + " tr";
@@ -155,7 +112,7 @@ export default function ManagerDashboard() {
 
   const occupancyRate = totalApartmentsCount > 0 ? Math.round((rentedCount / totalApartmentsCount) * 100) : 0;
 
-  // Filter active contracts in manager's building
+  // Filter active contracts
   const buildingContracts = contracts.filter(c => {
     const isRoomInBuilding = buildingApartments.some(a => a.id === c.apartment_id);
     return c.status === "ACTIVE" && isRoomInBuilding;
@@ -236,7 +193,7 @@ export default function ManagerDashboard() {
     { text: "Ghi nhận chỉ số điện nước định kỳ cuối tháng", time: "Hàng tháng", urgent: false },
   ];
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <LoadingSpinner size={32} />
@@ -251,9 +208,6 @@ export default function ManagerDashboard() {
         <h1 className="text-2xl font-bold text-gray-800">
           Xin chào, <span className="text-primary-600">{displayName}</span>
         </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Tổng quan chi nhánh: <span className="font-semibold text-primary-700">{managedBuildingName || "Tòa nhà chưa gán"}</span>
-        </p>
       </div>
 
       {/* KPI Cards */}

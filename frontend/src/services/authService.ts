@@ -37,7 +37,7 @@ export async function createUser(data: {
 
 export async function updateUser(
   id: number,
-  data: { username?: string; role?: string }
+  data: { username?: string; role?: string; status?: string }
 ) {
   const res = await api.put(`/auth/users/${id}`, data);
   return res.data.data;

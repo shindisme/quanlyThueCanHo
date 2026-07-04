@@ -36,7 +36,7 @@ export default function StaffDetailModal({
           </div>
           <div className="flex justify-between border-b pb-2 border-gray-100">
             <span className="text-gray-500 font-medium">Chức vụ:</span>
-            <span className="font-semibold text-gray-800 text-blue-600">{staff.position}</span>
+            <span className="font-semibold text-blue-600">{staff.position}</span>
           </div>
           <div className="flex justify-between border-b pb-2 border-gray-100">
             <span className="text-gray-500 font-medium">Tòa nhà làm việc:</span>

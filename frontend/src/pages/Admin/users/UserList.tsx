@@ -1,10 +1,12 @@
-import { Plus, Trash2, RotateCcw, UserCog, Eye } from "lucide-react";
+import { Plus, Trash2, RotateCcw, UserCog, Eye, Pencil } from "lucide-react";
 import PageHeader from "../../../components/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
 import Badge from "../../../components/ui/Badge";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
-import { useUserList } from "../../../hooks/useUserList";
+import Combobox from "../../../components/ui/Combobox";
+import Pagination from "../../../components/ui/Pagination";
+import { useUserList } from "../../../hooks/admin/useUserList";
 import {
   Table,
   TableHeader,
@@ -15,6 +17,7 @@ import {
 } from "../../../components/ui/Table";
 
 import UserCreateModal from "./components/UserCreateModal";
+import UserModifyModal from "./components/UserModifyModal";
 import UserDeleteModal from "./components/UserDeleteModal";
 import UserResetPasswordModal from "./components/UserResetPasswordModal";
 import UserDetailModal from "./components/UserDetailModal";
@@ -33,23 +36,58 @@ export default function UserList() {
     setResetItem,
     viewItem,
     setViewItem,
+    modifyItem,
+    setModifyItem,
+    roleFilter,
+    setRoleFilter,
+    statusFilter,
+    setStatusFilter,
     filtered,
     sortedUsers,
+    pagination,
     requestSort,
     getSortIcon,
     handleDelete,
     confirmResetPassword,
     fetchUsers,
+    tenants,
+    staff,
+    getUserFullName,
   } = useUserList();
 
-  function getRoleBadge(roleName: string) {
-    const map: Record<string, { label: string; variant: string }> = {
-      ADMIN: { label: "Admin", variant: "danger" },
-      MANAGER: { label: "Quản lý", variant: "warning" },
-      TENANT: { label: "Người thuê", variant: "info" },
-    };
-    const r = map[roleName] || { label: roleName, variant: "gray" };
-    return <Badge variant={r.variant as any}>{r.label}</Badge>;
+  function getRoleBadge(user: UserData) {
+    let label = user.role;
+    let variant = "gray";
+
+    if (user.role === "ADMIN") {
+      label = "Admin";
+      variant = "danger";
+    } else if (user.role === "TENANT") {
+      label = "Người thuê";
+      variant = "info";
+    } else if (user.role === "MANAGER" || user.role === "STAFF") {
+      const match = staff.find(
+        (s) =>
+          s.user_id === user.id ||
+          (s.user && s.user.id === user.id) ||
+          (s.user && s.user.username === user.username)
+      );
+      label = match ? match.position : (user.role === "MANAGER" ? "Quản lý" : "Nhân viên");
+      variant = user.role === "MANAGER" ? "warning" : "success";
+    }
+
+    return <Badge variant={variant as any}>{label}</Badge>;
+  }
+
+  function isUserFullNameEditable(u: UserData): boolean {
+    if (u.role === "ADMIN") return true;
+    if (u.role === "TENANT") {
+      return !tenants.some((t) => t.user_id === u.id);
+    }
+    if (u.role === "MANAGER" || u.role === "STAFF") {
+      return !staff.some((s) => s.user_id === u.id);
+    }
+    return true;
   }
 
   if (loading) {
@@ -79,8 +117,43 @@ export default function UserList() {
         }
       />
 
-      {/* Tìm kiếm */}
-      <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm..." className="max-w-md" />
+      {/* Tìm kiếm & Bộ lọc */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 w-full">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Tìm kiếm..."
+          className="w-full"
+        />
+
+        <Combobox
+          options={[
+            { value: "", label: "Tất cả vai trò" },
+            { value: "ADMIN", label: "Admin" },
+            { value: "MANAGER", label: "Quản lý" },
+            { value: "STAFF", label: "Nhân viên" },
+            { value: "TENANT", label: "Người thuê" }
+          ]}
+          value={roleFilter}
+          onChange={setRoleFilter}
+          searchable={false}
+          className="w-full"
+          triggerClassName="rounded-md"
+        />
+
+        <Combobox
+          options={[
+            { value: "", label: "Tất cả trạng thái" },
+            { value: "ACTIVE", label: "Hoạt động" },
+            { value: "INACTIVE", label: "Tạm khóa" }
+          ]}
+          value={statusFilter}
+          onChange={setStatusFilter}
+          searchable={false}
+          className="w-full"
+          triggerClassName="rounded-md"
+        />
+      </div>
 
       {/* Bảng */}
       {filtered.length === 0 ? (
@@ -100,12 +173,16 @@ export default function UserList() {
                     {user.username}
                   </span>
                   <div className="flex items-center gap-2">
-                    {getRoleBadge(user.role)}
+                    {getRoleBadge(user)}
                     <Badge variant={user.status === "ACTIVE" ? "success" : "gray"}>
                       {user.status === "ACTIVE" ? "Hoạt động" : "Tạm khóa"}
                     </Badge>
                   </div>
                 </div>
+
+                <p className="text-xs text-gray-500">
+                  Họ tên: <span className="font-semibold text-gray-700">{getUserFullName(user)}</span>
+                </p>
 
                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
                   <button
@@ -116,6 +193,12 @@ export default function UserList() {
                   </button>
                   {isAdmin && (
                     <>
+                      <button
+                        onClick={() => setModifyItem(user)}
+                        className="px-3 py-1.5 rounded-lg border border-primary-200 text-primary-600 hover:bg-primary-50 flex items-center gap-1 text-xs cursor-pointer"
+                      >
+                        <Pencil size={14} /> Sửa
+                      </button>
                       <button
                         onClick={() => setResetItem(user)}
                         className="px-3 py-1.5 rounded-lg border border-amber-200 text-amber-600 hover:bg-amber-50 flex items-center gap-1 text-xs cursor-pointer"
@@ -136,11 +219,12 @@ export default function UserList() {
           </div>
 
           {/* View List */}
-          <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-sm">
+          <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-xl rounded-none">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-16">STT</TableHead>
+                  <TableHead className="font-semibold text-gray-750">Họ và tên</TableHead>
                   <TableHead onClick={() => requestSort("username")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                     Tên tài khoản {getSortIcon("username")}
                   </TableHead>
@@ -157,8 +241,11 @@ export default function UserList() {
                 {sortedUsers.map((user, index) => (
                   <TableRow key={user.id}>
                     <TableCell className="text-gray-500 font-medium">{index + 1}</TableCell>
+                    <TableCell className="font-medium text-gray-700">
+                      {getUserFullName(user)}
+                    </TableCell>
                     <TableCell className="font-semibold text-gray-800">{user.username}</TableCell>
-                    <TableCell>{getRoleBadge(user.role)}</TableCell>
+                    <TableCell>{getRoleBadge(user)}</TableCell>
                     <TableCell>
                       <Badge variant={user.status === "ACTIVE" ? "success" : "gray"}>
                         {user.status === "ACTIVE" ? "Hoạt động" : "Tạm khóa"}
@@ -175,6 +262,13 @@ export default function UserList() {
                         </button>
                         {isAdmin && (
                           <>
+                            <button
+                              onClick={() => setModifyItem(user)}
+                              className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
+                              title="Chỉnh sửa tài khoản"
+                            >
+                              <Pencil size={16} />
+                            </button>
                             <button
                               onClick={() => setResetItem(user)}
                               className="p-2 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 cursor-pointer"
@@ -197,36 +291,53 @@ export default function UserList() {
                 ))}
               </TableBody>
             </Table>
+            {/* Pagination */}
+            <Pagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              onPageChange={pagination.setCurrentPage}
+              className="mt-4"
+            />
           </div>
         </div>
       )}
 
-      {/* Modals */}
-      <UserCreateModal
-        isOpen={createModal.isOpen}
-        onClose={createModal.onClose}
-        onSuccess={fetchUsers}
-      />
+          {/* Modals */}
+          <UserCreateModal
+            isOpen={createModal.isOpen}
+            onClose={createModal.onClose}
+            onSuccess={fetchUsers}
+          />
 
-      <UserDeleteModal
-        isOpen={!!deleteItem}
-        onClose={() => setDeleteItem(null)}
-        onConfirm={handleDelete}
-        user={deleteItem}
-      />
+          <UserDeleteModal
+            isOpen={!!deleteItem}
+            onClose={() => setDeleteItem(null)}
+            onConfirm={handleDelete}
+            user={deleteItem}
+          />
 
-      <UserResetPasswordModal
-        isOpen={!!resetItem}
-        onClose={() => setResetItem(null)}
-        onConfirm={confirmResetPassword}
-        user={resetItem}
-      />
+          <UserResetPasswordModal
+            isOpen={!!resetItem}
+            onClose={() => setResetItem(null)}
+            onConfirm={confirmResetPassword}
+            user={resetItem}
+          />
 
-      <UserDetailModal
-        isOpen={!!viewItem}
-        onClose={() => setViewItem(null)}
-        user={viewItem}
-      />
-    </div>
-  );
+          <UserModifyModal
+            isOpen={!!modifyItem}
+            onClose={() => setModifyItem(null)}
+            onSuccess={fetchUsers}
+            user={modifyItem}
+            initialFullName={modifyItem ? getUserFullName(modifyItem) : ""}
+            isNameEditable={modifyItem ? isUserFullNameEditable(modifyItem) : true}
+          />
+
+          <UserDetailModal
+            isOpen={!!viewItem}
+            onClose={() => setViewItem(null)}
+            user={viewItem}
+            fullName={viewItem ? getUserFullName(viewItem) : ""}
+          />
+        </div>
+      );
 }
