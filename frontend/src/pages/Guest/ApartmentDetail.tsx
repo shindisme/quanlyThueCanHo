@@ -370,7 +370,7 @@ export default function GuestApartmentDetail() {
             <div className="col-span-12">
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày muốn xem *</label>
               <Calendar
-                value={selectedDate ? new Date(selectedDate) : null}
+                value={selectedDate || null}
                 onChange={(date) => {
                   if (!date) {
                     setSelectedDate("");

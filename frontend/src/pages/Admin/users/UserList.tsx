@@ -54,6 +54,7 @@ export default function UserList() {
     tenants,
     staff,
     getUserFullName,
+    getUserBranch,
   } = useUserList();
 
   function getRoleBadge(user: UserData) {
@@ -184,6 +185,11 @@ export default function UserList() {
                 <p className="text-xs text-gray-500">
                   Họ tên: <span className="font-semibold text-gray-700">{getUserFullName(user)}</span>
                 </p>
+                {getUserBranch(user) !== "-" && (
+                  <p className="text-xs text-gray-500">
+                    Chi nhánh / Căn hộ: <span className="font-semibold text-gray-700">{getUserBranch(user)}</span>
+                  </p>
+                )}
 
                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
                   <button
@@ -222,7 +228,7 @@ export default function UserList() {
           {/* View List */}
           <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-xl rounded-none">
             <Table>
-              <TableHeader>
+               <TableHeader>
                 <TableRow>
                   <TableHead className="w-16">STT</TableHead>
                   <TableHead className="font-semibold text-gray-750">Họ và tên</TableHead>
@@ -231,6 +237,9 @@ export default function UserList() {
                   </TableHead>
                   <TableHead onClick={() => requestSort("role")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                     Vai trò {getSortIcon("role")}
+                  </TableHead>
+                  <TableHead onClick={() => requestSort("branch")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                    Chi nhánh / Căn hộ {getSortIcon("branch")}
                   </TableHead>
                   <TableHead onClick={() => requestSort("status")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                     Trạng thái {getSortIcon("status")}
@@ -247,6 +256,7 @@ export default function UserList() {
                     </TableCell>
                     <TableCell className="font-semibold text-gray-800">{user.username}</TableCell>
                     <TableCell>{getRoleBadge(user)}</TableCell>
+                    <TableCell className="font-medium text-gray-600">{getUserBranch(user)}</TableCell>
                     <TableCell>
                       <Badge variant={user.status === "ACTIVE" ? "success" : "gray"}>
                         {user.status === "ACTIVE" ? "Hoạt động" : "Tạm khóa"}

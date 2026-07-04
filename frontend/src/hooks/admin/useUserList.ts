@@ -5,6 +5,9 @@ import * as authService from "../../services/authService";
 import type { UserData } from "../../services/authService";
 import * as tenantService from "../../services/tenantService";
 import * as staffService from "../../services/staffService";
+import * as contractService from "../../services/contractService";
+import * as apartmentService from "../../services/apartmentService";
+import * as buildingService from "../../services/buildingService";
 import { useSort } from "../common/useSort";
 import { useDebounce } from "../common/useDebounce";
 import { useOnOff } from "../common/useOnOff";
@@ -28,22 +31,41 @@ export function useUserList() {
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  const { data: users = [], isLoading: loading, refetch: fetchUsers } = useQuery({
+  const { data: users = [], isLoading: loadingUsers, refetch: fetchUsers } = useQuery({
     queryKey: ["users"],
     queryFn: () => authService.getAllUsers(),
   });
 
-  const { data: tenantsRes } = useQuery({
+  const { data: tenantsRes, isLoading: loadingTenants } = useQuery({
     queryKey: ["tenants"],
     queryFn: () => tenantService.getAllTenants({ limit: 100 }),
   });
   const tenants = tenantsRes?.data || [];
 
-  const { data: staffRes } = useQuery({
+  const { data: staffRes, isLoading: loadingStaff } = useQuery({
     queryKey: ["staff"],
     queryFn: () => staffService.getAllStaff(),
   });
   const staff = staffRes?.data || [];
+
+  const { data: contracts = [], isLoading: loadingContracts } = useQuery({
+    queryKey: ["contracts"],
+    queryFn: () => contractService.getAllContracts(),
+  });
+
+  const { data: apartmentsRes, isLoading: loadingApartments } = useQuery({
+    queryKey: ["apartments"],
+    queryFn: () => apartmentService.getAllApartments({ limit: 100 }),
+  });
+  const apartments = apartmentsRes?.data || [];
+
+  const { data: buildingsRes, isLoading: loadingBuildings } = useQuery({
+    queryKey: ["buildings"],
+    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
+  });
+  const buildings = buildingsRes?.data || [];
+
+  const loading = loadingUsers || loadingTenants || loadingStaff || loadingContracts || loadingApartments || loadingBuildings;
 
   function getUserFullName(u: UserData): string {
     if (u.role === "TENANT") {
@@ -69,6 +91,42 @@ export function useUserList() {
     return "-";
   }
 
+  function getUserBranch(u: UserData): string {
+    if (u.role === "TENANT") {
+      const matchTenant = tenants.find(
+        (t) =>
+          t.user_id === u.id ||
+          (t.user && t.user.id === u.id) ||
+          (t.email && t.email.toLowerCase() === u.username.toLowerCase())
+      );
+      if (matchTenant) {
+        const tenantContracts = contracts.filter((c) => c.tenant_id === matchTenant.id);
+        const activeContract = tenantContracts.find((c) => c.status === "ACTIVE") || tenantContracts[0];
+        if (activeContract) {
+          const apt = apartments.find((a) => a.id === activeContract.apartment_id);
+          const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
+          if (bld && apt) {
+            return `${bld.branch_name} - P.${apt.floor}${apt.room_number}`;
+          } else if (bld) {
+            return bld.branch_name;
+          }
+        }
+      }
+    } else if (u.role === "MANAGER" || u.role === "STAFF") {
+      const matchStaff = staff.find(
+        (s) =>
+          s.user_id === u.id ||
+          (s.user && s.user.id === u.id) ||
+          (s.user && s.user.username === u.username)
+      );
+      if (matchStaff && matchStaff.building_id) {
+        const bld = buildings.find((b) => b.id === matchStaff.building_id);
+        if (bld) return bld.branch_name;
+      }
+    }
+    return "-";
+  }
+
   // Lọc tìm kiếm
   const filtered = users.filter((u) => {
     // Role filter
@@ -80,7 +138,14 @@ export function useUserList() {
     if (!term) return true;
     const usernameNorm = removeVietnameseTones(u.username || "");
     const roleNorm = removeVietnameseTones(u.role || "");
-    return usernameNorm.includes(term) || roleNorm.includes(term);
+    const branchNorm = removeVietnameseTones(getUserBranch(u));
+    const fullNameNorm = removeVietnameseTones(getUserFullName(u));
+    return (
+      usernameNorm.includes(term) ||
+      roleNorm.includes(term) ||
+      branchNorm.includes(term) ||
+      fullNameNorm.includes(term)
+    );
   });
 
   const rolePriority: Record<string, number> = {
@@ -96,7 +161,13 @@ export function useUserList() {
     return priorityA - priorityB;
   });
 
-  const { items: sortedUsers, requestSort, getSortIcon } = useSort(defaultSortedFiltered);
+  const { items: sortedUsers, requestSort, getSortIcon } = useSort(
+    defaultSortedFiltered,
+    null,
+    {
+      branch: (u) => getUserBranch(u)
+    }
+  );
 
   const pagination = usePagination({
     totalItems: filtered.length,
@@ -125,10 +196,9 @@ export function useUserList() {
 
   const resetMutation = useMutation({
     mutationFn: (id: number) => authService.resetPassword(id),
-    onSuccess: (res) => {
+    onSuccess: () => {
       if (resetItem) {
-        const initialPassword = (res as any).initial_password;
-        toast.success(`Đã đặt lại mật khẩu cho tài khoản "${resetItem.username}" thành công! Mật khẩu khởi tạo: ${initialPassword || "123456"}`, { duration: 10000 });
+        toast.success(`Đã đặt lại mật khẩu cho tài khoản "${resetItem.username}" về mặc định "123123"`);
       }
       setResetItem(null);
     },
@@ -172,5 +242,6 @@ export function useUserList() {
     tenants,
     staff,
     getUserFullName,
+    getUserBranch,
   };
 }

@@ -64,7 +64,7 @@ export default function UserCreateModal({ isOpen, onClose, onSuccess }: UserCrea
             />
           </div>
         </div>
-        <p className="text-xs text-gray-400">Mật khẩu ngẫu nhiên sẽ được tạo tự động và hiển thị sau khi lưu.</p>
+        <p className="text-xs text-gray-400">Mật khẩu mặc định: 123123</p>
       </div>
     </Modal>
   );

@@ -1,4 +1,4 @@
-import { Plus, Users, Eye, Pencil, Trash2 } from "lucide-react";
+import { Plus, Users, Eye, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../../components/PageHeader";
 import Button from "../../../components/ui/Button";
@@ -113,13 +113,6 @@ export default function TenantList() {
           >
             <Pencil size={16} />
           </button>
-          <button
-            onClick={() => setDeleteItem(t)}
-            className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
-            title="Xóa"
-          >
-            <Trash2 size={16} />
-          </button>
         </div>
       ),
     },
@@ -206,12 +199,6 @@ export default function TenantList() {
                       className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-primary-600 hover:bg-primary-50 flex items-center gap-1 text-xs cursor-pointer"
                     >
                       <Pencil size={14} /> Sửa
-                    </button>
-                    <button
-                      onClick={() => setDeleteItem(t)}
-                      className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1 text-xs cursor-pointer"
-                    >
-                      <Trash2 size={14} /> Xóa
                     </button>
                   </div>
                 </div>

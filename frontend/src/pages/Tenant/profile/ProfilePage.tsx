@@ -295,7 +295,7 @@ export default function ProfilePage() {
               <div className="w-full">
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày sinh</label>
                 <Calendar
-                  value={occupantForm.dob ? new Date(occupantForm.dob) : null}
+                  value={occupantForm.dob || null}
                   onChange={(date) => {
                     if (!date) {
                       setOccupantForm({ ...occupantForm, dob: "" });

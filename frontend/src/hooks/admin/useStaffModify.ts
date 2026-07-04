@@ -35,20 +35,15 @@ export function useStaffModify({
       editItem: Staff;
       nextUsername: string;
     }) => {
-      let linkedUserId = editItem.user_id;
-      let initialPassword = "";
-
       // Nếu chưa có tài khoản, tự động tạo tài khoản theo thứ tự dựa trên chức vụ mới
       if (!editItem.user_id) {
         const isManager = position === "Quản lý";
         const roleToCreate = isManager ? "MANAGER" : "STAFF";
 
-        const res = await authService.createUser({
+        await authService.createUser({
           username: nextUsername,
           role: roleToCreate,
         });
-        linkedUserId = res.userId;
-        initialPassword = (res as any).initial_password;
       }
 
       await staffService.updateStaff(id, {
@@ -56,14 +51,13 @@ export function useStaffModify({
         phone: phone || null,
         position,
         building_id: buildingId ? Number(buildingId) : null,
-        user_id: linkedUserId,
       });
 
-      return { hasPriorUser: !!editItem.user_id, nextUsername, initialPassword };
+      return { hasPriorUser: !!editItem.user_id, nextUsername };
     },
     onSuccess: (data) => {
       if (!data.hasPriorUser) {
-        toast.success(`Đã tự động cấp tài khoản "${data.nextUsername}" và cập nhật thành công! Mật khẩu khởi tạo: ${data.initialPassword || "123456"}`, { duration: 10000 });
+        toast.success(`Đã tự động cấp tài khoản "${data.nextUsername}" (mật khẩu mặc định: 123123) và cập nhật thành công!`);
       } else {
         toast.success("Cập nhật thông tin nhân viên thành công!");
       }
@@ -90,6 +84,11 @@ export function useStaffModify({
   useEffect(() => {
     if (isOpen) {
       fetchData();
+    } else {
+      setFullName("");
+      setPhone("");
+      setPosition(positions[0]);
+      setBuildingId("");
     }
   }, [isOpen]);
 

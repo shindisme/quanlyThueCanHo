@@ -56,7 +56,7 @@ export default function TenantCreateModal({
           <div className="col-span-12 sm:col-span-6">
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày sinh</label>
             <Calendar
-              value={formDob ? new Date(formDob) : null}
+              value={formDob || null}
               onChange={(date) => {
                 if (!date) {
                   setFormDob("");

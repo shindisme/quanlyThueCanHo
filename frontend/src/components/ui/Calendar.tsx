@@ -6,7 +6,7 @@ import { formatDate, formatDateTime } from "../../utils/date"
 
 interface CalendarProps {
   className?: string
-  value?: Date | null
+  value?: Date | string | null
   onChange?: (date: Date | null) => void
   placeholder?: string
   popoverPosition?: "up" | "down" | "auto"
@@ -14,18 +14,18 @@ interface CalendarProps {
 }
 
 const monthWordNames = [
-  "Một",
-  "Hai",
-  "Ba",
-  "Tư",
-  "Năm",
-  "Sáu",
-  "Bảy",
-  "Tám",
-  "Chín",
-  "Mười",
-  "Mười Một",
-  "Mười Hai"
+  "1",
+  "2",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "10",
+  "11",
+  "12"
 ]
 
 const weekdays = ["H", "B", "T", "N", "S", "B", "C"]
@@ -33,6 +33,26 @@ const weekdays = ["H", "B", "T", "N", "S", "B", "C"]
 const hideScrollbarStyle = {
   scrollbarWidth: "none" as const,
   msOverflowStyle: "none" as const,
+}
+
+// Helper to parse string or Date to a local Date object safely without timezone shift
+const parseValueToDate = (val: Date | string | null | undefined): Date | null => {
+  if (!val) return null
+  if (val instanceof Date) {
+    if (isNaN(val.getTime())) return null
+    return val
+  }
+  if (typeof val === "string") {
+    // Handle YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+      const [y, m, d] = val.split("-").map(Number)
+      return new Date(y, m - 1, d)
+    }
+    // Handle standard date strings
+    const parsed = new Date(val)
+    if (!isNaN(parsed.getTime())) return parsed
+  }
+  return null
 }
 
 export function Calendar({
@@ -43,11 +63,12 @@ export function Calendar({
   popoverPosition = "auto",
   showTime = false,
 }: CalendarProps) {
+  const [selectedDate, setSelectedDate] = useState<Date | null>(() => parseValueToDate(value))
   const [isOpen, setIsOpen] = useState(false)
-  const [currentDate, setCurrentDate] = useState(value || new Date())
+  const [currentDate, setCurrentDate] = useState<Date>(() => parseValueToDate(value) || new Date())
   const containerRef = useRef<HTMLDivElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
-  
+
   const [popoverCoords, setPopoverCoords] = useState<{ top: number; left: number }>({ top: 0, left: 0 })
 
   // Time States
@@ -65,7 +86,18 @@ export function Calendar({
   // Close popover when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Node
+      const target = event.target as HTMLElement
+      if (!target) return
+
+      // Do not close when clicking dropdown select or option
+      if (
+        target.tagName === "SELECT" ||
+        target.tagName === "OPTION" ||
+        target.closest("select")
+      ) {
+        return
+      }
+
       if (
         containerRef.current && !containerRef.current.contains(target) &&
         popoverRef.current && !popoverRef.current.contains(target)
@@ -87,14 +119,14 @@ export function Calendar({
         const spaceBelow = window.innerHeight - rect.bottom
         const calendarHeight = showTime ? 310 : 280
         const popoverWidth = showTime ? 410 : 260
-        
+
         let top = rect.bottom + window.scrollY
         if (popoverPosition === "up" || (popoverPosition === "auto" && spaceBelow < calendarHeight && rect.top > calendarHeight)) {
           top = rect.top + window.scrollY - calendarHeight - 4
         } else {
           top = rect.bottom + window.scrollY + 4
         }
-        
+
         let left = rect.left + window.scrollX
         if (left + popoverWidth > window.innerWidth + window.scrollX) {
           left = window.innerWidth + window.scrollX - popoverWidth - 10
@@ -102,14 +134,14 @@ export function Calendar({
         if (left < 0) {
           left = 10
         }
-        
+
         setPopoverCoords({ top, left })
       }
-      
+
       updatePosition()
       window.addEventListener("resize", updatePosition)
       window.addEventListener("scroll", updatePosition, true)
-      
+
       return () => {
         window.removeEventListener("resize", updatePosition)
         window.removeEventListener("scroll", updatePosition, true)
@@ -119,23 +151,29 @@ export function Calendar({
 
   // Sync internal states when value changes
   useEffect(() => {
-    if (value) {
-      const d = new Date(value)
-      setCurrentDate(d)
-      
-      let h = d.getHours()
-      const m = d.getMinutes()
-      const p = h >= 12 ? "CH" : "SA"
-      if (h >= 12) {
-        if (h > 12) h -= 12
+    const parsed = parseValueToDate(value)
+    const prevTime = selectedDate ? selectedDate.getTime() : null
+    const nextTime = parsed ? parsed.getTime() : null
+
+    if (nextTime !== prevTime) {
+      setSelectedDate(parsed)
+      if (parsed) {
+        setCurrentDate(parsed)
+
+        let h = parsed.getHours()
+        const m = parsed.getMinutes()
+        const p = h >= 12 ? "CH" : "SA"
+        if (h >= 12) {
+          if (h > 12) h -= 12
+        } else {
+          if (h === 0) h = 12
+        }
+        setSelectedHour(h)
+        setSelectedMinute(m)
+        setSelectedPeriod(p)
       } else {
-        if (h === 0) h = 12
+        setCurrentDate(new Date())
       }
-      setSelectedHour(h)
-      setSelectedMinute(m)
-      setSelectedPeriod(p)
-    } else {
-      setCurrentDate(new Date())
     }
   }, [value])
 
@@ -158,6 +196,32 @@ export function Calendar({
       }, 50)
     }
   }, [isOpen, showTime, selectedHour, selectedMinute])
+
+  const updateSelectedDatePart = (newYear: number, newMonth: number) => {
+    const activeDay = selectedDate ? selectedDate.getDate() : 1
+    const maxDays = new Date(newYear, newMonth + 1, 0).getDate()
+    const targetDay = Math.min(activeDay, maxDays)
+
+    let targetHour = selectedHour
+    if (selectedPeriod === "CH") {
+      if (targetHour < 12) targetHour += 12
+    } else {
+      if (targetHour === 12) targetHour = 0
+    }
+
+    const nextDate = new Date(
+      newYear,
+      newMonth,
+      targetDay,
+      showTime ? targetHour : 0,
+      showTime ? selectedMinute : 0,
+      0
+    )
+
+    setCurrentDate(nextDate)
+    setSelectedDate(nextDate)
+    onChange?.(nextDate)
+  }
 
   const handleSelectDay = (day: number) => {
     let targetHour = selectedHour
@@ -183,7 +247,7 @@ export function Calendar({
 
   const handleSelectTime = (h: number, m: number, p: "SA" | "CH") => {
     const baseDate = value ? new Date(value) : new Date()
-    
+
     let targetHour = h
     if (p === "CH") {
       if (targetHour < 12) targetHour += 12
@@ -219,7 +283,7 @@ export function Calendar({
   const month = currentDate.getMonth()
 
   const daysInMonth = new Date(year, month + 1, 0).getDate()
-  
+
   // Calculate first day index (Monday start: Mon=0, Tue=1, ..., Sun=6)
   let firstDayIndex = new Date(year, month, 1).getDay()
   firstDayIndex = firstDayIndex === 0 ? 6 : firstDayIndex - 1
@@ -228,11 +292,11 @@ export function Calendar({
   const daysInPrevMonth = new Date(year, month, 0).getDate()
 
   const handlePrevMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1))
+    updateSelectedDatePart(year, month - 1)
   }
 
   const handleNextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1))
+    updateSelectedDatePart(year, month + 1)
   }
 
   const cells = []
@@ -254,11 +318,11 @@ export function Calendar({
   for (let day = 1; day <= daysInMonth; day++) {
     const date = new Date(year, month, day)
     const isSelected =
-      value &&
-      date.getDate() === value.getDate() &&
-      date.getMonth() === value.getMonth() &&
-      date.getFullYear() === value.getFullYear()
-    
+      selectedDate &&
+      date.getDate() === selectedDate.getDate() &&
+      date.getMonth() === selectedDate.getMonth() &&
+      date.getFullYear() === selectedDate.getFullYear()
+
     const isToday =
       new Date().getDate() === day &&
       new Date().getMonth() === month &&
@@ -274,8 +338,8 @@ export function Calendar({
           isSelected
             ? "bg-primary-600 text-white shadow-sm ring-1 ring-primary-600"
             : isToday
-            ? "bg-gray-100 text-primary-600 font-bold"
-            : "text-gray-700 hover:bg-gray-100"
+              ? "bg-gray-100 text-primary-600 font-bold"
+              : "text-gray-700 hover:bg-gray-100"
         )}
       >
         {day}
@@ -297,17 +361,17 @@ export function Calendar({
     )
   }
 
-  // Years range: 10 years past to 20 years future
-  const startYear = new Date().getFullYear() - 10
-  const yearsList = Array.from({ length: 31 }, (_, i) => startYear + i)
+  // Danh sách năm (cách 60 năm trước tới 10 năm sau), hiển thị giảm dần (descending) để dễ chọn năm sinh gần đây
+  const currentYear = new Date().getFullYear()
+  const yearsList = Array.from({ length: 71 }, (_, i) => (currentYear + 10) - i)
 
-  // Lists for time picker
   const hoursList = Array.from({ length: 12 }, (_, i) => i + 1)
   const minutesList = Array.from({ length: 60 }, (_, i) => i)
 
   return (
     <div className="relative w-full" ref={containerRef}>
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .no-scrollbar::-webkit-scrollbar {
           display: none;
         }
@@ -325,8 +389,8 @@ export function Calendar({
           className
         )}
       >
-        <span className={value ? "text-gray-800" : "text-gray-400"}>
-          {value ? (showTime ? formatDateTime(value) : formatDate(value)) : placeholder}
+        <span className={selectedDate ? "text-gray-800" : "text-gray-400"}>
+          {selectedDate ? (showTime ? formatDateTime(selectedDate) : formatDate(selectedDate)) : placeholder}
         </span>
         <CalendarIcon size={16} className="text-gray-400 ml-2" />
       </button>
@@ -339,7 +403,7 @@ export function Calendar({
             top: `${popoverCoords.top}px`,
             left: `${popoverCoords.left}px`,
           }}
-          className="z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg flex font-sans overflow-hidden"
+          className="z-9999 bg-white border border-gray-200 rounded-lg shadow-lg flex font-sans overflow-hidden"
         >
           {/* Day Grid Panel */}
           <div className="p-3 w-[260px] flex flex-col justify-between">
@@ -355,7 +419,7 @@ export function Calendar({
                       value={month}
                       onChange={(e) => {
                         const m = Number(e.target.value)
-                        setCurrentDate(new Date(year, m, 1))
+                        updateSelectedDatePart(year, m)
                       }}
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     >
@@ -375,7 +439,7 @@ export function Calendar({
                       value={year}
                       onChange={(e) => {
                         const y = Number(e.target.value)
-                        setCurrentDate(new Date(y, month, 1))
+                        updateSelectedDatePart(y, month)
                       }}
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     >
@@ -407,8 +471,8 @@ export function Calendar({
 
               {/* Weekdays */}
               <div className="grid grid-cols-7 gap-1 text-center mb-1 text-[11px] font-bold text-gray-400">
-                {weekdays.map((day) => (
-                  <div key={day} className="w-8">
+                {weekdays.map((day, idx) => (
+                  <div key={`${day}-${idx}`} className="w-8">
                     {day}
                   </div>
                 ))}
@@ -465,7 +529,7 @@ export function Calendar({
                         handleSelectTime(h, selectedMinute, selectedPeriod)
                       }}
                       className={cn(
-                        "w-9 h-8 flex-shrink-0 flex items-center justify-center text-xs font-semibold rounded-md transition-colors cursor-pointer",
+                        "w-9 h-8 shrink-0 flex items-center justify-center text-xs font-semibold rounded-md transition-colors cursor-pointer",
                         isSelected
                           ? "bg-primary-600 text-white shadow-sm font-bold"
                           : "text-gray-700 hover:bg-gray-100"
@@ -500,7 +564,7 @@ export function Calendar({
                         handleSelectTime(selectedHour, m, selectedPeriod)
                       }}
                       className={cn(
-                        "w-9 h-8 flex-shrink-0 flex items-center justify-center text-xs font-semibold rounded-md transition-colors cursor-pointer",
+                        "w-9 h-8 shrink-0 flex items-center justify-center text-xs font-semibold rounded-md transition-colors cursor-pointer",
                         isSelected
                           ? "bg-primary-600 text-white shadow-sm font-bold"
                           : "text-gray-700 hover:bg-gray-100"

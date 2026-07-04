@@ -33,6 +33,7 @@ export function useContractList() {
   const [selectedDetailContract, setSelectedDetailContract] = useState<RentalContract | null>(null);
   const [selectedDocContract, setSelectedDocContract] = useState<RentalContract | null>(null);
   const [selectedExtendContract, setSelectedExtendContract] = useState<RentalContract | null>(null);
+  const [terminateItem, setTerminateItem] = useState<RentalContract | null>(null);
   const [extendEndDate, setExtendEndDate] = useState("");
   const [initialTenantId, setInitialTenantId] = useState<number | undefined>();
 
@@ -179,6 +180,25 @@ export function useContractList() {
     extendMutation.mutate({ id: selectedExtendContract.id, date: extendEndDate });
   }
 
+  const terminateMutation = useMutation({
+    mutationFn: (id: number) => contractService.terminateContract(id),
+    onSuccess: () => {
+      toast.success("Hủy/thanh lý hợp đồng thành công!");
+      setTerminateItem(null);
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["apartments"] });
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string; message?: string } } };
+      toast.error(err.response?.data?.error || err.response?.data?.message || "Hủy hợp đồng thất bại!");
+    },
+  });
+
+  function handleTerminateContract() {
+    if (!terminateItem) return;
+    terminateMutation.mutate(terminateItem.id);
+  }
+
   return {
     role,
     managedBuildingId,
@@ -210,6 +230,10 @@ export function useContractList() {
     totalPages,
     paginatedContracts,
     handleExtendContract,
+    terminateItem,
+    setTerminateItem,
+    handleTerminateContract,
+    terminating: terminateMutation.isPending,
     fetchContracts,
   };
 }

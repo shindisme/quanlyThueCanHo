@@ -91,3 +91,12 @@ export async function extendContract(id: number, newEndDate: string): Promise<Re
   const updatedContract = res.data.data;
   return mapBackendToFrontend(updatedContract);
 }
+
+export async function terminateContract(id: number, endDate?: string): Promise<RentalContract> {
+  const res = await api.patch<{ success: boolean; data: RawContract }>(`/contracts/${id}/end`, {
+    end_date: endDate || undefined,
+  });
+
+  const updatedContract = res.data.data;
+  return mapBackendToFrontend(updatedContract);
+}

@@ -71,7 +71,7 @@ export function useTenantModify({ isOpen, onClose, onSuccess, editItem }: UseTen
       data: {
         full_name: formFullName,
         citizen_id: formCitizenId,
-        date_of_birth: formDob ? new Date(formDob).toISOString() : null,
+        date_of_birth: formDob ? formDob : null,
         address: formAddress || null,
         email: formEmail.trim() || null,
         phone: formPhone.trim() || null,

@@ -241,7 +241,7 @@ export default function ContractCreateModal({
           <div className="col-span-12 sm:col-span-6">
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày bắt đầu *</label>
             <Calendar
-              value={startDateValue ? new Date(startDateValue) : null}
+              value={startDateValue || null}
               onChange={(date) => {
                 if (!date) {
                   setValue("start_date", "");
@@ -261,7 +261,7 @@ export default function ContractCreateModal({
           <div className="col-span-12 sm:col-span-6">
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày kết thúc *</label>
             <Calendar
-              value={endDateValue ? new Date(endDateValue) : null}
+              value={endDateValue || null}
               onChange={(date) => {
                 if (!date) {
                   setValue("end_date", "");

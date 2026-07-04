@@ -63,10 +63,8 @@ export function useTenantCreate({ onClose, onSuccess }: UseTenantCreateProps) {
       return { tenant, username: tenant.user?.username || username };
     },
     onSuccess: (data) => {
-      const initialPassword = (data.tenant as any).initial_password;
       toast.success(
-        `Đã tự động tạo tài khoản "${data.username}" cho người thuê mới! Mật khẩu khởi tạo: ${initialPassword || "123456"}`,
-        { duration: 10000 }
+        `Đã tự động tạo tài khoản "${data.username}" (mật khẩu mặc định: 123123) cho người thuê mới!`
       );
       setFormFullName("");
       setFormCitizenId("");

@@ -15,7 +15,7 @@ export default function UserResetPasswordModal({ isOpen, onClose, onConfirm, use
       onClose={onClose}
       onConfirm={onConfirm}
       title="Đặt lại mật khẩu"
-      message={`Bạn có chắc chắn muốn đặt lại mật khẩu cho tài khoản "${user?.username}" không? Mật khẩu mới sẽ được tạo lại ngẫu nhiên và hiển thị sau khi thực hiện.`}
+      message={`Bạn có chắc chắn muốn đặt lại mật khẩu cho tài khoản "${user?.username}" về mặc định "123123" không?`}
       confirmText="Đặt lại"
     />
   );

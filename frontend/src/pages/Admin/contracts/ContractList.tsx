@@ -1,4 +1,4 @@
-import { Plus, FileText, Eye, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, FileText, Eye, Calendar as CalendarIcon, XCircle } from "lucide-react";
 import PageHeader from "../../../components/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
@@ -7,6 +7,7 @@ import Pagination from "../../../components/ui/Pagination";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import Modal from "../../../components/ui/Modal";
 import { Calendar } from "../../../components/ui/Calendar";
+import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import { toast } from "sonner";
 
 import { useContractList } from "../../../hooks/admin/useContractList";
@@ -55,6 +56,10 @@ export default function ContractList() {
     totalPages,
     paginatedContracts,
     handleExtendContract,
+    terminateItem,
+    setTerminateItem,
+    handleTerminateContract,
+    terminating,
     fetchContracts,
   } = useContractList();
 
@@ -151,15 +156,23 @@ export default function ContractList() {
                       <FileText size={14} /> Tải/In HĐ
                     </button>
                     {c.status === "ACTIVE" && role !== "TENANT" && (
-                      <button
-                        onClick={() => {
-                          setSelectedExtendContract(c);
-                          setExtendEndDate("");
-                        }}
-                        className="px-3 py-1.5 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 flex items-center gap-1 text-xs cursor-pointer"
-                      >
-                        <CalendarIcon size={14} /> Gia hạn
-                      </button>
+                      <>
+                        <button
+                          onClick={() => {
+                            setSelectedExtendContract(c);
+                            setExtendEndDate("");
+                          }}
+                          className="px-3 py-1.5 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 flex items-center gap-1 text-xs cursor-pointer"
+                        >
+                          <CalendarIcon size={14} /> Gia hạn
+                        </button>
+                        <button
+                          onClick={() => setTerminateItem(c)}
+                          className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1 text-xs cursor-pointer"
+                        >
+                          <XCircle size={14} /> Hủy HĐ
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -229,16 +242,25 @@ export default function ContractList() {
                             <FileText size={16} />
                           </button>
                           {c.status === "ACTIVE" && role !== "TENANT" && (
-                            <button
-                              onClick={() => {
-                                setSelectedExtendContract(c);
-                                setExtendEndDate("");
-                              }}
-                              className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer"
-                              title="Gia hạn"
-                            >
-                              <CalendarIcon size={16} />
-                            </button>
+                            <>
+                              <button
+                                onClick={() => {
+                                  setSelectedExtendContract(c);
+                                  setExtendEndDate("");
+                                }}
+                                className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer"
+                                title="Gia hạn"
+                              >
+                                <CalendarIcon size={16} />
+                              </button>
+                              <button
+                                onClick={() => setTerminateItem(c)}
+                                className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                                title="Hủy hợp đồng"
+                              >
+                                <XCircle size={16} />
+                              </button>
+                            </>
                           )}
                         </div>
                       </TableCell>
@@ -332,7 +354,7 @@ export default function ContractList() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">Ngày kết thúc mới *</label>
               <Calendar
-                value={extendEndDate ? new Date(extendEndDate) : null}
+                value={extendEndDate || null}
                 onChange={(date: Date | null) => {
                   if (!date) {
                     setExtendEndDate("");
@@ -355,6 +377,18 @@ export default function ContractList() {
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        isOpen={!!terminateItem}
+        onClose={() => setTerminateItem(null)}
+        onConfirm={handleTerminateContract}
+        title="Hủy/Thanh lý hợp đồng"
+        message={`Bạn có chắc chắn muốn hủy hợp đồng ${terminateItem ? `HD-${String(terminateItem.id).padStart(5, "0")}` : ""} không? Hành động này sẽ thay đổi trạng thái hợp đồng thành ĐÃ KẾT THÚC và giải phóng phòng thành TRỐNG.`}
+        variant="danger"
+        confirmText="Xác nhận hủy"
+        cancelText="Hủy bỏ"
+        isLoading={terminating}
+      />
     </div>
   );
 }
