@@ -14,7 +14,7 @@ import type { Actor } from "../types/auth.js";
 import {
     isPositiveDecimal12_2Amount
 } from "../utils/money.js";
-import { getCurrentManagerAssignment } from "./manager-scope.js";
+import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
 
 const contractInclude = {
     tenant: {

@@ -10,7 +10,7 @@ import type {
     UpdateApartmentRequest
 } from "../schemas/apartment.schema.js";
 import type { Actor } from "../types/auth.js";
-import { getCurrentManagerAssignment } from "./manager-scope.js";
+import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
 
 const apartmentImageSelect = {
     id: true,

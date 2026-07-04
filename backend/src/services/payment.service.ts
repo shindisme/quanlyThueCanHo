@@ -15,7 +15,7 @@ import {
     isDecimal12_2Amount,
     toMoneyCents
 } from "../utils/money.js";
-import { getCurrentManagerAssignment } from "./manager-scope.js";
+import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
 
 export type PaymentActor = Actor;
 export type PaymentFilters = ListPaymentsRequest["query"];

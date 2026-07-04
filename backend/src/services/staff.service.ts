@@ -15,7 +15,7 @@ import {
     createInitialCredential,
     nextStaffUsername
 } from "./account.service.js";
-import { getCurrentManagerAssignment } from "./manager-scope.js";
+import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
 
 const userSelect = {
     id: true,
@@ -312,6 +312,7 @@ export const updateStaffService = async (
     if (
         actor.role === Role.MANAGER
         && input.building_id !== undefined
+        && input.building_id !== actor.buildingId
     ) {
         throw forbidden("Managers cannot transfer staff between buildings");
     }

@@ -15,7 +15,7 @@ import {
     isNonNegativeDecimal12_2Amount,
     MAX_DECIMAL_12_2
 } from "../utils/money.js";
-import { getCurrentManagerAssignment } from "./manager-scope.js";
+import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
 
 export type InvoiceActor = Actor;
 export type InvoiceFilters = ListInvoicesRequest["query"];

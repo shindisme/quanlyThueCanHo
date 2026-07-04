@@ -80,8 +80,8 @@ export default function GuestChatbox() {
     setIsTyping(true);
 
     try {
-      const res = await api.post<{ reply: string }>("/chat", { message: textToSend });
-      const responseText = res.data?.reply || "Tôi chưa có câu trả lời cho vấn đề này.";
+      const res = await api.post<{ data: { reply: string } }>("/chat", { message: textToSend });
+      const responseText = res.data.data.reply || "Tôi chưa có câu trả lời cho vấn đề này.";
 
       const botMessage: Message = {
         id: messages.length + 2,

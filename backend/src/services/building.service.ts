@@ -9,7 +9,7 @@ import type {
     UpdateBuildingRequest
 } from "../schemas/building.schema.js";
 import type { Actor } from "../types/auth.js";
-import { getCurrentManagerAssignment } from "./manager-scope.js";
+import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
 
 const staffSummarySelect = {
     id: true,

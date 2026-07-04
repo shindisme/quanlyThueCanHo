@@ -10,7 +10,7 @@ import type {
     SendInvoiceNotificationsRequest
 } from "../schemas/notification.schema.js";
 import type { Actor } from "../types/auth.js";
-import { getCurrentManagerAssignment } from "./manager-scope.js";
+import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
 
 export type NotificationActor = Actor;
 export type NotificationFilters =

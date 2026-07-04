@@ -17,7 +17,7 @@ import type { Actor } from "../types/auth.js";
 import {
     getCurrentManagerAssignment,
     getCurrentStaffAssignment
-} from "./manager-scope.js";
+} from "../utils/manager-scope.js";
 
 const maintenanceInclude = {
     tenant: {
