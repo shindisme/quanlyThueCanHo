@@ -80,6 +80,7 @@ export default function ManagerDashboard() {
     contracts,
     schedules,
     invoices,
+    maintenanceRequests,
     isLoading
   } = useManagerDashboard();
 
@@ -109,7 +110,7 @@ export default function ManagerDashboard() {
   const availableCount = availableApts.length;
   const maintenanceCount = maintenanceApts.length;
 
-  const occupancyRate = totalApartmentsCount > 0 ? Math.round((rentedCount / totalApartmentsCount) * 100) : 0;
+
 
   // Filter active contracts
   const buildingContracts = contracts.filter(c => {
@@ -152,6 +153,11 @@ export default function ManagerDashboard() {
     const matchesBuilding = !managedBuildingId || s.apartment?.building_id === managedBuildingId;
     return s.status === "PENDING" && matchesBuilding;
   }).length;
+
+  // Pending maintenance requests
+  const pendingMaintenanceRequests = maintenanceRequests.filter(
+    (r) => r.status === "PENDING" || r.status === "PROCESSING" || r.status === "NEEDS_RESCHEDULE"
+  ).length;
 
   // Revenue chart data: Switch between Monthly and Yearly based on timeFrame
   const months = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
@@ -216,9 +222,8 @@ export default function ManagerDashboard() {
             iconColor="text-primary-600" iconBg="bg-primary-50" />
         </div>
         <div className="col-span-12 sm:col-span-6 lg:col-span-4">
-          <StatCard icon={Home} label="Tỷ lệ lấp đầy" value={`${occupancyRate}%`}
-            trend={occupancyRate > 70 ? "up" : "down"} trendValue={`${occupancyRate}%`}
-            iconColor="text-success-600" iconBg="bg-success-50" />
+          <StatCard icon={Wrench} label="Yêu cầu sửa chữa" value={pendingMaintenanceRequests}
+            iconColor="text-warning-600" iconBg="bg-warning-50" />
         </div>
         <div className="col-span-12 sm:col-span-6 lg:col-span-4">
           <StatCard icon={Users} label="Người thuê" value={activeTenantsCount}
@@ -229,11 +234,11 @@ export default function ManagerDashboard() {
             iconColor="text-emerald-600" iconBg="bg-emerald-50" />
         </div>
         <div className="col-span-12 sm:col-span-6 lg:col-span-4">
-          <StatCard icon={Wrench} label="Lịch hẹn chờ duyệt" value={pendingSchedulesCount}
+          <StatCard icon={CalendarDays} label="Lịch hẹn chờ duyệt" value={pendingSchedulesCount}
             iconColor="text-danger-600" iconBg="bg-danger-50" />
         </div>
         <div className="col-span-12 sm:col-span-6 lg:col-span-4">
-          <StatCard icon={DollarSign} label="Doanh thu thực tế (Tháng này)" value={formatCurrency(monthlyRevenue)}
+          <StatCard icon={DollarSign} label="Doanh thu tháng này" value={formatCurrency(monthlyRevenue)}
             iconColor="text-white" iconBg="bg-white/20" variant="green" />
         </div>
       </div>

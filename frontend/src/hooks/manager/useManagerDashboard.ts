@@ -8,6 +8,7 @@ import * as scheduleService from "../../services/scheduleService";
 import * as invoiceService from "../../services/invoiceService";
 import * as staffService from "../../services/staffService";
 import * as buildingService from "../../services/buildingService";
+import * as maintenanceService from "../../services/maintenanceService";
 
 function parseJwt(token: string) {
   try {
@@ -101,7 +102,16 @@ export function useManagerDashboard() {
   });
   const invoices = invoicesData?.data || [];
 
-  const isLoading = loadingStaff || loadingApartments || loadingTenants || loadingContracts || loadingSchedules || loadingInvoices;
+  const { data: maintenanceData, isLoading: loadingMaintenance } = useQuery({
+    queryKey: ["maintenanceRequests", activeBuildingId],
+    queryFn: () => maintenanceService.getAllMaintenanceRequests({
+      building_id: activeBuildingId || undefined,
+      limit: 100
+    }),
+  });
+  const maintenanceRequests = maintenanceData?.data || [];
+
+  const isLoading = loadingStaff || loadingApartments || loadingTenants || loadingContracts || loadingSchedules || loadingInvoices || loadingMaintenance;
 
   return {
     email,
@@ -113,6 +123,7 @@ export function useManagerDashboard() {
     contracts,
     schedules,
     invoices,
+    maintenanceRequests,
     isLoading,
   };
 }
