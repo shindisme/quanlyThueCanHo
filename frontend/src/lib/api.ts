@@ -41,7 +41,16 @@ api.interceptors.response.use(
     }
     if (error.response?.status === 401 && !error.config.url?.includes("/auth/login")) {
       localStorage.removeItem("auth-storage");
-      window.location.href = "/system/login";
+      
+      const publicPaths = ["/", "/apartments", "/buildings", "/about", "/contact", "/system/login", "/login"];
+      const currentPath = window.location.pathname;
+      const isPublicPath = publicPaths.includes(currentPath) || 
+                           currentPath.startsWith("/apartments/") || 
+                           currentPath.startsWith("/buildings/");
+      
+      if (!isPublicPath) {
+        window.location.href = "/system/login";
+      }
     }
     return Promise.reject(error);
   }
