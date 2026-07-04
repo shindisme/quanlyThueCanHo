@@ -90,7 +90,7 @@ export function useManagerDashboard() {
     queryKey: ["schedules"],
     queryFn: () => scheduleService.getSchedules(),
   });
-  const schedules = schedulesData?.data || [];
+  const schedules = schedulesData || [];
 
   const { data: invoicesData, isLoading: loadingInvoices } = useQuery({
     queryKey: ["invoices", activeBuildingId],

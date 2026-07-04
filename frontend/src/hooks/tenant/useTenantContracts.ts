@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "../../stores/auth.store";
 import * as buildingService from "../../services/buildingService";
 import * as apartmentService from "../../services/apartmentService";
 import * as contractService from "../../services/contractService";
@@ -9,7 +8,6 @@ import { toast } from "sonner";
 import type { RentalContract } from "../../types";
 
 export function useTenantContracts() {
-  const { token } = useAuthStore();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
 

@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Wrench, ClipboardList, Check, AlertCircle, Calendar as CalendarIcon, ShieldAlert, Eye, Pencil } from "lucide-react";
+import { Wrench, ClipboardList, Check, AlertCircle, Calendar as CalendarIcon, ShieldAlert, Eye } from "lucide-react";
 import Badge from "../../../components/ui/Badge";
 import SearchInput from "../../../components/ui/SearchInput";
 import PageHeader from "../../../components/PageHeader";
 import Modal from "../../../components/ui/Modal";
 import Button from "../../../components/ui/Button";
-import Input from "../../../components/ui/Input";
 import Combobox from "../../../components/ui/Combobox";
 import Calendar from "../../../components/ui/Calendar";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
@@ -242,7 +241,7 @@ export default function Maintenance() {
                           <Eye size={16} />
                         </button>
 
-                        {(role === "ADMIN" || role === "MANAGER") && (req.status === "PENDING" || req.status === "NEEDS_RESCHEDULE") && (
+                        {showAssignBtn && (
                           <button
                             type="button"
                             onClick={() => handleOpenAssign(req)}

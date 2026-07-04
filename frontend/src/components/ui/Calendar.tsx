@@ -297,17 +297,9 @@ export function Calendar({
     )
   }
 
-  // Select option generator: 20 years past to 20 years future
-  const selectOptions = []
+  // Years range: 10 years past to 20 years future
   const startYear = new Date().getFullYear() - 10
-  for (let y = startYear; y <= startYear + 20; y++) {
-    for (let m = 0; m < 12; m++) {
-      selectOptions.push({
-        value: `${m}-${y}`,
-        label: `Tháng ${monthWordNames[m]} ${y}`,
-      })
-    }
-  }
+  const yearsList = Array.from({ length: 31 }, (_, i) => startYear + i)
 
   // Lists for time picker
   const hoursList = Array.from({ length: 12 }, (_, i) => i + 1)
@@ -354,23 +346,46 @@ export function Calendar({
             <div>
               {/* Header */}
               <div className="flex items-center justify-between pb-3 mb-2 border-b border-gray-100">
-                <div className="relative flex items-center gap-1 font-bold text-sm text-gray-800 hover:bg-gray-50 px-1.5 py-0.5 rounded cursor-pointer transition-colors">
-                  <span>Tháng {monthWordNames[month]} {year}</span>
-                  <ChevronDown size={14} className="text-gray-500" />
-                  <select
-                    value={`${month}-${year}`}
-                    onChange={(e) => {
-                      const [m, y] = e.target.value.split("-").map(Number)
-                      setCurrentDate(new Date(y, m, 1))
-                    }}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                  >
-                    {selectOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                <div className="flex items-center gap-1">
+                  {/* Month Dropdown */}
+                  <div className="relative flex items-center gap-0.5 font-bold text-xs text-gray-800 hover:bg-gray-50 px-1.5 py-0.5 rounded cursor-pointer transition-colors">
+                    <span>Tháng {monthWordNames[month]}</span>
+                    <ChevronDown size={12} className="text-gray-500" />
+                    <select
+                      value={month}
+                      onChange={(e) => {
+                        const m = Number(e.target.value)
+                        setCurrentDate(new Date(year, m, 1))
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    >
+                      {monthWordNames.map((name, idx) => (
+                        <option key={idx} value={idx}>
+                          Tháng {name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Year Dropdown */}
+                  <div className="relative flex items-center gap-0.5 font-bold text-xs text-gray-800 hover:bg-gray-50 px-1.5 py-0.5 rounded cursor-pointer transition-colors">
+                    <span>{year}</span>
+                    <ChevronDown size={12} className="text-gray-500" />
+                    <select
+                      value={year}
+                      onChange={(e) => {
+                        const y = Number(e.target.value)
+                        setCurrentDate(new Date(y, month, 1))
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    >
+                      {yearsList.map((y) => (
+                        <option key={y} value={y}>
+                          {y}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div className="flex items-center gap-1">
                   <button

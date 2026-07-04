@@ -5,7 +5,6 @@ import {
   Users,
   FileText,
   Receipt,
-  CreditCard,
   Wrench,
   CalendarDays,
   Zap,

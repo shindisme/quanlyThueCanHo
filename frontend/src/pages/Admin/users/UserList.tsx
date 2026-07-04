@@ -7,6 +7,7 @@ import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import Combobox from "../../../components/ui/Combobox";
 import Pagination from "../../../components/ui/Pagination";
 import { useUserList } from "../../../hooks/admin/useUserList";
+import type { UserData } from "../../../services/authService";
 import {
   Table,
   TableHeader,

@@ -28,7 +28,7 @@ export function useAdminMaintenance() {
   const [unableReason, setUnableReason] = useState<string>("");
 
   // Fetch all maintenance requests
-  const { data: requestsRes, isLoading: loadingRequests, isFetching: fetchingRequests } = useQuery({
+  const { data: requestsRes, isLoading: loadingRequests } = useQuery({
     queryKey: ["adminMaintenanceRequests", statusFilter, priorityFilter, buildingFilter, role, managedBuildingId],
     queryFn: () => {
       const params: any = {};

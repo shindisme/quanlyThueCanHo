@@ -74,7 +74,6 @@ function ChartCard({ title, subtitle, children, action }: {
 export default function ManagerDashboard() {
   const {
     displayName,
-    managedBuildingName,
     managedBuildingId,
     apartments,
     tenants,
@@ -149,7 +148,7 @@ export default function ManagerDashboard() {
   }).length;
 
   // Pending schedules in manager's building
-  const pendingSchedulesCount = schedules.filter(s => {
+  const pendingSchedulesCount = schedules.filter((s: any) => {
     const matchesBuilding = !managedBuildingId || s.apartment?.building_id === managedBuildingId;
     return s.status === "PENDING" && matchesBuilding;
   }).length;
