@@ -15,11 +15,12 @@ export function useUserCreate({ onClose, onSuccess }: UseUserCreateProps) {
   const createMutation = useMutation({
     mutationFn: (data: { username: string; role: string }) =>
       authService.createUser({ username: data.username, role: data.role }),
-    onSuccess: () => {
+    onSuccess: (res) => {
       if (formData.fullName.trim()) {
         localStorage.setItem(`profile-fullname-${formData.username}`, formData.fullName.trim());
       }
-      toast.success("Đã tạo tài khoản mới (mật khẩu mặc định: 123456)");
+      const initialPassword = (res as any).initial_password;
+      toast.success(`Đã tạo tài khoản mới thành công! Mật khẩu khởi tạo: ${initialPassword || "123456"}`, { duration: 10000 });
       setFormData({ username: "", role: "TENANT", fullName: "" });
       queryClient.invalidateQueries({ queryKey: ["users"] });
       onSuccess();
