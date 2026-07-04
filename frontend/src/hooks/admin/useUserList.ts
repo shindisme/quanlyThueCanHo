@@ -125,9 +125,10 @@ export function useUserList() {
 
   const resetMutation = useMutation({
     mutationFn: (id: number) => authService.resetPassword(id),
-    onSuccess: () => {
+    onSuccess: (res) => {
       if (resetItem) {
-        toast.success(`Đã đặt lại mật khẩu cho tài khoản "${resetItem.username}" về mặc định "123456"`);
+        const initialPassword = (res as any).initial_password;
+        toast.success(`Đã đặt lại mật khẩu cho tài khoản "${resetItem.username}" thành công! Mật khẩu khởi tạo: ${initialPassword || "123456"}`, { duration: 10000 });
       }
       setResetItem(null);
     },

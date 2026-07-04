@@ -36,6 +36,7 @@ export function useStaffModify({
       nextUsername: string;
     }) => {
       let linkedUserId = editItem.user_id;
+      let initialPassword = "";
 
       // Nếu chưa có tài khoản, tự động tạo tài khoản theo thứ tự dựa trên chức vụ mới
       if (!editItem.user_id) {
@@ -47,6 +48,7 @@ export function useStaffModify({
           role: roleToCreate,
         });
         linkedUserId = res.userId;
+        initialPassword = (res as any).initial_password;
       }
 
       await staffService.updateStaff(id, {
@@ -57,11 +59,11 @@ export function useStaffModify({
         user_id: linkedUserId,
       });
 
-      return { hasPriorUser: !!editItem.user_id, nextUsername };
+      return { hasPriorUser: !!editItem.user_id, nextUsername, initialPassword };
     },
     onSuccess: (data) => {
       if (!data.hasPriorUser) {
-        toast.success(`Đã tự động cấp tài khoản "${data.nextUsername}" (mật khẩu mặc định: 123456) và cập nhật thành công!`);
+        toast.success(`Đã tự động cấp tài khoản "${data.nextUsername}" và cập nhật thành công! Mật khẩu khởi tạo: ${data.initialPassword || "123456"}`, { duration: 10000 });
       } else {
         toast.success("Cập nhật thông tin nhân viên thành công!");
       }

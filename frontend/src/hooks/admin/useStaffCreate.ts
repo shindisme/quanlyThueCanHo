@@ -33,10 +33,10 @@ export function useStaffCreate({ isOpen, onClose, onSuccess, positions }: UseSta
         position,
         building_id,
       });
-      return { username: res.user?.username || "" };
+      return { username: res.user?.username || "", initial_password: (res as any).initial_password };
     },
     onSuccess: (data) => {
-      toast.success(`Đã tự động cấp tài khoản "${data.username}"và thêm nhân viên thành công!`);
+      toast.success(`Đã tự động cấp tài khoản "${data.username}" với mật khẩu khởi tạo: ${data.initial_password || "123456"} và thêm nhân viên thành công!`, { duration: 10000 });
       setFullName("");
       setPhone("");
       setPosition(positions[0]);
