@@ -1,5 +1,4 @@
 import bcrypt from "bcrypt";
-import { randomBytes } from "node:crypto";
 
 export const createInitialCredential = async () => {
     const initial_password = "123123";
