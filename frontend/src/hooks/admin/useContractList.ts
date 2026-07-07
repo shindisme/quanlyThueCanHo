@@ -18,6 +18,10 @@ import { removeVietnameseTones } from "../../utils/string";
 interface LocationState {
   openCreateModal?: boolean;
   tenantId?: string | number;
+  apartmentId?: string | number;
+  buildingId?: string | number;
+  floor?: string | number;
+  search?: string;
 }
 
 export function useContractList() {
@@ -36,6 +40,9 @@ export function useContractList() {
   const [terminateItem, setTerminateItem] = useState<RentalContract | null>(null);
   const [extendEndDate, setExtendEndDate] = useState("");
   const [initialTenantId, setInitialTenantId] = useState<number | undefined>();
+  const [initialApartmentId, setInitialApartmentId] = useState<number | undefined>();
+  const [initialBuildingId, setInitialBuildingId] = useState<number | undefined>();
+  const [initialFloor, setInitialFloor] = useState<number | undefined>();
 
   const { data: contracts = [], isLoading: loadingContracts, refetch: fetchContracts } = useQuery({
     queryKey: ["contracts"],
@@ -85,10 +92,22 @@ export function useContractList() {
           if (stateObj.tenantId) {
             setInitialTenantId(Number(stateObj.tenantId));
           }
+          if (stateObj.apartmentId) {
+            setInitialApartmentId(Number(stateObj.apartmentId));
+          }
+          if (stateObj.buildingId) {
+            setInitialBuildingId(Number(stateObj.buildingId));
+          }
+          if (stateObj.floor) {
+            setInitialFloor(Number(stateObj.floor));
+          }
           createModal.onOpen();
         }, 0);
-        window.history.replaceState({}, document.title);
       }
+      if (stateObj.search) {
+        setSearch(stateObj.search);
+      }
+      window.history.replaceState({}, document.title);
     }
   }, [location, createModal]);
 
@@ -221,6 +240,9 @@ export function useContractList() {
     setExtendEndDate,
     initialTenantId,
     setInitialTenantId,
+    initialApartmentId,
+    initialBuildingId,
+    initialFloor,
     filteredContracts,
     sortedContracts,
     requestSort,

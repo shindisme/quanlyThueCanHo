@@ -48,6 +48,9 @@ export default function ContractList() {
     extendEndDate,
     setExtendEndDate,
     initialTenantId,
+    initialApartmentId,
+    initialBuildingId,
+    initialFloor,
     filteredContracts,
     requestSort,
     getSortIcon,
@@ -297,6 +300,9 @@ export default function ContractList() {
         role={role}
         managerBuildingId={managedBuildingId || undefined}
         initialTenantId={initialTenantId}
+        initialBuildingId={initialBuildingId}
+        initialApartmentId={initialApartmentId}
+        initialFloor={initialFloor}
       />
 
       {/* Contract Detail Modal */}

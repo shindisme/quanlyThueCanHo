@@ -244,8 +244,8 @@ export default function ApartmentDetail() {
           <button
             onClick={() => setActiveTab("tenant")}
             className={`flex-1 py-3.5 text-center text-sm font-semibold border-b-2 cursor-pointer transition-all ${activeTab === "tenant"
-                ? "border-primary-600 text-primary-600 bg-white"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
+              ? "border-primary-600 text-primary-600 bg-white"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
               }`}
           >
             Người thuê hiện tại {activeContract && <span className="ml-1.5 w-2 h-2 rounded-full bg-success-500 inline-block animate-pulse" />}
@@ -253,8 +253,8 @@ export default function ApartmentDetail() {
           <button
             onClick={() => setActiveTab("tenantHistory")}
             className={`flex-1 py-3.5 text-center text-sm font-semibold border-b-2 cursor-pointer transition-all ${activeTab === "tenantHistory"
-                ? "border-primary-600 text-primary-600 bg-white"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
+              ? "border-primary-600 text-primary-600 bg-white"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
               }`}
           >
             Lịch sử hợp đồng ({activeTenant ? tenantContracts.length : 0})
@@ -262,8 +262,8 @@ export default function ApartmentDetail() {
           <button
             onClick={() => setActiveTab("reviews")}
             className={`flex-1 py-3.5 text-center text-sm font-semibold border-b-2 cursor-pointer transition-all ${activeTab === "reviews"
-                ? "border-primary-600 text-primary-600 bg-white"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
+              ? "border-primary-600 text-primary-600 bg-white"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
               }`}
           >
             Đánh giá & Nhận xét ({reviewMeta.totalReviews || 0})
@@ -290,9 +290,36 @@ export default function ApartmentDetail() {
                         <p>Thời hạn thuê: <span className="font-medium">{formatDate(activeContract.start_date)} - {formatDate(activeContract.end_date)}</span></p>
                       </div>
                     </div>
+                    {role !== "TENANT" && (
+                      <div className="mt-2 text-right">
+                        <Link
+                          to={role === "ADMIN" ? "/admin/contracts" : "/manager/contracts"}
+                          state={{ search: `HD-${String(activeContract.id).padStart(5, "0")}` }}
+                          className="inline-flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-semibold"
+                        >
+                          Đi tới quản lý hợp đồng để kết thúc hợp đồng
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400 py-6 text-center">Căn hộ hiện đang trống</p>
+                  <div className="text-center py-6">
+                    <p className="text-sm text-gray-400 mb-4 font-sans">Căn hộ hiện đang trống</p>
+                    {role !== "TENANT" && apartment.status === "AVAILABLE" && (
+                      <Link
+                        to={role === "ADMIN" ? "/admin/contracts" : "/manager/contracts"}
+                        state={{
+                          openCreateModal: true,
+                          apartmentId: apartment.id,
+                          buildingId: apartment.building_id,
+                          floor: apartment.floor
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
+                      >
+                        <Plus size={14} /> Tạo hợp đồng thuê mới
+                      </Link>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -454,6 +481,7 @@ export default function ApartmentDetail() {
         editItem={apartment}
         buildings={buildings}
         role={role}
+        activeContractId={activeContract?.id}
       />
     </div>
   )

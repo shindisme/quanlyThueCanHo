@@ -42,18 +42,18 @@ export default function Sidebar() {
       </div>
 
       {/* Menu */}
-      <nav className="flex-1 px-3 py-4 overflow-y-auto">
+      <nav className="flex-1 py-4 overflow-y-auto">
         {menuGroups.map((group, groupIndex) => (
           <div key={groupIndex} className="mb-4">
             {group.title && (
-              <p className={`px-4 mb-2 mt-4 text-[12px] font-bold text-blue-600 uppercase tracking-wider transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden ${isOpen ? "opacity-100 max-h-10" : "opacity-0 max-h-0 py-0 my-0 pointer-events-none"
+              <p className={`px-5 mb-2 mt-4 text-[12px] font-bold text-blue-600 uppercase tracking-wider transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden ${isOpen ? "opacity-100 max-h-10" : "opacity-0 max-h-0 py-0 my-0 pointer-events-none"
                 }`}>
                 {group.title}
               </p>
             )}
 
             {group.title && !isOpen && (
-              <hr className="my-2 border-gray-100 mx-2" />
+              <hr className="my-2 border-gray-100 mx-5" />
             )}
 
             {group.items.map((item) => {
@@ -68,13 +68,13 @@ export default function Sidebar() {
                   onClick={() => setMobileOpen(false)}
                   title={!isOpen ? item.label : undefined}
                   className={[
-                    "flex items-center gap-3 py-1.5 rounded-lg mb-1 mx-2",
+                    "flex items-center gap-3 py-2.5 mb-1 w-full",
                     "text-[14px] font-medium transition-all duration-150 relative",
                     isOpen
                       ? (isActive
-                        ? "bg-[#e0f3ff] text-[#3f6ad8] border-l-4 border-[#3f6ad8] pl-3"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-850 border-l-4 border-transparent pl-3")
-                      : "justify-center px-0 " + (isActive ? "bg-[#e0f3ff] text-[#3f6ad8]" : "text-gray-600 hover:bg-gray-50 hover:text-gray-850"),
+                        ? "bg-linear-to-r from-[#e0f3ff] to-transparent text-[#3f6ad8] pl-5 pr-5"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-850 pl-5 pr-5")
+                      : "justify-center px-0 " + (isActive ? "bg-linear-to-r from-[#e0f3ff] to-transparent text-[#3f6ad8]" : "text-gray-600 hover:bg-gray-50 hover:text-gray-850"),
                   ].join(" ")}
                 >
                   <Icon

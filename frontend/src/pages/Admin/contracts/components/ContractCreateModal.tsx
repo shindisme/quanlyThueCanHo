@@ -21,6 +21,8 @@ interface ContractCreateModalProps {
   managerBuildingId?: number
   initialTenantId?: number
   initialBuildingId?: number
+  initialApartmentId?: number
+  initialFloor?: number
 }
 
 export default function ContractCreateModal({
@@ -35,6 +37,8 @@ export default function ContractCreateModal({
   managerBuildingId,
   initialTenantId,
   initialBuildingId,
+  initialApartmentId,
+  initialFloor,
 }: ContractCreateModalProps) {
   const {
     register,
@@ -67,6 +71,8 @@ export default function ContractCreateModal({
     managerBuildingId,
     initialTenantId,
     initialBuildingId,
+    initialApartmentId,
+    initialFloor,
     apartments,
   })
 

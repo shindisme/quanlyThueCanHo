@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import type { ApartmentData } from "../../../../services/apartmentService";
@@ -13,6 +14,7 @@ interface ApartmentModifyModalProps {
   editItem: ApartmentData | null;
   buildings: BuildingData[];
   role: string | null;
+  activeContractId?: number;
 }
 
 export default function ApartmentModifyModal({
@@ -22,7 +24,9 @@ export default function ApartmentModifyModal({
   editItem,
   buildings,
   role,
+  activeContractId,
 }: ApartmentModifyModalProps) {
+  const navigate = useNavigate();
   const {
     saving,
     localThumbnail,
@@ -133,18 +137,42 @@ export default function ApartmentModifyModal({
           <div className="col-span-12 sm:col-span-4">
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Trạng thái</label>
             <Combobox
-              options={[
-                { value: "AVAILABLE", label: "Còn trống" },
-                { value: "RENTED", label: "Đang thuê" },
-                { value: "MAINTENANCE", label: "Bảo trì" }
-              ]}
+              options={
+                editItem?.status === "RENTED"
+                  ? [{ value: "RENTED", label: "Đang thuê" }]
+                  : [
+                    { value: "AVAILABLE", label: "Còn trống" },
+                    { value: "MAINTENANCE", label: "Bảo trì" }
+                  ]
+              }
               value={formData.status}
               onChange={(val) => setFormData({ ...formData, status: val })}
               placeholder="Chọn trạng thái"
               searchable={false}
               triggerClassName="rounded-md"
               clearable={false}
+              disabled={editItem?.status === "RENTED"}
             />
+            {editItem?.status === "RENTED" && (
+              <p className="mt-1.5 text-xs text-amber-600 font-sans leading-normal">
+                Để đổi trạng thái, vui lòng{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    const contractsPath = role === "ADMIN" ? "/admin/contracts" : "/manager/contracts";
+                    navigate(contractsPath, {
+                      state: {
+                        search: activeContractId ? `HD-${String(activeContractId).padStart(5, "0")}` : editItem.room_number
+                      }
+                    });
+                  }}
+                  className="text-primary-650 hover:underline font-semibold cursor-pointer"
+                >
+                  Kết thúc hợp đồng này
+                </button>
+              </p>
+            )}
           </div>
 
           <div className="col-span-12">

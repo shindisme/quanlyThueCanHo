@@ -135,7 +135,6 @@ export default function ApartmentCreateModal({
             <Combobox
               options={[
                 { value: "AVAILABLE", label: "Còn trống" },
-                { value: "RENTED", label: "Đang thuê" },
                 { value: "MAINTENANCE", label: "Bảo trì" }
               ]}
               value={formData.status}

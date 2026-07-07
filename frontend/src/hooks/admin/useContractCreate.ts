@@ -19,6 +19,8 @@ interface UseContractCreateProps {
   managerBuildingId?: number
   initialTenantId?: number
   initialBuildingId?: number
+  initialApartmentId?: number
+  initialFloor?: number
   apartments: ApartmentData[]
 }
 
@@ -31,6 +33,8 @@ export function useContractCreate({
   managerBuildingId,
   initialTenantId,
   initialBuildingId,
+  initialApartmentId,
+  initialFloor,
   apartments,
 }: UseContractCreateProps) {
   const queryClient = useQueryClient();
@@ -182,8 +186,8 @@ export function useContractCreate({
         new_tenant_phone: "",
         new_tenant_address: "",
         building_id: initialBuildingId || (role === "MANAGER" ? managerBuildingId : undefined),
-        floor: undefined,
-        apartment_id: undefined,
+        floor: initialFloor,
+        apartment_id: initialApartmentId,
         start_date: "",
         end_date: "",
         actual_occupants: 1,
@@ -194,7 +198,7 @@ export function useContractCreate({
         setPrevApartmentId(undefined)
       }, 0)
     }
-  }, [isOpen, initialTenantId, initialBuildingId, role, managerBuildingId, reset])
+  }, [isOpen, initialTenantId, initialBuildingId, initialFloor, initialApartmentId, role, managerBuildingId, reset])
 
   useEffect(() => {
     let active = true
