@@ -5,6 +5,7 @@ import type {
 import { getValidated } from "../middleware/validate.middleware.js";
 import type {
     CreatePaymentRequest,
+    CreateVnpayPaymentRequest,
     ListPaymentsRequest,
     PaymentIdRequest,
     UpdatePaymentStatusRequest
@@ -14,6 +15,20 @@ import {
     sendPaginated,
     sendSuccess
 } from "../utils/api-response.js";
+
+const getClientIp = (request: Request) => {
+    const forwardedFor = request.headers["x-forwarded-for"];
+
+    const ip = typeof forwardedFor === "string"
+        ? forwardedFor.split(",")[0]?.trim()
+        : request.ip || request.socket.remoteAddress;
+
+    if (!ip || ip === "::1") {
+        return "127.0.0.1";
+    }
+
+    return ip.replace("::ffff:", "");
+};
 
 export const getAll = async (
     request: Request,
@@ -38,15 +53,15 @@ export const getMethods = async (
 ) => sendSuccess(response, [
     {
         value: paymentService.PAYMENT_METHODS.CASH,
-        label: "Tien mat"
+        label: "Tiền mặt"
     },
     {
         value: paymentService.PAYMENT_METHODS.BANK_TRANSFER,
-        label: "Chuyen khoan ngan hang"
+        label: "Chuyển khoản ngân hàng"
     },
     {
         value: paymentService.PAYMENT_METHODS.E_WALLET,
-        label: "Vi dien tu"
+        label: "VN Pay"
     }
 ]);
 
@@ -91,4 +106,73 @@ export const updateStatus = async (
     );
 
     return sendSuccess(response, payment);
+};
+export const createVnpayPayment = async (
+    request: Request,
+    response: Response
+) => {
+    const { body } =
+        getValidated<CreateVnpayPaymentRequest>(request);
+
+    const result =
+        await paymentService.createVnpayPaymentUrlService(
+            body,
+            request.actor!,
+            getClientIp(request)
+        );
+
+    return sendSuccess(response, result, 201);
+};
+export const vnpayReturn = async (
+    request: Request,
+    response: Response
+) => {
+    const result =
+        await paymentService.handleVnpayCallbackService(
+            request.query as Record<string, unknown>,
+            "RETURN"
+        );
+
+    const frontendUrl =
+        process.env.FRONTEND_PAYMENT_RESULT_URL
+        || `${process.env.FRONTEND_URL}/tenant/payment-result`;
+
+    const redirectUrl = new URL(frontendUrl);
+
+    const status = "status" in result
+        ? result.status
+        : "UNKNOWN";
+
+        redirectUrl.searchParams.set(
+            "status",
+            String(status)
+        );
+
+    if ("invoice_id" in result && result.invoice_id !== null) {
+        redirectUrl.searchParams.set(
+            "invoice_id",
+            String(result.invoice_id)
+        );
+    }
+
+    if ("payment_id" in result && result.payment_id !== null) {
+        redirectUrl.searchParams.set(
+            "payment_id",
+            String(result.payment_id)
+        );
+    }
+
+    return response.redirect(redirectUrl.toString());
+};
+export const vnpayIpn = async (
+    request: Request,
+    response: Response
+) => {
+    const result =
+        await paymentService.handleVnpayCallbackService(
+            request.query as Record<string, unknown>,
+            "IPN"
+        );
+
+    return response.status(200).json(result);
 };

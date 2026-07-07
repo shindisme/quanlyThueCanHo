@@ -8,6 +8,7 @@ import { prisma } from "../config/database.js";
 import { AppError } from "../errors/app-error.js";
 import type {
     CreatePaymentRequest,
+    CreateVnpayPaymentRequest,
     ListPaymentsRequest
 } from "../schemas/payment.schema.js";
 import type { Actor } from "../types/auth.js";
@@ -16,10 +17,21 @@ import {
     toMoneyCents
 } from "../utils/money.js";
 import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
-
+import {
+    buildVnpayPaymentUrl,
+    formatVnpayDate,
+    getVnpayConfig,
+    normalizeVnpayCallbackParams,
+    verifyVnpaySecureHash
+} from "../utils/vnpay.js";
+import {
+    generateQrCodeDataUrl,
+    generateQrCodeSvg
+} from "../utils/qrcode.js";
 export type PaymentActor = Actor;
 export type PaymentFilters = ListPaymentsRequest["query"];
 export type CreatePaymentInput = CreatePaymentRequest["body"];
+export type CreateVnpayPaymentInput = CreateVnpayPaymentRequest["body"];
 
 export const PAYMENT_METHODS = {
     CASH: "CASH",
@@ -201,8 +213,6 @@ const paymentMethodAliases: Record<string, PaymentMethod> = {
     EWALLET: PAYMENT_METHODS.E_WALLET,
     ELECTRONIC_WALLET: PAYMENT_METHODS.E_WALLET,
     VI_DIEN_TU: PAYMENT_METHODS.E_WALLET,
-    MOMO: PAYMENT_METHODS.E_WALLET,
-    ZALOPAY: PAYMENT_METHODS.E_WALLET,
     VNPAY: PAYMENT_METHODS.E_WALLET
 };
 
@@ -335,6 +345,26 @@ const getScopedPaymentWhere = (
     } satisfies Prisma.PaymentWhereUniqueInput;
 };
 
+const findPaymentInScope = async (
+    database: Pick<
+        Prisma.TransactionClient,
+        "payment"
+    >,
+    id: number,
+    actor: Actor
+) => {
+    const payment = await database.payment.findFirst({
+        where: getScopedPaymentWhere(id, actor),
+        include: paymentInclude
+    });
+
+    if (!payment) {
+        throw notFound("payment");
+    }
+
+    return payment;
+};
+
 const assertCanManagePayments = (actor: Actor) => {
     if (
         actor.role !== Role.ADMIN
@@ -391,14 +421,12 @@ const createPaidNotification = async (
     });
 };
 
-const syncInvoicePaymentStatus = async (
+const syncInvoicePaymentStatusByInvoiceId = async (
     transaction: Prisma.TransactionClient,
-    invoiceId: number,
-    actor: Actor
+    invoiceId: number
 ) => {
-    const scopedWhere = getScopedInvoiceWhere(invoiceId, actor);
-    const invoice = await transaction.invoice.findFirst({
-        where: scopedWhere,
+    const invoice = await transaction.invoice.findUnique({
+        where: { id: invoiceId },
         include: invoiceForPaymentInclude
     });
 
@@ -427,7 +455,7 @@ const syncInvoicePaymentStatus = async (
     try {
         updated = await transaction.invoice.update({
             where: {
-                ...scopedWhere,
+                id: invoice.id,
                 status: invoice.status
             },
             data: {
@@ -445,8 +473,8 @@ const syncInvoicePaymentStatus = async (
             throw error;
         }
 
-        const observed = await transaction.invoice.findFirst({
-            where: scopedWhere,
+        const observed = await transaction.invoice.findUnique({
+            where: { id: invoice.id },
             include: invoiceForPaymentInclude
         });
 
@@ -468,21 +496,25 @@ const syncInvoicePaymentStatus = async (
     return updated;
 };
 
-const findPaymentInScope = async (
+const syncInvoicePaymentStatus = async (
     transaction: Prisma.TransactionClient,
-    id: number,
+    invoiceId: number,
     actor: Actor
 ) => {
-    const payment = await transaction.payment.findFirst({
-        where: getScopedPaymentWhere(id, actor),
-        include: paymentInclude
+    const scopedWhere = getScopedInvoiceWhere(invoiceId, actor);
+    const invoice = await transaction.invoice.findFirst({
+        where: scopedWhere,
+        select: { id: true }
     });
 
-    if (!payment) {
-        throw notFound("payment");
+    if (!invoice) {
+        throw notFound("invoice");
     }
 
-    return payment;
+    return syncInvoicePaymentStatusByInvoiceId(
+        transaction,
+        invoice.id
+    );
 };
 
 const mapPaymentWriteError = (error: unknown): never => {
@@ -770,6 +802,130 @@ export const createPaymentService = async (
     }
 };
 
+const generateVnpayTxnRef = (invoiceId: number) =>
+    `VNPAY_${invoiceId}_${Date.now()}`;
+
+export const createVnpayPaymentUrlService = async (
+    input: CreateVnpayPaymentInput,
+    actor: Actor,
+    ipAddress: string
+) => {
+    if (actor.role !== Role.TENANT) {
+        throw new AppError(
+            403,
+            "FORBIDDEN",
+            "Only tenants can pay invoices online"
+        );
+    }
+
+    const config = getVnpayConfig();
+
+    const result = await runSerializableTransaction(
+        async (transaction) => {
+            const invoiceWhere = getScopedInvoiceWhere(
+                input.invoice_id,
+                actor
+            );
+
+            const invoice = await transaction.invoice.findFirst({
+                where: invoiceWhere,
+                include: invoiceForPaymentInclude
+            });
+
+            if (!invoice) {
+                throw notFound("invoice");
+            }
+
+            if (invoice.status === InvoiceStatus.PAID) {
+                throw new AppError(
+                    409,
+                    "INVOICE_ALREADY_PAID",
+                    "Invoice is already paid"
+                );
+            }
+
+            const totalAmountCents = toMoneyCents(
+                toNumber(invoice.total_amount)
+            );
+            const paidAmountCents =
+                getSuccessfulPaymentTotalCents(invoice);
+            const remainingAmountCents = Math.max(
+                totalAmountCents - paidAmountCents,
+                0
+            );
+
+            if (remainingAmountCents <= 0) {
+                throw new AppError(
+                    409,
+                    "INVOICE_ALREADY_PAID",
+                    "Invoice has no remaining balance"
+                );
+            }
+
+            const transactionCode =
+                generateVnpayTxnRef(invoice.id);
+
+            const payment = await transaction.payment.create({
+                data: {
+                    invoice: {
+                        connect: invoiceWhere
+                    },
+                    payment_method: PAYMENT_METHODS.E_WALLET,
+                    transaction_code: transactionCode,
+                    amount: remainingAmountCents / 100,
+                    status: PaymentStatus.PENDING
+                }
+            });
+
+            return {
+                invoice,
+                payment,
+                amountForVnpay: remainingAmountCents
+            };
+        }
+    );
+
+    const paymentUrl = buildVnpayPaymentUrl(
+    config.paymentUrl,
+    {
+        vnp_Version: "2.1.0",
+        vnp_Command: "pay",
+        vnp_TmnCode: config.tmnCode,
+        vnp_Amount: result.amountForVnpay,
+        vnp_CurrCode: "VND",
+        vnp_TxnRef: result.payment.transaction_code,
+        vnp_OrderInfo:
+            `Thanh toan hoa don ${result.invoice.invoice_code}`,
+        vnp_OrderType: "other",
+        vnp_Locale: "vn",
+        vnp_ReturnUrl: config.returnUrl,
+        vnp_IpAddr: ipAddress,
+        vnp_CreateDate: formatVnpayDate(),
+        vnp_BankCode: input.bank_code
+    },
+    config.hashSecret
+);
+
+    const qrCodeDataUrl = await generateQrCodeDataUrl(
+        paymentUrl
+    );
+
+    const qrCodeSvg = await generateQrCodeSvg(
+        paymentUrl
+    );
+
+    return {
+        payment_id: result.payment.id,
+        invoice_id: result.invoice.id,
+        transaction_code: result.payment.transaction_code,
+        payment_method: PAYMENT_METHODS.E_WALLET,
+        amount: toNumber(result.payment.amount),
+        payment_url: paymentUrl,
+        qr_code_data_url: qrCodeDataUrl,
+        qr_code_svg: qrCodeSvg
+    };
+};
+
 export const updatePaymentStatusService = async (
     id: number,
     status: PaymentStatus,
@@ -859,4 +1015,184 @@ export const updatePaymentStatusService = async (
     } catch (error) {
         return mapPaymentWriteError(error);
     }
+};
+type VnpayCallbackSource = "RETURN" | "IPN";
+
+const getVnpayIpnResponse = (
+    code: string,
+    message: string
+) => ({
+    RspCode: code,
+    Message: message
+});
+
+export const handleVnpayCallbackService = async (
+    rawQuery: Record<string, unknown>,
+    source: VnpayCallbackSource
+) => {
+    const config = getVnpayConfig();
+    const params = normalizeVnpayCallbackParams(rawQuery);
+
+    const isValidSignature = verifyVnpaySecureHash(
+        params,
+        config.hashSecret
+    );
+
+    if (!isValidSignature) {
+        if (source === "IPN") {
+            return getVnpayIpnResponse(
+                "97",
+                "Invalid signature"
+            );
+        }
+
+        return {
+            success: false,
+            status: "INVALID_SIGNATURE",
+            invoice_id: null,
+            payment_id: null
+        };
+    }
+
+    const transactionCode = params.vnp_TxnRef;
+    const vnpAmount = Number(params.vnp_Amount);
+    const responseCode = params.vnp_ResponseCode;
+    const transactionStatus = params.vnp_TransactionStatus;
+
+    if (!transactionCode) {
+        if (source === "IPN") {
+            return getVnpayIpnResponse(
+                "01",
+                "Order not found"
+            );
+        }
+
+        return {
+            success: false,
+            status: "ORDER_NOT_FOUND",
+            invoice_id: null,
+            payment_id: null
+        };
+    }
+
+    const payment = await prisma.payment.findUnique({
+        where: { transaction_code: transactionCode },
+        include: paymentInclude
+    });
+
+    if (!payment) {
+        if (source === "IPN") {
+            return getVnpayIpnResponse(
+                "01",
+                "Order not found"
+            );
+        }
+
+        return {
+            success: false,
+            status: "ORDER_NOT_FOUND",
+            invoice_id: null,
+            payment_id: null
+        };
+    }
+
+    const expectedAmountForVnpay =
+        toMoneyCents(toNumber(payment.amount));
+
+    if (vnpAmount !== expectedAmountForVnpay) {
+        if (source === "IPN") {
+            return getVnpayIpnResponse(
+                "04",
+                "Invalid amount"
+            );
+        }
+
+        return {
+            success: false,
+            status: "INVALID_AMOUNT",
+            invoice_id: payment.invoice_id,
+            payment_id: payment.id
+        };
+    }
+
+    const isPaymentSuccess =
+        responseCode === "00"
+        && transactionStatus === "00";
+
+    const targetStatus = isPaymentSuccess
+        ? PaymentStatus.SUCCESS
+        : PaymentStatus.FAILED;
+
+    const callbackResult = await runSerializableTransaction(
+        async (transaction) => {
+            const current = await transaction.payment.findUnique({
+                where: { id: payment.id }
+            });
+
+            if (!current) {
+                throw notFound("payment");
+            }
+
+            if (current.status !== PaymentStatus.PENDING) {
+                return {
+                    alreadyUpdated: true,
+                    payment: current
+                };
+            }
+
+            await transaction.payment.update({
+                where: {
+                    id: current.id,
+                    status: PaymentStatus.PENDING
+                },
+                data: {
+                    status: targetStatus,
+                    paid_at: isPaymentSuccess
+                        ? new Date()
+                        : current.paid_at
+                }
+            });
+
+            await syncInvoicePaymentStatusByInvoiceId(
+                transaction,
+                current.invoice_id
+            );
+
+            const updated = await transaction.payment.findUnique({
+                where: { id: current.id }
+            });
+
+            if (!updated) {
+                throw notFound("payment");
+            }
+
+            return {
+                alreadyUpdated: false,
+                payment: updated
+            };
+        }
+    );
+
+    if (source === "IPN") {
+        if (callbackResult.alreadyUpdated) {
+            return getVnpayIpnResponse(
+                "02",
+                "Order already confirmed"
+            );
+        }
+
+        return getVnpayIpnResponse(
+            "00",
+            "Confirm Success"
+        );
+    }
+
+    return {
+        success: isPaymentSuccess,
+        status: isPaymentSuccess ? "SUCCESS" : "FAILED",
+        invoice_id: payment.invoice_id,
+        payment_id: payment.id,
+        transaction_code: transactionCode,
+        response_code: responseCode
+    };
 };

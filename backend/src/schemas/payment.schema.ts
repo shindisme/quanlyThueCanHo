@@ -50,6 +50,15 @@ export const createPaymentRequestSchema = z.object({
     }).strict()
 }).strict();
 
+export const createVnpayPaymentRequestSchema = z.object({
+    params: emptyObjectSchema,
+    query: emptyObjectSchema,
+    body: z.object({
+        invoice_id: jsonIdSchema,
+        bank_code: z.string().trim().max(20).optional()
+    }).strict()
+}).strict();
+
 export const updatePaymentStatusRequestSchema = z.object({
     params: z.object({
         id: queryIdSchema
@@ -77,4 +86,8 @@ export type CreatePaymentRequest = z.infer<
 >;
 export type UpdatePaymentStatusRequest = z.infer<
     typeof updatePaymentStatusRequestSchema
+>;
+
+export type CreateVnpayPaymentRequest = z.infer<
+    typeof createVnpayPaymentRequestSchema
 >;

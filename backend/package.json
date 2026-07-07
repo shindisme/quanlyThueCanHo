@@ -28,6 +28,8 @@
     "multer": "^2.2.0",
     "nodemailer": "^9.0.3",
     "prisma": "^6.15.0",
+    "qrcode": "^1.5.4",
+    "vnpay": "^2.5.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -39,6 +41,7 @@
     "@types/multer": "^2.1.0",
     "@types/node": "^25.9.2",
     "@types/nodemailer": "^8.0.1",
+    "@types/qrcode": "^1.5.6",
     "@types/supertest": "^7.2.0",
     "dotenv-cli": "^11.0.0",
     "supertest": "^7.2.2",
