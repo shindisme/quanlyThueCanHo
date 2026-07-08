@@ -1,0 +1,112 @@
+import { useState, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import * as notificationService from "../../services/notificationService";
+import { useDebounce } from "./useDebounce";
+import { usePagination } from "./usePagination";
+import { useSort } from "./useSort";
+import { useUserRole } from "./useUserRole";
+import type { Notification } from "../../types";
+
+export function useNotificationCenter() {
+  const queryClient = useQueryClient();
+  const { role } = useUserRole();
+
+  const [search, setSearch] = useState("");
+  const [isReadFilter, setIsReadFilter] = useState<string>("");
+  const debouncedSearch = useDebounce(search, 300);
+
+  // Load received notifications (backend automatically returns items relevant to user's token session)
+  const { data: notificationsRes, isLoading, refetch } = useQuery({
+    queryKey: ["notifications", isReadFilter, debouncedSearch],
+    queryFn: () => {
+      const isReadVal = isReadFilter === "true" ? true : isReadFilter === "false" ? false : undefined;
+      return notificationService.getAllNotifications({
+        is_read: isReadVal,
+        search: debouncedSearch || undefined,
+        limit: 100,
+      });
+    },
+  });
+  const notifications = notificationsRes?.data || [];
+
+  // Sort
+  const { items: sortedNotifications, requestSort, getSortIcon, sortConfig } = useSort<Notification>(notifications, {
+    key: "created_at",
+    direction: "desc",
+  });
+
+  // Pagination
+  const { currentPage, setCurrentPage, totalPages, startIdx, endIdx } = usePagination({
+    totalItems: sortedNotifications.length,
+    initialPageSize: 10,
+  });
+
+  const paginatedNotifications = useMemo(() => {
+    return sortedNotifications.slice(startIdx, endIdx);
+  }, [sortedNotifications, startIdx, endIdx]);
+
+  // Mutations
+  const markReadMutation = useMutation({
+    mutationFn: (id: number) => notificationService.markNotificationRead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Đánh dấu đã đọc thất bại");
+    },
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: () => notificationService.markAllNotificationsRead(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success("Đã đánh dấu đọc tất cả thông báo");
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Đánh dấu thất bại");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => notificationService.deleteNotification(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success("Đã xóa thông báo");
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Xóa thông báo thất bại");
+    },
+  });
+
+  const unreadCount = useMemo(() => {
+    return notifications.filter((n) => !n.is_read).length;
+  }, [notifications]);
+
+  return {
+    role,
+    notifications: paginatedNotifications,
+    rawCount: notifications.length,
+    unreadCount,
+    isLoading,
+    search,
+    setSearch,
+    isReadFilter,
+    setIsReadFilter,
+
+    // Actions
+    markRead: markReadMutation.mutate,
+    markAllRead: markAllReadMutation.mutate,
+    deleteNotification: deleteMutation.mutate,
+
+    // Sorting & Pagination
+    requestSort,
+    getSortIcon,
+    sortConfig,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    
+    refetch,
+  };
+}

@@ -5,12 +5,13 @@ import Combobox from "../../../components/ui/Combobox";
 import Pagination from "../../../components/ui/Pagination";
 import Button from "../../../components/ui/Button";
 import { useUtilityList } from "../../../hooks/admin/useUtilityList";
-import UtilityTable from "./components/UtilityTable";
+import UtilityList from "./components/UtilityList";
 import UtilityCreateModal from "./components/UtilityCreateModal";
 import UtilityModifyModal from "./components/UtilityModifyModal";
 import UtilityDeleteModal from "./components/UtilityDeleteModal";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
-export default function UtilityList() {
+
+export default function Utility() {
   const {
     role,
     managedBuildingId,
@@ -71,35 +72,37 @@ export default function UtilityList() {
 
   return (
     <div className="space-y-6 font-sans">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <PageHeader
-          icon={Zap}
-          title="Điện nước"
-          subtitle="Quản lý và ghi chỉ số tiêu thụ điện nước"
-          count={filteredRentedApartments.length}
-          iconColor="linear-gradient(135deg, #10B981, #34D399)"
-        />
-        {isWritable && (
-          <Button
-            onClick={() => handleOpenCreateModal()}
-            className="flex items-center gap-1.5 self-start sm:self-auto rounded-md shadow-sm"
-          >
-            <Plus size={16} /> Ghi chỉ số mới
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        icon={Zap}
+        title="Điện nước"
+        subtitle="Quản lý và ghi chỉ số tiêu thụ điện nước"
+        count={filteredRentedApartments.length}
+        iconColor="linear-gradient(135deg, #10B981, #34D399)"
+        actions={
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <SearchInput
+              value={search}
+              onChange={(v) => {
+                setSearch(v);
+                setCurrentPage(1);
+              }}
+              placeholder="Tìm phòng, tòa nhà, người ghi..."
+              className="w-64 sm:w-80 flex-1 min-w-0"
+            />
+            {isWritable && (
+              <Button
+                onClick={() => handleOpenCreateModal()}
+                className="flex items-center gap-1.5 self-start sm:self-auto rounded-xl shadow-sm"
+              >
+                <Plus size={16} /> Ghi chỉ số mới
+              </Button>
+            )}
+          </div>
+        }
+      />
 
       {/* Filter Options */}
       <div className="flex flex-col sm:flex-row gap-3 w-full sm:items-center">
-        <SearchInput
-          value={search}
-          onChange={(v) => {
-            setSearch(v);
-            setCurrentPage(1);
-          }}
-          placeholder="Tìm phòng, tòa nhà, người ghi..."
-          className="flex-1 max-w-md w-full sm:w-72"
-        />
 
         {role === "ADMIN" && (
           <Combobox
@@ -110,8 +113,8 @@ export default function UtilityList() {
               setCurrentPage(1);
             }}
             placeholder="Tất cả chi nhánh"
-            className="w-full sm:w-48"
-            triggerClassName="h-10 border-gray-300"
+            className="w-full sm:w-48 "
+            triggerClassName="h-10 border-gray-300 "
             clearable={true}
           />
         )}
@@ -138,7 +141,7 @@ export default function UtilityList() {
             setFilterMonth(val);
             setCurrentPage(1);
           }}
-          placeholder="Tất cả tháng"
+          placeholder="Chọn tháng"
           searchable={false}
           className="w-full sm:w-36"
           triggerClassName="h-10 border-gray-300"
@@ -152,7 +155,7 @@ export default function UtilityList() {
             setFilterYear(val);
             setCurrentPage(1);
           }}
-          placeholder="Tất cả năm"
+          placeholder="Chọn năm"
           searchable={false}
           className="w-full sm:w-36"
           triggerClassName="h-10 border-gray-300"
@@ -161,7 +164,7 @@ export default function UtilityList() {
       </div>
 
       {/* Table Component */}
-      <UtilityTable
+      <UtilityList
         paginatedApartments={paginatedApartments}
         readings={readings}
         filterMonth={filterMonth}

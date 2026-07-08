@@ -23,7 +23,7 @@ import UserDeleteModal from "./components/UserDeleteModal";
 import UserResetPasswordModal from "./components/UserResetPasswordModal";
 import UserDetailModal from "./components/UserDetailModal";
 
-export default function UserList() {
+export default function User() {
   const {
     isAdmin,
     createModal,
@@ -111,22 +111,24 @@ export default function UserList() {
         count={users.length}
         iconColor="linear-gradient(135deg, #F59E0B, #FBBF24)"
         actions={
-          isAdmin ? (
-            <Button onClick={createModal.onOpen}>
-              <Plus size={18} /> Thêm tài khoản
-            </Button>
-          ) : null
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Tìm kiếm..."
+              className="w-64 sm:w-80 flex-1 min-w-0"
+            />
+            {isAdmin && (
+              <Button onClick={createModal.onOpen}>
+                <Plus size={18} /> Thêm tài khoản
+              </Button>
+            )}
+          </div>
         }
       />
 
-      {/* Tìm kiếm & Bộ lọc */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 w-full">
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Tìm kiếm..."
-          className="w-full"
-        />
+      {/* Tìm kiếm và Bộ lọc */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 w-full">
 
         <Combobox
           options={[
@@ -187,7 +189,7 @@ export default function UserList() {
                 </p>
                 {getUserBranch(user) !== "-" && (
                   <p className="text-xs text-gray-500">
-                    Chi nhánh / Căn hộ: <span className="font-semibold text-gray-700">{getUserBranch(user)}</span>
+                    Chi nhánh <span className="font-semibold text-gray-700">{getUserBranch(user)}</span>
                   </p>
                 )}
 
@@ -228,7 +230,7 @@ export default function UserList() {
           {/* View List */}
           <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-xl rounded-none">
             <Table>
-               <TableHeader>
+              <TableHeader>
                 <TableRow>
                   <TableHead className="w-16">STT</TableHead>
                   <TableHead className="font-semibold text-gray-750">Họ và tên</TableHead>
@@ -313,42 +315,42 @@ export default function UserList() {
         </div>
       )}
 
-          {/* Modals */}
-          <UserCreateModal
-            isOpen={createModal.isOpen}
-            onClose={createModal.onClose}
-            onSuccess={fetchUsers}
-          />
+      {/* Modals */}
+      <UserCreateModal
+        isOpen={createModal.isOpen}
+        onClose={createModal.onClose}
+        onSuccess={fetchUsers}
+      />
 
-          <UserDeleteModal
-            isOpen={!!deleteItem}
-            onClose={() => setDeleteItem(null)}
-            onConfirm={handleDelete}
-            user={deleteItem}
-          />
+      <UserDeleteModal
+        isOpen={!!deleteItem}
+        onClose={() => setDeleteItem(null)}
+        onConfirm={handleDelete}
+        user={deleteItem}
+      />
 
-          <UserResetPasswordModal
-            isOpen={!!resetItem}
-            onClose={() => setResetItem(null)}
-            onConfirm={confirmResetPassword}
-            user={resetItem}
-          />
+      <UserResetPasswordModal
+        isOpen={!!resetItem}
+        onClose={() => setResetItem(null)}
+        onConfirm={confirmResetPassword}
+        user={resetItem}
+      />
 
-          <UserModifyModal
-            isOpen={!!modifyItem}
-            onClose={() => setModifyItem(null)}
-            onSuccess={fetchUsers}
-            user={modifyItem}
-            initialFullName={modifyItem ? getUserFullName(modifyItem) : ""}
-            isNameEditable={modifyItem ? isUserFullNameEditable(modifyItem) : true}
-          />
+      <UserModifyModal
+        isOpen={!!modifyItem}
+        onClose={() => setModifyItem(null)}
+        onSuccess={fetchUsers}
+        user={modifyItem}
+        initialFullName={modifyItem ? getUserFullName(modifyItem) : ""}
+        isNameEditable={modifyItem ? isUserFullNameEditable(modifyItem) : true}
+      />
 
-          <UserDetailModal
-            isOpen={!!viewItem}
-            onClose={() => setViewItem(null)}
-            user={viewItem}
-            fullName={viewItem ? getUserFullName(viewItem) : ""}
-          />
-        </div>
-      );
+      <UserDetailModal
+        isOpen={!!viewItem}
+        onClose={() => setViewItem(null)}
+        user={viewItem}
+        fullName={viewItem ? getUserFullName(viewItem) : ""}
+      />
+    </div>
+  );
 }

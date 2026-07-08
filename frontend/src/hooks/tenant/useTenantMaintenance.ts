@@ -33,7 +33,7 @@ export function useTenantMaintenance() {
     ? contracts.find((c) => c.status === "ACTIVE")
     : null;
 
-  // Fetch real maintenance requests from Backend
+  // Fetch maintenance request
   const { data: requestsRes, isLoading: loadingRequests } = useQuery({
     queryKey: ["maintenanceRequests", role],
     queryFn: () => maintenanceService.getAllMaintenanceRequests(),

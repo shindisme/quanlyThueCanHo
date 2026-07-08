@@ -16,7 +16,7 @@ import StaffDeleteModal from "./components/StaffDeleteModal";
 import StaffDetailModal from "./components/StaffDetailModal";
 import { useStaffList } from "../../../hooks/admin/useStaffList";
 
-export default function StaffList() {
+export default function Staff() {
   const {
     role,
     buildings,
@@ -30,6 +30,8 @@ export default function StaffList() {
     setBuildingFilter,
     currentPage,
     setCurrentPage,
+    totalPages,
+    paginated,
     showCreateModal,
     setShowCreateModal,
     showModifyModal,
@@ -41,8 +43,6 @@ export default function StaffList() {
     viewItem,
     setViewItem,
     filtered,
-    totalPages,
-    paginated,
     handleDelete,
     getBuildingName,
     loadData,
@@ -141,14 +141,6 @@ export default function StaffList() {
     },
   ];
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <LoadingSpinner size={32} />
-      </div>
-    );
-  }
-
   const uniquePositions = [...new Set(staffList.map((s) => s.position))];
 
   return (
@@ -160,23 +152,24 @@ export default function StaffList() {
         count={filtered.length}
         iconColor="linear-gradient(135deg, #10B981, #059669)"
         actions={
-          <Button onClick={() => setShowCreateModal(true)}>
-            <Plus size={18} /> Thêm nhân viên
-          </Button>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <SearchInput
+              value={search}
+              onChange={(v) => {
+                setSearch(v);
+                setCurrentPage(1);
+              }}
+              placeholder="Tìm theo họ tên hoặc SĐT..."
+              className="w-64 sm:w-80"
+            />
+            <Button onClick={() => setShowCreateModal(true)}>
+              <Plus size={18} /> Thêm nhân viên
+            </Button>
+          </div>
         }
       />
 
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-        <SearchInput
-          value={search}
-          onChange={(v) => {
-            setSearch(v);
-            setCurrentPage(1);
-          }}
-          placeholder="Tìm theo họ tên hoặc SĐT..."
-          className="max-w-md w-full sm:w-72"
-        />
-
         <Combobox
           options={uniquePositions.map((pos) => ({ value: pos, label: pos }))}
           value={positionFilter}

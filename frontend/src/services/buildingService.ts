@@ -67,6 +67,17 @@ function mapBuildingWithManager(building: RawBuildingData, staff: Staff | undefi
   };
 }
 
+const getRole = () => {
+  try {
+    const raw = localStorage.getItem("auth-storage");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed?.state?.role;
+  } catch {
+    return null;
+  }
+};
+
 export async function getAllBuildings(params?: {
   search?: string;
   branch_name?: string;
@@ -89,7 +100,10 @@ export async function getAllBuildings(params?: {
   const pagination = res.data.meta?.pagination || res.data.pagination || { total: rawData.length, page: 1, limit: 10, totalPages: 1 };
 
   // get quản lý để phân công
-  const staffListRes = await getAllStaff().catch(() => ({ data: [] }));
+  const role = getRole();
+  const staffListRes = role === "TENANT"
+    ? { data: [] }
+    : await getAllStaff().catch(() => ({ data: [] }));
   const staffList = staffListRes.data || [];
 
   // ghép dữ liệu nhân viên quản lý vào từng tòa nhà
@@ -108,7 +122,10 @@ export async function getBuildingById(id: number): Promise<BuildingData> {
   const b = res.data.data;
 
   // get quản lý để phân công
-  const staffListRes = await getAllStaff({ building_id: id }).catch(() => ({ data: [] }));
+  const role = getRole();
+  const staffListRes = role === "TENANT"
+    ? { data: [] }
+    : await getAllStaff({ building_id: id }).catch(() => ({ data: [] }));
   const staff = staffListRes.data.find(
     (s) => s.position === "Quản lý" || s.user?.role === "MANAGER"
   );

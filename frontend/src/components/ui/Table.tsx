@@ -17,7 +17,7 @@ function TableHeader({ className, ref, ...props }: ComponentProps<"thead">) {
   return (
     <thead
       ref={ref}
-      className={cn("bg-gray-50 border-b border-gray-100 [&_tr]:border-b", className)}
+      className={cn("bg-gray-200 border-b border-gray-300 [&_tr]:border-b", className)}
       {...props}
     />
   )
@@ -51,7 +51,7 @@ function TableRow({ className, ref, ...props }: ComponentProps<"tr">) {
     <tr
       ref={ref}
       className={cn(
-        "border-b border-gray-100 transition-colors hover:bg-gray-50/80 data-[state=selected]:bg-gray-100",
+        "border-b border-gray-100 transition-colors hover:[&>td]:bg-gray-50/80 data-[state=selected]:[&>td]:bg-gray-100 odd:[&>td]:bg-white even:[&>td]:bg-gray-200/50",
         className
       )}
       {...props}

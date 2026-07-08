@@ -35,3 +35,31 @@ export async function getAllInvoices(params?: InvoiceFilters): Promise<{ data: I
     pagination: res.data.meta?.pagination || res.data.pagination
   };
 }
+
+export async function getInvoiceById(id: number): Promise<Invoice> {
+  const res = await api.get<{ data: Invoice }>(`/invoices/${id}`);
+  return res.data.data;
+}
+
+export interface GenerateMonthlyInvoicesPayload {
+  month?: number;
+  year?: number;
+  building_id?: number;
+  due_date?: string;
+  management_fee?: number;
+  management_fee_per_m2?: number;
+  electric_unit_price?: number;
+  water_unit_price?: number;
+  internet_fee?: number;
+  notify?: boolean;
+}
+
+export async function generateMonthlyInvoices(payload: GenerateMonthlyInvoicesPayload): Promise<{ success: boolean; message: string; count?: number }> {
+  const res = await api.post<{ success: boolean; message: string; count?: number }>("/invoices/generate-monthly", payload);
+  return res.data;
+}
+
+export async function updateInvoiceStatus(id: number, status: string): Promise<Invoice> {
+  const res = await api.patch<{ data: Invoice }>(`/invoices/${id}/status`, { status });
+  return res.data.data;
+}

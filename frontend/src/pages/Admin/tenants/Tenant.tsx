@@ -6,7 +6,7 @@ import SearchInput from "../../../components/ui/SearchInput";
 import Badge from "../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../components/ui/DataTable";
 import Pagination from "../../../components/ui/Pagination";
-import type { Tenant } from "../../../types";
+import type { Tenant as TenantType } from "../../../types";
 import { maskPhone, maskCCCD } from "../../../utils/string";
 import { useTenantList } from "../../../hooks/admin/useTenantList";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
@@ -16,8 +16,7 @@ import TenantModifyModal from "./components/TenantModifyModal";
 import TenantDeleteModal from "./components/TenantDeleteModal";
 import TenantDetailModal from "./components/TenantDetailModal";
 
-// Danh sách người thuê
-export default function TenantList() {
+export default function Tenant() {
   const navigate = useNavigate();
 
   const {
@@ -54,7 +53,7 @@ export default function TenantList() {
     );
   }
 
-  const columns: Column<Tenant>[] = [
+  const columns: Column<TenantType>[] = [
     { key: "name", label: "Họ tên", sortValue: (t) => t.full_name, render: (t) => <span className="font-medium">{t.full_name}</span> },
     { key: "phone", label: "Số điện thoại", sortValue: (t) => t.phone || "", render: (t) => t.phone ? maskPhone(t.phone) : "-" },
     {
@@ -127,17 +126,18 @@ export default function TenantList() {
         count={filtered.length}
         iconColor="linear-gradient(135deg, #8B5CF6, #A78BFA)"
         actions={
-          <Button onClick={createModal.onOpen}>
-            <Plus size={18} /> Thêm người thuê
-          </Button>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <SearchInput
+              value={search}
+              onChange={(v) => { setSearch(v); setCurrentPage(1); }}
+              placeholder="Tìm kiếm..."
+              className="w-64 sm:w-80"
+            />
+            <Button onClick={createModal.onOpen}>
+              <Plus size={18} /> Thêm người thuê
+            </Button>
+          </div>
         }
-      />
-
-      <SearchInput
-        value={search}
-        onChange={(v) => { setSearch(v); setCurrentPage(1); }}
-        placeholder="Tìm kiếm..."
-        className="max-w-md"
       />
 
       {filtered.length === 0 ? (
@@ -176,7 +176,7 @@ export default function TenantList() {
                           {bld?.branch_name || "YuKi House"} - P.{apt.floor}{apt.room_number}
                         </span>
                       ) : (
-                        <span className="text-gray-400 italic text-xs">Chưa thuê</span>
+                        <span className="text-gray-450 italic text-xs">Chưa thuê</span>
                       )}
                     </p>
                     <p>

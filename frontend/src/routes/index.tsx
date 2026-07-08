@@ -7,21 +7,21 @@ import RoleRoute from "./RoleRoute";
 
 // Trang Admin
 import AdminDashboard from "../pages/Admin/dashboard/Dashboard";
-import BuildingList from "../pages/Admin/buildings/BuildingList";
+import Building from "../pages/Admin/buildings/Building";
 import BuildingDetail from "../pages/Admin/buildings/BuildingDetail";
-import ApartmentList from "../pages/Admin/apartments/ApartmentList";
+import Apartment from "../pages/Admin/apartments/Apartment";
 import ApartmentDetail from "../pages/Admin/apartments/ApartmentDetail";
-import TenantList from "../pages/Admin/tenants/TenantList";
-import StaffList from "../pages/Admin/staff/StaffList";
-import ContractList from "../pages/Admin/contracts/ContractList";
-import InvoiceList from "../pages/Admin/invoices/InvoiceList";
-import PaymentList from "../pages/Admin/payments/PaymentList";
+import Tenant from "../pages/Admin/tenants/Tenant";
+import Staff from "../pages/Admin/staff/Staff";
+import Contract from "../pages/Admin/contracts/Contract";
+import Invoice from "../pages/Admin/invoices/Invoice";
+import Payment from "../pages/Admin/payments/Payment";
 import MaintenanceKanban from "../pages/Admin/maintenance/Maintenance";
-import ScheduleList from "../pages/Admin/schedules/ScheduleList";
-import UtilityList from "../pages/Admin/utilities/UtilityList";
-import NotificationList from "../pages/Admin/notifications/NotificationList";
+import Schedule from "../pages/Admin/schedules/Schedule";
+import Utility from "../pages/Admin/utilities/Utility";
+import Notification from "../pages/Admin/notifications/Notification";
 import SettingsPage from "../pages/Admin/settings/SettingsPage";
-import UserList from "../pages/Admin/users/UserList";
+import UserList from "../pages/Admin/users/User";
 // import ReportDashboard from "../pages/Admin/reports/ReportDashboard";
 
 // Trang Manager
@@ -31,6 +31,7 @@ import ManagerDashboard from "../pages/Manager/dashboard/Dashboard";
 import TenantHome from "../pages/Tenant/home/Home";
 import TenantContracts from "../pages/Tenant/contracts/MyContracts";
 import MyInvoices from "../pages/Tenant/invoices/MyInvoices";
+import MyPayments from "../pages/Tenant/payments/MyPayments";
 import MyMaintenance from "../pages/Tenant/maintenance/MyMaintenance";
 import MyUtilities from "../pages/Tenant/utilities/MyUtilities";
 import ProfilePage from "../pages/Tenant/profile/ProfilePage";
@@ -80,19 +81,19 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="dashboard" replace /> },
       { path: "dashboard", element: <AdminDashboard /> },
-      { path: "buildings", element: <BuildingList /> },
+      { path: "buildings", element: <Building /> },
       { path: "buildings/:id", element: <BuildingDetail /> },
-      { path: "apartments", element: <ApartmentList /> },
+      { path: "apartments", element: <Apartment /> },
       { path: "apartments/:id", element: <ApartmentDetail /> },
-      { path: "tenants", element: <TenantList /> },
-      { path: "staff", element: <StaffList /> },
-      { path: "contracts", element: <ContractList /> },
-      { path: "invoices", element: <InvoiceList /> },
-      { path: "payments", element: <PaymentList /> },
+      { path: "tenants", element: <Tenant /> },
+      { path: "staff", element: <Staff /> },
+      { path: "contracts", element: <Contract /> },
+      { path: "invoices", element: <Invoice /> },
+      { path: "payments", element: <Payment /> },
       { path: "maintenance", element: <MaintenanceKanban /> },
-      { path: "schedules", element: <ScheduleList /> },
-      { path: "utilities", element: <UtilityList /> },
-      { path: "notifications", element: <NotificationList /> },
+      { path: "schedules", element: <Schedule /> },
+      { path: "utilities", element: <Utility /> },
+      { path: "notifications", element: <Notification /> },
       { path: "users", element: <UserList /> },
       // { path: "reports", element: <ReportDashboard /> },
       { path: "settings", element: <SettingsPage /> },
@@ -111,16 +112,17 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="dashboard" replace /> },
       { path: "dashboard", element: <ManagerDashboard /> },
-      { path: "apartments", element: <ApartmentList /> },
+      { path: "apartments", element: <Apartment /> },
       { path: "apartments/:id", element: <ApartmentDetail /> },
-      { path: "tenants", element: <TenantList /> },
-      { path: "staff", element: <StaffList /> },
-      { path: "contracts", element: <ContractList /> },
-      { path: "invoices", element: <InvoiceList /> },
+      { path: "tenants", element: <Tenant /> },
+      { path: "staff", element: <Staff /> },
+      { path: "contracts", element: <Contract /> },
+      { path: "invoices", element: <Invoice /> },
+      { path: "payments", element: <Payment /> },
       { path: "maintenance", element: <MaintenanceKanban /> },
-      { path: "schedules", element: <ScheduleList /> },
-      { path: "utilities", element: <UtilityList /> },
-      { path: "notifications", element: <NotificationList /> },
+      { path: "schedules", element: <Schedule /> },
+      { path: "utilities", element: <Utility /> },
+      { path: "notifications", element: <Notification /> },
       // { path: "reports", element: <ReportDashboard /> },
       { path: "profile", element: <ProfilePage /> },
     ],
@@ -139,10 +141,10 @@ const router = createBrowserRouter([
       { path: "home", element: <TenantHome /> },
       { path: "contracts", element: <TenantContracts /> },
       { path: "invoices", element: <MyInvoices /> },
-      { path: "payments", element: <PaymentList /> },
+      { path: "payments", element: <MyPayments /> },
       { path: "utilities", element: <MyUtilities /> },
       { path: "maintenance", element: <MyMaintenance /> },
-      { path: "notifications", element: <NotificationList /> },
+      { path: "notifications", element: <Notification /> },
       { path: "profile", element: <ProfilePage /> },
     ],
   },

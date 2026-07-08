@@ -1,48 +1,42 @@
-import { CalendarDays, Check, X, Trash2, Eye } from "lucide-react";
-import PageHeader from "../../../components/PageHeader";
-import Badge from "../../../components/ui/Badge";
-import SearchInput from "../../../components/ui/SearchInput";
-import Pagination from "../../../components/ui/Pagination";
-import Combobox from "../../../components/ui/Combobox";
+import { CalendarDays, Eye, Check, X, Trash2 } from "lucide-react";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
-
+import PageHeader from "../../../components/PageHeader";
+import SearchInput from "../../../components/ui/SearchInput";
+import Badge from "../../../components/ui/Badge";
+import Combobox from "../../../components/ui/Combobox";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "../../../components/ui/Table";
+import Pagination from "../../../components/ui/Pagination";
+import { maskPhone } from "../../../utils/string";
+import { formatApartmentDisplay, parseGuestName } from "../../../utils/string";
 import { useScheduleList } from "../../../hooks/admin/useScheduleList";
-import { formatApartmentDisplay, maskPhone, parseGuestName } from "../../../utils/string";
 
 import ScheduleDeleteModal from "./components/ScheduleDeleteModal";
 import ScheduleDetailModal from "./components/ScheduleDetailModal";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "../../../components/ui/Table";
 
-export default function ScheduleList() {
+export default function Schedule() {
   const {
     role,
+    buildings,
+    schedules,
     loading,
     search,
     setSearch,
     statusFilter,
     setStatusFilter,
+    currentPage,
+    setCurrentPage,
     deleteItem,
     setDeleteItem,
     viewItem,
     setViewItem,
-    buildings,
-    schedules,
-    requestSort,
-    getSortIcon,
-    currentPage,
-    setCurrentPage,
+
     totalPages,
     paginatedSchedules,
+    handleDelete,
     handleConfirm,
     handleCancel,
-    handleDelete,
+    requestSort,
+    getSortIcon,
   } = useScheduleList();
 
   if (loading) {
@@ -80,19 +74,20 @@ export default function ScheduleList() {
         subtitle="Quản lý các lượt hẹn xem phòng của khách hàng"
         count={schedules.length}
         iconColor="linear-gradient(135deg, #3B82F6, #60A5FA)"
+        actions={
+          <SearchInput
+            value={search}
+            onChange={(v) => {
+              setSearch(v);
+              setCurrentPage(1);
+            }}
+            placeholder="Tìm theo tên khách, SĐT..."
+            className="w-64 sm:w-80"
+          />
+        }
       />
 
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
-        <SearchInput
-          value={search}
-          onChange={(v) => {
-            setSearch(v);
-            setCurrentPage(1);
-          }}
-          placeholder="Tìm theo tên khách, SĐT..."
-          className="max-w-md w-full sm:w-72"
-        />
-
         <Combobox
           options={[
             { value: "PENDING", label: "Chờ xác nhận" },

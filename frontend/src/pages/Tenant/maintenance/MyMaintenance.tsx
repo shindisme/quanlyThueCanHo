@@ -157,7 +157,7 @@ export default function MyMaintenance() {
                   <TableHead>Mô tả chi tiết</TableHead>
                   <TableHead className="text-center">Độ ưu tiên</TableHead>
                   <TableHead className="text-center">Trạng thái</TableHead>
-                  <TableHead className="text-right">Thao tác</TableHead>
+                  <TableHead className="text-right">Chức năng</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -11,7 +11,7 @@ import { formatDate } from "../../../../utils/date";
 import type { UtilityReadingData } from "../../../../services/utilityService";
 import type { ApartmentData } from "../../../../services/apartmentService";
 
-interface UtilityTableProps {
+interface UtilityListProps {
   paginatedApartments: ApartmentData[];
   readings: UtilityReadingData[];
   filterMonth: string;
@@ -28,7 +28,7 @@ interface UtilityTableProps {
   filteredRentedApartmentsLength: number;
 }
 
-export default function UtilityTable({
+export default function UtilityList({
   paginatedApartments,
   readings,
   filterMonth,
@@ -43,7 +43,7 @@ export default function UtilityTable({
   handleOpenModifyModal,
   handleOpenDeleteModal,
   filteredRentedApartmentsLength,
-}: UtilityTableProps) {
+}: UtilityListProps) {
   return (
     <div className="space-y-4">
       {/* View Card */}
@@ -169,7 +169,7 @@ export default function UtilityTable({
               </TableHead>
               <TableHead>Người ghi</TableHead>
               <TableHead>Ngày ghi</TableHead>
-              <TableHead className="text-center w-28">Hành động</TableHead>
+              <TableHead className="text-center w-28">Chức năng</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

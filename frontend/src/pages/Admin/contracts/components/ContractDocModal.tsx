@@ -100,7 +100,6 @@ export default function ContractDocModal({
               className="bg-white p-6 sm:p-10 shadow-sm border border-gray-150 rounded-lg text-gray-800 leading-relaxed text-sm"
               style={{ minHeight: "297mm", fontFamily: '"Times New Roman", Times, serif' }}
             >
-              {/* Tiêu ngữ */}
               <div className="text-center space-y-1 mb-6">
                 <h4 className="font-bold uppercase tracking-wider text-xs sm:text-sm">
                   CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM

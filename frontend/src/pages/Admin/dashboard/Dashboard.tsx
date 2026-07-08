@@ -1,5 +1,5 @@
 import {
-  Building2, Home, Users, DollarSign, TrendingUp, TrendingDown, Calendar
+  Building2, Home, Users, DollarSign, Calendar
 } from "lucide-react";
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -10,67 +10,8 @@ import { useAdminDashboard } from "../../../hooks/admin/useAdminDashboard";
 import Combobox from "../../../components/ui/Combobox";
 import { toast } from "sonner";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
-
-function StatCard({ icon: Icon, label, value, trend, trendValue, iconColor, iconBg, variant = "default" }: {
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  label: string;
-  value: string | number;
-  trend?: "up" | "down";
-  trendValue?: string;
-  iconColor: string;
-  iconBg: string;
-  variant?: "default" | "green";
-}) {
-  const isGreen = variant === "green";
-  return (
-    <div className={`border transition-all duration-200 p-5 shadow-lg hover:shadow-xl rounded-none h-full flex flex-col justify-between ${isGreen ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white border-gray-200"
-      }`}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${isGreen ? "text-emerald-100" : "text-gray-500"
-            }`}>{label}</p>
-          <p className={`text-2xl font-bold mb-1 ${isGreen ? "text-white" : "text-gray-900"
-            }`}>{value}</p>
-          {trend && trendValue && (
-            <div className={`flex items-center gap-1 mt-1 text-xs font-medium ${isGreen ? "text-emerald-200" : trend === "up" ? "text-success-600" : "text-danger-600"
-              }`}>
-              {trend === "up" ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-              <span>{trendValue}</span>
-            </div>
-          )}
-        </div>
-        <div className={`w-12 h-12 rounded-none flex items-center justify-center shrink-0 ${isGreen ? "bg-white/20" : iconBg
-          }`}>
-          <Icon size={22} className={isGreen ? "text-white" : iconColor} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ChartCard({ title, subtitle, children, action }: {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="bg-white border border-gray-200 p-5 shadow-lg rounded-none h-full flex flex-col justify-between">
-      <div>
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="text-base font-bold text-gray-900">{title}</h3>
-            {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
-          </div>
-          {action}
-        </div>
-        <div>
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
+import StatCard from "./components/StatCard";
+import ChartCard from "./components/ChartCard";
 
 export default function Dashboard() {
   const {
@@ -290,10 +231,10 @@ export default function Dashboard() {
           <ChartCard
             title={`Doanh thu (${timeFrame === "month" ? `Năm ${currentYear}` : "Theo năm"})`}
             action={
-              <div className="flex bg-gray-100 rounded-lg p-0.5 border border-gray-200">
+              <div className="flex bg-gray-100 rounded-none p-0.5 border border-gray-200">
                 <button
                   onClick={() => setTimeFrame("month")}
-                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${timeFrame === "month"
+                  className={`px-3 py-1 text-xs font-semibold rounded-none transition-all ${timeFrame === "month"
                     ? "bg-white text-emerald-600 shadow-sm"
                     : "text-gray-500 hover:text-gray-800"
                     }`}
@@ -302,7 +243,7 @@ export default function Dashboard() {
                 </button>
                 <button
                   onClick={() => setTimeFrame("year")}
-                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${timeFrame === "year"
+                  className={`px-3 py-1 text-xs font-semibold rounded-none transition-all ${timeFrame === "year"
                     ? "bg-white text-emerald-600 shadow-sm"
                     : "text-gray-500 hover:text-gray-800"
                     }`}
@@ -367,7 +308,7 @@ export default function Dashboard() {
       </div>
 
       {/* CONTRACT MONITORING SECTION */}
-      <div className="bg-white border border-gray-200 p-5 shadow-lg rounded-none">
+      <div className="bg-white border border-gray-200 p-5 shadow-md rounded-none">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
@@ -380,25 +321,25 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-12 gap-4 items-stretch">
           {/* Expired */}
-          <div className="col-span-12 sm:col-span-6 lg:col-span-3 p-4 border border-red-100 bg-red-50/20 rounded-none shadow-lg hover:shadow-xl transition-all flex flex-col justify-center h-full">
+          <div className="col-span-12 sm:col-span-6 lg:col-span-3 p-4 border border-red-100 bg-red-50/20 rounded-none shadow-md hover:shadow-lg transition-all flex flex-col justify-center h-full">
             <span className="text-xs text-red-600 font-bold uppercase tracking-wider">Đã hết hạn</span>
             <p className="text-2xl font-black text-red-700 mt-1">{expiredContractsCount}</p>
           </div>
 
           {/* 30 days */}
-          <div className="col-span-12 sm:col-span-6 lg:col-span-3 p-4 border border-orange-100 bg-orange-50/20 rounded-none shadow-lg hover:shadow-xl transition-all flex flex-col justify-center h-full">
+          <div className="col-span-12 sm:col-span-6 lg:col-span-3 p-4 border border-orange-100 bg-orange-50/20 rounded-none shadow-md hover:shadow-lg transition-all flex flex-col justify-center h-full">
             <span className="text-xs text-orange-600 font-bold uppercase tracking-wider">Trong 30 ngày</span>
             <p className="text-2xl font-black text-orange-700 mt-1">{expiring30DaysCount}</p>
           </div>
 
           {/* 60 days */}
-          <div className="col-span-12 sm:col-span-6 lg:col-span-3 p-4 border border-amber-100 bg-amber-50/20 rounded-none shadow-lg hover:shadow-xl transition-all flex flex-col justify-center h-full">
+          <div className="col-span-12 sm:col-span-6 lg:col-span-3 p-4 border border-amber-100 bg-amber-50/20 rounded-none shadow-md hover:shadow-lg transition-all flex flex-col justify-center h-full">
             <span className="text-xs text-amber-600 font-bold uppercase tracking-wider">Trong 60 ngày</span>
             <p className="text-2xl font-black text-amber-700 mt-1">{expiring60DaysCount}</p>
           </div>
 
           {/* 90 days */}
-          <div className="col-span-12 sm:col-span-6 lg:col-span-3 p-4 border border-blue-100 bg-blue-50/20 rounded-none shadow-lg hover:shadow-xl transition-all flex flex-col justify-center h-full">
+          <div className="col-span-12 sm:col-span-6 lg:col-span-3 p-4 border border-blue-100 bg-blue-50/20 rounded-none shadow-md hover:shadow-lg transition-all flex flex-col justify-center h-full">
             <span className="text-xs text-blue-600 font-bold uppercase tracking-wider">Trong 90 ngày</span>
             <p className="text-2xl font-black text-blue-700 mt-1">{expiring90DaysCount}</p>
           </div>

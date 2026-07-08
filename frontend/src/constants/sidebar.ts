@@ -14,6 +14,7 @@ import {
   Briefcase,
   User,
   ClipboardList,
+  CreditCard,
 } from "lucide-react";
 import type { Role } from "./enums";
 
@@ -45,7 +46,7 @@ const adminMenu: SidebarGroup[] = [
       { label: "Nhân viên", path: "/admin/staff", icon: Briefcase },
       { label: "Hợp đồng", path: "/admin/contracts", icon: FileText },
       { label: "Hoá đơn", path: "/admin/invoices", icon: Receipt },
-      // { label: "Thanh toán", path: "/admin/payments", icon: CreditCard },
+      { label: "Thanh toán", path: "/admin/payments", icon: CreditCard },
     ],
   },
   {
@@ -82,6 +83,7 @@ const managerMenu: SidebarGroup[] = [
       { label: "Nhân viên", path: "/manager/staff", icon: Briefcase },
       { label: "Hợp đồng", path: "/manager/contracts", icon: FileText },
       { label: "Hoá đơn", path: "/manager/invoices", icon: Receipt },
+      { label: "Thanh toán", path: "/manager/payments", icon: CreditCard },
     ],
   },
   {
@@ -113,7 +115,7 @@ const tenantMenu: SidebarGroup[] = [
     items: [
       { label: "Hợp đồng của tôi", path: "/tenant/contracts", icon: ClipboardList },
       { label: "Hoá đơn", path: "/tenant/invoices", icon: Receipt },
-      // { label: "Thanh toán", path: "/tenant/payments", icon: CreditCard },
+      { label: "Thanh toán", path: "/tenant/payments", icon: CreditCard },
       { label: "Điện nước", path: "/tenant/utilities", icon: Zap },
     ],
   },

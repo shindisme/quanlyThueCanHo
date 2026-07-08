@@ -1,35 +1,76 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as invoiceService from "../../services/invoiceService";
-
-type SortKey = "invoice_code" | "billing_month" | "total" | "status" | "due_date";
+import { useDebounce } from "../common/useDebounce";
+import { useOnOff } from "../common/useOnOff";
+import { usePagination } from "../common/usePagination";
+import { useSort } from "../common/useSort";
+import type { Invoice } from "../../types";
 
 export function useTenantInvoices() {
   const [search, setSearch] = useState("");
-  const [sortConfig, setSortConfig] = useState<{ key: SortKey; direction: "asc" | "desc" } | null>(null);
+  const [statusFilter, setStatusFilter] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
 
-  const { data: invoicesData, isLoading } = useQuery({
-    queryKey: ["invoices"],
-    queryFn: () => invoiceService.getAllInvoices({ limit: 100 }),
+  // Modal control
+  const detailsModal = useOnOff();
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+
+  // Load tenant invoices 
+  const { data: invoicesRes, isLoading } = useQuery({
+    queryKey: ["tenant-invoices", statusFilter, debouncedSearch],
+    queryFn: () =>
+      invoiceService.getAllInvoices({
+        status: statusFilter || undefined,
+        search: debouncedSearch || undefined,
+        limit: 100,
+      }),
   });
-  const invoices = invoicesData?.data || [];
+  const invoices = invoicesRes?.data || [];
 
-  const myInvoices = invoices;
+  // Sorting
+  const { items: sortedInvoices, requestSort, getSortIcon, sortConfig } = useSort<Invoice>(invoices, {
+    key: "created_at",
+    direction: "desc",
+  });
 
-  const requestSort = (key: SortKey) => {
-    let direction: "asc" | "desc" = "asc";
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
-    setSortConfig({ key, direction });
+  // Pagination
+  const { currentPage, setCurrentPage, totalPages, startIdx, endIdx } = usePagination({
+    totalItems: sortedInvoices.length,
+    initialPageSize: 10,
+  });
+
+  const paginatedInvoices = useMemo(() => {
+    return sortedInvoices.slice(startIdx, endIdx);
+  }, [sortedInvoices, startIdx, endIdx]);
+
+  const handleOpenDetails = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    detailsModal.onOpen();
   };
 
   return {
+    invoices: paginatedInvoices,
+    rawInvoicesCount: invoices.length,
+    isLoading,
     search,
     setSearch,
-    sortConfig,
+    statusFilter,
+    setStatusFilter,
+
+    // Sort
     requestSort,
-    myInvoices,
-    isLoading,
+    getSortIcon,
+    sortConfig,
+
+    // Pagination
+    currentPage,
+    setCurrentPage,
+    totalPages,
+
+    // Details Modal
+    selectedInvoice,
+    detailsModal,
+    handleOpenDetails,
   };
 }
