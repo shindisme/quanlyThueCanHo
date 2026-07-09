@@ -34,7 +34,6 @@ export type CreatePaymentInput = CreatePaymentRequest["body"];
 export type CreateVnpayPaymentInput = CreateVnpayPaymentRequest["body"];
 
 export const PAYMENT_METHODS = {
-    CASH: "CASH",
     BANK_TRANSFER: "BANK_TRANSFER",
     E_WALLET: "E_WALLET"
 } as const;
@@ -204,8 +203,6 @@ const normalizePayment = (payment: PaymentWithRelations) => ({
 });
 
 const paymentMethodAliases: Record<string, PaymentMethod> = {
-    CASH: PAYMENT_METHODS.CASH,
-    TIEN_MAT: PAYMENT_METHODS.CASH,
     BANK_TRANSFER: PAYMENT_METHODS.BANK_TRANSFER,
     CHUYEN_KHOAN: PAYMENT_METHODS.BANK_TRANSFER,
     TRANSFER: PAYMENT_METHODS.BANK_TRANSFER,
