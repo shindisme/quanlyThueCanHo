@@ -36,6 +36,8 @@ export default function GuestApartmentListing() {
     loading,
     floors,
     filtered,
+    locationSearching,
+    locationSuggestionMessage,
   } = useGuestApartmentListing();
 
   return (
@@ -115,6 +117,18 @@ export default function GuestApartmentListing() {
             clearable={true}
           />
         </div>
+
+        {locationSuggestionMessage && (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {locationSuggestionMessage}
+          </div>
+        )}
+
+        {!locationSuggestionMessage && locationSearching && (
+          <div className="mb-6 rounded-xl border border-primary-100 bg-primary-50 px-4 py-3 text-sm text-primary-700">
+            Đang tìm căn hộ ở khu vực gần địa điểm bạn nhập...
+          </div>
+        )}
 
         {loading ? (
           <div className="flex items-center justify-center py-20">

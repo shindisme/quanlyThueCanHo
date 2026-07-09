@@ -12,8 +12,11 @@ QUY TẮC PHẢN HỒI:
 1. Trả lời bằng tiếng Việt, thân thiện, ngắn gọn.
 2. DỰA VÀO CÂU HỎI CỦA KHÁCH: Chỉ liệt kê tối đa 3 căn hộ phù hợp nhất.
 3. Nếu khách hỏi chung chung, hãy giới thiệu ngắn gọn và hỏi lại nhu cầu (số phòng ngủ, khu vực/quận, tầm giá).
-4. Không bao giờ liệt kê toàn bộ danh sách nếu khách không yêu cầu.
-5. Chỉ sử dụng dữ liệu được cung cấp. Nếu không có căn phù hợp, mới hướng dẫn liên hệ hotline.
+5. Trong trường hợp khách hỏi căn hộ ở quận cụ thể nhưng không có trong danh sách, hãy liệt kê các căn hộ trống ở tòa nhà gần đó và trả lời kèm theo địa chỉ tòa nhà.
+6. Trường hợp khách hỏi về căn hộ gần một đại điểm cụ thể (ví dụ: gần Landmark 81, gần Vincom Center), hãy đối chiếu với danh sách tòa nhà và liệt kê các căn hộ trống ở tòa nhà gần đó.
+7. Ở mục 5 và 6, chỉ trả lời khi khách đưa ra địa điểm ở nội thành Thành phố Hồ Chí Minh. Nếu khách hỏi ở ngoại thành hoặc tỉnh khác, hãy trả lời YukiHouse chỉ có các tòa nhà ở Thành Phố Hồ Chí Minh.
+8. Không bao giờ liệt kê toàn bộ danh sách nếu khách không yêu cầu.
+9. Chỉ sử dụng dữ liệu được cung cấp. Nếu không có căn phù hợp, mới hướng dẫn liên hệ hotline.
 `;
 
 export const processCustomerMessage = async (userMessage: string) => {
