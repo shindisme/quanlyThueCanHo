@@ -12,6 +12,7 @@ export interface ModalProps {
   children: React.ReactNode
   size?: ModalSize
   footer?: React.ReactNode
+  closeOnOutsideClick?: boolean
 }
 
 const sizeStyles: Record<ModalSize, string> = {
@@ -28,6 +29,7 @@ export default function Modal({
   children,
   size = "md",
   footer,
+  closeOnOutsideClick = true,
 }: ModalProps) {
   React.useEffect(() => {
     if (isOpen) {
@@ -42,13 +44,13 @@ export default function Modal({
 
   React.useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose()
+      if (e.key === "Escape" && closeOnOutsideClick) onClose()
     }
     if (isOpen) {
       document.addEventListener("keydown", handleKeyDown)
     }
     return () => document.removeEventListener("keydown", handleKeyDown)
-  }, [isOpen, onClose])
+  }, [isOpen, onClose, closeOnOutsideClick])
 
   if (!isOpen) return null
 
@@ -57,7 +59,7 @@ export default function Modal({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 animate-fade-in"
-        onClick={onClose}
+        onClick={closeOnOutsideClick ? onClose : undefined}
       />
 
       {/* Modal Content */}
@@ -68,12 +70,14 @@ export default function Modal({
         )}
       >
         {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer z-10"
-        >
-          <X size={20} />
-        </button>
+        {closeOnOutsideClick && (
+          <button
+            onClick={onClose}
+            className="absolute right-4 top-4 p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer z-10"
+          >
+            <X size={20} />
+          </button>
+        )}
 
         {/* Header */}
         {title && (

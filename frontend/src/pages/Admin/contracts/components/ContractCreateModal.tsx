@@ -82,6 +82,7 @@ export default function ContractCreateModal({
       onClose={onClose}
       title="Tạo hợp đồng mới"
       size="lg"
+      closeOnOutsideClick={false}
       footer={
         <>
           <Button variant="outline" onClick={onClose}>Hủy</Button>

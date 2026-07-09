@@ -8,15 +8,18 @@ import Modal from "../../../components/ui/Modal";
 import { Calendar } from "../../../components/ui/Calendar";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import { toast } from "sonner";
+import { useAuthStore } from "../../../stores/auth.store";
 
 import { useContractList } from "../../../hooks/admin/useContractList";
 import ContractList from "./components/ContractList";
 import ContractDetailModal from "./components/ContractDetailModal";
 import ContractDocModal from "./components/ContractDocModal";
+import ContractCreateModal from "./components/ContractCreateModal";
 
 export default function Contract() {
   const {
     role,
+    managedBuildingId,
     buildings,
     apartments,
     tenants,
@@ -24,6 +27,7 @@ export default function Contract() {
     loading,
     search,
     setSearch,
+    createModal,
     selectedDetailContract,
     setSelectedDetailContract,
     selectedDocContract,
@@ -32,6 +36,11 @@ export default function Contract() {
     setSelectedExtendContract,
     extendEndDate,
     setExtendEndDate,
+    initialTenantId,
+    setInitialTenantId,
+    initialApartmentId,
+    initialBuildingId,
+    initialFloor,
     filteredContracts,
     requestSort,
     getSortIcon,
@@ -44,7 +53,17 @@ export default function Contract() {
     setTerminateItem,
     handleTerminateContract,
     terminating,
+    fetchContracts,
+    setIsNewTenantFromNavigation,
+    showConfirmCancelModal,
+    setShowConfirmCancelModal,
+    deletingTenant,
+    handleCancelCreateContract,
+    handleConfirmCancelCreate,
   } = useContractList();
+
+  const { email } = useAuthStore();
+  const currentUser = users.find((u) => u.username === email) || { id: 1 };
 
   if (loading) {
     return (
@@ -173,6 +192,39 @@ export default function Contract() {
         confirmText="Xác nhận hủy"
         cancelText="Hủy bỏ"
         isLoading={terminating}
+      />
+
+      <ContractCreateModal
+        isOpen={createModal.isOpen}
+        onClose={handleCancelCreateContract}
+        onSuccess={() => {
+          fetchContracts();
+          setIsNewTenantFromNavigation(false);
+          setInitialTenantId(undefined);
+          createModal.onClose();
+        }}
+        buildings={buildings}
+        apartments={apartments}
+        tenants={tenants}
+        currentUser={currentUser}
+        role={role}
+        managerBuildingId={managedBuildingId || undefined}
+        initialTenantId={initialTenantId}
+        initialBuildingId={initialBuildingId}
+        initialApartmentId={initialApartmentId}
+        initialFloor={initialFloor}
+      />
+
+      <ConfirmDialog
+        isOpen={showConfirmCancelModal}
+        onClose={() => setShowConfirmCancelModal(false)}
+        onConfirm={handleConfirmCancelCreate}
+        title="Xác nhận hủy tạo người thuê"
+        message="Bạn có chắc chắn muốn hủy tạo hợp đồng? Người thuê mới vừa tạo sẽ bị xóa hoàn toàn khỏi cơ sở dữ liệu."
+        variant="danger"
+        confirmText="Hủy tạo & Xóa"
+        cancelText="Quay lại"
+        isLoading={deletingTenant}
       />
     </div>
   );

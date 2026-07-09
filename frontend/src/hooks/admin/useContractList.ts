@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import * as buildingService from "../../services/buildingService";
 import * as apartmentService from "../../services/apartmentService";
@@ -28,6 +28,7 @@ export function useContractList() {
   const queryClient = useQueryClient();
   const { role, managedBuildingId, email } = useUserRole();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
@@ -84,6 +85,10 @@ export function useContractList() {
 
   const loading = loadingContracts || loadingBuildings || loadingApartments || loadingTenants || loadingUsers;
 
+  const [isNewTenantFromNavigation, setIsNewTenantFromNavigation] = useState(false);
+  const [showConfirmCancelModal, setShowConfirmCancelModal] = useState(false);
+  const [deletingTenant, setDeletingTenant] = useState(false);
+
   useEffect(() => {
     if (location.state) {
       const stateObj = location.state as LocationState;
@@ -91,6 +96,7 @@ export function useContractList() {
         setTimeout(() => {
           if (stateObj.tenantId) {
             setInitialTenantId(Number(stateObj.tenantId));
+            setIsNewTenantFromNavigation(true);
           }
           if (stateObj.apartmentId) {
             setInitialApartmentId(Number(stateObj.apartmentId));
@@ -107,9 +113,37 @@ export function useContractList() {
       if (stateObj.search) {
         setSearch(stateObj.search);
       }
-      window.history.replaceState({}, document.title);
+      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location, createModal]);
+  }, [location, createModal, navigate]);
+
+  const handleCancelCreateContract = () => {
+    if (isNewTenantFromNavigation && initialTenantId) {
+      setShowConfirmCancelModal(true);
+    } else {
+      createModal.onClose();
+      setInitialTenantId(undefined);
+    }
+  };
+
+  const handleConfirmCancelCreate = async () => {
+    if (initialTenantId) {
+      setDeletingTenant(true);
+      try {
+        await tenantService.deleteTenant(initialTenantId);
+        toast.success("Đã hủy tạo người thuê mới và xóa thông tin khỏi hệ thống.");
+      } catch (error) {
+        toast.error("Không thể xóa thông tin người thuê vừa tạo.");
+      } finally {
+        setDeletingTenant(false);
+        setShowConfirmCancelModal(false);
+        setIsNewTenantFromNavigation(false);
+        setInitialTenantId(undefined);
+        createModal.onClose();
+        queryClient.invalidateQueries({ queryKey: ["tenants"] });
+      }
+    }
+  };
 
   const displayContracts = (() => {
     if (role === "MANAGER" && managedBuildingId) {
@@ -257,5 +291,12 @@ export function useContractList() {
     handleTerminateContract,
     terminating: terminateMutation.isPending,
     fetchContracts,
+    isNewTenantFromNavigation,
+    setIsNewTenantFromNavigation,
+    showConfirmCancelModal,
+    setShowConfirmCancelModal,
+    deletingTenant,
+    handleCancelCreateContract,
+    handleConfirmCancelCreate,
   };
 }
