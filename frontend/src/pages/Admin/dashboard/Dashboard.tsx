@@ -219,7 +219,7 @@ export default function Dashboard() {
             iconColor="text-success-600" iconBg="bg-success-50" />
         </div>
         <div className="col-span-12 sm:col-span-6 lg:col-span-3">
-          <StatCard icon={DollarSign} label="Doanh thu (Tháng này)" value={formatCurrency(monthlyRevenue)}
+          <StatCard icon={DollarSign} label="Doanh thu trong tháng" value={formatCurrency(monthlyRevenue)}
             iconColor="text-white" iconBg="bg-white/20" variant="green" />
         </div>
       </div>
@@ -307,7 +307,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* CONTRACT MONITORING SECTION */}
+      {/* CONTRACT SECTION */}
       <div className="bg-white border border-gray-200 p-5 shadow-md rounded-none">
         <div className="flex items-center justify-between mb-4">
           <div>

@@ -198,13 +198,12 @@ export function useUtilityList() {
   };
 
   const getYearOptions = () => {
-    const startYear = 2024;
+    const yearsFromReadings = readings.map((r) => r.year);
     const currentYear = new Date().getFullYear();
-    const years = [];
-    for (let y = startYear; y <= currentYear + 1; y++) {
-      years.push({ value: String(y), label: `Năm ${y}` });
-    }
-    return years.reverse();
+    const uniqueYears = Array.from(new Set([...yearsFromReadings, currentYear]));
+    return uniqueYears
+      .sort((a, b) => b - a)
+      .map((y) => ({ value: String(y), label: `Năm ${y}` }));
   };
 
   return {

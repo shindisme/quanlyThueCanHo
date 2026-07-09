@@ -47,14 +47,23 @@ export default function PaymentList({
     return methodMap[method] || method;
   }
 
+  // hiển thị phòng theo role
+  function getRoomDisplay(pmt: Payment) {
+    const roomNum = pmt.invoice?.contract?.apartment?.room_number ? `P.${pmt.invoice.contract.apartment.room_number}` : "";
+    const branchName = pmt.invoice?.contract?.apartment?.building?.branch_name || "";
+    if (role === "ADMIN" && branchName) {
+      return { room: roomNum, branch: branchName };
+    }
+    return { room: roomNum, branch: "" };
+  }
+
   return (
     <div className="space-y-4">
       {/* View Card */}
       <div className="grid grid-cols-1 gap-4 md:hidden">
         {payments.map((pmt) => {
           const invoiceCode = pmt.invoice?.invoice_code || `HD-${String(pmt.invoice_id).padStart(5, "0")}`;
-          const roomNum = pmt.invoice?.contract?.apartment?.room_number ? `P.${pmt.invoice.contract.apartment.room_number}` : "";
-          const branchName = pmt.invoice?.contract?.apartment?.building?.branch_name || "";
+          const { room, branch } = getRoomDisplay(pmt);
           const tenantName = pmt.invoice?.tenant?.full_name || "Chưa rõ";
           const tenantPhone = pmt.invoice?.tenant?.phone || "";
 
@@ -70,7 +79,7 @@ export default function PaymentList({
                   <span className="font-semibold text-gray-700">Thời gian:</span> {formatDate(pmt.paid_at)}
                 </p>
                 <p>
-                  <span className="font-semibold text-gray-700">Hóa đơn:</span> {invoiceCode} {roomNum && `(${roomNum} - ${branchName})`}
+                  <span className="font-semibold text-gray-700">Hóa đơn:</span> {invoiceCode} {room && `(${room}${branch ? ` - ${branch}` : ""})`}
                 </p>
                 <p>
                   <span className="font-semibold text-gray-700">Khách thuê:</span> {tenantName} ({tenantPhone})
@@ -113,23 +122,23 @@ export default function PaymentList({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="cursor-pointer" onClick={() => requestSort("paid_at")}>
+              <TableHead onClick={() => requestSort("paid_at")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 Thời gian {getSortIcon("paid_at")}
               </TableHead>
-              <TableHead className="cursor-pointer" onClick={() => requestSort("invoice.invoice_code")}>
+              <TableHead onClick={() => requestSort("invoice.invoice_code")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 Hóa đơn {getSortIcon("invoice.invoice_code")}
               </TableHead>
-              <TableHead>Khách thuê</TableHead>
-              <TableHead className="cursor-pointer" onClick={() => requestSort("payment_method")}>
+              <TableHead className="select-none">Khách thuê</TableHead>
+              <TableHead onClick={() => requestSort("payment_method")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 Phương thức {getSortIcon("payment_method")}
               </TableHead>
-              <TableHead className="cursor-pointer" onClick={() => requestSort("transaction_code")}>
+              <TableHead onClick={() => requestSort("transaction_code")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 Mã giao dịch {getSortIcon("transaction_code")}
               </TableHead>
-              <TableHead className="text-right cursor-pointer" onClick={() => requestSort("amount")}>
+              <TableHead onClick={() => requestSort("amount")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 Số tiền {getSortIcon("amount")}
               </TableHead>
-              <TableHead className="text-center cursor-pointer" onClick={() => requestSort("status")}>
+              <TableHead onClick={() => requestSort("status")} className="text-center cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 Trạng thái {getSortIcon("status")}
               </TableHead>
               <TableHead className="text-right">Chức năng</TableHead>
@@ -138,8 +147,7 @@ export default function PaymentList({
           <TableBody>
             {payments.map((pmt) => {
               const invoiceCode = pmt.invoice?.invoice_code || `HD-${String(pmt.invoice_id).padStart(5, "0")}`;
-              const roomNum = pmt.invoice?.contract?.apartment?.room_number ? `P.${pmt.invoice.contract.apartment.room_number}` : "";
-              const branchName = pmt.invoice?.contract?.apartment?.building?.branch_name || "";
+              const { room, branch } = getRoomDisplay(pmt);
               const tenantName = pmt.invoice?.tenant?.full_name || "Chưa rõ";
               const tenantPhone = pmt.invoice?.tenant?.phone || "";
 
@@ -149,9 +157,9 @@ export default function PaymentList({
                   <TableCell className="font-semibold text-gray-800 whitespace-nowrap">
                     <div className="flex flex-col">
                       <span>{invoiceCode}</span>
-                      {roomNum && (
+                      {room && (
                         <span className="text-[10px] text-gray-400 font-normal">
-                          {roomNum} {branchName && `(${branchName})`}
+                          {room} {branch && `(${branch})`}
                         </span>
                       )}
                     </div>
@@ -177,7 +185,7 @@ export default function PaymentList({
                           type="button"
                           onClick={() => handleApprove(pmt.id)}
                           disabled={isUpdating}
-                          className="p-1.5 bg-green-50 text-green-600 hover:bg-green-100 cursor-pointer disabled:opacity-50 transition-colors shadow-sm"
+                          className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 cursor-pointer disabled:opacity-50 transition-colors shadow-sm"
                           title="Phê duyệt giao dịch"
                         >
                           <Check size={14} className="stroke-3" />
@@ -186,7 +194,7 @@ export default function PaymentList({
                           type="button"
                           onClick={() => handleReject(pmt.id)}
                           disabled={isUpdating}
-                          className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer disabled:opacity-50 transition-colors shadow-sm"
+                          className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer disabled:opacity-50 transition-colors shadow-sm"
                           title="Từ chối giao dịch"
                         >
                           <X size={14} className="stroke-3" />

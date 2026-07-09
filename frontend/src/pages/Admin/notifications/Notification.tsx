@@ -21,7 +21,7 @@ export default function Notification() {
     setSearch,
     isReadFilter,
     setIsReadFilter,
-    
+
     // Actions
     markRead,
     markAllRead,
@@ -86,36 +86,33 @@ export default function Notification() {
         }
       />
 
-      {/* Filter and Mark All Read bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white border border-gray-250 p-4 shadow-md rounded-none">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
-
-          <Combobox
-            options={[
-              { value: "", label: "Tất cả thông báo" },
-              { value: "false", label: "Chưa đọc" },
-              { value: "true", label: "Đã đọc" },
-            ]}
-            value={isReadFilter}
-            onChange={setIsReadFilter}
-            placeholder="Lọc trạng thái"
-            searchable={false}
-            triggerClassName="h-[42px] rounded-none border-gray-300 px-3 w-48"
-            clearable={false}
-          />
-        </div>
-
-        {unreadCount > 0 && (
-          <button
-            type="button"
-            onClick={() => markAllRead()}
-            className="text-primary-650 hover:text-primary-700 font-bold text-xs flex items-center gap-1.5 justify-center py-2 px-3 hover:bg-primary-50 transition-colors border border-primary-200 cursor-pointer"
-          >
-            <CheckSquare size={14} />
-            <span>Đánh dấu tất cả đã đọc</span>
-          </button>
-        )}
+      {/* Filter and Mark All Read */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
+        <Combobox
+          options={[
+            { value: "", label: "Tất cả thông báo" },
+            { value: "false", label: "Chưa đọc" },
+            { value: "true", label: "Đã đọc" },
+          ]}
+          value={isReadFilter}
+          onChange={setIsReadFilter}
+          placeholder="Lọc trạng thái"
+          searchable={false}
+          triggerClassName="h-[42px] rounded-xl border-gray-200 px-3"
+          clearable={false}
+        />
       </div>
+
+      {unreadCount > 0 && (
+        <button
+          type="button"
+          onClick={() => markAllRead()}
+          className="text-primary-600 hover:text-primary-700 font-semibold text-xs flex items-center gap-1.5 justify-center py-2.5 px-4 hover:bg-primary-50 transition-all duration-200 rounded-xl border border-primary-200 cursor-pointer"
+        >
+          <CheckSquare size={14} />
+          <span>Đánh dấu tất cả đã đọc</span>
+        </button>
+      )}
 
       {/* Notifications listing */}
       {isLoading ? (
@@ -124,7 +121,7 @@ export default function Notification() {
           <span className="text-sm text-gray-400 mt-2">Đang tải hộp thư thông báo...</span>
         </div>
       ) : notifications.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 bg-white border border-gray-200 shadow-md rounded-none">
+        <div className="text-center py-16 text-gray-500 bg-white border border-gray-100 shadow-sm rounded-2xl">
           <Mail size={48} className="mx-auto mb-3 text-gray-300" />
           <p className="font-medium">Hộp thư thông báo trống</p>
         </div>
@@ -160,10 +157,10 @@ export default function Notification() {
                   onChange={(val) => setBuildingId(val ? Number(val) : undefined)}
                   placeholder="Chọn tòa nhà"
                   clearable={false}
-                  triggerClassName="h-[42px] rounded-none border-gray-300"
+                  triggerClassName="h-[42px] rounded-xl border-gray-200"
                 />
               ) : (
-                <div className="h-[42px] flex items-center px-4 bg-gray-150 border border-gray-300 text-gray-600 rounded-none font-bold">
+                <div className="h-[42px] flex items-center px-4 bg-gray-50 border border-gray-200 text-gray-600 rounded-xl font-bold">
                   {buildings.find((b) => b.id === buildingId)?.branch_name || "Tòa nhà quản lý"}
                 </div>
               )}
@@ -182,7 +179,7 @@ export default function Notification() {
                 onChange={setType}
                 searchable={false}
                 clearable={false}
-                triggerClassName="h-[42px] rounded-none border-gray-300"
+                triggerClassName="h-[42px] rounded-xl border-gray-200"
               />
             </div>
           </div>
@@ -219,7 +216,7 @@ export default function Notification() {
 
           {/* Target Apartments Grid selector */}
           {targetType === "APARTMENTS" && buildingId && (
-            <div className="space-y-2 border-t border-gray-200 pt-3">
+            <div className="space-y-2 border-t border-gray-100 pt-3">
               <label className="text-xs font-semibold text-gray-600 block">
                 Chọn căn hộ nhận thông báo ({selectedApartmentIds.length} đã chọn):
               </label>
@@ -230,7 +227,7 @@ export default function Notification() {
               ) : apartments.length === 0 ? (
                 <p className="text-xs text-gray-400 italic">Không có căn hộ nào được tìm thấy trong tòa nhà.</p>
               ) : (
-                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5 max-h-[160px] overflow-y-auto border border-gray-200 p-2 bg-gray-50 rounded-none">
+                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5 max-h-[160px] overflow-y-auto border border-gray-100 p-2.5 bg-gray-50/50 rounded-xl">
                   {apartments.map((apt) => {
                     const isSelected = selectedApartmentIds.includes(apt.id);
                     return (
@@ -238,11 +235,10 @@ export default function Notification() {
                         type="button"
                         key={apt.id}
                         onClick={() => handleToggleApartment(apt.id)}
-                        className={`py-1 text-center font-bold text-xs select-none border transition-all cursor-pointer rounded-none ${
-                          isSelected
-                            ? "bg-primary-600 text-white border-primary-600"
-                            : "bg-white text-gray-700 border-gray-200 hover:bg-gray-100"
-                        }`}
+                        className={`py-1.5 text-center font-bold text-xs select-none border transition-all cursor-pointer rounded-lg ${isSelected
+                          ? "bg-primary-600 text-white border-primary-600 shadow-sm"
+                          : "bg-white text-gray-700 border-gray-200 hover:bg-gray-100"
+                          }`}
                       >
                         P.{apt.room_number}
                       </button>
@@ -261,7 +257,7 @@ export default function Notification() {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Nhập tiêu đề ngắn gọn..."
               required
-              className="rounded-none h-[42px]"
+              className="rounded-xl h-[42px]"
               disabled={isSending}
             />
           </div>
@@ -274,16 +270,16 @@ export default function Notification() {
               onChange={(e) => setContent(e.target.value)}
               placeholder="Nhập chi tiết nội dung thông báo phát sóng..."
               required
-              className="w-full min-h-[120px] p-3 rounded-none border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600 text-sm transition-all"
+              className="w-full min-h-[120px] p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600 text-sm transition-all"
               disabled={isSending}
             />
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
-            <Button variant="outline" type="button" onClick={broadcastModal.onClose} disabled={isSending} className="rounded-none">
+            <Button variant="outline" type="button" onClick={broadcastModal.onClose} disabled={isSending} className="rounded-xl">
               Hủy bỏ
             </Button>
-            <Button type="submit" disabled={isSending} className="rounded-none">
+            <Button type="submit" disabled={isSending} className="rounded-xl">
               {isSending ? "Đang gửi..." : "Phát sóng thông báo"}
             </Button>
           </div>

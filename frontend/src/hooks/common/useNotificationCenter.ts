@@ -48,12 +48,14 @@ export function useNotificationCenter() {
 
   // Mutations
   const markReadMutation = useMutation({
-    mutationFn: (id: number) => notificationService.markNotificationRead(id),
+    mutationFn: ({ id, isRead }: { id: number; isRead: boolean }) =>
+      notificationService.markNotificationRead(id, isRead),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["header-notifications"] });
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Đánh dấu đã đọc thất bại");
+      toast.error(err.response?.data?.message || "Cập nhật trạng thái thông báo thất bại");
     },
   });
 
@@ -95,7 +97,7 @@ export function useNotificationCenter() {
     setIsReadFilter,
 
     // Actions
-    markRead: markReadMutation.mutate,
+    markRead: (id: number, isRead: boolean = true) => markReadMutation.mutate({ id, isRead }),
     markAllRead: markAllReadMutation.mutate,
     deleteNotification: deleteMutation.mutate,
 
@@ -106,7 +108,7 @@ export function useNotificationCenter() {
     currentPage,
     setCurrentPage,
     totalPages,
-    
+
     refetch,
   };
 }

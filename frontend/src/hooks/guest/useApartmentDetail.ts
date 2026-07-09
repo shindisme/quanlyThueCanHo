@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import * as apartmentService from "../../services/apartmentService"
@@ -7,16 +7,10 @@ import * as buildingService from "../../services/buildingService"
 import * as contractService from "../../services/contractService"
 import * as tenantService from "../../services/tenantService"
 import * as authService from "../../services/authService"
+import * as occupantService from "../../services/occupantService"
 import { getApartmentReviews } from "../../services/reviewService"
 import type { ApartmentImage, User } from "../../types"
 
-interface Occupant {
-  id: string
-  name: string
-  cccd: string
-  dob: string
-  phone: string
-}
 
 export function useApartmentDetail() {
   const { id } = useParams()
@@ -32,8 +26,6 @@ export function useApartmentDetail() {
     }
   });
   const uploading = uploadMutation.isPending;
-  const [showModifyModal, setShowModifyModal] = useState(false)
-  const [occupants, setOccupants] = useState<Occupant[]>([])
   const [activeTab, setActiveTab] = useState<"tenant" | "tenantHistory" | "reviews">("tenant")
   const [images, setImages] = useState<ApartmentImage[]>([])
 
@@ -97,34 +89,29 @@ export function useApartmentDetail() {
     ? users.find((u) => u.id === activeTenant.user_id)
     : null
 
+  const { data: occupantsRes } = useQuery({
+    queryKey: ["tenant-occupants", activeTenant?.id],
+    queryFn: () => occupantService.getOccupants({ tenant_id: activeTenant?.id }),
+    enabled: !!activeTenant?.id,
+  });
+
+  const occupants = useMemo(() => {
+    if (!occupantsRes?.data) return [];
+    return occupantsRes.data.map((apiOcc: any) => ({
+      id: String(apiOcc.id),
+      name: apiOcc.full_name,
+      cccd: apiOcc.citizen_id,
+      dob: apiOcc.date_of_birth ? new Date(apiOcc.date_of_birth).toISOString().split("T")[0] : "",
+      phone: apiOcc.phone || "",
+    }));
+  }, [occupantsRes]);
+
   const historyContracts = contracts.filter((c) => c.apartment_id === Number(id))
   const tenantContracts = activeTenant
     ? historyContracts.filter((c) => c.tenant_id === activeTenant.id)
     : []
 
-  useEffect(() => {
-    let active = true
-    setTimeout(() => {
-      if (!active) return
-      if (activeTenantUser?.email) {
-        const stored = localStorage.getItem(`tenant-occupants-${activeTenantUser.email}`)
-        if (stored) {
-          try {
-            setOccupants(JSON.parse(stored))
-          } catch {
-            setOccupants([])
-          }
-        } else {
-          setOccupants([])
-        }
-      } else {
-        setOccupants([])
-      }
-    }, 0)
-    return () => {
-      active = false
-    }
-  }, [activeTenantUser])
+  const [showModifyModal, setShowModifyModal] = useState(false)
 
   const fetchData = async () => {
     await fetchApartment()

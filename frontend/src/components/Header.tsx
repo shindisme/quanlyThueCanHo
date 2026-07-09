@@ -1,10 +1,12 @@
-import { Bell, Menu, LogOut, User, ChevronDown, Settings } from "lucide-react";
-import { Fragment, useState, useEffect } from "react";
+import { Bell, Menu, LogOut, User, ChevronDown, Settings, Mail, Info, Wrench, Receipt, ArrowRight } from "lucide-react";
+import { Fragment, useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/auth.store";
 import { useSidebarStore } from "../stores/sidebar.store";
 import * as buildingService from "../services/buildingService";
 import * as apartmentService from "../services/apartmentService";
+import * as notificationService from "../services/notificationService";
 import { formatApartmentDisplay } from "../utils/string";
 import Avatar from "./ui/Avatar";
 import {
@@ -40,11 +42,41 @@ function parseJwt(token: string) {
   }
 }
 
+function formatTimeAgo(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMinutes < 1) return "Vừa xong";
+  if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  if (diffDays < 7) return `${diffDays} ngày trước`;
+  return date.toLocaleDateString("vi-VN");
+}
+
+function getNotifIcon(type: string) {
+  if (type === "INVOICE") return <Receipt size={14} className="text-emerald-600" />;
+  if (type === "MAINTENANCE") return <Wrench size={14} className="text-amber-600" />;
+  if (type === "SYSTEM") return <Info size={14} className="text-blue-600" />;
+  return <Mail size={14} className="text-gray-500" />;
+}
+
+function getNotifIconBg(type: string) {
+  if (type === "INVOICE") return "bg-emerald-50";
+  if (type === "MAINTENANCE") return "bg-amber-50";
+  if (type === "SYSTEM") return "bg-blue-50";
+  return "bg-gray-100";
+}
+
 export default function Header() {
   const { email, role, token, logout, managedBuildingName: storeBuildingName } = useAuthStore();
   const { setMobileOpen, toggle } = useSidebarStore();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   const [managedBuildingName, setManagedBuildingName] = useState<string | null>(storeBuildingName);
 
@@ -54,6 +86,54 @@ export default function Header() {
   const [accountUsername, setAccountUsername] = useState<string>(
     email?.split("@")[0] || "User"
   );
+
+  // Notification Popover State
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement | null>(null);
+  const notifBtnRef = useRef<HTMLButtonElement | null>(null);
+
+  // Load 5 latest notifications for header popover
+  const { data: notifData } = useQuery({
+    queryKey: ["header-notifications"],
+    queryFn: () => notificationService.getAllNotifications({ limit: 5 }),
+    refetchInterval: 30000, // Poll every 30s
+  });
+
+  const headerNotifications = notifData?.data || [];
+  const unreadCount = headerNotifications.filter((n) => !n.is_read).length;
+
+  const markAllReadMutation = useMutation({
+    mutationFn: () => notificationService.markAllNotificationsRead(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["header-notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: (id: number) => notificationService.markNotificationRead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["header-notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  // Close on click outside
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    if (
+      notifRef.current &&
+      !notifRef.current.contains(event.target as Node) &&
+      notifBtnRef.current &&
+      !notifBtnRef.current.contains(event.target as Node)
+    ) {
+      setNotifOpen(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [handleClickOutside]);
 
   useEffect(() => {
     if (!token) return;
@@ -131,7 +211,7 @@ export default function Header() {
     fetchManagedBuilding();
   }, [role, token, storeBuildingName]);
 
-  // Lấy tên tòa nhà/căn hộ động Breadcrumb
+  // Lấy tên tòa nhà
   useEffect(() => {
     setDynamicBuildingName(null);
     setDynamicApartmentName(null);
@@ -278,15 +358,103 @@ export default function Header() {
 
       {/*Right side*/}
       <div className="flex items-center gap-1">
-        {/* Notification */}
-        <button
-          onClick={() => navigate(`/${role?.toLowerCase()}/notifications`)}
-          className="p-2.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors relative cursor-pointer"
-          title="Thông báo"
-        >
-          <Bell size={20} />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-danger-500 rounded-full animate-pulse-dot" />
-        </button>
+        {/* Notification Popover */}
+        <div className="relative">
+          <button
+            ref={notifBtnRef}
+            onClick={() => setNotifOpen(!notifOpen)}
+            className="p-2.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors relative cursor-pointer"
+            title="Thông báo"
+          >
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-danger-500 text-white text-[10px] font-bold rounded-full px-1 animate-pulse-dot">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* Notification Dropdown Panel */}
+          {notifOpen && (
+            <div
+              ref={notifRef}
+              className="absolute right-0 mt-2 w-[380px] bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-scale-in"
+            >
+              {/* Header */}
+              <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-800">Thông báo</h3>
+                  {unreadCount > 0 && (
+                    <p className="text-[11px] text-gray-400 mt-0.5">{unreadCount} chưa đọc</p>
+                  )}
+                </div>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={() => markAllReadMutation.mutate()}
+                    className="text-[11px] text-primary-600 hover:text-primary-700 font-semibold cursor-pointer hover:bg-primary-50 px-2.5 py-1.5 rounded-lg transition-all"
+                  >
+                    Đọc tất cả
+                  </button>
+                )}
+              </div>
+
+              {/* Body */}
+              <div className="max-h-[360px] overflow-y-auto divide-y divide-gray-50">
+                {headerNotifications.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <Bell size={32} className="mx-auto mb-2 text-gray-200" />
+                    <p className="text-xs text-gray-400">Không có thông báo nào</p>
+                  </div>
+                ) : (
+                  headerNotifications.map((notif) => (
+                    <button
+                      key={notif.id}
+                      onClick={() => {
+                        if (!notif.is_read) markReadMutation.mutate(notif.id);
+                        setNotifOpen(false);
+                        navigate(`/${role?.toLowerCase()}/notifications`);
+                      }}
+                      className={`w-full text-left px-5 py-3.5 flex gap-3 items-start hover:bg-gray-50/60 transition-all duration-150 cursor-pointer ${!notif.is_read ? "bg-indigo-50/15" : ""
+                        }`}
+                    >
+                      <div className={`w-8 h-8 rounded-lg ${getNotifIconBg(notif.type)} flex items-center justify-center shrink-0 mt-0.5`}>
+                        {getNotifIcon(notif.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-[13px] leading-snug truncate ${!notif.is_read ? "font-bold text-gray-900" : "font-medium text-gray-600"}`}>
+                          {notif.title}
+                        </p>
+                        <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-1">
+                          {notif.content}
+                        </p>
+                        <p className="text-[10px] text-gray-300 mt-1 font-medium">
+                          {formatTimeAgo(notif.created_at)}
+                        </p>
+                      </div>
+                      {!notif.is_read && (
+                        <span className="w-2 h-2 rounded-full bg-primary-500 shrink-0 mt-2" />
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/40">
+                <button
+                  onClick={() => {
+                    setNotifOpen(false);
+                    navigate(`/${role?.toLowerCase()}/notifications`);
+                  }}
+                  className="w-full text-center text-xs font-semibold text-primary-600 hover:text-primary-700 flex items-center justify-center gap-1.5 py-1 cursor-pointer transition-colors"
+                >
+                  Xem tất cả thông báo
+                  <ArrowRight size={12} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Separator*/}
         <div className="hidden sm:block w-px h-8 bg-gray-200 mx-2" />

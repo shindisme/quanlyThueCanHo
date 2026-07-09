@@ -18,10 +18,8 @@ export default function Building() {
     setSearch,
     currentPage,
     setCurrentPage,
-    showCreateModal,
-    setShowCreateModal,
-    showModifyModal,
-    setShowModifyModal,
+    createModal,
+    modifyModal,
     editItem,
     setEditItem,
     deleteItem,
@@ -63,7 +61,7 @@ export default function Building() {
               className="w-64 sm:w-80 flex-1 min-w-0"
             />
             {role === "ADMIN" && (
-              <Button onClick={() => setShowCreateModal(true)}>
+              <Button onClick={createModal.onOpen}>
                 <Plus size={18} /> Thêm tòa nhà
               </Button>
             )}
@@ -85,7 +83,7 @@ export default function Building() {
           sortedBuildings={sortedBuildings}
           role={role}
           setEditItem={setEditItem}
-          setShowModifyModal={setShowModifyModal}
+          setShowModifyModal={modifyModal.onOpen}
           setDeleteItem={setDeleteItem}
           requestSort={requestSort}
           getSortIcon={getSortIcon}
@@ -99,14 +97,14 @@ export default function Building() {
 
       {/* Modal */}
       <BuildingCreateModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        isOpen={createModal.isOpen}
+        onClose={createModal.onClose}
         onSuccess={fetchBuildings}
       />
 
       <BuildingModifyModal
-        isOpen={showModifyModal}
-        onClose={() => { setShowModifyModal(false); setEditItem(null); }}
+        isOpen={modifyModal.isOpen}
+        onClose={() => { modifyModal.onClose(); setEditItem(null); }}
         onSuccess={fetchBuildings}
         editItem={editItem}
       />

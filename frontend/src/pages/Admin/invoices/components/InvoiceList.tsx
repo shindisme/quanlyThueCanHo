@@ -37,13 +37,22 @@ export default function InvoiceList({
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
   }
 
+  // hiển thị phòng theo role
+  function getRoomDisplay(inv: Invoice) {
+    const roomNum = inv.contract?.apartment?.room_number ? `P.${inv.contract.apartment.room_number}` : "Chưa rõ";
+    const branchName = inv.contract?.apartment?.building?.branch_name || "";
+    if (role === "ADMIN" && branchName) {
+      return { room: roomNum, branch: branchName };
+    }
+    return { room: roomNum, branch: "" };
+  }
+
   return (
     <div className="space-y-4">
-      {/* View Card (Mobile) */}
+      {/* View Card */}
       <div className="grid grid-cols-1 gap-4 md:hidden">
         {invoices.map((inv) => {
-          const roomNum = inv.contract?.apartment?.room_number ? `P.${inv.contract.apartment.room_number}` : "Chưa rõ";
-          const branchName = inv.contract?.apartment?.building?.branch_name || "";
+          const { room, branch } = getRoomDisplay(inv);
           const billingDate = new Date(inv.created_at);
           const billingMonthYear = `${billingDate.getMonth() + 1}/${billingDate.getFullYear()}`;
 
@@ -56,7 +65,7 @@ export default function InvoiceList({
 
               <div className="text-sm text-gray-500 space-y-1">
                 <p>
-                  <span className="font-semibold text-gray-700">Phòng:</span> {roomNum} {branchName && `(${branchName})`}
+                  <span className="font-semibold text-gray-700">Phòng:</span> {room} {branch && `(${branch})`}
                 </p>
                 <p>
                   <span className="font-semibold text-gray-700">Người thuê:</span> {inv.tenant?.full_name} ({inv.tenant?.phone})
@@ -88,11 +97,10 @@ export default function InvoiceList({
                   <button
                     type="button"
                     onClick={() => onToggleStatus(inv)}
-                    className={`px-3 py-1.5 rounded-lg border flex items-center gap-1 text-xs cursor-pointer ${
-                      inv.status === "PAID"
+                    className={`px-3 py-1.5 rounded-lg border flex items-center gap-1 text-xs cursor-pointer ${inv.status === "PAID"
                         ? "border-red-200 text-red-650 hover:bg-red-50"
                         : "border-green-200 text-green-650 hover:bg-green-55/20"
-                    }`}
+                      }`}
                   >
                     {inv.status === "PAID" ? <XCircle size={14} /> : <CheckCircle size={14} />}
                     {inv.status === "PAID" ? "Chưa thanh toán" : "Đã thanh toán"}
@@ -109,25 +117,25 @@ export default function InvoiceList({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="cursor-pointer" onClick={() => requestSort("invoice_code")}>
+              <TableHead onClick={() => requestSort("invoice_code")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 Mã HD {getSortIcon("invoice_code")}
               </TableHead>
-              <TableHead className="cursor-pointer" onClick={() => requestSort("contract.apartment.room_number")}>
+              <TableHead onClick={() => requestSort("contract.apartment.room_number")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 Phòng {getSortIcon("contract.apartment.room_number")}
               </TableHead>
-              <TableHead className="cursor-pointer" onClick={() => requestSort("tenant.full_name")}>
+              <TableHead onClick={() => requestSort("tenant.full_name")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 Người thuê {getSortIcon("tenant.full_name")}
               </TableHead>
-              <TableHead className="text-center cursor-pointer" onClick={() => requestSort("created_at")}>
+              <TableHead onClick={() => requestSort("created_at")} className="text-center cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 Tháng/Năm {getSortIcon("created_at")}
               </TableHead>
-              <TableHead className="text-center cursor-pointer" onClick={() => requestSort("due_date")}>
+              <TableHead onClick={() => requestSort("due_date")} className="text-center cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 Hạn thanh toán {getSortIcon("due_date")}
               </TableHead>
-              <TableHead className="text-right cursor-pointer" onClick={() => requestSort("total_amount")}>
+              <TableHead onClick={() => requestSort("total_amount")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 Tổng tiền {getSortIcon("total_amount")}
               </TableHead>
-              <TableHead className="text-center cursor-pointer" onClick={() => requestSort("status")}>
+              <TableHead onClick={() => requestSort("status")} className="text-center cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 Trạng thái {getSortIcon("status")}
               </TableHead>
               <TableHead className="text-right">Chức năng</TableHead>
@@ -135,8 +143,7 @@ export default function InvoiceList({
           </TableHeader>
           <TableBody>
             {invoices.map((inv) => {
-              const roomNum = inv.contract?.apartment?.room_number ? `P.${inv.contract.apartment.room_number}` : "Chưa rõ";
-              const branchName = inv.contract?.apartment?.building?.branch_name || "";
+              const { room, branch } = getRoomDisplay(inv);
               const billingDate = new Date(inv.created_at);
               const billingMonthYear = `${billingDate.getMonth() + 1}/${billingDate.getFullYear()}`;
 
@@ -145,8 +152,8 @@ export default function InvoiceList({
                   <TableCell className="font-semibold text-gray-800 whitespace-nowrap">{inv.invoice_code}</TableCell>
                   <TableCell className="whitespace-nowrap">
                     <div className="flex flex-col">
-                      <span className="font-medium text-gray-700">{roomNum}</span>
-                      {branchName && <span className="text-[10px] text-gray-400">{branchName}</span>}
+                      <span className="font-medium text-gray-700">{room}</span>
+                      {branch && <span className="text-[10px] text-gray-400">{branch}</span>}
                     </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
@@ -163,32 +170,27 @@ export default function InvoiceList({
                   <TableCell className="text-center">{getStatusBadge(inv.status)}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">
                     <div className="flex items-center justify-end gap-1">
-                      {/* View details */}
                       <button
                         type="button"
                         onClick={() => onOpenDetails(inv)}
-                        className="p-2 rounded-none text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer transition-colors"
+                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer transition-colors"
                         title="Xem chi tiết"
                       >
                         <Eye size={16} />
                       </button>
-
-                      {/* Print */}
                       <button
                         type="button"
                         onClick={() => onPrint(inv)}
-                        className="p-2 rounded-none text-gray-400 hover:text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors"
+                        className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors"
                         title="In hóa đơn"
                       >
                         <Printer size={16} />
                       </button>
-
-                      {/* Toggle Payment Status (Only MANAGER can edit) */}
                       {role === "MANAGER" && (
                         <button
                           type="button"
                           onClick={() => onToggleStatus(inv)}
-                          className={`p-2 rounded-none cursor-pointer transition-colors ${inv.status === "PAID"
+                          className={`p-2 rounded-lg cursor-pointer transition-colors ${inv.status === "PAID"
                             ? "text-red-400 hover:text-red-650 hover:bg-red-50"
                             : "text-green-500 hover:text-green-650 hover:bg-green-55/20"
                             }`}

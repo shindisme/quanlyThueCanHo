@@ -43,10 +43,10 @@ export default function TenantHome() {
       </div>
 
       {/* APARTMENT INFO */}
-      <div className="bg-white rounded-none border border-gray-200 p-5 shadow-md">
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
         {activeContract ? (
           <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-none flex items-center justify-center shrink-0"
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
               style={{ background: "linear-gradient(135deg, #7C3AED, #A78BFA)" }}>
               <HomeIcon size={28} className="text-white" />
             </div>
@@ -96,38 +96,38 @@ export default function TenantHome() {
       </div>
 
       {/* QUICK SHORTCUT ACTIONS */}
-      <div className="bg-white rounded-none border border-gray-200 p-5 shadow-md">
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
         <h4 className="font-semibold text-gray-800 mb-4">Lối tắt chức năng</h4>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-          <Link to="/tenant/contracts" className="p-4 border border-gray-105 rounded-none shadow-sm hover:bg-primary-50/30 hover:border-primary-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer">
+          <Link to="/tenant/contracts" className="p-4 border border-gray-100 rounded-2xl shadow-sm hover:bg-primary-50/30 hover:border-primary-200 hover:shadow-md transition-all duration-200 text-center flex flex-col items-center gap-2 group cursor-pointer">
             <div className="w-10 h-10 rounded-full bg-primary-50 text-primary-600 flex items-center justify-center group-hover:scale-110 transition-transform">
               <FileText size={20} />
             </div>
             <span className="text-xs font-semibold text-gray-700">Hợp đồng của tôi</span>
           </Link>
 
-          <Link to="/tenant/invoices" className="p-4 border border-gray-105 rounded-none shadow-sm hover:bg-warning-50/30 hover:border-warning-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer">
+          <Link to="/tenant/invoices" className="p-4 border border-gray-100 rounded-2xl shadow-sm hover:bg-warning-50/30 hover:border-warning-200 hover:shadow-md transition-all duration-200 text-center flex flex-col items-center gap-2 group cursor-pointer">
             <div className="w-10 h-10 rounded-full bg-warning-50 text-warning-600 flex items-center justify-center group-hover:scale-110 transition-transform">
               <Receipt size={20} />
             </div>
             <span className="text-xs font-semibold text-gray-700">Hóa đơn</span>
           </Link>
 
-          <Link to="/tenant/utilities" className="p-4 border border-gray-105 rounded-none shadow-sm hover:bg-emerald-50/30 hover:border-emerald-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer">
+          <Link to="/tenant/utilities" className="p-4 border border-gray-100 rounded-2xl shadow-sm hover:bg-emerald-50/30 hover:border-emerald-200 hover:shadow-md transition-all duration-200 text-center flex flex-col items-center gap-2 group cursor-pointer">
             <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
               <Zap size={20} />
             </div>
             <span className="text-xs font-semibold text-gray-700">Điện nước</span>
           </Link>
 
-          <Link to="/tenant/maintenance" className="p-4 border border-gray-105 rounded-none shadow-sm hover:bg-danger-50/30 hover:border-danger-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer">
+          <Link to="/tenant/maintenance" className="p-4 border border-gray-100 rounded-2xl shadow-sm hover:bg-danger-50/30 hover:border-danger-200 hover:shadow-md transition-all duration-200 text-center flex flex-col items-center gap-2 group cursor-pointer">
             <div className="w-10 h-10 rounded-full bg-danger-50 text-danger-600 flex items-center justify-center group-hover:scale-110 transition-transform">
               <Wrench size={20} />
             </div>
             <span className="text-xs font-semibold text-gray-700">Yêu cầu sửa chữa</span>
           </Link>
 
-          <Link to="/tenant/profile" className="p-4 border border-gray-105 rounded-none shadow-sm hover:bg-info-50/30 hover:border-info-200 transition-all text-center flex flex-col items-center gap-2 group cursor-pointer col-span-2 sm:col-span-1">
+          <Link to="/tenant/profile" className="p-4 border border-gray-100 rounded-2xl shadow-sm hover:bg-info-50/30 hover:border-info-200 hover:shadow-md transition-all duration-200 text-center flex flex-col items-center gap-2 group cursor-pointer col-span-2 sm:col-span-1">
             <div className="w-10 h-10 rounded-full bg-info-50 text-info-600 flex items-center justify-center group-hover:scale-110 transition-transform">
               <Users size={20} />
             </div>
@@ -137,10 +137,10 @@ export default function TenantHome() {
       </div>
 
       {/* ROOMMATES */}
-      <div className="bg-white rounded-none border border-gray-200 p-5 shadow-md">
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary-50 rounded-none flex items-center justify-center animate-pulse-dot">
+            <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center">
               <Users size={20} className="text-primary-600" />
             </div>
             <div>
@@ -158,7 +158,7 @@ export default function TenantHome() {
           {occupants.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {occupants.map((occ) => (
-                <div key={occ.id} className="p-3 border border-gray-100 rounded-none bg-gray-50/50 flex flex-col justify-center shadow-sm">
+                <div key={occ.id} className="p-3.5 border border-gray-100 rounded-xl bg-gray-50/30 flex flex-col justify-center shadow-sm hover:shadow-md transition-all duration-200">
                   <p className="text-sm font-semibold text-gray-850">{occ.name}</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5 text-xs text-gray-500">
                     <span>CCCD: {occ.cccd}</span>

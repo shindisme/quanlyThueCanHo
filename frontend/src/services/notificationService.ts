@@ -64,8 +64,8 @@ export async function sendInvoiceNotifications(payload: SendInvoiceNotifications
   return res.data;
 }
 
-export async function markNotificationRead(id: number): Promise<Notification> {
-  const res = await api.patch<{ data: Notification }>(`/notifications/${id}/read`);
+export async function markNotificationRead(id: number, is_read: boolean = true): Promise<Notification> {
+  const res = await api.patch<{ data: Notification }>(`/notifications/${id}/read`, { is_read });
   return res.data.data;
 }
 

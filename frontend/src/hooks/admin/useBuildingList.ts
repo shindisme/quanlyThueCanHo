@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../../stores/auth.store";
 import { useDebounce } from "../common/useDebounce";
 import { useSort } from "../common/useSort";
+import { useOnOff } from "../common/useOnOff";
 import * as buildingService from "../../services/buildingService";
 import type { BuildingData } from "../../services/buildingService";
 import { toast } from "sonner";
@@ -12,8 +13,8 @@ export function useBuildingList() {
   const { role, managedBuildingId } = useAuthStore();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showModifyModal, setShowModifyModal] = useState(false);
+  const createModal = useOnOff();
+  const modifyModal = useOnOff();
   const [editItem, setEditItem] = useState<BuildingData | null>(null);
   const [deleteItem, setDeleteItem] = useState<BuildingData | null>(null);
 
@@ -68,10 +69,8 @@ export function useBuildingList() {
     setSearch,
     currentPage,
     setCurrentPage,
-    showCreateModal,
-    setShowCreateModal,
-    showModifyModal,
-    setShowModifyModal,
+    createModal,
+    modifyModal,
     editItem,
     setEditItem,
     deleteItem,
