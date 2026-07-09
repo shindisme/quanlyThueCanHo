@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation, useNavigate  } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import * as paymentService from "../../services/paymentService";
 import * as invoiceService from "../../services/invoiceService";
@@ -12,7 +12,6 @@ import type { Payment } from "../../types";
 export function useTenantPayments() {
   const queryClient = useQueryClient();
   const location = useLocation();
-   const navigate = useNavigate();
   const handledVnpayReturnRef = useRef(false);
 
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | undefined>(undefined);

@@ -4,9 +4,13 @@ import type {
 } from "express";
 import { getValidated } from "../middleware/validate.middleware.js";
 import type {
+    CreateOccupantRequest,
     CreateTenantRequest,
+    ListMyOccupantsRequest,
     ListTenantsRequest,
+    OccupantIdRequest,
     TenantIdRequest,
+    UpdateOccupantRequest,
     UpdateTenantRequest
 } from "../schemas/tenant.schema.js";
 import * as tenantService from "../services/tenant.service.js";
@@ -85,4 +89,59 @@ export const remove = async (
 
     await tenantService.deleteTenant(params.id, request.actor!);
     return sendSuccess(response, { deleted: true });
+};
+
+export const getMyOccupants = async (
+    request: Request,
+    response: Response
+) => {
+    getValidated<ListMyOccupantsRequest>(request);
+    const occupants = await tenantService.getMyOccupants(
+        request.actor!
+    );
+
+    return sendSuccess(response, occupants);
+};
+
+export const createMyOccupant = async (
+    request: Request,
+    response: Response
+) => {
+    const { body } = getValidated<CreateOccupantRequest>(request);
+    const occupant = await tenantService.createMyOccupant(
+        body,
+        request.actor!
+    );
+
+    return sendSuccess(response, occupant, 201);
+};
+
+export const updateMyOccupant = async (
+    request: Request,
+    response: Response
+) => {
+    const {
+        params,
+        body
+    } = getValidated<UpdateOccupantRequest>(request);
+    const occupant = await tenantService.updateMyOccupant(
+        params.occupantId,
+        body,
+        request.actor!
+    );
+
+    return sendSuccess(response, occupant);
+};
+
+export const deleteMyOccupant = async (
+    request: Request,
+    response: Response
+) => {
+    const { params } = getValidated<OccupantIdRequest>(request);
+    const result = await tenantService.deleteMyOccupant(
+        params.occupantId,
+        request.actor!
+    );
+
+    return sendSuccess(response, result);
 };
