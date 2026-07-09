@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../../stores/auth.store";
@@ -7,11 +7,11 @@ import * as contractService from "../../services/contractService";
 import * as apartmentService from "../../services/apartmentService";
 import * as buildingService from "../../services/buildingService";
 import * as staffService from "../../services/staffService";
-import * as occupantService from "../../services/occupantService";
 import { changePasswordSchema, occupantSchema } from "../../schemas/user.schema";
+import type { TenantOccupant } from "../../types";
 
 interface Occupant {
-  id: string;
+  id: number;
   name: string;
   cccd: string;
   dob: string;
@@ -34,14 +34,20 @@ function parseJwt(token: string) {
     return null;
   }
 }
+function toOccupant(occupant: TenantOccupant): Occupant {
+  return {
+    id: occupant.id,
+    name: occupant.full_name,
+    cccd: occupant.citizen_id,
+    dob: occupant.date_of_birth?.slice(0, 10) || "",
+    phone: occupant.phone || "",
+  };
+}
 
-const mapApiToUiOccupant = (apiOcc: any): Occupant => ({
-  id: String(apiOcc.id),
-  name: apiOcc.full_name,
-  cccd: apiOcc.citizen_id,
-  dob: apiOcc.date_of_birth ? new Date(apiOcc.date_of_birth).toISOString().split("T")[0] : "",
-  phone: apiOcc.phone || "",
-});
+function errorMessage(error: unknown, fallback: string) {
+  const err = error as { message?: string; response?: { data?: { error?: string; message?: string } } };
+  return err.response?.data?.message || err.response?.data?.error || err.message || fallback;
+}
 
 export function useProfile() {
   const queryClient = useQueryClient();
@@ -62,13 +68,11 @@ export function useProfile() {
       setConfirmPass("");
     },
     onError: (error: unknown) => {
-      const err = error as { response?: { data?: { error?: string } } };
-      toast.error(err.response?.data?.error || "Đổi mật khẩu thất bại");
+      toast.error(errorMessage(error, "Đổi mật khẩu thất bại"));
     }
   });
   const saving = changePasswordMutation.isPending;
 
-  // Tenant Queries
   const { data: contracts } = useQuery({
     queryKey: ["contracts"],
     queryFn: () => contractService.getAllContracts(),
@@ -99,7 +103,6 @@ export function useProfile() {
     ? buildingsRes.data.find((b) => b.id === apartmentInfo.building_id)
     : null;
 
-  // Staff Queries (Manager / Staff)
   const { data: staffRes } = useQuery({
     queryKey: ["staffProfile"],
     queryFn: () => staffService.getAllStaff(),
@@ -146,14 +149,16 @@ export function useProfile() {
       setShowEditProfileModal(false);
     }
   };
-
-  const { data: occupantsRes } = useQuery({
-    queryKey: ["tenant-occupants", email],
-    queryFn: () => occupantService.getOccupants(),
-    enabled: role === "TENANT",
+  const { data: occupantData = [] } = useQuery({
+    queryKey: ["tenant-occupants"],
+    queryFn: tenantService.getMyOccupants,
+    enabled: role === "TENANT" && !!token,
   });
+  const occupants = useMemo(
+    () => occupantData.map(toOccupant),
+    [occupantData]
+  );
 
-  const occupants = occupantsRes?.data ? occupantsRes.data.map(mapApiToUiOccupant) : [];
 
   const [showOccupantModal, setShowOccupantModal] = useState(false);
   const [editOccupant, setEditOccupant] = useState<Occupant | null>(null);
@@ -162,6 +167,41 @@ export function useProfile() {
     cccd: "",
     dob: "",
     phone: ""
+  });
+
+  const createOccupantMutation = useMutation({
+    mutationFn: tenantService.createMyOccupant,
+    onSuccess: () => {
+      toast.success("Khai báo người ở cùng thành công");
+      setShowOccupantModal(false);
+      queryClient.invalidateQueries({ queryKey: ["tenant-occupants"] });
+    },
+    onError: (error: unknown) => {
+      toast.error(errorMessage(error, "Khai báo người ở cùng thất bại"));
+    }
+  });
+
+  const updateOccupantMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: typeof occupantForm }) => tenantService.updateMyOccupant(id, data),
+    onSuccess: () => {
+      toast.success("Cập nhật thông tin thành công");
+      setShowOccupantModal(false);
+      queryClient.invalidateQueries({ queryKey: ["tenant-occupants"] });
+    },
+    onError: (error: unknown) => {
+      toast.error(errorMessage(error, "Cập nhật người ở cùng thất bại"));
+    }
+  });
+
+  const deleteOccupantMutation = useMutation({
+    mutationFn: tenantService.deleteMyOccupant,
+    onSuccess: () => {
+      toast.success("Xóa người ở cùng thành công");
+      queryClient.invalidateQueries({ queryKey: ["tenant-occupants"] });
+    },
+    onError: (error: unknown) => {
+      toast.error(errorMessage(error, "Xóa người ở cùng thất bại"));
+    }
   });
 
   const maxOccupantsLimit = userContract?.max_occupants || (apartmentInfo ? Math.max(2, apartmentInfo.bedrooms * 2) : 2);
@@ -179,7 +219,7 @@ export function useProfile() {
   });
 
   const updateOccupantMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: Partial<occupantService.CreateOccupantPayload> }) => 
+    mutationFn: ({ id, payload }: { id: number; payload: Partial<occupantService.CreateOccupantPayload> }) =>
       occupantService.updateOccupant(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tenant-occupants"] });
@@ -205,7 +245,7 @@ export function useProfile() {
   const handleOpenOccupantForm = (occ: Occupant | null) => {
     if (!occ) {
       if (1 + occupants.length >= maxOccupantsLimit) {
-        toast.error(`Căn hộ đã đạt số người ở tối đa theo hợp đồng (Giới hạn: ${maxOccupantsLimit} người.`);
+        toast.error(`Căn hộ đã đạt số người ở tối đa theo hợp đồng (Giới hạn: ${maxOccupantsLimit} người).`);
         return;
       }
     }
@@ -228,9 +268,14 @@ export function useProfile() {
     setShowOccupantModal(true);
   };
 
-  const handleDeleteOccupant = (id: string) => {
+  const handleDeleteOccupant = (id: number) => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa người ở cùng này?")) return;
-    deleteOccupantMutation.mutate(Number(id));
+    const updated = occupants.filter((occ) => occ.id !== id);
+    setOccupants(updated);
+    if (email) {
+      localStorage.setItem(`tenant-occupants-${email}`, JSON.stringify(updated));
+    }
+    toast.success("Xóa người ở cùng thành công");
   };
 
   const handleSaveOccupant = () => {
@@ -239,19 +284,25 @@ export function useProfile() {
       toast.error(result.error.issues[0].message);
       return;
     }
-    
-    const payload: occupantService.CreateOccupantPayload = {
-      full_name: occupantForm.name,
-      citizen_id: occupantForm.cccd,
-      phone: occupantForm.phone || null,
-      date_of_birth: occupantForm.dob ? occupantForm.dob : null,
-    };
-
+    let updated: Occupant[];
     if (editOccupant) {
-      updateOccupantMutation.mutate({ id: Number(editOccupant.id), payload });
+      updated = occupants.map((occ) =>
+        occ.id === editOccupant.id ? { ...occ, ...occupantForm } : occ
+      );
+      toast.success("Cập nhật thông tin thành công");
     } else {
-      createOccupantMutation.mutate(payload);
+      const newOcc = {
+        id: Date.now().toString(),
+        ...occupantForm
+      };
+      updated = [...occupants, newOcc];
+      toast.success("Khai báo người ở cùng thành công");
     }
+    setOccupants(updated);
+    if (email) {
+      localStorage.setItem(`tenant-occupants-${email}`, JSON.stringify(updated));
+    }
+    setShowOccupantModal(false);
   };
 
   function handleChangePassword() {

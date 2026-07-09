@@ -7,9 +7,13 @@ import {
 } from "../middleware/auth.middleware.js";
 import { validate } from "../middleware/validate.middleware.js";
 import {
+    createOccupantRequestSchema,
     createTenantRequestSchema,
+    listMyOccupantsRequestSchema,
     listTenantsRequestSchema,
+    occupantIdRequestSchema,
     tenantIdRequestSchema,
+    updateOccupantRequestSchema,
     updateTenantRequestSchema
 } from "../schemas/tenant.schema.js";
 
@@ -23,6 +27,7 @@ const authorizeTenantDetail = authorizeRole([
     Role.MANAGER,
     Role.TENANT
 ]);
+const authorizeTenantOccupants = authorizeRole([Role.TENANT]);
 
 router.use(authenticate);
 router.get(
@@ -30,6 +35,30 @@ router.get(
     authorizeTenantManagement,
     validate(listTenantsRequestSchema),
     tenantController.getAll
+);
+router.get(
+    "/me/occupants",
+    authorizeTenantOccupants,
+    validate(listMyOccupantsRequestSchema),
+    tenantController.getMyOccupants
+);
+router.post(
+    "/me/occupants",
+    authorizeTenantOccupants,
+    validate(createOccupantRequestSchema),
+    tenantController.createMyOccupant
+);
+router.put(
+    "/me/occupants/:occupantId",
+    authorizeTenantOccupants,
+    validate(updateOccupantRequestSchema),
+    tenantController.updateMyOccupant
+);
+router.delete(
+    "/me/occupants/:occupantId",
+    authorizeTenantOccupants,
+    validate(occupantIdRequestSchema),
+    tenantController.deleteMyOccupant
 );
 router.get(
     "/:id",

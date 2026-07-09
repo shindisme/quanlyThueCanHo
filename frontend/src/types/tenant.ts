@@ -3,6 +3,16 @@ import type { RentalContract } from "./contract";
 import type { Invoice } from "./invoice";
 import type { MaintenanceRequest } from "./maintenance";
 
+export interface TenantOccupant {
+  id: number;
+  tenant_id: number;
+  full_name: string;
+  citizen_id: string;
+  date_of_birth: string | null;
+  phone: string | null;
+  created_at: string;
+}
+
 export interface Tenant {
   id: number;
   user_id: number | null;
@@ -19,4 +29,5 @@ export interface Tenant {
   contracts?: RentalContract[];
   invoices?: Invoice[];
   maintenance_requests?: MaintenanceRequest[];
+  occupants?: TenantOccupant[];
 }

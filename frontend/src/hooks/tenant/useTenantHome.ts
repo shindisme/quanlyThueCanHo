@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../../stores/auth.store";
 import * as contractService from "../../services/contractService";
 import * as apartmentService from "../../services/apartmentService";
 import * as buildingService from "../../services/buildingService";
+import * as tenantService from "../../services/tenantService";
+import type { TenantOccupant } from "../../types";
 
 function parseJwt(token: string) {
   try {
@@ -22,19 +24,31 @@ function parseJwt(token: string) {
   }
 }
 
+function toOccupant(occupant: TenantOccupant) {
+  return {
+    id: occupant.id,
+    name: occupant.full_name,
+    cccd: occupant.citizen_id,
+    dob: occupant.date_of_birth?.slice(0, 10) || "",
+    phone: occupant.phone || "",
+  };
+}
+
 export function useTenantHome() {
   const { email, token } = useAuthStore();
-  const [occupants, setOccupants] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (email) {
-      const stored = localStorage.getItem(`tenant-occupants-${email}`);
-      setOccupants(stored ? JSON.parse(stored) : []);
-    }
-  }, [email]);
 
   const decoded = token ? parseJwt(token) : null;
   const userId = decoded ? (decoded.userId ? Number(decoded.userId) : (decoded.sub ? Number(decoded.sub) : null)) : null;
+
+  const { data: occupantData = [], isLoading: loadingOccupants } = useQuery({
+    queryKey: ["tenant-occupants"],
+    queryFn: tenantService.getMyOccupants,
+    enabled: !!token,
+  });
+  const occupants = useMemo(
+    () => occupantData.map(toOccupant),
+    [occupantData]
+  );
 
   const { data: contracts, isLoading: loadingContracts } = useQuery({
     queryKey: ["contracts"],
@@ -72,7 +86,7 @@ export function useTenantHome() {
 
   const displayName = currentTenant?.full_name || email?.split("@")[0] || "Người thuê";
 
-  const isLoading = loadingContracts || (!!activeContract && loadingApartments) || (!!apartment && loadingBuildings);
+  const isLoading = loadingOccupants || loadingContracts || (!!activeContract && loadingApartments) || (!!apartment && loadingBuildings);
 
   return {
     email,

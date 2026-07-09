@@ -6,7 +6,9 @@ import {
 import { prisma } from "../config/database.js";
 import { AppError } from "../errors/app-error.js";
 import type {
+    CreateOccupantRequest,
     CreateTenantRequest,
+    UpdateOccupantRequest,
     UpdateTenantRequest
 } from "../schemas/tenant.schema.js";
 import type { Actor } from "../types/auth.js";
@@ -39,11 +41,47 @@ const tenantSelect = {
     }
 } satisfies Prisma.TenantSelect;
 
+const occupantSelect = {
+    id: true,
+    tenant_id: true,
+    full_name: true,
+    phone: true,
+    citizen_id: true,
+    date_of_birth: true,
+    created_at: true
+} satisfies Prisma.OccupantSelect;
+
+const tenantDetailSelect = {
+    ...tenantSelect,
+    occupants: {
+        orderBy: { created_at: "desc" },
+        select: occupantSelect
+    }
+} satisfies Prisma.TenantSelect;
+
 const notFound = () => new AppError(
     404,
     "NOT_FOUND",
     "Tenant was not found"
 );
+
+const occupantNotFound = () => new AppError(
+    404,
+    "NOT_FOUND",
+    "Occupant was not found"
+);
+
+const requireTenantId = (actor: Actor) => {
+    if (actor.tenantId === undefined) {
+        throw new AppError(
+            403,
+            "TENANT_PROFILE_REQUIRED",
+            "A linked tenant profile is required"
+        );
+    }
+
+    return actor.tenantId;
+};
 
 const TENANT_USERNAME_RETRY_LIMIT = 3;
 
@@ -274,7 +312,7 @@ export const getTenantById = async (
     actor: Actor
 ) => {
     const query = {
-        select: tenantSelect
+        select: tenantDetailSelect
     };
     let tenant;
 
@@ -379,6 +417,86 @@ export const updateTenant = async (
         data,
         select: tenantSelect
     });
+};
+
+export const getMyOccupants = async (actor: Actor) => {
+    const tenantId = requireTenantId(actor);
+
+    return prisma.occupant.findMany({
+        where: { tenant_id: tenantId },
+        orderBy: { created_at: "desc" },
+        select: occupantSelect
+    });
+};
+
+export const createMyOccupant = async (
+    input: CreateOccupantRequest["body"],
+    actor: Actor
+) => {
+    const tenantId = requireTenantId(actor);
+
+    return prisma.occupant.create({
+        data: {
+            tenant: { connect: { id: tenantId } },
+            full_name: input.full_name,
+            citizen_id: input.citizen_id,
+            date_of_birth: input.date_of_birth ?? null,
+            phone: input.phone ?? null
+        },
+        select: occupantSelect
+    });
+};
+
+export const updateMyOccupant = async (
+    id: number,
+    input: UpdateOccupantRequest["body"],
+    actor: Actor
+) => {
+    const tenantId = requireTenantId(actor);
+    const result = await prisma.occupant.updateMany({
+        where: {
+            id,
+            tenant_id: tenantId
+        },
+        data: input
+    });
+
+    if (result.count === 0) {
+        throw occupantNotFound();
+    }
+
+    const occupant = await prisma.occupant.findFirst({
+        where: {
+            id,
+            tenant_id: tenantId
+        },
+        select: occupantSelect
+    });
+
+    if (!occupant) {
+        throw occupantNotFound();
+    }
+
+    return occupant;
+};
+
+export const deleteMyOccupant = async (
+    id: number,
+    actor: Actor
+) => {
+    const tenantId = requireTenantId(actor);
+    const result = await prisma.occupant.deleteMany({
+        where: {
+            id,
+            tenant_id: tenantId
+        }
+    });
+
+    if (result.count === 0) {
+        throw occupantNotFound();
+    }
+
+    return { deleted: true };
 };
 
 export const deleteTenant = async (

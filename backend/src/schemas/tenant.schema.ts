@@ -32,6 +32,21 @@ const tenantFields = {
     onboarding_building_id: positiveIdSchema.nullable().optional()
 };
 
+const nullablePhoneSchema = z.union([
+    z.string().trim().regex(/^0[1-9]\d{8}$/),
+    z.literal("")
+])
+    .nullable()
+    .optional()
+    .transform((value) => value === "" ? null : value);
+
+const occupantFields = {
+    full_name: z.string().trim().min(1).max(200),
+    phone: nullablePhoneSchema,
+    citizen_id: z.string().trim().regex(/^\d{12}$/),
+    date_of_birth: dateOnlySchema.nullable().optional()
+};
+
 export const createTenantRequestSchema = z.object({
     params: emptyObjectSchema,
     query: emptyObjectSchema,
@@ -77,6 +92,42 @@ export const updateTenantRequestSchema = z.object({
     )
 }).strict();
 
+export const listMyOccupantsRequestSchema = z.object({
+    params: emptyObjectSchema,
+    query: emptyObjectSchema,
+    body: optionalEmptyBodySchema
+}).strict();
+
+export const createOccupantRequestSchema = z.object({
+    params: emptyObjectSchema,
+    query: emptyObjectSchema,
+    body: z.object(occupantFields).strict()
+}).strict();
+
+export const occupantIdRequestSchema = z.object({
+    params: z.object({
+        occupantId: positiveIdSchema
+    }).strict(),
+    query: emptyObjectSchema,
+    body: optionalEmptyBodySchema
+}).strict();
+
+export const updateOccupantRequestSchema = z.object({
+    params: z.object({
+        occupantId: positiveIdSchema
+    }).strict(),
+    query: emptyObjectSchema,
+    body: z.object({
+        full_name: occupantFields.full_name.optional(),
+        phone: occupantFields.phone,
+        citizen_id: occupantFields.citizen_id.optional(),
+        date_of_birth: occupantFields.date_of_birth
+    }).strict().refine(
+        (body) => Object.keys(body).length > 0,
+        "At least one field must be provided"
+    )
+}).strict();
+
 export type CreateTenantRequest = z.infer<
     typeof createTenantRequestSchema
 >;
@@ -88,4 +139,16 @@ export type TenantIdRequest = z.infer<
 >;
 export type UpdateTenantRequest = z.infer<
     typeof updateTenantRequestSchema
+>;
+export type ListMyOccupantsRequest = z.infer<
+    typeof listMyOccupantsRequestSchema
+>;
+export type CreateOccupantRequest = z.infer<
+    typeof createOccupantRequestSchema
+>;
+export type OccupantIdRequest = z.infer<
+    typeof occupantIdRequestSchema
+>;
+export type UpdateOccupantRequest = z.infer<
+    typeof updateOccupantRequestSchema
 >;
