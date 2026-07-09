@@ -70,7 +70,7 @@ export default function MyPayments() {
       />
 
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center min-h-[300px]">
+        <div className="flex flex-col items-center justify-center min-h-75">
           <LoadingSpinner size={36} />
           <span className="text-sm text-gray-400 mt-2">Đang tải thông tin thanh toán...</span>
         </div>
@@ -181,7 +181,7 @@ export default function MyPayments() {
                           </div>
                         </div>
                         <div className="flex justify-between items-center mt-2">
-                          <span className="text-[10px] text-gray-400 font-mono truncate max-w-[150px]" title={pmt.transaction_code || ""}>
+                          <span className="text-[10px] text-gray-400 font-mono truncate max-w-37.5" title={pmt.transaction_code || ""}>
                             Ref: {pmt.transaction_code || "Không có"}
                           </span>
                           {getPaymentStatusBadge(pmt.status)}
@@ -329,7 +329,7 @@ export default function MyPayments() {
                 onChange={(e) => setTransactionCode(e.target.value)}
                 placeholder="Nhập mã tham chiếu (ví dụ: FT204958190)"
                 required
-                className="rounded-none h-[42px]"
+                className="rounded-none h-10.5"
                 disabled={isProcessing}
               />
               <span className="text-[10px] text-gray-400 block mt-1">

@@ -100,7 +100,7 @@ export default function Payment() {
 
       {/* Main Table Ledger */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center min-h-[300px]">
+        <div className="flex flex-col items-center justify-center min-h-75">
           <LoadingSpinner size={36} />
           <span className="text-sm text-gray-400 mt-2">Đang tải lịch sử giao dịch...</span>
         </div>
