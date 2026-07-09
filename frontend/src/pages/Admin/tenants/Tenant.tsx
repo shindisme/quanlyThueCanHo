@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import PageHeader from "../../../components/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
-import Badge from "../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../components/ui/DataTable";
 import Pagination from "../../../components/ui/Pagination";
 import type { Tenant as TenantType } from "../../../types";
@@ -81,16 +80,6 @@ export default function Tenant() {
     },
     { key: "citizen_id", label: "CCCD", sortValue: (t) => t.citizen_id, render: (t) => maskCCCD(t.citizen_id) },
     {
-      key: "verified",
-      label: "Xác thực",
-      sortValue: (t) => t.is_verified,
-      render: (t) => (
-        <Badge variant={t.is_verified ? "success" : "warning"}>
-          {t.is_verified ? "Đã xác thực" : "Chưa xác thực"}
-        </Badge>
-      ),
-    },
-    {
       key: "actions",
       label: "Chức năng",
       render: (t) => (
@@ -160,9 +149,6 @@ export default function Tenant() {
                     <span className="font-semibold text-gray-800 text-base">
                       {t.full_name}
                     </span>
-                    <Badge variant={t.is_verified ? "success" : "warning"}>
-                      {t.is_verified ? "Đã xác thực" : "Chưa xác thực"}
-                    </Badge>
                   </div>
 
                   <div className="text-sm text-gray-500 space-y-1">

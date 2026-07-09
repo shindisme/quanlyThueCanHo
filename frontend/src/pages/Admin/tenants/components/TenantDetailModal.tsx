@@ -1,6 +1,5 @@
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
-import Badge from "../../../../components/ui/Badge";
 import type { Tenant } from "../../../../types";
 import { formatDate } from "../../../../utils/date";
 
@@ -59,12 +58,7 @@ export default function TenantDetailModal({
               </span>
             </div>
           )}
-          <div className="flex justify-between border-b pb-2 border-gray-100">
-            <span className="text-gray-500 font-medium">Trạng thái xác thực:</span>
-            <Badge variant={tenant.is_verified ? "success" : "warning"}>
-              {tenant.is_verified ? "Đã xác thực" : "Chưa xác thực"}
-            </Badge>
-          </div>
+
         </div>
       )}
     </Modal>

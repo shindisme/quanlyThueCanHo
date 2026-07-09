@@ -6,7 +6,7 @@ import Input from "../../../components/ui/Input";
 import { Calendar } from "../../../components/ui/Calendar";
 import { formatCurrency } from "../../../utils/currency";
 import { formatDate } from "../../../utils/date";
-import { useProfile } from "../../../hooks/common/useProfile";
+import { useProfile, type Occupant } from "../../../hooks/common/useProfile";
 
 export default function ProfilePage() {
   const {
@@ -230,7 +230,7 @@ export default function ProfilePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
-                {occupants.map((occ) => (
+                {occupants.map((occ: Occupant) => (
                   <tr key={occ.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium text-gray-800">{occ.name}</td>
                     <td className="px-4 py-3 text-gray-600">{occ.cccd}</td>

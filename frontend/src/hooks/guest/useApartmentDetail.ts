@@ -9,29 +9,14 @@ import * as tenantService from "../../services/tenantService"
 import * as authService from "../../services/authService"
 import * as occupantService from "../../services/occupantService"
 import { getApartmentReviews } from "../../services/reviewService"
-import type { ApartmentImage, TenantOccupant, User } from "../../types"
+import type { ApartmentImage, User } from "../../types"
 
-interface Occupant {
-  id: string
-  name: string
-  cccd: string
-  dob: string
-  phone: string
-}
-function toOccupant(occupant: TenantOccupant): Occupant {
-  return {
-    id: occupant.id,
-    name: occupant.full_name,
-    cccd: occupant.citizen_id,
-    dob: occupant.date_of_birth?.slice(0, 10) || "",
-    phone: occupant.phone || "",
-  }
-}
 export function useApartmentDetail() {
-  const { id } = useParams()
+  const { id } = useParams();
   const queryClient = useQueryClient();
+
   const uploadMutation = useMutation({
-    mutationFn: (data: FormData) => apartmentService.updateApartment(Number(id), data),
+    mutationFn: (formDataToSend: FormData) => apartmentService.updateApartment(Number(id), formDataToSend),
     onSuccess: () => {
       toast.success("Tải ảnh lên thành công");
       queryClient.invalidateQueries({ queryKey: ["apartment", id] });
@@ -40,42 +25,42 @@ export function useApartmentDetail() {
       toast.error("Không thể tải ảnh lên");
     }
   });
+
   const uploading = uploadMutation.isPending;
-  const [showModifyModal, setShowModifyModal] = useState(false)
-  const [occupants, setOccupants] = useState<Occupant[]>([])
-  const [activeTab, setActiveTab] = useState<"tenant" | "tenantHistory" | "reviews">("tenant")
-  const [images, setImages] = useState<ApartmentImage[]>([])
+  const [showModifyModal, setShowModifyModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<"tenant" | "tenantHistory" | "reviews">("tenant");
+  const [images, setImages] = useState<ApartmentImage[]>([]);
 
   const { data: buildingsRes } = useQuery({
     queryKey: ["buildings"],
     queryFn: () => buildingService.getAllBuildings(),
-  })
-  const buildings = buildingsRes?.data || []
+  });
+  const buildings = buildingsRes?.data || [];
 
   const { data: apartment, isLoading: loadingApartment, refetch: fetchApartment } = useQuery({
     queryKey: ["apartment", id],
     queryFn: () => apartmentService.getApartmentById(Number(id)),
     enabled: !!id,
-  })
+  });
 
   const { data: contracts = [], isLoading: loadingContracts } = useQuery({
     queryKey: ["contracts"],
     queryFn: () => contractService.getAllContracts().catch(() => []),
-  })
+  });
 
   const { data: tenantsRes, isLoading: loadingTenants } = useQuery({
     queryKey: ["tenants"],
     queryFn: () => tenantService.getAllTenants({ limit: 100 }).catch(() => ({ data: [] })),
-  })
-  const tenants = tenantsRes?.data || []
+  });
+  const tenants = tenantsRes?.data || [];
 
   const { data: users = [], isLoading: loadingUsers } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
-      const uRes = await authService.getAllUsers().catch(() => []);
-      return uRes as unknown as User[];
+      const userResponse = await authService.getAllUsers().catch(() => []);
+      return userResponse as unknown as User[];
     }
-  })
+  });
 
   const { data: reviewsRes, isLoading: loadingReviews } = useQuery({
     queryKey: ["reviews", id],
@@ -84,25 +69,25 @@ export function useApartmentDetail() {
       meta: { averageRating: 0, totalReviews: 0, currentPage: 1, totalPages: 1 }
     })),
     enabled: !!id,
-  })
-  const reviews = reviewsRes?.data || []
-  const reviewMeta = reviewsRes?.meta || { averageRating: 0, totalReviews: 0, currentPage: 1, totalPages: 1 }
+  });
+  const reviews = reviewsRes?.data || [];
+  const reviewMeta = reviewsRes?.meta || { averageRating: 0, totalReviews: 0, currentPage: 1, totalPages: 1 };
 
   useEffect(() => {
     if (apartment?.images) {
-      setImages(apartment.images)
+      setImages(apartment.images);
     }
-  }, [apartment])
+  }, [apartment]);
 
   const activeContract = contracts.find(
-    (c) => c.apartment_id === Number(id) && c.status === "ACTIVE"
-  )
+    (contract) => contract.apartment_id === Number(id) && contract.status === "ACTIVE"
+  );
   const activeTenant = activeContract
-    ? tenants.find((t) => t.id === activeContract.tenant_id)
-    : null
+    ? tenants.find((tenant) => tenant.id === activeContract.tenant_id)
+    : null;
   const activeTenantUser = activeTenant
-    ? users.find((u) => u.id === activeTenant.user_id)
-    : null
+    ? users.find((user) => user.id === activeTenant.user_id)
+    : null;
 
   const { data: occupantsRes, isLoading: loadingOccupants } = useQuery({
     queryKey: ["occupants", activeTenant?.id],
@@ -112,73 +97,51 @@ export function useApartmentDetail() {
 
   const occupants = useMemo(() => {
     if (!occupantsRes?.data) return [];
-    return occupantsRes.data.map((apiOcc: any) => ({
-      id: String(apiOcc.id),
-      name: apiOcc.full_name,
-      cccd: apiOcc.citizen_id,
-      dob: apiOcc.date_of_birth ? new Date(apiOcc.date_of_birth).toISOString().split("T")[0] : "",
-      phone: apiOcc.phone || "",
+    return occupantsRes.data.map((apiOccupant) => ({
+      id: String(apiOccupant.id),
+      name: apiOccupant.full_name,
+      cccd: apiOccupant.citizen_id,
+      dob: apiOccupant.date_of_birth ? new Date(apiOccupant.date_of_birth).toISOString().split("T")[0] : "",
+      phone: apiOccupant.phone || "",
     }));
   }, [occupantsRes]);
 
-  const historyContracts = contracts.filter((c) => c.apartment_id === Number(id))
-  const tenantContracts = activeTenant
-    ? historyContracts.filter((c) => c.tenant_id === activeTenant.id)
-    : []
+  const loading = loadingApartment || loadingContracts || loadingTenants || loadingUsers || loadingReviews || loadingOccupants;
 
-  useEffect(() => {
-    let active = true
-    setTimeout(() => {
-      if (!active) return
-      if (activeTenantUser?.email) {
-        const stored = localStorage.getItem(`tenant-occupants-${activeTenantUser.email}`)
-        if (stored) {
-          try {
-            setOccupants(JSON.parse(stored))
-          } catch {
-            setOccupants([])
-          }
-        } else {
-          setOccupants([])
-        }
-      } else {
-        setOccupants([])
-      }
-    }, 0)
-    return () => {
-      active = false
-    }
-  }, [activeTenantUser])
+  const historyContracts = contracts.filter((contract) => contract.apartment_id === Number(id));
+  const tenantContracts = activeTenant
+    ? historyContracts.filter((contract) => contract.tenant_id === activeTenant.id)
+    : [];
 
   const fetchData = async () => {
-    await fetchApartment()
-  }
+    await fetchApartment();
+  };
 
   function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const formDataToSend = new FormData()
-    formDataToSend.append("images", file)
-    uploadMutation.mutate(formDataToSend)
+    const formDataToSend = new FormData();
+    formDataToSend.append("images", file);
+    uploadMutation.mutate(formDataToSend);
   }
 
   function handleSetThumbnail(imgId: number) {
     const updated = images.map((img) => ({
       ...img,
       is_thumbnail: img.id === imgId
-    }))
-    setImages(updated)
-    toast.success("Đã đặt làm ảnh đại diện")
+    }));
+    setImages(updated);
+    toast.success("Đã đặt làm ảnh đại diện");
   }
 
   function handleDeleteImage(imgId: number) {
-    const updated = images.filter((img) => img.id !== imgId)
+    const updated = images.filter((img) => img.id !== imgId);
     if (images.find((img) => img.id === imgId)?.is_thumbnail && updated.length > 0) {
-      updated[0].is_thumbnail = true
+      updated[0].is_thumbnail = true;
     }
-    setImages(updated)
-    toast.success("Đã xóa hình ảnh")
+    setImages(updated);
+    toast.success("Đã xóa hình ảnh");
   }
 
   return {
@@ -206,5 +169,5 @@ export function useApartmentDetail() {
     handleImageUpload,
     handleSetThumbnail,
     handleDeleteImage,
-  }
+  };
 }

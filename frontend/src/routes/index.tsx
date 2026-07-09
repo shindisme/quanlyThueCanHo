@@ -32,8 +32,6 @@ import TenantHome from "../pages/Tenant/home/Home";
 import TenantContracts from "../pages/Tenant/contracts/MyContracts";
 import MyInvoices from "../pages/Tenant/invoices/MyInvoices";
 import MyPayments from "../pages/Tenant/payments/MyPayments";
-import PaymentResult from "../pages/Tenant/payments/PaymentResult";
-// import PaymentResult from "../pages/Tenant/payments/payment-result/PaymentResult";
 import MyMaintenance from "../pages/Tenant/maintenance/MyMaintenance";
 import MyUtilities from "../pages/Tenant/utilities/MyUtilities";
 import ProfilePage from "../pages/Tenant/profile/ProfilePage";
@@ -144,7 +142,6 @@ const router = createBrowserRouter([
       { path: "contracts", element: <TenantContracts /> },
       { path: "invoices", element: <MyInvoices /> },
       { path: "payments", element: <MyPayments /> },
-      { path: "payment-result", element: <PaymentResult /> },
       { path: "utilities", element: <MyUtilities /> },
       { path: "maintenance", element: <MyMaintenance /> },
       { path: "notifications", element: <Notification /> },
