@@ -42,7 +42,7 @@ export default function MyPayments() {
   function getPaymentStatusBadge(status: string) {
     const statusMap: Record<string, { label: string; variant: BadgeVariant }> = {
       SUCCESS: { label: "Thành công", variant: "success" },
-      PENDING: { label: "Chờ duyệt", variant: "warning" },
+      PENDING: { label: "Chưa thanh toán", variant: "warning" },
       FAILED: { label: "Thất bại", variant: "danger" },
     };
     const s = statusMap[status] || { label: status, variant: "gray" };
@@ -52,9 +52,8 @@ export default function MyPayments() {
   function getMethodLabel(method: string) {
     const methodMap: Record<string, string> = {
       VNPAY: "VNPay",
+      E_WALLET: "VNPay",
       BANK_TRANSFER: "Chuyển khoản",
-      MOMO: "Momo",
-      CASH: "Tiền mặt",
     };
     return methodMap[method] || method;
   }

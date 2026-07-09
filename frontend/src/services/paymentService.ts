@@ -58,9 +58,43 @@ export interface CreateVnpayPaymentPayload {
   bank_code?: string;
 }
 
-export async function createVnpayPayment(payload: CreateVnpayPaymentPayload): Promise<{ paymentUrl: string }> {
-  const res = await api.post<{ paymentUrl: string }>("/payments/vnpay/create", payload);
-  return res.data;
+export interface CreateVnpayPaymentResult {
+  paymentId: number;
+  invoiceId: number;
+  transactionCode: string;
+  paymentMethod: string;
+  amount: number;
+  paymentUrl: string;
+  qrCodeDataUrl?: string;
+  qrCodeSvg?: string;
+}
+
+interface CreateVnpayPaymentResponse {
+  data: {
+    payment_id: number;
+    invoice_id: number;
+    transaction_code: string;
+    payment_method: string;
+    amount: number;
+    payment_url: string;
+    qr_code_data_url?: string;
+    qr_code_svg?: string;
+  };
+}
+
+export async function createVnpayPayment(payload: CreateVnpayPaymentPayload): Promise<CreateVnpayPaymentResult> {
+  const res = await api.post<CreateVnpayPaymentResponse>("/payments/vnpay/create", payload);
+  const data = res.data.data;
+  return {
+    paymentId: data.payment_id,
+    invoiceId: data.invoice_id,
+    transactionCode: data.transaction_code,
+    paymentMethod: data.payment_method,
+    amount: data.amount,
+    paymentUrl: data.payment_url,
+    qrCodeDataUrl: data.qr_code_data_url,
+    qrCodeSvg: data.qr_code_svg,
+  };
 }
 
 export async function updatePaymentStatus(id: number, status: string): Promise<Payment> {

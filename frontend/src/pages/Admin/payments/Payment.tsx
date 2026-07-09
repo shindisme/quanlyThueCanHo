@@ -61,7 +61,7 @@ export default function Payment() {
           <Combobox
             options={[
               { value: "SUCCESS", label: "Thành công" },
-              { value: "PENDING", label: "Chờ duyệt" },
+              { value: "PENDING", label: "Chưa thanh toán" },
               { value: "FAILED", label: "Thất bại" },
             ]}
             value={statusFilter}
@@ -75,9 +75,7 @@ export default function Payment() {
           <Combobox
             options={[
               { value: "BANK_TRANSFER", label: "Chuyển khoản" },
-              { value: "VNPAY", label: "VNPay" },
-              { value: "CASH", label: "Tiền mặt" },
-              { value: "MOMO", label: "Momo" },
+              { value: "E_WALLET", label: "VNPay" },
             ]}
             value={methodFilter}
             onChange={setMethodFilter}

@@ -40,9 +40,8 @@ export default function PaymentList({
   function getMethodLabel(method: string) {
     const methodMap: Record<string, string> = {
       VNPAY: "VNPay",
+      E_WALLET: "VNPay",
       BANK_TRANSFER: "Chuyển khoản",
-      MOMO: "Momo",
-      CASH: "Tiền mặt",
     };
     return methodMap[method] || method;
   }

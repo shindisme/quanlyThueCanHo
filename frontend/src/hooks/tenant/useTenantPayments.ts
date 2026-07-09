@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate  } from "react-router-dom";
 import { toast } from "sonner";
 import * as paymentService from "../../services/paymentService";
 import * as invoiceService from "../../services/invoiceService";
@@ -12,6 +12,8 @@ import type { Payment } from "../../types";
 export function useTenantPayments() {
   const queryClient = useQueryClient();
   const location = useLocation();
+   const navigate = useNavigate();
+  const handledVnpayReturnRef = useRef(false);
 
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | undefined>(undefined);
   const [paymentMethod, setPaymentMethod] = useState<string>("VNPAY");
@@ -27,6 +29,64 @@ export function useTenantPayments() {
       payModal.onOpen();
     }
   }, [location.state]);
+
+  useEffect(() => {
+  if (handledVnpayReturnRef.current || !location.search) {
+    return;
+  }
+
+  const params = new URLSearchParams(location.search);
+
+  const paymentStatus = (
+    params.get("payment_status")
+    || params.get("status")
+    || ""
+  ).toUpperCase();
+
+  if (!paymentStatus) {
+    return;
+  }
+
+  handledVnpayReturnRef.current = true;
+
+  payModal.onClose();
+  manualTransferModal.onClose();
+  setSelectedInvoiceId(undefined);
+
+  queryClient.removeQueries({
+    queryKey: ["tenant-payments"],
+  });
+
+  queryClient.removeQueries({
+    queryKey: ["tenant-unpaid-invoices"],
+  });
+
+  queryClient.removeQueries({
+    queryKey: ["tenant-invoices"],
+  });
+
+  queryClient.invalidateQueries();
+
+  if (paymentStatus === "SUCCESS") {
+    toast.success("Đã thanh toán thành công");
+  } else if (paymentStatus === "CANCELLED") {
+    toast.warning("Đã hủy thanh toán");
+  } else {
+    toast.error("Thanh toán không thành công");
+  }
+
+  window.history.replaceState(
+    {},
+    "",
+    location.pathname
+  );
+}, [
+  location.pathname,
+  location.search,
+  queryClient,
+  payModal,
+  manualTransferModal,
+]);
 
   // Fetch unpaid invoices for payment selection
   const { data: unpaidInvoicesRes, isLoading: loadingInvoices } = useQuery({
@@ -76,7 +136,7 @@ export function useTenantPayments() {
       }
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Tạo liên kết thanh toán VNPay thất bại");
+      toast.error(err.message || "Tạo liên kết thanh toán VNPay thất bại");
     },
   });
 
@@ -93,7 +153,7 @@ export function useTenantPayments() {
       setTransactionCode("");
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Gửi thông tin giao dịch thất bại");
+      toast.error(err.message || "Gửi thông tin giao dịch thất bại");
     },
   });
 

@@ -52,16 +52,12 @@ export const getMethods = async (
     response: Response
 ) => sendSuccess(response, [
     {
-        value: paymentService.PAYMENT_METHODS.CASH,
-        label: "Tiền mặt"
-    },
-    {
         value: paymentService.PAYMENT_METHODS.BANK_TRANSFER,
         label: "Chuyển khoản ngân hàng"
     },
     {
         value: paymentService.PAYMENT_METHODS.E_WALLET,
-        label: "VN Pay"
+        label: "Ví điện tử/VNPay"
     }
 ]);
 
@@ -133,32 +129,63 @@ export const vnpayReturn = async (
             "RETURN"
         );
 
-    const frontendUrl =
-        process.env.FRONTEND_PAYMENT_RESULT_URL
-        || `${process.env.FRONTEND_URL}/tenant/payment-result`;
-
-    const redirectUrl = new URL(frontendUrl);
-
     const status = "status" in result
         ? result.status
         : "UNKNOWN";
 
-        redirectUrl.searchParams.set(
-            "status",
-            String(status)
-        );
+    const responseCode = "response_code" in result
+        ? result.response_code
+        : undefined;
 
-    if ("invoice_id" in result && result.invoice_id !== null) {
+    const displayStatus = responseCode === "24"
+        ? "CANCELLED"
+        : status;
+
+    const invoiceId = "invoice_id" in result
+        ? result.invoice_id
+        : null;
+
+    const paymentId = "payment_id" in result
+        ? result.payment_id
+        : null;
+
+    const frontendBaseUrl =
+        process.env.FRONTEND_URL || "http://localhost:5173";
+
+    const frontendPaymentPageUrl =
+        process.env.FRONTEND_PAYMENT_PAGE_URL
+        || `${frontendBaseUrl}/tenant/payments`;
+
+    const redirectUrl = new URL(frontendPaymentPageUrl);
+
+    redirectUrl.searchParams.set(
+        "payment_status",
+        String(displayStatus)
+    );
+
+    redirectUrl.searchParams.set(
+        "raw_status",
+        String(status)
+    );
+
+    if (responseCode !== undefined) {
         redirectUrl.searchParams.set(
-            "invoice_id",
-            String(result.invoice_id)
+            "response_code",
+            String(responseCode)
         );
     }
 
-    if ("payment_id" in result && result.payment_id !== null) {
+    if (invoiceId !== null) {
+        redirectUrl.searchParams.set(
+            "invoice_id",
+            String(invoiceId)
+        );
+    }
+
+    if (paymentId !== null) {
         redirectUrl.searchParams.set(
             "payment_id",
-            String(result.payment_id)
+            String(paymentId)
         );
     }
 

@@ -159,14 +159,6 @@ export const verifyVnpaySecureHash = (
         .update(Buffer.from(signData, "utf-8"))
         .digest("hex");
 
-    console.log("===== VNPAY VERIFY DEBUG =====");
-    console.log("signData:", signData);
-    console.log("expectedHash:", expectedHash);
-    console.log("receivedHash:", secureHash);
-    console.log("==============================");
-    console.log("hashSecret length:", hashSecret.length);
-    console.log("hashSecret preview:", hashSecret.slice(0, 4), hashSecret.slice(-4));
-
     return safeEqual(
         expectedHash.toLowerCase(),
         secureHash.toLowerCase()

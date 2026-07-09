@@ -11,7 +11,7 @@ export type ContractStatus = "ACTIVE" | "ENDED" | "LIQUIDATED";
 
 export type InvoiceStatus = "PAID" | "UNPAID" | "OVERDUE";
 
-export type PaymentMethod = "BANK_TRANSFER" | "MOMO" | "VNPAY" | "CASH";
+export type PaymentMethod = "BANK_TRANSFER" | "E_WALLET";
 
 export type PaymentStatus = "PENDING" | "SUCCESS" | "FAILED";
 
@@ -62,10 +62,8 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
 };
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  BANK_TRANSFER: "Chuyển khoản",
-  MOMO: "MoMo",
-  VNPAY: "VNPay",
-  CASH: "Tiền mặt",
+  BANK_TRANSFER: "Chuyển khoản ngân hàng",
+  E_WALLET: "VNPay",
 };
 
 export const PRIORITY_LABELS: Record<Priority, string> = {
