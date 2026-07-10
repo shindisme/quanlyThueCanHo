@@ -7,9 +7,8 @@ import * as buildingService from "../../services/buildingService"
 import * as contractService from "../../services/contractService"
 import * as tenantService from "../../services/tenantService"
 import * as authService from "../../services/authService"
-import * as occupantService from "../../services/occupantService"
 import { getApartmentReviews } from "../../services/reviewService"
-import type { ApartmentImage, User } from "../../types"
+import type { ApartmentImage, TenantOccupant, User } from "../../types"
 
 export function useApartmentDetail() {
   const { id } = useParams();
@@ -89,22 +88,23 @@ export function useApartmentDetail() {
     ? users.find((user) => user.id === activeTenant.user_id)
     : null;
 
-  const { data: occupantsRes, isLoading: loadingOccupants } = useQuery({
-    queryKey: ["occupants", activeTenant?.id],
-    queryFn: () => occupantService.getOccupants({ tenant_id: activeTenant?.id }),
+  const { data: activeTenantDetail, isLoading: loadingOccupants } = useQuery({
+    queryKey: ["tenant", activeTenant?.id, "occupants"],
+    queryFn: () => tenantService.getTenantById(activeTenant!.id),
     enabled: !!activeTenant?.id,
   });
 
   const occupants = useMemo(() => {
-    if (!occupantsRes?.data) return [];
-    return occupantsRes.data.map((apiOccupant) => ({
+    const tenantOccupants = activeTenantDetail?.occupants || [];
+
+    return tenantOccupants.map((apiOccupant: TenantOccupant) => ({
       id: String(apiOccupant.id),
       name: apiOccupant.full_name,
       cccd: apiOccupant.citizen_id,
       dob: apiOccupant.date_of_birth ? new Date(apiOccupant.date_of_birth).toISOString().split("T")[0] : "",
       phone: apiOccupant.phone || "",
     }));
-  }, [occupantsRes]);
+  }, [activeTenantDetail]);
 
   const loading = loadingApartment || loadingContracts || loadingTenants || loadingUsers || loadingReviews || loadingOccupants;
 
