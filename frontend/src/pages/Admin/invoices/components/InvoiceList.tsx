@@ -90,13 +90,15 @@ export default function InvoiceList({
                 >
                   <Eye size={14} /> Chi tiết
                 </button>
-                <button
-                  type="button"
-                  onClick={() => onPrint(inv)}
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-gray-700 hover:bg-gray-50 flex items-center gap-1 text-xs cursor-pointer"
-                >
-                  <Printer size={14} /> In
-                </button>
+                {(role === "ADMIN" || role === "MANAGER") && (
+                  <button
+                    type="button"
+                    onClick={() => onPrint(inv)}
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-gray-700 hover:bg-gray-50 flex items-center gap-1 text-xs cursor-pointer"
+                  >
+                    <Printer size={14} /> In
+                  </button>
+                )}
                 {(role === "ADMIN" || role === "MANAGER") && (
                   <button
                     type="button"
@@ -182,14 +184,16 @@ export default function InvoiceList({
                       >
                         <Eye size={16} />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => onPrint(inv)}
-                        className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors"
-                        title="In hóa đơn"
-                      >
-                        <Printer size={16} />
-                      </button>
+                      {(role === "ADMIN" || role === "MANAGER") && (
+                        <button
+                          type="button"
+                          onClick={() => onPrint(inv)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors"
+                          title="In hóa đơn"
+                        >
+                          <Printer size={16} />
+                        </button>
+                      )}
                       {(role === "ADMIN" || role === "MANAGER") && (
                         <button
                           type="button"
