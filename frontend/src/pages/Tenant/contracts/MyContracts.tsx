@@ -103,8 +103,10 @@ export default function MyContracts() {
                   </TableCell>
                   <TableCell className="font-medium text-gray-800 whitespace-nowrap">
                     <div className="flex flex-col">
-                      <span>P.{apt?.room_number || "Chưa rõ"}</span>
-                      <span className="text-xs text-gray-400 font-normal">{bld?.branch_name}</span>
+                      <span>{formatApartmentDisplay(apt?.room_number || "", apt?.floor || 0)}</span>
+                      {bld?.branch_name && (
+                        <span className="text-xs font-semibold text-purple-600">{bld.branch_name}</span>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell className="text-gray-600 whitespace-nowrap">
