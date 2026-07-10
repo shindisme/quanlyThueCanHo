@@ -28,6 +28,7 @@ interface ContractListProps {
   setTerminateItem: (c: RentalContract) => void;
   requestSort: (key: string) => void;
   getSortIcon: (key: string) => React.ReactNode;
+  onRenewContract?: (c: RentalContract) => void;
 }
 
 export default function ContractList({
@@ -43,6 +44,7 @@ export default function ContractList({
   setTerminateItem,
   requestSort,
   getSortIcon,
+  onRenewContract,
 }: ContractListProps) {
 
 
@@ -106,23 +108,36 @@ export default function ContractList({
                 >
                   <FileText size={14} /> In Hoá Đơn
                 </button>
-                {c.status === "ACTIVE" && (role === "ADMIN" || role === "MANAGER") && (
+                {(role === "ADMIN" || role === "MANAGER") && (
                   <>
-                    <button
-                      onClick={() => {
-                        setSelectedExtendContract(c);
-                        setExtendEndDate("");
-                      }}
-                      className="px-3 py-1.5 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 flex items-center gap-1 text-xs cursor-pointer"
-                    >
-                      <CalendarIcon size={14} /> Gia hạn
-                    </button>
-                    <button
-                      onClick={() => setTerminateItem(c)}
-                      className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1 text-xs cursor-pointer"
-                    >
-                      <XCircle size={14} /> Hủy HĐ
-                    </button>
+                    {c.status === "ENDED" ? (
+                      <button
+                        onClick={() => onRenewContract?.(c)}
+                        className="px-3 py-1.5 rounded-lg border border-green-200 text-green-600 hover:bg-green-55/20 flex items-center gap-1 text-xs cursor-pointer"
+                      >
+                        <CalendarIcon size={14} /> Ký lại HĐ
+                      </button>
+                    ) : (
+                      c.status === "ACTIVE" && (
+                        <button
+                          onClick={() => {
+                            setSelectedExtendContract(c);
+                            setExtendEndDate("");
+                          }}
+                          className="px-3 py-1.5 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 flex items-center gap-1 text-xs cursor-pointer"
+                        >
+                          <CalendarIcon size={14} /> Gia hạn
+                        </button>
+                      )
+                    )}
+                    {c.status === "ACTIVE" && (
+                      <button
+                        onClick={() => setTerminateItem(c)}
+                        className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1 text-xs cursor-pointer"
+                      >
+                        <XCircle size={14} /> Hủy HĐ
+                      </button>
+                    )}
                   </>
                 )}
               </div>
@@ -200,8 +215,16 @@ export default function ContractList({
                       >
                         <FileText size={16} />
                       </button>
-                      {c.status === "ACTIVE" && (role === "ADMIN" || role === "MANAGER") && (
-                        <>
+                      {c.status === "ENDED" ? (
+                        <button
+                          onClick={() => onRenewContract?.(c)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer"
+                          title="Ký lại hợp đồng"
+                        >
+                          <CalendarIcon size={16} />
+                        </button>
+                      ) : (
+                        c.status === "ACTIVE" && (
                           <button
                             onClick={() => {
                               setSelectedExtendContract(c);
@@ -212,14 +235,16 @@ export default function ContractList({
                           >
                             <CalendarIcon size={16} />
                           </button>
-                          <button
-                            onClick={() => setTerminateItem(c)}
-                            className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-55/20 cursor-pointer"
-                            title="Hủy/Thanh lý hợp đồng"
-                          >
-                            <XCircle size={16} />
-                          </button>
-                        </>
+                        )
+                      )}
+                      {c.status === "ACTIVE" && (role === "ADMIN" || role === "MANAGER") && (
+                        <button
+                          onClick={() => setTerminateItem(c)}
+                          className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-55/20 cursor-pointer"
+                          title="Hủy/Thanh lý hợp đồng"
+                        >
+                          <XCircle size={16} />
+                        </button>
                       )}
                     </div>
                   </TableCell>

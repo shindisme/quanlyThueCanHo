@@ -72,7 +72,7 @@ export default function InvoiceList({
                   <span className="font-semibold text-gray-700">Phòng:</span> <span className="font-bold text-gray-900">{room}</span> {branch && <span className="text-xs font-semibold text-purple-600">({branch})</span>}
                 </p>
                 <p>
-                  <span className="font-semibold text-gray-700">Người thuê:</span> {inv.tenant?.full_name} ({inv.tenant?.phone})
+                  <span className="font-semibold text-gray-700">Người thuê:</span> {inv.contract?.tenant?.full_name} ({inv.contract?.tenant?.phone})
                 </p>
                 <p>
                   <span className="font-semibold text-gray-700">Kỳ thanh toán:</span> {billingMonthYear}
@@ -162,8 +162,8 @@ export default function InvoiceList({
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     <div className="flex flex-col">
-                      <span className="font-medium text-gray-800">{inv.tenant?.full_name}</span>
-                      <span className="text-xs text-gray-400">{inv.tenant?.phone}</span>
+                      <span className="font-medium text-gray-800">{inv.contract?.tenant?.full_name}</span>
+                      <span className="text-xs text-gray-400">{inv.contract?.tenant?.phone}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-center whitespace-nowrap">{billingMonthYear}</TableCell>

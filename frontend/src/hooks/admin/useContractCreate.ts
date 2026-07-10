@@ -269,7 +269,9 @@ export function useContractCreate({
 
   const formFloors = (() => {
     if (!buildingIdValue) return []
-    const buildingApts = buildingApartments.filter((a) => ["available", "vacant", "AVAILABLE"].includes(a.status))
+    const buildingApts = buildingApartments.filter(
+      (a) => ["available", "vacant", "AVAILABLE"].includes(a.status) || a.id === initialApartmentId
+    )
     const floors = buildingApts.map((a) => a.floor)
     return [...new Set(floors)].sort((a, b) => a - b)
   })()
@@ -280,7 +282,7 @@ export function useContractCreate({
       (a) =>
           a.building_id === buildingIdValue &&
           a.floor === floorValue &&
-          ["available", "vacant", "AVAILABLE"].includes(a.status)
+          (["available", "vacant", "AVAILABLE"].includes(a.status) || a.id === initialApartmentId)
     )
   })()
 

@@ -39,8 +39,11 @@ export default function Contract() {
     initialTenantId,
     setInitialTenantId,
     initialApartmentId,
+    setInitialApartmentId,
     initialBuildingId,
+    setInitialBuildingId,
     initialFloor,
+    setInitialFloor,
     filteredContracts,
     requestSort,
     getSortIcon,
@@ -121,6 +124,14 @@ export default function Contract() {
             setTerminateItem={setTerminateItem}
             requestSort={requestSort}
             getSortIcon={getSortIcon}
+            onRenewContract={(c) => {
+              const apt = apartments.find((a) => a.id === c.apartment_id);
+              setInitialTenantId(c.tenant_id);
+              setInitialBuildingId(apt?.building_id);
+              setInitialApartmentId(c.apartment_id);
+              setInitialFloor(apt?.floor);
+              createModal.onOpen();
+            }}
           />
         </div>
       )}

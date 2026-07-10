@@ -72,13 +72,13 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
           <div className="bg-gray-50/50 p-4 rounded-none border border-gray-200 space-y-2">
             <h5 className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Khách hàng thuê</h5>
             <p>
-              <span className="font-semibold text-gray-600">Họ và tên:</span> {invoice.tenant?.full_name || "Chưa rõ"}
+              <span className="font-semibold text-gray-600">Họ và tên:</span> {invoice.contract?.tenant?.full_name || "Chưa rõ"}
             </p>
             <p>
-              <span className="font-semibold text-gray-600">Số điện thoại:</span> {invoice.tenant?.phone || "-"}
+              <span className="font-semibold text-gray-600">Số điện thoại:</span> {invoice.contract?.tenant?.phone || "-"}
             </p>
             <p>
-              <span className="font-semibold text-gray-600">Email:</span> {invoice.tenant?.email || "-"}
+              <span className="font-semibold text-gray-600">Email:</span> {invoice.contract?.tenant?.email || "-"}
             </p>
           </div>
         </div>

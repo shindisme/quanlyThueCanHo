@@ -2,6 +2,7 @@ import { Check, X } from "lucide-react";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../../../../components/ui/Table";
 import { formatDate } from "../../../../utils/date";
+import { formatApartmentDisplay } from "../../../../utils/string";
 import type { Payment } from "../../../../types";
 
 interface PaymentListProps {
@@ -48,8 +49,11 @@ export default function PaymentList({
 
   // hiển thị phòng theo role
   function getRoomDisplay(pmt: Payment) {
-    const roomNum = pmt.invoice?.contract?.apartment?.room_number ? `P.${pmt.invoice.contract.apartment.room_number}` : "";
-    const branchName = pmt.invoice?.contract?.apartment?.building?.branch_name || "";
+    const apt = pmt.invoice?.contract?.apartment;
+    if (!apt) return { room: "", branch: "" };
+    
+    const roomNum = formatApartmentDisplay(apt.room_number, apt.floor);
+    const branchName = apt.building?.branch_name || "";
     if (role === "ADMIN" && branchName) {
       return { room: roomNum, branch: branchName };
     }
@@ -63,8 +67,8 @@ export default function PaymentList({
         {payments.map((pmt) => {
           const invoiceCode = pmt.invoice?.invoice_code || `HD-${String(pmt.invoice_id).padStart(5, "0")}`;
           const { room, branch } = getRoomDisplay(pmt);
-          const tenantName = pmt.invoice?.tenant?.full_name || "Chưa rõ";
-          const tenantPhone = pmt.invoice?.tenant?.phone || "";
+          const tenantName = pmt.invoice?.contract?.tenant?.full_name || "Chưa rõ";
+          const tenantPhone = pmt.invoice?.contract?.tenant?.phone || "";
 
           return (
             <div key={pmt.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
@@ -77,12 +81,20 @@ export default function PaymentList({
                 <p>
                   <span className="font-semibold text-gray-700">Thời gian:</span> {formatDate(pmt.paid_at)}
                 </p>
-                <p>
-                  <span className="font-semibold text-gray-700">Hóa đơn:</span> {invoiceCode} {room && `(${room}${branch ? ` - ${branch}` : ""})`}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-700">Khách thuê:</span> {tenantName} ({tenantPhone})
-                </p>
+                 <p>
+                   <span className="font-semibold text-gray-700">Hóa đơn:</span> {invoiceCode}{" "}
+                   {room && (
+                     <>
+                       - <span className="font-bold text-gray-900">{room}</span>{" "}
+                       {role === "ADMIN" && branch && (
+                         <span className="text-xs font-semibold text-purple-600">({branch})</span>
+                       )}
+                     </>
+                   )}
+                 </p>
+                 <p>
+                   <span className="font-semibold text-gray-700">Khách thuê:</span> <span className="font-semibold text-gray-800">{tenantName}</span> {tenantPhone && `(${tenantPhone})`}
+                 </p>
                 <p>
                   <span className="font-semibold text-gray-700">Phương thức:</span> {getMethodLabel(pmt.payment_method)}
                 </p>
@@ -146,23 +158,26 @@ export default function PaymentList({
           <TableBody>
             {payments.map((pmt) => {
               const invoiceCode = pmt.invoice?.invoice_code || `HD-${String(pmt.invoice_id).padStart(5, "0")}`;
-              const { room, branch } = getRoomDisplay(pmt);
-              const tenantName = pmt.invoice?.tenant?.full_name || "Chưa rõ";
-              const tenantPhone = pmt.invoice?.tenant?.phone || "";
+               const { room, branch } = getRoomDisplay(pmt);
+               const tenantName = pmt.invoice?.contract?.tenant?.full_name || "Chưa rõ";
+               const tenantPhone = pmt.invoice?.contract?.tenant?.phone || "";
 
               return (
                 <TableRow key={pmt.id}>
                   <TableCell className="text-gray-600 whitespace-nowrap">{formatDate(pmt.paid_at)}</TableCell>
-                  <TableCell className="font-semibold text-gray-800 whitespace-nowrap">
-                    <div className="flex flex-col">
-                      <span>{invoiceCode}</span>
-                      {room && (
-                        <span className="text-[10px] text-gray-400 font-normal">
-                          {room} {branch && `(${branch})`}
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
+                   <TableCell className="font-semibold text-gray-800 whitespace-nowrap">
+                     <div className="flex flex-col">
+                       <span>{invoiceCode}</span>
+                       {room && (
+                         <div className="flex flex-col mt-0.5 font-normal">
+                           <span className="text-xs font-semibold text-primary-600">{room}</span>
+                           {role === "ADMIN" && branch && (
+                             <span className="text-[10px] font-semibold text-purple-600">{branch}</span>
+                           )}
+                         </div>
+                       )}
+                     </div>
+                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     <div className="flex flex-col">
                       <span className="font-medium text-gray-800">{tenantName}</span>
