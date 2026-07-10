@@ -27,4 +27,13 @@ export interface InvoiceItem {
   unit_price: number;
   amount: number;
   description: string | null;
+  electric_tier_details?: InvoiceElectricTierDetail[];
+}
+
+export interface InvoiceElectricTierDetail {
+  tier: number;
+  label: string;
+  quantity: number;
+  unit_price: number;
+  amount: number;
 }

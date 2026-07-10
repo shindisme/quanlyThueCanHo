@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
@@ -25,6 +26,13 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
   }
 
+  function formatNumber(value: number) {
+    return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 }).format(value);
+  }
+
+  function getElectricTierDetails(item: NonNullable<Invoice["items"]>[number]) {
+    return item.electric_tier_details ?? [];
+  }
   if (!invoice) return null;
 
   const roomNum = invoice.contract?.apartment?.room_number ? `P.${invoice.contract.apartment.room_number}` : "Chưa rõ";
@@ -98,16 +106,35 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
               </thead>
               <tbody className="divide-y divide-gray-200 text-gray-700">
                 {invoice.items && invoice.items.length > 0 ? (
-                  invoice.items.map((item) => (
-                    <tr key={item.id}>
-                      <td className="p-3 font-medium text-gray-800">{item.item_name}</td>
-                      <td className="p-3 text-center">{Number(item.quantity).toLocaleString()}</td>
-                      <td className="p-3 text-right">{formatCurrency(Number(item.unit_price))}</td>
-                      <td className="p-3 text-right font-semibold text-gray-900">
-                        {formatCurrency(Number(item.amount))}
-                      </td>
-                    </tr>
-                  ))
+                  invoice.items.map((item) => {
+                    const electricTierDetails = getElectricTierDetails(item);
+                    const hasElectricTierDetails = electricTierDetails.length > 0;
+
+                    return (
+                      <Fragment key={item.id}>
+                        <tr>
+                          <td className="p-3 font-medium text-gray-800">{item.item_name}</td>
+                          <td className="p-3 text-center">{formatNumber(Number(item.quantity))}</td>
+                          <td className="p-3 text-right">
+                            {hasElectricTierDetails ? "Theo bậc" : formatCurrency(Number(item.unit_price))}
+                          </td>
+                          <td className="p-3 text-right font-semibold text-gray-900">
+                            {formatCurrency(Number(item.amount))}
+                          </td>
+                        </tr>
+                        {electricTierDetails.map((detail) => (
+                          <tr key={`${item.id}-${detail.tier}`} className="bg-gray-50/70 text-xs text-gray-550">
+                            <td className="py-2 pl-8 pr-3">{detail.label}</td>
+                            <td className="p-2 text-center">{formatNumber(Number(detail.quantity))} kWh</td>
+                            <td className="p-2 text-right">{formatCurrency(Number(detail.unit_price))}</td>
+                            <td className="p-2 text-right font-medium text-gray-700">
+                              {formatCurrency(Number(detail.amount))}
+                            </td>
+                          </tr>
+                        ))}
+                      </Fragment>
+                    );
+                  })
                 ) : (
                   <tr>
                     <td colSpan={4} className="p-3 text-center text-gray-400 italic">

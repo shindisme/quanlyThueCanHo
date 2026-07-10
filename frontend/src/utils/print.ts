@@ -13,21 +13,40 @@ export function printInvoiceHelper(invoice: Invoice) {
   const address = invoice.contract?.apartment?.building?.address_new || "";
   const billingDate = new Date(invoice.created_at);
   const billingMonthYear = `${billingDate.getMonth() + 1}/${billingDate.getFullYear()}`;
-  const totalStr = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(invoice.total_amount));
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
+  const formatNumber = (value: number) =>
+    new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 }).format(value);
+  const totalStr = formatCurrency(Number(invoice.total_amount));
 
   const itemsRows = (invoice.items || [])
-    .map(
-      (item) => `
+    .map((item) => {
+      const electricTierDetails = item.electric_tier_details ?? [];
+      const unitPriceText = electricTierDetails.length > 0
+        ? "Theo bậc"
+        : formatCurrency(Number(item.unit_price));
+      const detailRows = electricTierDetails
+        .map(
+          (detail) => `
+      <tr style="background: #f9fafb; color: #4b5563; font-size: 12px;">
+        <td style="padding: 7px 10px 7px 28px; border-bottom: 1px solid #eee;">${detail.label}</td>
+        <td style="padding: 7px 10px; border-bottom: 1px solid #eee; text-align: center;">${formatNumber(Number(detail.quantity))} kWh</td>
+        <td style="padding: 7px 10px; border-bottom: 1px solid #eee; text-align: right;">${formatCurrency(Number(detail.unit_price))}</td>
+        <td style="padding: 7px 10px; border-bottom: 1px solid #eee; text-align: right;">${formatCurrency(Number(detail.amount))}</td>
+      </tr>`
+        )
+        .join("");
+
+      return `
       <tr>
         <td style="padding: 10px; border-bottom: 1px solid #ddd;">${item.item_name}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${Number(item.quantity).toLocaleString()}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">${new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(item.unit_price))}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right; font-weight: bold;">${new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Number(item.amount))}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${formatNumber(Number(item.quantity))}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">${unitPriceText}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right; font-weight: bold;">${formatCurrency(Number(item.amount))}</td>
       </tr>
-    `
-    )
+      ${detailRows}`;
+    })
     .join("");
-
   const html = `
     <html>
       <head>
