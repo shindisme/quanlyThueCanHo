@@ -68,11 +68,13 @@ export function useTenantPayments() {
 
   if (paymentStatus === "SUCCESS") {
     toast.success("Đã thanh toán thành công");
-  } else if (paymentStatus === "CANCELLED") {
-    toast.warning("Đã hủy thanh toán");
-  } else {
-    toast.error("Thanh toán không thành công");
-  }
+    } else if (paymentStatus === "CANCELLED") {
+      toast.warning("Đã hủy thanh toán");
+    } else if (paymentStatus === "PROCESSING") {
+      toast.info("Thanh toán đang được xử lý, vui lòng kiểm tra lại sau");
+    } else {
+      toast.error("Thanh toán không thành công");
+    }
 
   window.history.replaceState(
     {},

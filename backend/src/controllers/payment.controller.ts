@@ -123,32 +123,6 @@ export const vnpayReturn = async (
     request: Request,
     response: Response
 ) => {
-    const result =
-        await paymentService.handleVnpayCallbackService(
-            request.query as Record<string, unknown>,
-            "RETURN"
-        );
-
-    const status = "status" in result
-        ? result.status
-        : "UNKNOWN";
-
-    const responseCode = "response_code" in result
-        ? result.response_code
-        : undefined;
-
-    const displayStatus = responseCode === "24"
-        ? "CANCELLED"
-        : status;
-
-    const invoiceId = "invoice_id" in result
-        ? result.invoice_id
-        : null;
-
-    const paymentId = "payment_id" in result
-        ? result.payment_id
-        : null;
-
     const frontendBaseUrl =
         process.env.FRONTEND_URL || "http://localhost:5173";
 
@@ -156,40 +130,84 @@ export const vnpayReturn = async (
         process.env.FRONTEND_PAYMENT_PAGE_URL
         || `${frontendBaseUrl}/tenant/payments`;
 
-    const redirectUrl = new URL(frontendPaymentPageUrl);
+    try {
+        const result =
+            await paymentService.handleVnpayCallbackService(
+                request.query as Record<string, unknown>,
+                "RETURN"
+            );
 
-    redirectUrl.searchParams.set(
-        "payment_status",
-        String(displayStatus)
-    );
+        const status = "status" in result
+            ? result.status
+            : "UNKNOWN";
 
-    redirectUrl.searchParams.set(
-        "raw_status",
-        String(status)
-    );
+        const responseCode = "response_code" in result
+            ? result.response_code
+            : undefined;
 
-    if (responseCode !== undefined) {
+        const displayStatus = responseCode === "24"
+            ? "CANCELLED"
+            : status;
+
+        const invoiceId = "invoice_id" in result
+            ? result.invoice_id
+            : null;
+
+        const paymentId = "payment_id" in result
+            ? result.payment_id
+            : null;
+
+        const redirectUrl = new URL(frontendPaymentPageUrl);
+
         redirectUrl.searchParams.set(
-            "response_code",
-            String(responseCode)
+            "payment_status",
+            String(displayStatus)
         );
-    }
 
-    if (invoiceId !== null) {
         redirectUrl.searchParams.set(
-            "invoice_id",
-            String(invoiceId)
+            "raw_status",
+            String(status)
         );
-    }
 
-    if (paymentId !== null) {
+        if (responseCode !== undefined) {
+            redirectUrl.searchParams.set(
+                "response_code",
+                String(responseCode)
+            );
+        }
+
+        if (invoiceId !== null) {
+            redirectUrl.searchParams.set(
+                "invoice_id",
+                String(invoiceId)
+            );
+        }
+
+        if (paymentId !== null) {
+            redirectUrl.searchParams.set(
+                "payment_id",
+                String(paymentId)
+            );
+        }
+
+        return response.redirect(redirectUrl.toString());
+    } catch (error) {
+        console.error("VNPay return error:", error);
+
+        const redirectUrl = new URL(frontendPaymentPageUrl);
+
         redirectUrl.searchParams.set(
-            "payment_id",
-            String(paymentId)
+            "payment_status",
+            "PROCESSING"
         );
-    }
 
-    return response.redirect(redirectUrl.toString());
+        redirectUrl.searchParams.set(
+            "error",
+            "VNPAY_RETURN_ERROR"
+        );
+
+        return response.redirect(redirectUrl.toString());
+    }
 };
 export const vnpayIpn = async (
     request: Request,
