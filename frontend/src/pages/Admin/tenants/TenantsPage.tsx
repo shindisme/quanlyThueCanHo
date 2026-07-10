@@ -15,7 +15,7 @@ import TenantModifyModal from "./components/TenantModifyModal";
 import TenantDeleteModal from "./components/TenantDeleteModal";
 import TenantDetailModal from "./components/TenantDetailModal";
 
-export default function Tenant() {
+export default function TenantsPage() {
   const navigate = useNavigate();
 
   const {

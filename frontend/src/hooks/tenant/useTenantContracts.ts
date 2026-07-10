@@ -52,8 +52,9 @@ export function useTenantContracts() {
       setRating(5);
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.message || error.message || "Đánh giá thất bại. Vui lòng thử lại sau.");
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      toast.error(err.response?.data?.message || err.message || "Đánh giá thất bại. Vui lòng thử lại sau.");
     }
   });
 

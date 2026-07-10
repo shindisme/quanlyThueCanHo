@@ -13,7 +13,7 @@ export function usePaymentList() {
   const queryClient = useQueryClient();
   const { role, managedBuildingId } = useUserRole();
 
-  // Filters
+  // Lọc
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [methodFilter, setMethodFilter] = useState("");
@@ -23,7 +23,6 @@ export function usePaymentList() {
 
   const debouncedSearch = useDebounce(search, 300);
 
-  // Load buildings for filter dropdown
   const { data: buildingsRes } = useQuery({
     queryKey: ["buildings"],
     queryFn: () => buildingService.getAllBuildings(),
@@ -44,7 +43,7 @@ export function usePaymentList() {
   });
   const payments = paymentsRes?.data || [];
 
-  // Sorting
+  // Sắp xếp
   const { items: sortedPayments, requestSort, getSortIcon, sortConfig } = useSort<Payment>(payments, {
     key: "paid_at",
     direction: "desc",
@@ -60,29 +59,29 @@ export function usePaymentList() {
     return sortedPayments.slice(startIdx, endIdx);
   }, [sortedPayments, startIdx, endIdx]);
 
-  // Mutations
-  const updateStatusMutation = useMutation({
+  // Tạo 
+  const handleUpdateStatusPayment = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
       paymentService.updatePaymentStatus(id, status),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["payments"] });
-      // Also invalidate invoices in case this marked an invoice as Paid
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
 
       const statusText = res.status === "SUCCESS" ? "phê duyệt thành công" : "từ chối giao dịch";
       toast.success(`Đã ${statusText}!`);
     },
-    onError: (err: any) => {
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error(err.response?.data?.message || "Cập nhật trạng thái giao dịch thất bại");
     },
   });
 
   const handleApprove = (id: number) => {
-    updateStatusMutation.mutate({ id, status: "SUCCESS" });
+    handleUpdateStatusPayment.mutate({ id, status: "SUCCESS" });
   };
 
   const handleReject = (id: number) => {
-    updateStatusMutation.mutate({ id, status: "FAILED" });
+    handleUpdateStatusPayment.mutate({ id, status: "FAILED" });
   };
 
   return {
@@ -91,7 +90,8 @@ export function usePaymentList() {
     rawPaymentsCount: payments.length,
     buildings,
     isLoading,
-    isUpdating: updateStatusMutation.isPending,
+    isUpdating: handleUpdateStatusPayment.isPending,
+
     search,
     setSearch,
     statusFilter,
@@ -101,11 +101,10 @@ export function usePaymentList() {
     buildingFilter,
     setBuildingFilter,
 
-    // Actions
     handleApprove,
     handleReject,
 
-    // Sorting & Pagination
+    // Sắp xếp và pagination
     requestSort,
     getSortIcon,
     sortConfig,

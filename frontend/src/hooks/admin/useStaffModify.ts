@@ -51,7 +51,7 @@ export function useStaffModify({
           username: nextUsername,
           role: roleToCreate,
         });
-        initialPassword = (res as any).initial_password;
+        initialPassword = res.initial_password || "";
         createdAccount = true;
       }
 
@@ -61,7 +61,7 @@ export function useStaffModify({
           await authService.deleteUser(editItem.user_id);
           deletedAccount = true;
         } catch (e) {
-          console.error("Failed to delete user account on position update:", e);
+          console.error("Không thể xóa tài khoản nhân viên", e);
         }
       }
 

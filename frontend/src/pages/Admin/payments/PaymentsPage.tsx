@@ -7,7 +7,7 @@ import DefaultPagination from "../../../components/ui/Pagination";
 import PaymentList from "./components/PaymentList";
 import { usePaymentList } from "../../../hooks/admin/usePaymentList";
 
-export default function Payment() {
+export default function PaymentsPage() {
   const {
     role,
     payments,

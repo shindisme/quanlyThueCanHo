@@ -2,7 +2,7 @@ import { Plus, Trash2, RotateCcw, UserCog, Eye, Pencil } from "lucide-react";
 import PageHeader from "../../../components/PageHeader";
 import Button from "../../../components/ui/Button";
 import SearchInput from "../../../components/ui/SearchInput";
-import Badge from "../../../components/ui/Badge";
+import Badge, { type BadgeVariant } from "../../../components/ui/Badge";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import Combobox from "../../../components/ui/Combobox";
 import Pagination from "../../../components/ui/Pagination";
@@ -23,7 +23,7 @@ import UserDeleteModal from "./components/UserDeleteModal";
 import UserResetPasswordModal from "./components/UserResetPasswordModal";
 import UserDetailModal from "./components/UserDetailModal";
 
-export default function User() {
+export default function UsersPage() {
   const {
     isAdmin,
     createModal,
@@ -59,7 +59,7 @@ export default function User() {
 
   function getRoleBadge(user: UserData) {
     let label = user.role;
-    let variant = "gray";
+    let variant: BadgeVariant = "gray";
 
     if (user.role === "ADMIN") {
       label = "Admin";
@@ -78,7 +78,7 @@ export default function User() {
       variant = user.role === "MANAGER" ? "warning" : "success";
     }
 
-    return <Badge variant={variant as any}>{label}</Badge>;
+    return <Badge variant={variant}>{label}</Badge>;
   }
 
   function isUserFullNameEditable(u: UserData): boolean {

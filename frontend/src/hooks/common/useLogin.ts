@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { loginSchema } from "../../schemas/auth.schema"
 import { useAuthStore } from "../../stores/auth.store"
@@ -39,7 +40,6 @@ export function useLogin() {
   const navigate = useNavigate()
   const { token, role, setAuth } = useAuthStore()
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (token) {
@@ -47,8 +47,8 @@ export function useLogin() {
         role === "ADMIN"
           ? "/admin/dashboard"
           : role === "MANAGER" || role === "STAFF"
-          ? "/manager/dashboard"
-          : "/tenant/home"
+            ? "/manager/dashboard"
+            : "/tenant/home"
       navigate(redirectPath, { replace: true })
     }
   }, [token, role, navigate])
@@ -61,12 +61,10 @@ export function useLogin() {
     resolver: zodResolver(loginSchema),
   })
 
-  async function onSubmit(data: LoginForm) {
-    setIsLoading(true)
-    try {
-      const resolvedEmail = resolveEmailFromUsername(data.email)
-      const result = await login(resolvedEmail, data.password)
-
+  const loginMutation = useMutation({
+    mutationFn: (data: LoginForm) => login(resolveEmailFromUsername(data.email), data.password),
+    onSuccess: async (result, variables) => {
+      const resolvedEmail = resolveEmailFromUsername(variables.email)
       const decoded = parseJwt(result.token)
       const userId = decoded ? (decoded.userId ? Number(decoded.userId) : (decoded.sub ? Number(decoded.sub) : null)) : null
       let managedBuildingId: number | null = null
@@ -112,22 +110,25 @@ export function useLogin() {
         default:
           navigate("/")
       }
-    } catch (error: unknown) {
+    },
+    onError: (error: unknown) => {
       const err = error as { response?: { data?: { error?: string } } };
       const msg = err.response?.data?.error || "Đăng nhập thất bại!"
       toast.error(msg)
-    } finally {
-      setIsLoading(false)
     }
+  })
+
+  const handleLogin = (data: LoginForm) => {
+    loginMutation.mutate(data)
   }
 
   return {
     register,
     handleSubmit,
-    onSubmit,
+    handleLogin,
     errors,
     showPassword,
     setShowPassword,
-    isLoading,
+    isPending: loginMutation.isPending,
   }
 }

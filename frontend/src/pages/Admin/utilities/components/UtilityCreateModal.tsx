@@ -37,23 +37,23 @@ export default function UtilityCreateModal({
 }: UtilityCreateModalProps) {
   const {
     saving,
-    formBuildingId,
-    setFormBuildingId,
-    formFloor,
-    setFormFloor,
-    formApartmentId,
-    setFormApartmentId,
-    formMonth,
-    setFormMonth,
-    formYear,
-    setFormYear,
-    formElectricOld,
-    formElectricNew,
-    setFormElectricNew,
-    formWaterOld,
-    formWaterNew,
-    setFormWaterNew,
-    handleSave,
+    buildingId,
+    setBuildingId,
+    floor,
+    setFloor,
+    apartmentId,
+    setApartmentId,
+    month,
+    setMonth,
+    year,
+    setYear,
+    electricOld,
+    electricNew,
+    setElectricNew,
+    waterOld,
+    waterNew,
+    setWaterNew,
+    handleCreateUtilityReading,
     getMonthOptions,
     getYearOptions,
     buildingOptions,
@@ -83,7 +83,7 @@ export default function UtilityCreateModal({
           <Button variant="outline" onClick={onClose}>
             Hủy
           </Button>
-          <Button onClick={handleSave} isLoading={saving}>
+          <Button onClick={handleCreateUtilityReading} isLoading={saving}>
             Lưu thông tin
           </Button>
         </>
@@ -98,13 +98,13 @@ export default function UtilityCreateModal({
             </label>
             <Combobox
               options={buildingOptions}
-              value={formBuildingId}
+              value={buildingId}
               onChange={(val) => {
-                setFormBuildingId(val);
-                setFormFloor("");
-                setFormApartmentId("");
+                setBuildingId(val);
+                setFloor("");
+                setApartmentId("");
               }}
-              disabled={!!formApartmentId}
+              disabled={!!apartmentId}
               placeholder="Chọn chi nhánh"
               searchPlaceholder="Tìm kiếm chi nhánh..."
               triggerClassName="h-10 border-gray-300"
@@ -119,13 +119,13 @@ export default function UtilityCreateModal({
             <label className="block text-sm font-semibold text-gray-800 mb-1.5">Tầng *</label>
             <Combobox
               options={floorOptions}
-              value={formFloor}
+              value={floor}
               onChange={(val) => {
-                setFormFloor(val);
-                setFormApartmentId("");
+                setFloor(val);
+                setApartmentId("");
               }}
-              disabled={!!formApartmentId || !formBuildingId}
-              placeholder={formBuildingId ? "Chọn tầng" : "Chọn tòa nhà trước"}
+              disabled={!!apartmentId || !buildingId}
+              placeholder={buildingId ? "Chọn tầng" : "Chọn tòa nhà trước"}
               searchable={false}
               triggerClassName="h-10 border-gray-300"
               clearable={false}
@@ -139,10 +139,10 @@ export default function UtilityCreateModal({
             </label>
             <Combobox
               options={modalApartmentOptions}
-              value={formApartmentId}
-              onChange={(val) => setFormApartmentId(val)}
-              disabled={!!formApartmentId || !formFloor}
-              placeholder={formFloor ? "Chọn phòng" : "Chọn tầng trước"}
+              value={apartmentId}
+              onChange={(val) => setApartmentId(val)}
+              disabled={!!apartmentId || !floor}
+              placeholder={floor ? "Chọn phòng" : "Chọn tầng trước"}
               searchPlaceholder="Tìm phòng..."
               triggerClassName="h-10 border-gray-300"
               clearable={false}
@@ -155,9 +155,9 @@ export default function UtilityCreateModal({
             <label className="block text-sm font-semibold text-gray-800 mb-1.5">Tháng ghi *</label>
             <Combobox
               options={getMonthOptions()}
-              value={String(formMonth)}
-              onChange={(val) => setFormMonth(Number(val))}
-              disabled={!!formApartmentId}
+              value={String(month)}
+              onChange={(val) => setMonth(Number(val))}
+              disabled={!!apartmentId}
               placeholder="Chọn tháng"
               searchable={false}
               triggerClassName="h-10 border-gray-300"
@@ -168,9 +168,9 @@ export default function UtilityCreateModal({
             <label className="block text-sm font-semibold text-gray-800 mb-1.5">Năm ghi *</label>
             <Combobox
               options={getYearOptions()}
-              value={String(formYear)}
-              onChange={(val) => setFormYear(Number(val))}
-              disabled={!!formApartmentId}
+              value={String(year)}
+              onChange={(val) => setYear(Number(val))}
+              disabled={!!apartmentId}
               placeholder="Chọn năm"
               searchable={false}
               triggerClassName="h-10 border-gray-300"
@@ -188,21 +188,21 @@ export default function UtilityCreateModal({
             <Input
               label="Chỉ số điện cũ"
               type="number"
-              value={formElectricOld}
+              value={electricOld}
               disabled={true}
               placeholder="0"
             />
             <Input
               label="Chỉ số điện mới *"
               type="number"
-              value={formElectricNew}
-              onChange={(e) => setFormElectricNew(e.target.value)}
+              value={electricNew}
+              onChange={(e) => setElectricNew(e.target.value)}
               placeholder="Nhập số điện mới"
             />
           </div>
           <p className="text-xs text-emerald-700 font-semibold text-right">
             Điện năng sử dụng:{" "}
-            {Math.max(0, (Number(formElectricNew) || 0) - (Number(formElectricOld) || 0))} kWh
+            {Math.max(0, (Number(electricNew) || 0) - (Number(electricOld) || 0))} kWh
           </p>
         </div>
 
@@ -215,21 +215,21 @@ export default function UtilityCreateModal({
             <Input
               label="Chỉ số nước cũ"
               type="number"
-              value={formWaterOld}
+              value={waterOld}
               disabled={true}
               placeholder="0"
             />
             <Input
               label="Chỉ số nước mới *"
               type="number"
-              value={formWaterNew}
-              onChange={(e) => setFormWaterNew(e.target.value)}
+              value={waterNew}
+              onChange={(e) => setWaterNew(e.target.value)}
               placeholder="Nhập số nước mới"
             />
           </div>
           <p className="text-xs text-blue-700 font-semibold text-right">
             Lượng nước sử dụng:{" "}
-            {Math.max(0, (Number(formWaterNew) || 0) - (Number(formWaterOld) || 0))} m³
+            {Math.max(0, (Number(waterNew) || 0) - (Number(waterOld) || 0))} m³
           </p>
         </div>
       </div>

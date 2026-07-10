@@ -14,7 +14,7 @@ import NotificationDetailModal from "./components/NotificationDetailModal";
 import { useNotificationCenter } from "../../../hooks/common/useNotificationCenter";
 import { useNotificationSend } from "../../../hooks/admin/useNotificationSend";
 
-export default function Notification() {
+export default function NotificationsPage() {
   const {
     role,
     notifications,

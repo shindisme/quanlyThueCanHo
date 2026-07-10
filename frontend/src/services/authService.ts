@@ -17,6 +17,10 @@ export interface UserData {
   } | null;
 }
 
+export interface CreateUserResponse extends UserData {
+  initial_password?: string;
+}
+
 export async function login(username: string, password: string): Promise<LoginResponse> {
   const res = await api.post<{ data: LoginResponse }>("/auth/login", { username, password });
   return res.data.data;
@@ -30,8 +34,8 @@ export async function getAllUsers(): Promise<UserData[]> {
 export async function createUser(data: {
   username: string;
   role: string;
-}) {
-  const res = await api.post("/auth/create-user", data);
+}): Promise<CreateUserResponse> {
+  const res = await api.post<{ data: CreateUserResponse }>("/auth/create-user", data);
   return res.data.data;
 }
 

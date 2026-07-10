@@ -81,7 +81,7 @@ export default function Header() {
   const [managedBuildingName, setManagedBuildingName] = useState<string | null>(storeBuildingName);
 
   const [userFullName, setUserFullName] = useState<string>(
-    role === "ADMIN" ? "Quản trị viên" : role === "MANAGER" ? "Quản lý" : "Người thuê"
+    role === "ADMIN" ? "Quản trị viên" : role === "MANAGER" ? "Quản lý" : role === "STAFF" ? "Nhân viên" : "Người thuê"
   );
   const [accountUsername, setAccountUsername] = useState<string>(
     email?.split("@")[0] || "User"
@@ -143,7 +143,7 @@ export default function Header() {
 
     async function loadUserProfile() {
       try {
-        if (role === "MANAGER") {
+        if (role === "MANAGER" || role === "STAFF") {
           const { getAllStaff } = await import("../services/staffService");
           const staffRes = await getAllStaff();
           const currentStaff = staffRes.data.find((s) => s.user_id === userId);
@@ -186,7 +186,7 @@ export default function Header() {
       return;
     }
     async function fetchManagedBuilding() {
-      if (role === "MANAGER" && token) {
+      if ((role === "MANAGER" || role === "STAFF") && token) {
         try {
           const decoded = parseJwt(token);
           const userId = decoded ? (decoded.userId ? Number(decoded.userId) : (decoded.sub ? Number(decoded.sub) : null)) : null;
@@ -270,7 +270,8 @@ export default function Header() {
   const roleLabel =
     role === "ADMIN" ? "Quản trị viên"
       : role === "MANAGER" ? (managedBuildingName ? `Quản lý: ${managedBuildingName}` : "Quản lý")
-        : "Người thuê";
+        : role === "STAFF" ? (managedBuildingName ? `Nhân viên: ${managedBuildingName}` : "Nhân viên")
+          : "Người thuê";
 
   function getBreadcrumb() {
     const parts = location.pathname.split("/").filter(Boolean);

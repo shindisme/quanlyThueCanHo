@@ -11,7 +11,7 @@ import UtilityModifyModal from "./components/UtilityModifyModal";
 import UtilityDeleteModal from "./components/UtilityDeleteModal";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
-export default function Utility() {
+export default function UtilitiesPage() {
   const {
     role,
     managedBuildingId,

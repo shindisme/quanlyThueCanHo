@@ -53,19 +53,19 @@ export function useTenantUtilities() {
   const invoices = invoicesRes?.data || [];
 
   const readings = (() => {
-    // Sort invoices chronologically (oldest first) to reconstruct cumulative readings
+    // Sort invoices chronologically to reconstruct cumulative readings
     const sortedInvoices = [...invoices].sort((a, b) => {
       return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     });
 
-    let cumulativeElectric = 100; // Base index
-    let cumulativeWater = 10;     // Base index
+    let cumulativeElectric = 100;
+    let cumulativeWater = 10;
 
     return sortedInvoices.map((inv) => {
-      const electricItem = inv.items?.find((item: any) => 
+      const electricItem = inv.items?.find((item) =>
         item.item_name.toLowerCase().includes("dien") || item.item_name.toLowerCase().includes("electric")
       );
-      const waterItem = inv.items?.find((item: any) => 
+      const waterItem = inv.items?.find((item) =>
         item.item_name.toLowerCase().includes("nuoc") || item.item_name.toLowerCase().includes("water")
       );
 

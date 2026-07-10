@@ -17,7 +17,7 @@ export function useTenantMaintenance() {
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<"LOW" | "MEDIUM" | "HIGH">("MEDIUM");
 
-  // Fetch contracts to find the active one
+  // Fetch contracts
   const { data: contractsData, isLoading: loadingContracts } = useQuery({
     queryKey: ["contracts"],
     queryFn: () => contractService.getAllContracts(),
@@ -41,7 +41,7 @@ export function useTenantMaintenance() {
   });
   const requests = requestsRes?.data || [];
 
-  // Filter requests for the current tenant
+  // Filter requests cho người thuê hiện tại
   const myRequests = requests;
 
   const createMutation = useMutation({
@@ -79,7 +79,7 @@ export function useTenantMaintenance() {
 
   const loading = loadingContracts || loadingRequests;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleCreateMaintenanceRequest = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentTenant || !activeContract) {
       toast.error("Không xác định được phòng thuê hoạt động");
@@ -120,7 +120,7 @@ export function useTenantMaintenance() {
     priority,
     setPriority,
     loading,
-    handleSubmit,
+    handleCreateMaintenanceRequest,
     handleCancelRequest,
     activeContract,
     saving: createMutation.isPending || cancelMutation.isPending,

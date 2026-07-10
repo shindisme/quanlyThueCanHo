@@ -11,7 +11,7 @@ import InvoiceDetailModal from "./components/InvoiceDetailModal";
 import InvoiceGenerateModal from "./components/InvoiceGenerateModal";
 import { printInvoiceHelper } from "../../../utils/print";
 
-export default function InvoiceList() {
+export default function InvoicesPage() {
   const {
     role,
     managedBuildingId,

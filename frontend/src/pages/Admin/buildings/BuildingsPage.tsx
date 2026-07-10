@@ -11,7 +11,7 @@ import BuildingDeleteModal from "./components/BuildingDeleteModal";
 import BuildingList from "./components/BuildingList";
 import { useBuildingList } from "../../../hooks/admin/useBuildingList";
 
-export default function Building() {
+export default function BuildingsPage() {
   const {
     role,
     search,

@@ -1,10 +1,12 @@
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../../stores/auth.store";
 import * as contractService from "../../services/contractService";
 import * as apartmentService from "../../services/apartmentService";
 import * as buildingService from "../../services/buildingService";
 import * as tenantService from "../../services/tenantService";
+import { createReview } from "../../services/reviewService";
+import { toast } from "sonner";
 import type { TenantOccupant } from "../../types";
 
 function parseJwt(token: string) {
@@ -36,6 +38,7 @@ function toOccupant(occupant: TenantOccupant) {
 
 export function useTenantHome() {
   const { email, token } = useAuthStore();
+  const queryClient = useQueryClient();
 
   const decoded = token ? parseJwt(token) : null;
   const userId = decoded ? (decoded.userId ? Number(decoded.userId) : (decoded.sub ? Number(decoded.sub) : null)) : null;
@@ -78,8 +81,8 @@ export function useTenantHome() {
 
   const endedContract = contracts
     ? contracts
-        .filter((c) => c.status === "ENDED")
-        .sort((a, b) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime())[0]
+      .filter((c) => c.status === "ENDED")
+      .sort((a, b) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime())[0]
     : null;
 
   const apartment = activeContract && apartmentsRes?.data
@@ -102,6 +105,47 @@ export function useTenantHome() {
 
   const isLoading = loadingOccupants || loadingContracts || loadingApartments || loadingBuildings;
 
+  // Review states
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+
+  useEffect(() => {
+    if (endedContract) {
+      const alreadyDealtWith = localStorage.getItem("has_ignored_review_contract_" + endedContract.id);
+      if (!alreadyDealtWith) {
+        setReviewModalOpen(true);
+      }
+    }
+  }, [endedContract]);
+
+  const reviewMutation = useMutation({
+    mutationFn: (data: { apartment_id: number; rating: number; comment: string }) => createReview(data),
+    onSuccess: () => {
+      toast.success("Cảm ơn bạn đã gửi đánh giá cho căn hộ!");
+      if (endedContract) {
+        localStorage.setItem("has_ignored_review_contract_" + endedContract.id, "true");
+      }
+      setReviewModalOpen(false);
+      setComment("");
+      setRating(5);
+      queryClient.invalidateQueries({ queryKey: ["contracts"] });
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      toast.error(err.response?.data?.message || err.message || "Không thể gửi đánh giá.");
+    }
+  });
+
+  const handleReviewSubmit = () => {
+    if (!endedApartment) return;
+    reviewMutation.mutate({
+      apartment_id: endedApartment.id,
+      rating,
+      comment: comment.trim(),
+    });
+  };
+
   return {
     email,
     displayName,
@@ -113,5 +157,13 @@ export function useTenantHome() {
     endedApartment,
     endedBuilding,
     isLoading,
+    reviewModalOpen,
+    setReviewModalOpen,
+    rating,
+    setRating,
+    comment,
+    setComment,
+    submittingReview: reviewMutation.isPending,
+    handleReviewSubmit,
   };
 }

@@ -13,7 +13,7 @@ import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import StatCard from "./components/StatCard";
 import ChartCard from "./components/ChartCard";
 
-export default function Dashboard() {
+export default function DashboardAdmin() {
   const {
     displayName,
     buildings,

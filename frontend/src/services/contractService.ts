@@ -1,5 +1,5 @@
 import api from "../lib/api";
-import type { RentalContract } from "../types";
+import type { RentalContract, Tenant, Apartment } from "../types";
 import type { ContractStatus } from "../constants/enums";
 
 interface RawContract {
@@ -15,8 +15,8 @@ interface RawContract {
   signed_at?: string | null;
   created_by?: number | null;
   created_at: string;
-  tenant?: any;
-  apartment?: any;
+  tenant?: Tenant;
+  apartment?: Apartment;
 }
 
 function mapBackendToFrontend(c: RawContract): RentalContract {
@@ -46,10 +46,10 @@ export async function getAllContracts(params?: {
 }): Promise<RentalContract[]> {
   const res = await api.get<{ success: boolean; data: RawContract[] }>("/contracts", {
     params: {
-      buildingId: params?.buildingId,
+      building_id: params?.buildingId,
       status: params?.status,
       search: params?.search,
-      tenantId: params?.tenantId,
+      tenant_id: params?.tenantId,
     },
   });
 

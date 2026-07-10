@@ -28,7 +28,7 @@ export default function Contract() {
     loading,
     search,
     setSearch,
-    createModal,
+    createContractModal,
     selectedDetailContract,
     setSelectedDetailContract,
     selectedDocContract,
@@ -95,7 +95,7 @@ export default function Contract() {
               className="w-64 sm:w-80 flex-1 min-w-0"
             />
             {(role === "ADMIN" || role === "MANAGER") && (
-              <Button onClick={() => createModal.onOpen()}>
+              <Button onClick={() => createContractModal.onOpen()}>
                 Tạo hợp đồng
               </Button>
             )}
@@ -131,7 +131,7 @@ export default function Contract() {
               setInitialBuildingId(apt?.building_id);
               setInitialApartmentId(c.apartment_id);
               setInitialFloor(apt?.floor);
-              createModal.onOpen();
+              createContractModal.onOpen();
             }}
           />
         </div>
@@ -154,7 +154,7 @@ export default function Contract() {
         role={role}
       />
 
-      {/* Modal Tải/In HĐ */}
+      {/* Modal In HĐ */}
       <ContractDocModal
         isOpen={selectedDocContract !== null}
         onClose={() => setSelectedDocContract(null)}
@@ -210,13 +210,13 @@ export default function Contract() {
       />
 
       <ContractCreateModal
-        isOpen={createModal.isOpen}
+        isOpen={createContractModal.isOpen}
         onClose={handleCancelCreateContract}
         onSuccess={() => {
           fetchContracts();
           setIsNewTenantFromNavigation(false);
           setInitialTenantId(undefined);
-          createModal.onClose();
+          createContractModal.onClose();
         }}
         buildings={buildings}
         apartments={apartments}

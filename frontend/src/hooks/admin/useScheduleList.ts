@@ -64,7 +64,7 @@ export function useScheduleList() {
     schedule_time: (s) => new Date(s.schedule_time).getTime(),
   });
 
-  // Pagination dùng hook dùng chung
+  // Pagination 
   const {
     currentPage,
     setCurrentPage,

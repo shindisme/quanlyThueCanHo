@@ -39,10 +39,10 @@ export function useUtilityCreate({
     mutationFn: (data: Parameters<typeof utilityService.createUtilityReading>[0]) => utilityService.createUtilityReading(data),
     onSuccess: () => {
       toast.success("Thêm chỉ số điện nước thành công");
-      setFormElectricOld("");
-      setFormElectricNew("");
-      setFormWaterOld("");
-      setFormWaterNew("");
+      setElectricOld("");
+      setElectricNew("");
+      setWaterOld("");
+      setWaterNew("");
       queryClient.invalidateQueries({ queryKey: ["utilityReadings"] });
       onSuccess();
       onClose();
@@ -53,66 +53,66 @@ export function useUtilityCreate({
     }
   });
   const saving = createMutation.isPending;
-  const [formBuildingId, setFormBuildingId] = useState<string>("");
-  const [formFloor, setFormFloor] = useState<string>("");
-  const [formApartmentId, setFormApartmentId] = useState<string>("");
-  const [formMonth, setFormMonth] = useState<number>(defaultMonth);
-  const [formYear, setFormYear] = useState<number>(defaultYear);
-  const [formElectricOld, setFormElectricOld] = useState<string>("");
-  const [formElectricNew, setFormElectricNew] = useState<string>("");
-  const [formWaterOld, setFormWaterOld] = useState<string>("");
-  const [formWaterNew, setFormWaterNew] = useState<string>("");
+  const [buildingId, setBuildingId] = useState<string>("");
+  const [floor, setFloor] = useState<string>("");
+  const [apartmentId, setApartmentId] = useState<string>("");
+  const [month, setMonth] = useState<number>(defaultMonth);
+  const [year, setYear] = useState<number>(defaultYear);
+  const [electricOld, setElectricOld] = useState<string>("");
+  const [electricNew, setElectricNew] = useState<string>("");
+  const [waterOld, setWaterOld] = useState<string>("");
+  const [waterNew, setWaterNew] = useState<string>("");
 
   useEffect(() => {
     if (isOpen) {
       if (preselectedApartment) {
-        setFormBuildingId(String(preselectedApartment.building_id));
-        setFormFloor(String(preselectedApartment.floor));
-        setFormApartmentId(String(preselectedApartment.id));
+        setBuildingId(String(preselectedApartment.building_id));
+        setFloor(String(preselectedApartment.floor));
+        setApartmentId(String(preselectedApartment.id));
       } else {
         const defaultBId = role !== "ADMIN" && managedBuildingId ? String(managedBuildingId) : "";
-        setFormBuildingId(defaultBId);
-        setFormFloor("");
-        setFormApartmentId("");
+        setBuildingId(defaultBId);
+        setFloor("");
+        setApartmentId("");
       }
-      setFormMonth(defaultMonth);
-      setFormYear(defaultYear);
-      setFormElectricOld("");
-      setFormElectricNew("");
-      setFormWaterOld("");
-      setFormWaterNew("");
+      setMonth(defaultMonth);
+      setYear(defaultYear);
+      setElectricOld("");
+      setElectricNew("");
+      setWaterOld("");
+      setWaterNew("");
     }
   }, [isOpen, preselectedApartment, defaultMonth, defaultYear, role, managedBuildingId]);
 
-  // Autofill old indices when formApartmentId changes
+  // Autofill old indices when apartmentId changes
   useEffect(() => {
-    if (formApartmentId && isOpen) {
+    if (apartmentId && isOpen) {
       const aptReadings = readings
-        .filter((r) => r.apartment_id === Number(formApartmentId))
+        .filter((r) => r.apartment_id === Number(apartmentId))
         .sort((a, b) => {
           if (a.year !== b.year) return b.year - a.year;
           return b.month - a.month;
         });
 
       if (aptReadings.length > 0) {
-        setFormElectricOld(String(aptReadings[0].electric_new));
-        setFormWaterOld(String(aptReadings[0].water_new));
+        setElectricOld(String(aptReadings[0].electric_new));
+        setWaterOld(String(aptReadings[0].water_new));
       } else {
-        setFormElectricOld("0");
-        setFormWaterOld("0");
+        setElectricOld("0");
+        setWaterOld("0");
       }
     }
-  }, [formApartmentId, isOpen, readings]);
+  }, [apartmentId, isOpen, readings]);
 
-  function handleSave() {
+  function handleCreateUtilityReading() {
     const payload = {
-      apartment_id: formApartmentId ? Number(formApartmentId) : 0,
-      month: formMonth,
-      year: formYear,
-      electric_old: Number(formElectricOld || 0),
-      electric_new: Number(formElectricNew || 0),
-      water_old: Number(formWaterOld || 0),
-      water_new: Number(formWaterNew || 0),
+      apartment_id: apartmentId ? Number(apartmentId) : 0,
+      month: month,
+      year: year,
+      electric_old: Number(electricOld || 0),
+      electric_new: Number(electricNew || 0),
+      water_old: Number(waterOld || 0),
+      water_new: Number(waterNew || 0),
     };
 
     const validationResult = utilitySchema.safeParse(payload);
@@ -147,8 +147,8 @@ export function useUtilityCreate({
   }));
 
   const floorOptions = (() => {
-    if (!formBuildingId) return [];
-    const b = buildings.find((x) => x.id === Number(formBuildingId));
+    if (!buildingId) return [];
+    const b = buildings.find((x) => x.id === Number(buildingId));
     if (!b) return [];
     return Array.from({ length: b.total_floors }, (_, i) => ({
       value: String(i + 1),
@@ -158,8 +158,8 @@ export function useUtilityCreate({
 
   const modalApartmentOptions = apartments
     .filter((apt) => {
-      const matchBuilding = !formBuildingId || apt.building_id === Number(formBuildingId);
-      const matchFloor = !formFloor || apt.floor === Number(formFloor);
+      const matchBuilding = !buildingId || apt.building_id === Number(buildingId);
+      const matchFloor = !floor || apt.floor === Number(floor);
       const isRented = apt.status === "RENTED";
       return matchBuilding && matchFloor && isRented;
     })
@@ -170,23 +170,23 @@ export function useUtilityCreate({
 
   return {
     saving,
-    formBuildingId,
-    setFormBuildingId,
-    formFloor,
-    setFormFloor,
-    formApartmentId,
-    setFormApartmentId,
-    formMonth,
-    setFormMonth,
-    formYear,
-    setFormYear,
-    formElectricOld,
-    formElectricNew,
-    setFormElectricNew,
-    formWaterOld,
-    formWaterNew,
-    setFormWaterNew,
-    handleSave,
+    buildingId,
+    setBuildingId,
+    floor,
+    setFloor,
+    apartmentId,
+    setApartmentId,
+    month,
+    setMonth,
+    year,
+    setYear,
+    electricOld,
+    electricNew,
+    setElectricNew,
+    waterOld,
+    waterNew,
+    setWaterNew,
+    handleCreateUtilityReading,
     getMonthOptions,
     getYearOptions,
     buildingOptions,

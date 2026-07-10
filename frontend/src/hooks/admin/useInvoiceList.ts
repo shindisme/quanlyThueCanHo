@@ -14,27 +14,26 @@ export function useInvoiceList() {
   const queryClient = useQueryClient();
   const { role, managedBuildingId } = useUserRole();
 
-  // Filter States
+  // State lọc
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [buildingFilter, setBuildingFilter] = useState<number | undefined>(
     role === "MANAGER" ? (managedBuildingId || undefined) : undefined
   );
 
-  // Month & Year Filter 
+  // lọc tháng, năm 
   const [monthFilter, setMonthFilter] = useState<number | undefined>(undefined);
   const [yearFilter, setYearFilter] = useState<number | undefined>(undefined);
 
   const debouncedSearch = useDebounce(search, 300);
 
-  // Modals using useOnOff
   const detailsModal = useOnOff();
   const generateModal = useOnOff();
 
-  // Selection
+  // Chọn hóa đơn
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
-  // Load buildings for filter & generation target
+  // Lấy danh sách chi nhánh để lọc & chọn
   const { data: buildingsRes } = useQuery({
     queryKey: ["buildings"],
     queryFn: () => buildingService.getAllBuildings(),
@@ -56,7 +55,7 @@ export function useInvoiceList() {
   });
   const invoices = invoicesRes?.data || [];
 
-  // Sorting
+  // Sắp xếp
   const { items: sortedInvoices, requestSort, getSortIcon, sortConfig } = useSort<Invoice>(invoices, {
     key: "created_at",
     direction: "desc",
@@ -72,8 +71,8 @@ export function useInvoiceList() {
     return sortedInvoices.slice(startIdx, endIdx);
   }, [sortedInvoices, startIdx, endIdx]);
 
-  // Mutations
-  const generateInvoicesMutation = useMutation({
+  // Tạo hóa đơn
+  const handleGenerateInvoice = useMutation({
     mutationFn: (payload: invoiceService.GenerateMonthlyInvoicesPayload) =>
       invoiceService.generateMonthlyInvoices(payload),
     onSuccess: (res) => {
@@ -81,19 +80,21 @@ export function useInvoiceList() {
       toast.success(res.message || "Tạo hóa đơn thành công!");
       generateModal.onClose();
     },
-    onError: (err: any) => {
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error(err.response?.data?.message || "Tạo hóa đơn thất bại");
     },
   });
 
-  const updateStatusMutation = useMutation({
+  const handleUpdateStatusInvoice = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
       invoiceService.updateInvoiceStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       toast.success("Cập nhật trạng thái hóa đơn thành công!");
     },
-    onError: (err: any) => {
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error(err.response?.data?.message || "Cập nhật thất bại");
     },
   });
@@ -105,7 +106,7 @@ export function useInvoiceList() {
 
   const handleToggleStatus = (invoice: Invoice) => {
     const nextStatus = invoice.status === "PAID" ? "UNPAID" : "PAID";
-    updateStatusMutation.mutate({ id: invoice.id, status: nextStatus });
+    handleUpdateStatusInvoice.mutate({ id: invoice.id, status: nextStatus });
   };
 
   return {
@@ -143,12 +144,12 @@ export function useInvoiceList() {
 
     // Generate Modal
     generateModal,
-    generateInvoices: generateInvoicesMutation.mutate,
-    isGenerating: generateInvoicesMutation.isPending,
+    generateInvoices: handleGenerateInvoice.mutate,
+    isGenerating: handleGenerateInvoice.isPending,
 
     // Status Toggle
     handleToggleStatus,
-    isUpdatingStatus: updateStatusMutation.isPending,
+    isUpdatingStatus: handleUpdateStatusInvoice.isPending,
 
     refetch,
   };

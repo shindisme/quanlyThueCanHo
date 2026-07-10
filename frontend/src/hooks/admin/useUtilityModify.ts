@@ -41,41 +41,41 @@ export function useUtilityModify({
     }
   });
   const saving = updateMutation.isPending;
-  const [formBuildingId, setFormBuildingId] = useState<string>("");
-  const [formFloor, setFormFloor] = useState<string>("");
-  const [formApartmentId, setFormApartmentId] = useState<string>("");
-  const [formMonth, setFormMonth] = useState<number>(new Date().getMonth() + 1);
-  const [formYear, setFormYear] = useState<number>(new Date().getFullYear());
-  const [formElectricOld, setFormElectricOld] = useState<string>("");
-  const [formElectricNew, setFormElectricNew] = useState<string>("");
-  const [formWaterOld, setFormWaterOld] = useState<string>("");
-  const [formWaterNew, setFormWaterNew] = useState<string>("");
+  const [buildingId, setBuildingId] = useState<string>("");
+  const [floor, setFloor] = useState<string>("");
+  const [apartmentId, setApartmentId] = useState<string>("");
+  const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
+  const [year, setYear] = useState<number>(new Date().getFullYear());
+  const [electricOld, setElectricOld] = useState<string>("");
+  const [electricNew, setElectricNew] = useState<string>("");
+  const [waterOld, setWaterOld] = useState<string>("");
+  const [waterNew, setWaterNew] = useState<string>("");
 
   useEffect(() => {
     if (editItem && isOpen) {
-      setFormBuildingId(String(editItem.apartment?.building_id || ""));
-      setFormFloor(String(editItem.apartment?.floor || ""));
-      setFormApartmentId(String(editItem.apartment_id));
-      setFormMonth(editItem.month);
-      setFormYear(editItem.year);
-      setFormElectricOld(String(editItem.electric_old));
-      setFormElectricNew(String(editItem.electric_new));
-      setFormWaterOld(String(editItem.water_old));
-      setFormWaterNew(String(editItem.water_new));
+      setBuildingId(String(editItem.apartment?.building_id || ""));
+      setFloor(String(editItem.apartment?.floor || ""));
+      setApartmentId(String(editItem.apartment_id));
+      setMonth(editItem.month);
+      setYear(editItem.year);
+      setElectricOld(String(editItem.electric_old));
+      setElectricNew(String(editItem.electric_new));
+      setWaterOld(String(editItem.water_old));
+      setWaterNew(String(editItem.water_new));
     }
   }, [editItem, isOpen]);
 
-  function handleSave() {
+  function handleUpdateUtilityReading() {
     if (isViewOnly) return;
     if (!editItem) return;
     const payload = {
-      apartment_id: Number(formApartmentId),
-      month: formMonth,
-      year: formYear,
-      electric_old: Number(formElectricOld || 0),
-      electric_new: Number(formElectricNew || 0),
-      water_old: Number(formWaterOld || 0),
-      water_new: Number(formWaterNew || 0),
+      apartment_id: Number(apartmentId),
+      month: month,
+      year: year,
+      electric_old: Number(electricOld || 0),
+      electric_new: Number(electricNew || 0),
+      water_old: Number(waterOld || 0),
+      water_new: Number(waterNew || 0),
     };
 
     const validationResult = utilitySchema.safeParse(payload);
@@ -110,8 +110,8 @@ export function useUtilityModify({
   }));
 
   const floorOptions = (() => {
-    if (!formBuildingId) return [];
-    const b = buildings.find((x) => x.id === Number(formBuildingId));
+    if (!buildingId) return [];
+    const b = buildings.find((x) => x.id === Number(buildingId));
     if (!b) return [];
     return Array.from({ length: b.total_floors }, (_, i) => ({
       value: String(i + 1),
@@ -121,8 +121,8 @@ export function useUtilityModify({
 
   const modalApartmentOptions = apartments
     .filter((apt) => {
-      const matchBuilding = !formBuildingId || apt.building_id === Number(formBuildingId);
-      const matchFloor = !formFloor || apt.floor === Number(formFloor);
+      const matchBuilding = !buildingId || apt.building_id === Number(buildingId);
+      const matchFloor = !floor || apt.floor === Number(floor);
       const isRented = apt.status === "RENTED";
       return matchBuilding && matchFloor && isRented;
     })
@@ -133,23 +133,23 @@ export function useUtilityModify({
 
   return {
     saving,
-    formBuildingId,
-    setFormBuildingId,
-    formFloor,
-    setFormFloor,
-    formApartmentId,
-    setFormApartmentId,
-    formMonth,
-    setFormMonth,
-    formYear,
-    setFormYear,
-    formElectricOld,
-    formElectricNew,
-    setFormElectricNew,
-    formWaterOld,
-    formWaterNew,
-    setFormWaterNew,
-    handleSave,
+    buildingId,
+    setBuildingId,
+    floor,
+    setFloor,
+    apartmentId,
+    setApartmentId,
+    month,
+    setMonth,
+    year,
+    setYear,
+    electricOld,
+    electricNew,
+    setElectricNew,
+    waterOld,
+    waterNew,
+    setWaterNew,
+    handleUpdateUtilityReading,
     getMonthOptions,
     getYearOptions,
     buildingOptions,

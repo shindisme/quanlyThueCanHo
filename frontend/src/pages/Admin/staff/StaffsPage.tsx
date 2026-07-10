@@ -16,7 +16,7 @@ import StaffDeleteModal from "./components/StaffDeleteModal";
 import StaffDetailModal from "./components/StaffDetailModal";
 import { useStaffList } from "../../../hooks/admin/useStaffList";
 
-export default function Staff() {
+export default function StaffsPage() {
   const {
     role,
     buildings,

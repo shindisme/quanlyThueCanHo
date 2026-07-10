@@ -12,7 +12,7 @@ import ApartmentCreateModal from "./components/ApartmentCreateModal";
 import ApartmentModifyModal from "./components/ApartmentModifyModal";
 import ApartmentDeleteModal from "./components/ApartmentDeleteModal";
 
-export default function Apartment() {
+export default function ApartmentsPage() {
   const {
     role,
     search,

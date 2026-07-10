@@ -5,12 +5,9 @@ import {
 import { Link } from "react-router-dom";
 import { useTenantHome } from "../../../hooks/tenant/useTenantHome";
 import { formatCurrency } from "../../../utils/currency";
-import { useState, useEffect } from "react";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import Modal from "../../../components/ui/Modal";
 import Button from "../../../components/ui/Button";
-import { createReview } from "../../../services/reviewService";
-import { toast } from "sonner";
 
 export default function TenantHome() {
   const {
@@ -22,45 +19,16 @@ export default function TenantHome() {
     endedContract,
     endedApartment,
     endedBuilding,
-    isLoading
+    isLoading,
+    reviewModalOpen,
+    setReviewModalOpen,
+    rating,
+    setRating,
+    comment,
+    setComment,
+    submittingReview,
+    handleReviewSubmit,
   } = useTenantHome();
-
-  const [reviewModalOpen, setReviewModalOpen] = useState(false);
-  const [rating, setRating] = useState(5);
-  const [comment, setComment] = useState("");
-  const [submittingReview, setSubmittingReview] = useState(false);
-
-  useEffect(() => {
-    if (endedContract) {
-      const alreadyDealtWith = localStorage.getItem("has_ignored_review_contract_" + endedContract.id);
-      if (!alreadyDealtWith) {
-        setReviewModalOpen(true);
-      }
-    }
-  }, [endedContract]);
-
-  const handleReviewSubmit = async () => {
-    if (!endedApartment) return;
-    setSubmittingReview(true);
-    try {
-      await createReview({
-        apartment_id: endedApartment.id,
-        rating,
-        comment: comment.trim(),
-      });
-      toast.success("Cảm ơn bạn đã gửi đánh giá cho căn hộ!");
-      if (endedContract) {
-        localStorage.setItem("has_ignored_review_contract_" + endedContract.id, "true");
-      }
-      setReviewModalOpen(false);
-      setComment("");
-      setRating(5);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || err.message || "Không thể gửi đánh giá.");
-    } finally {
-      setSubmittingReview(false);
-    }
-  };
 
   if (isLoading) {
     return (

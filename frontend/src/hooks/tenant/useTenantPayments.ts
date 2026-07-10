@@ -23,8 +23,9 @@ export function useTenantPayments() {
   const manualTransferModal = useOnOff();
 
   useEffect(() => {
-    if (location.state && (location.state as any).invoiceId) {
-      setSelectedInvoiceId(Number((location.state as any).invoiceId));
+    const state = location.state as { invoiceId?: number | string } | null;
+    if (state && state.invoiceId) {
+      setSelectedInvoiceId(Number(state.invoiceId));
       payModal.onOpen();
     }
   }, [location.state]);
@@ -136,7 +137,8 @@ export function useTenantPayments() {
         toast.error("Không nhận được URL thanh toán từ cổng VNPay");
       }
     },
-    onError: (err: any) => {
+    onError: (error: unknown) => {
+      const err = error as { message?: string };
       toast.error(err.message || "Tạo liên kết thanh toán VNPay thất bại");
     },
   });
@@ -153,7 +155,8 @@ export function useTenantPayments() {
       // Reset form
       setTransactionCode("");
     },
-    onError: (err: any) => {
+    onError: (error: unknown) => {
+      const err = error as { message?: string };
       toast.error(err.message || "Gửi thông tin giao dịch thất bại");
     },
   });

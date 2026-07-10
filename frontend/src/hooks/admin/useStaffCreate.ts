@@ -38,7 +38,7 @@ export function useStaffCreate({ isOpen, onClose, onSuccess, positions }: UseSta
         try {
           await authService.deleteUser(res.user.id);
         } catch (e) {
-          console.error("Failed to delete user account for non-actor staff:", e);
+          console.error("Không thể xóa tài khoản nhân viên", e);
         }
       }
       return {

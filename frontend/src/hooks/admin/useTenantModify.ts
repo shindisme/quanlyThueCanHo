@@ -13,12 +13,12 @@ interface UseTenantModifyProps {
 }
 
 export function useTenantModify({ isOpen, onClose, onSuccess, editItem }: UseTenantModifyProps) {
-  const [formFullName, setFormFullName] = useState("");
-  const [formCitizenId, setFormCitizenId] = useState("");
-  const [formDob, setFormDob] = useState("");
-  const [formAddress, setFormAddress] = useState("");
-  const [formEmail, setFormEmail] = useState("");
-  const [formPhone, setFormPhone] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [citizenId, setCitizenId] = useState("");
+  const [dob, setDob] = useState("");
+  const [address, setAddress] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const queryClient = useQueryClient();
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<Tenant> }) => tenantService.updateTenant(id, data),
@@ -38,28 +38,28 @@ export function useTenantModify({ isOpen, onClose, onSuccess, editItem }: UseTen
 
   useEffect(() => {
     if (editItem && isOpen) {
-      setFormFullName(editItem.full_name);
-      setFormCitizenId(editItem.citizen_id);
-      setFormDob(
+      setFullName(editItem.full_name);
+      setCitizenId(editItem.citizen_id);
+      setDob(
         editItem.date_of_birth
           ? new Date(editItem.date_of_birth).toISOString().split("T")[0]
           : ""
       );
-      setFormAddress(editItem.address || "");
-      setFormEmail(editItem.email || "");
-      setFormPhone(editItem.phone || "");
+      setAddress(editItem.address || "");
+      setEmail(editItem.email || "");
+      setPhone(editItem.phone || "");
     }
   }, [editItem, isOpen]);
 
-  function handleEditSave() {
+  function handleUpdateTenant() {
     if (!editItem) return;
     const payload = {
-      full_name: formFullName,
-      citizen_id: formCitizenId,
-      date_of_birth: formDob || null,
-      address: formAddress || null,
-      email: formEmail,
-      phone: formPhone,
+      full_name: fullName,
+      citizen_id: citizenId,
+      date_of_birth: dob || null,
+      address: address || null,
+      email: email,
+      phone: phone,
     };
     const result = tenantSchema.safeParse(payload);
     if (!result.success) {
@@ -69,30 +69,30 @@ export function useTenantModify({ isOpen, onClose, onSuccess, editItem }: UseTen
     updateMutation.mutate({
       id: editItem.id,
       data: {
-        full_name: formFullName,
-        citizen_id: formCitizenId,
-        date_of_birth: formDob ? formDob : null,
-        address: formAddress || null,
-        email: formEmail.trim() || null,
-        phone: formPhone.trim() || null,
+        full_name: fullName,
+        citizen_id: citizenId,
+        date_of_birth: dob ? dob : null,
+        address: address || null,
+        email: email.trim() || null,
+        phone: phone.trim() || null,
       }
     });
   }
 
   return {
-    formFullName,
-    setFormFullName,
-    formCitizenId,
-    setFormCitizenId,
-    formDob,
-    setFormDob,
-    formAddress,
-    setFormAddress,
-    formEmail,
-    setFormEmail,
-    formPhone,
-    setFormPhone,
+    fullName,
+    setFullName,
+    citizenId,
+    setCitizenId,
+    dob,
+    setDob,
+    address,
+    setAddress,
+    email,
+    setEmail,
+    phone,
+    setPhone,
     loading,
-    handleEditSave,
+    handleUpdateTenant,
   };
 }

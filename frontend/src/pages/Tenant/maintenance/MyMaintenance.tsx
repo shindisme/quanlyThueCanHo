@@ -33,7 +33,7 @@ export default function MyMaintenance() {
     priority,
     setPriority,
     loading,
-    handleSubmit,
+    handleCreateMaintenanceRequest,
     handleCancelRequest,
     activeContract,
     saving,
@@ -196,7 +196,7 @@ export default function MyMaintenance() {
 
       {/* Modal gửi yêu cầu mới */}
       <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} title="Gửi Yêu Cầu Sửa Chữa Mới">
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleCreateMaintenanceRequest} className="space-y-4">
           <Input
             label="Tiêu đề yêu cầu"
             value={title}

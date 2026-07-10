@@ -6,36 +6,36 @@ import * as maintenanceService from "../../services/maintenanceService";
 import * as staffService from "../../services/staffService";
 import * as buildingService from "../../services/buildingService";
 import { confirmMaintenanceSchema, unableMaintenanceSchema } from "../../schemas/maintenance.schema";
+import type { MaintenanceRequest } from "../../types";
 
 export function useAdminMaintenance() {
   const { token, role, managedBuildingId } = useAuthStore();
   const queryClient = useQueryClient();
 
-  // Search & Filters
+  // Tìm kiếm và bộ lọc
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [priorityFilter, setPriorityFilter] = useState<string>("");
   const [buildingFilter, setBuildingFilter] = useState<string>("");
 
-  // Assign Modal states
+  // State modal phân công
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
   const [assignedStaffId, setAssignedStaffId] = useState<string>("");
   const [scheduledAt, setScheduledAt] = useState<string>("");
 
-  // Unable Modal states
+  // State modal báo cáo không thể sửa
   const [showUnableModal, setShowUnableModal] = useState(false);
   const [unableReason, setUnableReason] = useState<string>("");
 
-  // Fetch all maintenance requests
+  // Fetch all yêu cầu sửa chữa
   const { data: requestsRes, isLoading: loadingRequests } = useQuery({
     queryKey: ["adminMaintenanceRequests", statusFilter, priorityFilter, buildingFilter, role, managedBuildingId],
     queryFn: () => {
-      const params: any = {};
+      const params: Parameters<typeof maintenanceService.getAllMaintenanceRequests>[0] = {};
       if (statusFilter) params.status = statusFilter;
       if (priorityFilter) params.priority = priorityFilter;
 
-      // If manager, enforce building filter
       if (role === "MANAGER" && managedBuildingId) {
         params.building_id = managedBuildingId;
       } else if (buildingFilter) {
@@ -47,7 +47,7 @@ export function useAdminMaintenance() {
   });
   const requests = requestsRes?.data || [];
 
-  // Fetch buildings (for Admin filter)
+  // Fetch buildings
   const { data: buildingsRes, isLoading: loadingBuildings } = useQuery({
     queryKey: ["buildings"],
     queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
@@ -55,7 +55,7 @@ export function useAdminMaintenance() {
   });
   const buildings = buildingsRes?.data || [];
 
-  // Fetch technicians in the requested building
+  // Fetch technicians
   const { data: staffRes, isLoading: loadingStaff } = useQuery({
     queryKey: ["technicians", selectedRequest?.apartment?.building_id],
     queryFn: () => {
@@ -68,12 +68,12 @@ export function useAdminMaintenance() {
     (s) => s.position !== "Quản lý"
   );
 
-  // Confirm / Assign Mutation
+  // Xác nhận và phân công 
   const confirmMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: { assigned_staff_id: number; scheduled_at: string } }) =>
       maintenanceService.confirmMaintenanceRequest(id, data),
     onSuccess: () => {
-      toast.success("Đã phân công nhân viên xử lý thành công");
+      toast.success("Phân công nhân viên xử lý thành công");
       setShowAssignModal(false);
       setSelectedRequest(null);
       setAssignedStaffId("");
@@ -86,7 +86,7 @@ export function useAdminMaintenance() {
     },
   });
 
-  // Complete Mutation
+  // Đánh dấu hoàn thành
   const completeMutation = useMutation({
     mutationFn: (id: number) => maintenanceService.completeMaintenanceRequest(id),
     onSuccess: () => {
@@ -99,7 +99,7 @@ export function useAdminMaintenance() {
     },
   });
 
-  // Unable Mutation
+  // Báo cáo không thể sửa 
   const unableMutation = useMutation({
     mutationFn: ({ id, reason }: { id: number; reason: string }) =>
       maintenanceService.unableMaintenanceRequest(id, { reason }),
@@ -116,12 +116,12 @@ export function useAdminMaintenance() {
     },
   });
 
-  const handleOpenAssign = (req: any) => {
+  const handleOpenAssign = (req: MaintenanceRequest) => {
     setSelectedRequest(req);
     setShowAssignModal(true);
   };
 
-  const handleOpenUnable = (req: any) => {
+  const handleOpenUnable = (req: MaintenanceRequest) => {
     setSelectedRequest(req);
     setShowUnableModal(true);
   };
@@ -181,7 +181,7 @@ export function useAdminMaintenance() {
     role,
     managedBuildingId,
 
-    // Assign Modal
+    // Modal phân công
     showAssignModal,
     setShowAssignModal,
     assignedStaffId,
@@ -191,7 +191,7 @@ export function useAdminMaintenance() {
     handleOpenAssign,
     handleConfirm,
 
-    // Unable Modal
+    // Modal báo cáo không thể sửa
     showUnableModal,
     setShowUnableModal,
     unableReason,

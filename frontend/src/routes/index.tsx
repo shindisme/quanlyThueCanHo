@@ -4,24 +4,25 @@ import AdminLayout from "../layouts/AdminLayout";
 import TenantLayout from "../layouts/TenantLayout";
 import GuestLayout from "../layouts/GuestLayout";
 import RoleRoute from "./RoleRoute";
+import { useAuthStore } from "../stores/auth.store";
 
 // Trang Admin
-import AdminDashboard from "../pages/Admin/dashboard/Dashboard";
-import Building from "../pages/Admin/buildings/Building";
+import AdminDashboard from "../pages/Admin/dashboard/DashboardAdmin";
+import BuildingsPage from "../pages/Admin/buildings/BuildingsPage";
 import BuildingDetail from "../pages/Admin/buildings/BuildingDetail";
-import Apartment from "../pages/Admin/apartments/Apartment";
+import ApartmentsPage from "../pages/Admin/apartments/ApartmentsPage";
 import ApartmentDetail from "../pages/Admin/apartments/ApartmentDetail";
-import Tenant from "../pages/Admin/tenants/Tenant";
-import Staff from "../pages/Admin/staff/Staff";
-import Contract from "../pages/Admin/contracts/Contract";
-import Invoice from "../pages/Admin/invoices/Invoice";
-import Payment from "../pages/Admin/payments/Payment";
-import MaintenanceKanban from "../pages/Admin/maintenance/Maintenance";
-import Schedule from "../pages/Admin/schedules/Schedule";
-import Utility from "../pages/Admin/utilities/Utility";
-import Notification from "../pages/Admin/notifications/Notification";
+import TenantsPage from "../pages/Admin/tenants/TenantsPage";
+import StaffPage from "../pages/Admin/staff/StaffsPage";
+import ContractsPage from "../pages/Admin/contracts/ContractsPage";
+import InvoicesPage from "../pages/Admin/invoices/InvoicesPage";
+import PaymentsPage from "../pages/Admin/payments/PaymentsPage";
+import MaintenancePage from "../pages/Admin/maintenance/MaintenancePage";
+import SchedulesPage from "../pages/Admin/schedules/SchedulesPage";
+import UtilitiesPage from "../pages/Admin/utilities/UtilitiesPage";
+import NotificationsPage from "../pages/Admin/notifications/NotificationsPage";
+import UsersPage from "../pages/Admin/users/UsersPage";
 import SettingsPage from "../pages/Admin/settings/SettingsPage";
-import UserList from "../pages/Admin/users/User";
 // import ReportDashboard from "../pages/Admin/reports/ReportDashboard";
 
 // Trang Manager
@@ -42,6 +43,14 @@ import GuestApartmentListing from "../pages/Guest/ApartmentListing";
 import GuestApartmentDetail from "../pages/Guest/ApartmentDetail";
 import GuestContact from "../pages/Guest/Contact";
 import GuestAbout from "../pages/Guest/About";
+
+function ManagerIndexRedirect() {
+  const { role } = useAuthStore();
+  if (role === "STAFF") {
+    return <Navigate to="maintenance" replace />;
+  }
+  return <Navigate to="dashboard" replace />;
+}
 
 const router = createBrowserRouter([
   // Đăng nhập
@@ -81,20 +90,20 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="dashboard" replace /> },
       { path: "dashboard", element: <AdminDashboard /> },
-      { path: "buildings", element: <Building /> },
+      { path: "buildings", element: <BuildingsPage /> },
       { path: "buildings/:id", element: <BuildingDetail /> },
-      { path: "apartments", element: <Apartment /> },
+      { path: "apartments", element: <ApartmentsPage /> },
       { path: "apartments/:id", element: <ApartmentDetail /> },
-      { path: "tenants", element: <Tenant /> },
-      { path: "staff", element: <Staff /> },
-      { path: "contracts", element: <Contract /> },
-      { path: "invoices", element: <Invoice /> },
-      { path: "payments", element: <Payment /> },
-      { path: "maintenance", element: <MaintenanceKanban /> },
-      { path: "schedules", element: <Schedule /> },
-      { path: "utilities", element: <Utility /> },
-      { path: "notifications", element: <Notification /> },
-      { path: "users", element: <UserList /> },
+      { path: "tenants", element: <TenantsPage /> },
+      { path: "staff", element: <StaffPage /> },
+      { path: "contracts", element: <ContractsPage /> },
+      { path: "invoices", element: <InvoicesPage /> },
+      { path: "payments", element: <PaymentsPage /> },
+      { path: "maintenance", element: <MaintenancePage /> },
+      { path: "schedules", element: <SchedulesPage /> },
+      { path: "utilities", element: <UtilitiesPage /> },
+      { path: "notifications", element: <NotificationsPage /> },
+      { path: "users", element: <UsersPage /> },
       // { path: "reports", element: <ReportDashboard /> },
       { path: "settings", element: <SettingsPage /> },
       { path: "profile", element: <ProfilePage /> },
@@ -110,19 +119,19 @@ const router = createBrowserRouter([
       </RoleRoute>
     ),
     children: [
-      { index: true, element: <Navigate to="dashboard" replace /> },
-      { path: "dashboard", element: <ManagerDashboard /> },
-      { path: "apartments", element: <Apartment /> },
-      { path: "apartments/:id", element: <ApartmentDetail /> },
-      { path: "tenants", element: <Tenant /> },
-      { path: "staff", element: <RoleRoute allowedRoles={["MANAGER", "ADMIN"]}><Staff /></RoleRoute> },
-      { path: "contracts", element: <Contract /> },
-      { path: "invoices", element: <Invoice /> },
-      { path: "payments", element: <RoleRoute allowedRoles={["MANAGER", "ADMIN"]}><Payment /></RoleRoute> },
-      { path: "maintenance", element: <MaintenanceKanban /> },
-      { path: "schedules", element: <Schedule /> },
-      { path: "utilities", element: <Utility /> },
-      { path: "notifications", element: <Notification /> },
+      { index: true, element: <ManagerIndexRedirect /> },
+      { path: "dashboard", element: <RoleRoute allowedRoles={["MANAGER"]}><ManagerDashboard /></RoleRoute> },
+      { path: "apartments", element: <RoleRoute allowedRoles={["MANAGER"]}><ApartmentsPage /></RoleRoute> },
+      { path: "apartments/:id", element: <RoleRoute allowedRoles={["MANAGER"]}><ApartmentDetail /></RoleRoute> },
+      { path: "tenants", element: <RoleRoute allowedRoles={["MANAGER"]}><TenantsPage /></RoleRoute> },
+      { path: "staff", element: <RoleRoute allowedRoles={["MANAGER"]}><StaffPage /></RoleRoute> },
+      { path: "contracts", element: <RoleRoute allowedRoles={["MANAGER"]}><ContractsPage /></RoleRoute> },
+      { path: "invoices", element: <RoleRoute allowedRoles={["MANAGER"]}><InvoicesPage /></RoleRoute> },
+      { path: "payments", element: <RoleRoute allowedRoles={["MANAGER"]}><PaymentsPage /></RoleRoute> },
+      { path: "maintenance", element: <MaintenancePage /> },
+      { path: "schedules", element: <RoleRoute allowedRoles={["MANAGER"]}><SchedulesPage /></RoleRoute> },
+      { path: "utilities", element: <UtilitiesPage /> },
+      { path: "notifications", element: <NotificationsPage /> },
       // { path: "reports", element: <ReportDashboard /> },
       { path: "profile", element: <ProfilePage /> },
     ],
@@ -144,7 +153,7 @@ const router = createBrowserRouter([
       { path: "payments", element: <MyPayments /> },
       { path: "utilities", element: <MyUtilities /> },
       { path: "maintenance", element: <MyMaintenance /> },
-      { path: "notifications", element: <Notification /> },
+      { path: "notifications", element: <NotificationsPage /> },
       { path: "profile", element: <ProfilePage /> },
     ],
   },

@@ -34,7 +34,7 @@ export function useContractList() {
   const debouncedSearch = useDebounce(search, 300);
 
   // Modals state
-  const createModal = useOnOff();
+  const createContractModal = useOnOff();
   const [selectedDetailContract, setSelectedDetailContract] = useState<RentalContract | null>(null);
   const [selectedDocContract, setSelectedDocContract] = useState<RentalContract | null>(null);
   const [selectedExtendContract, setSelectedExtendContract] = useState<RentalContract | null>(null);
@@ -87,7 +87,6 @@ export function useContractList() {
 
   const [isNewTenantFromNavigation, setIsNewTenantFromNavigation] = useState(false);
   const [showConfirmCancelModal, setShowConfirmCancelModal] = useState(false);
-  const [deletingTenant, setDeletingTenant] = useState(false);
 
   useEffect(() => {
     if (location.state) {
@@ -107,7 +106,7 @@ export function useContractList() {
           if (stateObj.floor) {
             setInitialFloor(Number(stateObj.floor));
           }
-          createModal.onOpen();
+          createContractModal.onOpen();
         }, 0);
       }
       if (stateObj.search) {
@@ -115,33 +114,37 @@ export function useContractList() {
       }
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location, createModal, navigate]);
+  }, [location, createContractModal, navigate]);
 
   const handleCancelCreateContract = () => {
     if (isNewTenantFromNavigation && initialTenantId) {
       setShowConfirmCancelModal(true);
     } else {
-      createModal.onClose();
+      createContractModal.onClose();
       setInitialTenantId(undefined);
     }
   };
 
-  const handleConfirmCancelCreate = async () => {
+  const handleCancelCreateTenant = useMutation({
+    mutationFn: (id: number) => tenantService.deleteTenant(id),
+    onSuccess: () => {
+      toast.success("Đã hủy tạo người thuê mới và xóa thông tin khỏi hệ thống.");
+      queryClient.invalidateQueries({ queryKey: ["tenants"] });
+    },
+    onError: () => {
+      toast.error("Không thể xóa thông tin người thuê vừa tạo.");
+    },
+    onSettled: () => {
+      setShowConfirmCancelModal(false);
+      setIsNewTenantFromNavigation(false);
+      setInitialTenantId(undefined);
+      createContractModal.onClose();
+    }
+  });
+
+  const handleConfirmCancelCreate = () => {
     if (initialTenantId) {
-      setDeletingTenant(true);
-      try {
-        await tenantService.deleteTenant(initialTenantId);
-        toast.success("Đã hủy tạo người thuê mới và xóa thông tin khỏi hệ thống.");
-      } catch (error) {
-        toast.error("Không thể xóa thông tin người thuê vừa tạo.");
-      } finally {
-        setDeletingTenant(false);
-        setShowConfirmCancelModal(false);
-        setIsNewTenantFromNavigation(false);
-        setInitialTenantId(undefined);
-        createModal.onClose();
-        queryClient.invalidateQueries({ queryKey: ["tenants"] });
-      }
+      handleCancelCreateTenant.mutate(initialTenantId);
     }
   };
 
@@ -263,7 +266,7 @@ export function useContractList() {
     loading,
     search,
     setSearch,
-    createModal,
+    createContractModal,
     selectedDetailContract,
     setSelectedDetailContract,
     selectedDocContract,
@@ -298,7 +301,7 @@ export function useContractList() {
     setIsNewTenantFromNavigation,
     showConfirmCancelModal,
     setShowConfirmCancelModal,
-    deletingTenant,
+    deletingTenant: handleCancelCreateTenant.isPending,
     handleCancelCreateContract,
     handleConfirmCancelCreate,
   };

@@ -11,20 +11,20 @@ interface UseTenantCreateProps {
 }
 
 export function useTenantCreate({ onClose, onSuccess }: UseTenantCreateProps) {
-  const [formFullName, setFormFullName] = useState("");
-  const [formCitizenId, setFormCitizenId] = useState("");
-  const [formDob, setFormDob] = useState("");
-  const [formAddress, setFormAddress] = useState("");
-  const [formEmail, setFormEmail] = useState("");
-  const [formPhone, setFormPhone] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [citizenId, setCitizenId] = useState("");
+  const [dob, setDob] = useState("");
+  const [address, setAddress] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const queryClient = useQueryClient();
   const createMutation = useMutation({
-    mutationFn: async ({ payload, username, finalEmail, finalPhone, cleanCCCD }: {
+    mutationFn: async ({ payload, username, finalEmail, finalPhone, cleanCitizenId }: {
       payload: Partial<Tenant>;
       username: string;
       finalEmail: string;
       finalPhone: string | null;
-      cleanCCCD: string;
+      cleanCitizenId: string;
     }) => {
       const allTenantsRes = await tenantService.getAllTenants({ limit: 100 }).catch(() => ({ data: [] }));
       const allTenants = allTenantsRes.data || [];
@@ -45,8 +45,8 @@ export function useTenantCreate({ onClose, onSuccess }: UseTenantCreateProps) {
         }
       }
 
-      if (cleanCCCD) {
-        const dup = allTenants.find((t) => t.citizen_id === cleanCCCD);
+      if (cleanCitizenId) {
+        const dup = allTenants.find((t) => t.citizen_id === cleanCitizenId);
         if (dup) {
           throw new Error("Số CCCD này đã tồn tại trong hệ thống.");
         }
@@ -66,12 +66,12 @@ export function useTenantCreate({ onClose, onSuccess }: UseTenantCreateProps) {
       toast.success(
         `Đã tự động tạo tài khoản "${data.username}" (mật khẩu mặc định: 123123) cho người thuê mới!`
       );
-      setFormFullName("");
-      setFormCitizenId("");
-      setFormDob("");
-      setFormAddress("");
-      setFormEmail("");
-      setFormPhone("");
+      setFullName("");
+      setCitizenId("");
+      setDob("");
+      setAddress("");
+      setEmail("");
+      setPhone("");
       queryClient.invalidateQueries({ queryKey: ["tenants"] });
       onSuccess(data.tenant.id);
       onClose();
@@ -83,14 +83,14 @@ export function useTenantCreate({ onClose, onSuccess }: UseTenantCreateProps) {
   });
   const loading = createMutation.isPending;
 
-  function handleSaveTenantAndUser() {
+  function handleCreateTenant() {
     const payload = {
-      full_name: formFullName,
-      citizen_id: formCitizenId,
-      date_of_birth: formDob || null,
-      address: formAddress || null,
-      email: formEmail,
-      phone: formPhone,
+      full_name: fullName,
+      citizen_id: citizenId,
+      date_of_birth: dob || null,
+      address: address || null,
+      email: email,
+      phone: phone,
     };
     const result = tenantSchema.safeParse(payload);
     if (!result.success) {
@@ -98,30 +98,28 @@ export function useTenantCreate({ onClose, onSuccess }: UseTenantCreateProps) {
       return;
     }
 
-    const cleanCCCD = formCitizenId.trim();
-    const last6Digits = cleanCCCD.slice(-6);
+    const cleanCitizenId = citizenId.trim();
+    const last6Digits = cleanCitizenId.slice(-6);
     const username = `YH${last6Digits}`;
-    const defaultEmail = `${username}@yukihouse.vn`;
-    const finalEmail = formEmail.trim() || defaultEmail;
-    const finalPhone = formPhone.trim() || null;
-
-    createMutation.mutate({ payload, username, finalEmail, finalPhone, cleanCCCD });
+    const finalEmail = email.trim() || null;
+    const finalPhone = phone.trim() || null;
+    createMutation.mutate({ payload, username, finalEmail, finalPhone, cleanCitizenId });
   }
 
   return {
-    formFullName,
-    setFormFullName,
-    formCitizenId,
-    setFormCitizenId,
-    formDob,
-    setFormDob,
-    formAddress,
-    setFormAddress,
-    formEmail,
-    setFormEmail,
-    formPhone,
-    setFormPhone,
+    fullName,
+    setFullName,
+    citizenId,
+    setCitizenId,
+    dob,
+    setDob,
+    address,
+    setAddress,
+    email,
+    setEmail,
+    phone,
+    setPhone,
     loading,
-    handleSaveTenantAndUser,
+    handleCreateTenant,
   };
 }

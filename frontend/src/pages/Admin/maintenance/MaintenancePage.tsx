@@ -12,7 +12,7 @@ import MaintenanceUnableModal from "./components/MaintenanceUnableModal";
 import MaintenanceDetailModal from "./components/MaintenanceDetailModal";
 import { useSort } from "../../../hooks/common/useSort";
 
-export default function Maintenance() {
+export default function MaintenancePage() {
   const {
     requests,
     buildings,

@@ -11,7 +11,6 @@ export function useNotificationSend() {
   const queryClient = useQueryClient();
   const { role, managedBuildingId } = useUserRole();
 
-  // Form states
   const [buildingId, setBuildingId] = useState<number | undefined>(
     role === "MANAGER" ? (managedBuildingId || undefined) : undefined
   );
@@ -19,13 +18,12 @@ export function useNotificationSend() {
   const [content, setContent] = useState("");
   const [type, setType] = useState("GENERAL");
 
-  // Advanced targeting
   const [targetType, setTargetType] = useState<"BUILDING" | "APARTMENTS">("BUILDING");
   const [selectedApartmentIds, setSelectedApartmentIds] = useState<number[]>([]);
 
   const broadcastModal = useOnOff();
 
-  // Fetch buildings
+  // Fetch toà nhà
   const { data: buildingsRes } = useQuery({
     queryKey: ["buildings"],
     queryFn: () => buildingService.getAllBuildings(),
@@ -33,7 +31,7 @@ export function useNotificationSend() {
   });
   const buildings = buildingsRes?.data || [];
 
-  // Fetch apartments 
+  // Fetch căn hộ
   const { data: apartmentsRes, isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments-for-target", buildingId],
     queryFn: () =>
@@ -45,30 +43,30 @@ export function useNotificationSend() {
   });
   const apartments = apartmentsRes?.data || [];
 
-  // Reset selected apartments if building changes
+  // Reset căn hộ nếu tòa nhà thay đổi
   useEffect(() => {
     setSelectedApartmentIds([]);
   }, [buildingId]);
 
-  // Mutation
-  const sendMutation = useMutation({
+  // Phát thông báo
+  const sendNotification = useMutation({
     mutationFn: (payload: notificationService.SendBuildingNotificationPayload) =>
       notificationService.sendBuildingNotification(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       toast.success("Phát sóng thông báo thành công!");
       broadcastModal.onClose();
-      // Reset form
       setTitle("");
       setContent("");
       setSelectedApartmentIds([]);
     },
-    onError: (err: any) => {
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
       toast.error(err.response?.data?.message || "Phát sóng thông báo thất bại");
     },
   });
 
-  const handleBroadcastSubmit = (e: React.FormEvent) => {
+  const handleSendNotificationSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!buildingId) {
       toast.error("Vui lòng chọn tòa nhà!");
@@ -94,7 +92,7 @@ export function useNotificationSend() {
       payload.apartment_ids = selectedApartmentIds;
     }
 
-    sendMutation.mutate(payload);
+    sendNotification.mutate(payload);
   };
 
   const handleToggleApartment = (id: number) => {
@@ -122,7 +120,7 @@ export function useNotificationSend() {
     setSelectedApartmentIds,
     handleToggleApartment,
     broadcastModal,
-    handleBroadcastSubmit,
-    isSending: sendMutation.isPending,
+    handleSendNotificationSubmit,
+    isSending: sendNotification.isPending,
   };
 }

@@ -13,7 +13,7 @@ import { useScheduleList } from "../../../hooks/admin/useScheduleList";
 import ScheduleDeleteModal from "./components/ScheduleDeleteModal";
 import ScheduleDetailModal from "./components/ScheduleDetailModal";
 
-export default function Schedule() {
+export default function SchedulesPage() {
   const {
     role,
     buildings,
