@@ -12,9 +12,14 @@ import type {
 } from "../schemas/contract.schema.js";
 import type { Actor } from "../types/auth.js";
 import {
+    isNonNegativeDecimal12_2Amount,
     isPositiveDecimal12_2Amount
 } from "../utils/money.js";
 import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
+import {
+    buildFirstRentalInvoiceItems,
+    sumBillingItems
+} from "../utils/invoice-billing.js";
 
 const contractInclude = {
     tenant: {
@@ -225,6 +230,11 @@ const throwContractMutationConflict = async (
     throw concurrentModification();
 };
 
+const padMonth = (month: number) => month.toString().padStart(2, "0");
+
+const buildFirstInvoiceCode = (contractId: number, startDate: Date) =>
+    `INV-${contractId}-${startDate.getUTCFullYear()}${padMonth(startDate.getUTCMonth() + 1)}`;
+
 const startOfDay = (date: Date) => {
     const result = new Date(date);
     result.setUTCHours(0, 0, 0, 0);
@@ -261,6 +271,16 @@ const assertPositiveMoney = (
             400,
             "VALIDATION_ERROR",
             `${field} must be positive, fit Decimal(12,2), and use at most two decimal places`
+        );
+    }
+};
+
+const assertInvoiceMoney = (value: number) => {
+    if (!isNonNegativeDecimal12_2Amount(value)) {
+        throw new AppError(
+            400,
+            "VALIDATION_ERROR",
+            "Invoice total must fit Decimal(12,2)"
         );
     }
 };
@@ -439,14 +459,16 @@ export const createContractService = async (
                 select: {
                     id: true,
                     building_id: true,
-                    status: true
+                    status: true,
+                    area: true
                 }
             }),
             transaction.tenant.findFirst({
                 where: tenantScope,
                 select: {
                     id: true,
-                    onboarding_building_id: true
+                    onboarding_building_id: true,
+                    user_id: true
                 }
             })
         ]);
@@ -530,16 +552,42 @@ export const createContractService = async (
             data: { status: ApartmentStatus.RENTED }
         });
 
+        const firstInvoiceItems = buildFirstRentalInvoiceItems({
+            depositAmount: input.deposit_amount,
+            monthlyRent: input.monthly_rent,
+            area: apartment.area
+        });
+        const firstInvoiceTotal = sumBillingItems(firstInvoiceItems);
+        assertInvoiceMoney(firstInvoiceTotal);
+
+        const firstInvoiceCode = buildFirstInvoiceCode(
+            contract.id,
+            input.start_date
+        );
         await transaction.invoice.create({
             data: {
                 contract_id: contract.id,
                 tenant_id: tenant.id,
-                invoice_code: `INV-${contract.id}-DEP`,
-                total_amount: input.deposit_amount,
+                invoice_code: firstInvoiceCode,
+                total_amount: firstInvoiceTotal,
                 due_date: new Date(),
-                status: "UNPAID"
+                status: "UNPAID",
+                items: {
+                    create: firstInvoiceItems
+                }
             }
         });
+
+        if (tenant.user_id) {
+            await transaction.notification.create({
+                data: {
+                    user_id: tenant.user_id,
+                    title: "Hóa đơn mới",
+                    content: "Hóa đơn " + firstInvoiceCode + " đã được tạo với tổng tiền " + firstInvoiceTotal + ".",
+                    type: "INVOICE_CREATED"
+                }
+            });
+        }
 
         if (
             tenant.onboarding_building_id

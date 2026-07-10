@@ -16,6 +16,11 @@ import {
     MAX_DECIMAL_12_2
 } from "../utils/money.js";
 import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
+import {
+    buildFirstRentalInvoiceItems,
+    buildRecurringMonthlyInvoiceItems,
+    type BillingInvoiceItem
+} from "../utils/invoice-billing.js";
 
 export type InvoiceActor = Actor;
 export type InvoiceFilters = ListInvoicesRequest["query"];
@@ -114,17 +119,10 @@ type ContractForBilling = Prisma.RentalContractGetPayload<{
     };
 }>;
 
-type MonthlyInvoiceItem = {
-    item_name: string;
-    quantity: number;
-    unit_price: number;
-    amount: number;
-};
-
 type PlannedMonthlyInvoice = {
     contract: ContractForBilling;
     invoiceCode: string;
-    items: MonthlyInvoiceItem[];
+    items: BillingInvoiceItem[];
     totalAmount: number;
 };
 
@@ -167,18 +165,18 @@ const assertNonNegativeDecimalMoney = (
         || value.greaterThan(MAX_DECIMAL_12_2)
     ) {
         throw new InvoiceError(
-            `${label} phai la so khong am, nam trong Decimal(12,2) va co toi da hai chu so thap phan.`
+            `${label} phải là số không âm, nằm trong Decimal(12,2) và có tối đa hai chữ số thập phân.`
         );
     }
 };
 
 const assertValidMonthYear = (month: number, year: number) => {
     if (!Number.isInteger(month) || month < 1 || month > 12) {
-        throw new InvoiceError("Thang hoa don khong hop le.");
+        throw new InvoiceError("Tháng hóa đơn không hợp lệ.");
     }
 
     if (!Number.isInteger(year) || year < 2000 || year > 3000) {
-        throw new InvoiceError("Nam hoa don khong hop le.");
+        throw new InvoiceError("Năm hóa đơn không hợp lệ.");
     }
 };
 
@@ -195,30 +193,12 @@ const getEnvNumber = (
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) {
         throw new InvoiceError(
-            `Cau hinh ${key} khong hop le.`,
+            `Cấu hình ${key} không hợp lệ.`,
             invalidStatusCode
         );
     }
 
     return parsed;
-};
-
-const getFeeConfig = (input: MonthlyInvoiceInput) => {
-    const config = {
-        managementFee: input.management_fee ?? getEnvNumber("INVOICE_MANAGEMENT_FEE", 0, 400),
-        managementFeePerM2: input.management_fee_per_m2 ?? getEnvNumber("INVOICE_MANAGEMENT_FEE_PER_M2", 0, 400),
-        electricUnitPrice: input.electric_unit_price ?? getEnvNumber("INVOICE_ELECTRIC_UNIT_PRICE", 0, 400),
-        waterUnitPrice: input.water_unit_price ?? getEnvNumber("INVOICE_WATER_UNIT_PRICE", 0, 400),
-        internetFee: input.internet_fee ?? getEnvNumber("INVOICE_INTERNET_FEE", 0, 400)
-    };
-
-    assertNonNegativeMoney(config.managementFee, "Phi quan ly");
-    assertNonNegativeMoney(config.managementFeePerM2, "Phi quan ly theo m2");
-    assertNonNegativeMoney(config.electricUnitPrice, "Don gia dien");
-    assertNonNegativeMoney(config.waterUnitPrice, "Don gia nuoc");
-    assertNonNegativeMoney(config.internetFee, "Phi internet");
-
-    return config;
 };
 
 const getPreviousBillingPeriod = (date = new Date()) => {
@@ -244,7 +224,7 @@ const resolveBillingPeriod = (input: MonthlyInvoiceInput) => {
     }
 
     if (input.month === undefined || input.year === undefined) {
-        throw new InvoiceError("Can nhap day du month va year.");
+        throw new InvoiceError("Phải nhập đầy đủ tháng và năm.");
     }
 
     assertValidMonthYear(input.month, input.year);
@@ -270,6 +250,13 @@ const resolveDueDate = (input: MonthlyInvoiceInput, month: number, year: number)
 
 const buildMonthlyInvoiceCode = (contractId: number, month: number, year: number) =>
     `INV-${contractId}-${year}${padMonth(month)}`;
+
+const isFirstRentalMonth = (
+    startDate: Date,
+    month: number,
+    year: number
+) => startDate.getUTCFullYear() === year
+    && startDate.getUTCMonth() + 1 === month;
 
 const normalizeInvoice = (invoice: InvoiceWithRelations) => {
     const { payments, ...invoiceData } = invoice;
@@ -314,7 +301,7 @@ const getManagerApartmentScope = (actor: InvoiceActor) => {
 const requireTenantId = (actor: InvoiceActor) => {
     if (actor.tenantId === undefined) {
         throw new InvoiceError(
-            "Tai khoan chua duoc lien ket voi ho so nguoi thue.",
+            "Tài khoản chưa được liên kết với hồ sơ người thuê.",
             403
         );
     }
@@ -343,7 +330,7 @@ const getInvoiceScopeWhere = (
         };
     }
 
-    throw new InvoiceError("Ban khong co quyen truy cap hoa don.", 403);
+    throw new InvoiceError("Bạn không có quyền truy cập hóa đơn.", 403);
 };
 
 const getInvoiceByIdOrThrow = async (
@@ -365,7 +352,7 @@ const getInvoiceByIdOrThrow = async (
         });
 
     if (!invoice) {
-        throw new InvoiceError("Hoa don khong ton tai.", 404);
+        throw new InvoiceError("Hóa đơn không tồn tại.", 404);
     }
 
     return invoice;
@@ -376,7 +363,7 @@ const assertCanManageInvoices = (actor: InvoiceActor) => {
         actor.role !== Role.ADMIN
         && actor.role !== Role.MANAGER
     ) {
-        throw new InvoiceError("Ban khong co quyen quan ly hoa don.", 403);
+        throw new InvoiceError("Bạn không có quyền quản lý hóa đơn.", 403);
     }
 };
 
@@ -527,7 +514,6 @@ export const generateMonthlyInvoicesService = async (
 
     const { month, year } = resolveBillingPeriod(input);
     const dueDate = resolveDueDate(input, month, year);
-    const feeConfig = getFeeConfig(input);
     const notify = input.notify !== false;
 
     const managerApartmentScope =
@@ -590,6 +576,11 @@ export const generateMonthlyInvoicesService = async (
 
     for (const contract of contracts) {
         const invoiceCode = buildMonthlyInvoiceCode(contract.id, month, year);
+        const firstRentalMonth = isFirstRentalMonth(
+            contract.start_date,
+            month,
+            year
+        );
         const existing = await prisma.invoice.findUnique({
             where: { invoice_code: invoiceCode }
         });
@@ -598,47 +589,23 @@ export const generateMonthlyInvoicesService = async (
             skipped.push({
                 contract_id: contract.id,
                 invoice_code: invoiceCode,
-                reason: "Hoa don thang nay da ton tai."
+                reason: "Hóa đơn tháng này đã tồn tại."
             });
             continue;
         }
 
-        const reading = await prisma.utilityReading.findFirst({
-            where: {
-                apartment_id: contract.apartment_id,
+        const items = firstRentalMonth
+            ? buildFirstRentalInvoiceItems({
+                depositAmount: contract.deposit_amount,
+                monthlyRent: contract.monthly_rent,
+                area: contract.apartment.area
+            })
+            : await buildRecurringItemsForContract(
+                contract,
                 month,
-                year
-            }
-        });
-
-        const electricConsumption = reading
-            ? nonNegativeDecimalDifference(
-                reading.electric_new,
-                reading.electric_old
-            )
-            : new Prisma.Decimal(0);
-        const waterConsumption = reading
-            ? nonNegativeDecimalDifference(
-                reading.water_new,
-                reading.water_old
-            )
-            : new Prisma.Decimal(0);
-
-        if (!reading) {
-            missingUtilityReadings.push({
-                apartment_id: contract.apartment_id,
-                room_number: contract.apartment.room_number,
-                contract_id: contract.id
-            });
-        }
-
-        const items = buildMonthlyItems(contract, {
-            month,
-            year,
-            electricConsumption,
-            waterConsumption,
-            feeConfig
-        });
+                year,
+                missingUtilityReadings
+            );
         const totalAmountDecimal = roundDecimalMoney(
             items.reduce(
                 (sum, item) => {
@@ -662,13 +629,13 @@ export const generateMonthlyInvoicesService = async (
 
         assertNonNegativeDecimalMoney(
             totalAmountDecimal,
-            "Tong tien hoa don"
+            "Tổng tiền hóa đơn"
         );
 
         const totalAmount = totalAmountDecimal.toNumber();
         assertNonNegativeMoney(
             totalAmount,
-            "Tong tien hoa don"
+            "Tổng tiền hóa đơn"
         );
 
         plannedInvoices.push({
@@ -719,8 +686,8 @@ export const generateMonthlyInvoicesService = async (
                     await createInvoiceNotification(
                         tx,
                         newInvoice,
-                        "Hoa don moi",
-                        `Hoa don ${invoiceCode} da duoc tao voi tong tien ${totalAmount}.`,
+                        "Hóa đơn mới",
+                        `Hóa đơn ${invoiceCode} đã được tạo với tổng tiền ${totalAmount}.`,
                         "INVOICE_CREATED"
                     );
                 }
@@ -734,7 +701,7 @@ export const generateMonthlyInvoicesService = async (
                 skipped.push({
                     contract_id: contract.id,
                     invoice_code: invoiceCode,
-                    reason: "Hoa don thang nay da ton tai."
+                    reason: "Hóa đơn tháng này đã tồn tại."
                 });
                 continue;
             }
@@ -768,75 +735,44 @@ const nonNegativeDecimalDifference = (
         : difference;
 };
 
-const buildMonthlyItems = (
+const buildRecurringItemsForContract = async (
     contract: ContractForBilling,
-    options: {
-        month: number;
-        year: number;
-        electricConsumption: Prisma.Decimal;
-        waterConsumption: Prisma.Decimal;
-        feeConfig: ReturnType<typeof getFeeConfig>;
-    }
-): MonthlyInvoiceItem[] => {
-    const periodLabel = `${padMonth(options.month)}/${options.year}`;
-    const rentAmount = roundDecimalMoney(
-        new Prisma.Decimal(contract.monthly_rent)
-    ).toNumber();
-    const managementAmount = roundDecimalMoney(
-        new Prisma.Decimal(options.feeConfig.managementFee).plus(
-            new Prisma.Decimal(contract.apartment.area).mul(
-                options.feeConfig.managementFeePerM2
-            )
-        )
-    ).toNumber();
-    const electricAmount = roundDecimalMoney(
-        options.electricConsumption.mul(
-            options.feeConfig.electricUnitPrice
-        )
-    ).toNumber();
-    const waterAmount = roundDecimalMoney(
-        options.waterConsumption.mul(
-            options.feeConfig.waterUnitPrice
-        )
-    ).toNumber();
-    const internetAmount = roundDecimalMoney(
-        new Prisma.Decimal(options.feeConfig.internetFee)
-    ).toNumber();
-
-    return [
-        {
-            item_name: `Phi thue can ho ${periodLabel}`,
-            quantity: 1,
-            unit_price: rentAmount,
-            amount: rentAmount
-        },
-        {
-            item_name: `Phi quan ly ${periodLabel}`,
-            quantity: 1,
-            unit_price: managementAmount,
-            amount: managementAmount
-        },
-        {
-            item_name: `Tien dien ${periodLabel}`,
-            quantity: roundMoney(options.electricConsumption),
-            unit_price: options.feeConfig.electricUnitPrice,
-            amount: electricAmount
-        },
-        {
-            item_name: `Tien nuoc ${periodLabel}`,
-            quantity: roundMoney(options.waterConsumption),
-            unit_price: options.feeConfig.waterUnitPrice,
-            amount: waterAmount
-        },
-        {
-            item_name: `Phi internet ${periodLabel}`,
-            quantity: 1,
-            unit_price: internetAmount,
-            amount: internetAmount
+    month: number,
+    year: number,
+    missingUtilityReadings: Array<{
+        apartment_id: number;
+        room_number: string;
+        contract_id: number;
+    }>
+): Promise<BillingInvoiceItem[]> => {
+    const reading = await prisma.utilityReading.findFirst({
+        where: {
+            apartment_id: contract.apartment_id,
+            month,
+            year
         }
-    ];
-};
+    });
 
+    if (!reading) {
+        missingUtilityReadings.push({
+            apartment_id: contract.apartment_id,
+            room_number: contract.apartment.room_number,
+            contract_id: contract.id
+        });
+    }
+
+    return buildRecurringMonthlyInvoiceItems({
+        monthlyRent: contract.monthly_rent,
+        area: contract.apartment.area,
+        electricConsumption: reading
+            ? nonNegativeDecimalDifference(reading.electric_new, reading.electric_old)
+            : new Prisma.Decimal(0),
+        waterConsumption: reading
+            ? nonNegativeDecimalDifference(reading.water_new, reading.water_old)
+            : new Prisma.Decimal(0),
+        periodLabel: padMonth(month) + "/" + year
+    });
+};
 export const updateInvoiceStatusService = async (
     id: number,
     status: InvoiceStatus,
@@ -844,7 +780,7 @@ export const updateInvoiceStatusService = async (
 ) => {
     assertCanManageInvoices(actor);
     if (!assertValidInvoiceStatus(status)) {
-        throw new InvoiceError("Trang thai hoa don khong hop le.");
+        throw new InvoiceError("Trạng thái hóa đơn không hợp lệ.");
     }
 
     const scope = getInvoiceScopeWhere(actor);
@@ -860,7 +796,7 @@ export const updateInvoiceStatusService = async (
         });
 
         if (!current) {
-            throw new InvoiceError("Hoa don khong ton tai.", 404);
+            throw new InvoiceError("Hóa đơn không tồn tại.", 404);
         }
 
         if (current.status === status) {
@@ -886,7 +822,7 @@ export const updateInvoiceStatusService = async (
 
             if (!observed) {
                 throw new InvoiceError(
-                    "Hoa don khong ton tai.",
+                    "Hóa đơn không tồn tại.",
                     404
                 );
             }
@@ -911,15 +847,15 @@ export const updateInvoiceStatusService = async (
         });
 
         if (!updated) {
-            throw new InvoiceError("Hoa don khong ton tai.", 404);
+            throw new InvoiceError("Hóa đơn không tồn tại.", 404);
         }
 
         if (status === InvoiceStatus.PAID) {
             await createInvoiceNotification(
                 tx,
                 updated,
-                "Hoa don da thanh toan",
-                `Hoa don ${updated.invoice_code} da duoc ghi nhan thanh toan.`,
+                "Hóa đơn đã thanh toán",
+                `Hóa đơn ${updated.invoice_code} đã được ghi nhận thanh toán.`,
                 "INVOICE_PAID"
             );
         }
