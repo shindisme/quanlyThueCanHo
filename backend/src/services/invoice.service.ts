@@ -19,6 +19,7 @@ import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
 import {
     buildFirstRentalInvoiceItems,
     buildRecurringMonthlyInvoiceItems,
+    calculateElectricTierDetails,
     type BillingInvoiceItem
 } from "../utils/invoice-billing.js";
 
@@ -258,6 +259,11 @@ const isFirstRentalMonth = (
 ) => startDate.getUTCFullYear() === year
     && startDate.getUTCMonth() + 1 === month;
 
+const isElectricInvoiceItem = (itemName: string) => {
+    const normalized = itemName.normalize("NFC").toLocaleLowerCase("vi-VN");
+
+    return normalized.includes("tiền điện") || normalized.includes("tien dien");
+};
 const normalizeInvoice = (invoice: InvoiceWithRelations) => {
     const { payments, ...invoiceData } = invoice;
     const totalAmount = toNumber(invoice.total_amount);
@@ -280,12 +286,22 @@ const normalizeInvoice = (invoice: InvoiceWithRelations) => {
                 rental_price: toNumber(invoice.contract.apartment.rental_price)
             }
         },
-        items: invoice.items.map((item) => ({
-            ...item,
-            quantity: toNumber(item.quantity),
-            unit_price: toNumber(item.unit_price),
-            amount: toNumber(item.amount)
-        }))
+        items: invoice.items.map((item) => {
+            const quantity = toNumber(item.quantity);
+            const electricTierDetails = isElectricInvoiceItem(item.item_name)
+                ? calculateElectricTierDetails(quantity)
+                : [];
+
+            return {
+                ...item,
+                quantity,
+                unit_price: toNumber(item.unit_price),
+                amount: toNumber(item.amount),
+                ...(electricTierDetails.length > 0
+                    ? { electric_tier_details: electricTierDetails }
+                    : {})
+            };
+        })
     };
 };
 

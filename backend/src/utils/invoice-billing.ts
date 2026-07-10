@@ -7,6 +7,14 @@ export type BillingInvoiceItem = {
     amount: number;
 };
 
+export type ElectricTierDetail = {
+    tier: number;
+    label: string;
+    quantity: number;
+    unit_price: number;
+    amount: number;
+};
+
 const MANAGEMENT_FEE_PER_M2 = 10_000;
 const SERVICE_FEE = 300_000;
 const WATER_UNIT_PRICE = 25_000;
@@ -38,16 +46,26 @@ const managementFeeAmount = (
     area: Prisma.Decimal | number | string
 ) => roundMoney(toDecimal(area).mul(MANAGEMENT_FEE_PER_M2));
 
-export const calculateElectricAmount = (
+const buildElectricTierLabel = (
+    tier: number,
+    from: number,
+    to: number | null
+) => to === null
+    ? `Bậc ${tier} (${from}+ kWh)`
+    : `Bậc ${tier} (${from}-${to} kWh)`;
+
+export const calculateElectricTierDetails = (
     consumption: Prisma.Decimal | number | string
-) => {
+): ElectricTierDetail[] => {
     let remaining = toDecimal(consumption);
     if (remaining.lessThanOrEqualTo(0)) {
-        return 0;
+        return [];
     }
 
-    let total = new Prisma.Decimal(0);
-    for (const tier of ELECTRIC_TIERS) {
+    let usedLimit = 0;
+    const details: ElectricTierDetail[] = [];
+
+    for (const [index, tier] of ELECTRIC_TIERS.entries()) {
         if (remaining.lessThanOrEqualTo(0)) {
             break;
         }
@@ -55,13 +73,33 @@ export const calculateElectricAmount = (
         const quantity = tier.limit === null
             ? remaining
             : Prisma.Decimal.min(remaining, tier.limit);
-        total = total.plus(quantity.mul(tier.unitPrice));
+        const amount = roundMoney(quantity.mul(tier.unitPrice));
+        const from = usedLimit === 0 ? 0 : usedLimit + 1;
+        const to = tier.limit === null ? null : usedLimit + tier.limit;
+
+        details.push({
+            tier: index + 1,
+            label: buildElectricTierLabel(index + 1, from, to),
+            quantity: roundMoney(quantity),
+            unit_price: tier.unitPrice,
+            amount
+        });
+
         remaining = remaining.minus(quantity);
+        if (tier.limit !== null) {
+            usedLimit += tier.limit;
+        }
     }
 
-    return roundMoney(total);
+    return details;
 };
 
+export const calculateElectricAmount = (
+    consumption: Prisma.Decimal | number | string
+) => roundMoney(calculateElectricTierDetails(consumption).reduce(
+    (sum, detail) => sum.plus(detail.amount),
+    new Prisma.Decimal(0)
+));
 const averageElectricUnitPrice = (
     consumption: Prisma.Decimal | number | string,
     amount: number
