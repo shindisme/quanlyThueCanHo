@@ -111,6 +111,8 @@ const concurrentModification = () =>
     );
 
 const SERIALIZABLE_RETRY_LIMIT = 3;
+const TRANSACTION_MAX_WAIT_MS = 10_000;
+const TRANSACTION_TIMEOUT_MS = 20_000;
 
 const runSerializableTransaction = async <T>(
     operation: (
@@ -125,19 +127,36 @@ const runSerializableTransaction = async <T>(
         try {
             return await prisma.$transaction(operation, {
                 isolationLevel:
-                    Prisma.TransactionIsolationLevel.Serializable
+                    Prisma.TransactionIsolationLevel.Serializable,
+                maxWait: TRANSACTION_MAX_WAIT_MS,
+                timeout: TRANSACTION_TIMEOUT_MS
             });
         } catch (error) {
-            const isSerializationConflict =
+            const isRetryablePrismaError =
                 error instanceof
                     Prisma.PrismaClientKnownRequestError
-                && error.code === "P2034";
+                && (
+                    error.code === "P2034"
+                    || error.code === "P2028"
+                );
 
-            if (!isSerializationConflict) {
+            if (!isRetryablePrismaError) {
                 throw error;
             }
 
             if (attempt === SERIALIZABLE_RETRY_LIMIT) {
+                if (
+                    error instanceof
+                        Prisma.PrismaClientKnownRequestError
+                    && error.code === "P2028"
+                ) {
+                    throw new AppError(
+                        503,
+                        "TRANSACTION_TIMEOUT",
+                        "Database transaction timed out. Please try again."
+                    );
+                }
+
                 throw concurrentModification();
             }
         }
@@ -852,10 +871,15 @@ export const createVnpayPaymentUrlService = async (
             );
 
             if (remainingAmountCents <= 0) {
+                await syncInvoicePaymentStatusByInvoiceId(
+                    transaction,
+                    invoice.id
+                );
+
                 throw new AppError(
                     409,
                     "INVOICE_ALREADY_PAID",
-                    "Invoice has no remaining balance"
+                    "Invoice is already paid"
                 );
             }
 
@@ -1121,54 +1145,50 @@ export const handleVnpayCallbackService = async (
         : PaymentStatus.FAILED;
 
     const callbackResult = await runSerializableTransaction(
-        async (transaction) => {
-            const current = await transaction.payment.findUnique({
-                where: { id: payment.id }
-            });
+    async (transaction) => {
+        const current = await transaction.payment.findUnique({
+            where: { id: payment.id }
+        });
 
-            if (!current) {
-                throw notFound("payment");
-            }
+        if (!current) {
+            throw notFound("payment");
+        }
 
-            if (current.status !== PaymentStatus.PENDING) {
-                return {
-                    alreadyUpdated: true,
-                    payment: current
-                };
-            }
-
-            await transaction.payment.update({
-                where: {
-                    id: current.id,
-                    status: PaymentStatus.PENDING
-                },
-                data: {
-                    status: targetStatus,
-                    paid_at: isPaymentSuccess
-                        ? new Date()
-                        : current.paid_at
-                }
-            });
-
+        if (current.status !== PaymentStatus.PENDING) {
             await syncInvoicePaymentStatusByInvoiceId(
                 transaction,
                 current.invoice_id
             );
 
-            const updated = await transaction.payment.findUnique({
-                where: { id: current.id }
-            });
-
-            if (!updated) {
-                throw notFound("payment");
-            }
-
             return {
-                alreadyUpdated: false,
-                payment: updated
+                alreadyUpdated: true,
+                payment: current
             };
         }
-    );
+
+        const updated = await transaction.payment.update({
+            where: {
+                id: current.id,
+                status: PaymentStatus.PENDING
+            },
+            data: {
+                status: targetStatus,
+                paid_at: isPaymentSuccess
+                    ? new Date()
+                    : current.paid_at
+            }
+        });
+
+        await syncInvoicePaymentStatusByInvoiceId(
+            transaction,
+            current.invoice_id
+        );
+
+        return {
+            alreadyUpdated: false,
+            payment: updated
+        };
+    });
 
     if (source === "IPN") {
         if (callbackResult.alreadyUpdated) {
