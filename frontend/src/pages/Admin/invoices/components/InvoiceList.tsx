@@ -2,6 +2,7 @@ import { Eye, Printer, CheckCircle, XCircle } from "lucide-react";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../../../../components/ui/Table";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import { formatDate } from "../../../../utils/date";
+import { formatApartmentDisplay } from "../../../../utils/string";
 import type { Invoice } from "../../../../types";
 
 interface InvoiceListProps {
@@ -39,8 +40,11 @@ export default function InvoiceList({
 
   // hiển thị phòng theo role
   function getRoomDisplay(inv: Invoice) {
-    const roomNum = inv.contract?.apartment?.room_number ? `P.${inv.contract.apartment.room_number}` : "Chưa rõ";
-    const branchName = inv.contract?.apartment?.building?.branch_name || "";
+    const apt = inv.contract?.apartment;
+    if (!apt) return { room: "Chưa rõ", branch: "" };
+    
+    const roomNum = formatApartmentDisplay(apt.room_number, apt.floor);
+    const branchName = apt.building?.branch_name || "";
     if (role === "ADMIN" && branchName) {
       return { room: roomNum, branch: branchName };
     }
@@ -65,7 +69,7 @@ export default function InvoiceList({
 
               <div className="text-sm text-gray-500 space-y-1">
                 <p>
-                  <span className="font-semibold text-gray-700">Phòng:</span> {room} {branch && `(${branch})`}
+                  <span className="font-semibold text-gray-700">Phòng:</span> <span className="font-bold text-gray-900">{room}</span> {branch && <span className="text-xs font-semibold text-purple-600">({branch})</span>}
                 </p>
                 <p>
                   <span className="font-semibold text-gray-700">Người thuê:</span> {inv.tenant?.full_name} ({inv.tenant?.phone})
@@ -93,7 +97,7 @@ export default function InvoiceList({
                 >
                   <Printer size={14} /> In
                 </button>
-                {role === "MANAGER" && (
+                {(role === "ADMIN" || role === "MANAGER") && (
                   <button
                     type="button"
                     onClick={() => onToggleStatus(inv)}
@@ -152,8 +156,8 @@ export default function InvoiceList({
                   <TableCell className="font-semibold text-gray-800 whitespace-nowrap">{inv.invoice_code}</TableCell>
                   <TableCell className="whitespace-nowrap">
                     <div className="flex flex-col">
-                      <span className="font-medium text-gray-700">{room}</span>
-                      {branch && <span className="text-[10px] text-gray-400">{branch}</span>}
+                      <span className="font-semibold text-gray-800">{room}</span>
+                      {branch && <span className="text-[10px] font-semibold text-purple-600">{branch}</span>}
                     </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
@@ -186,7 +190,7 @@ export default function InvoiceList({
                       >
                         <Printer size={16} />
                       </button>
-                      {role === "MANAGER" && (
+                      {(role === "ADMIN" || role === "MANAGER") && (
                         <button
                           type="button"
                           onClick={() => onToggleStatus(inv)}

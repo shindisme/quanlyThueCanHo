@@ -104,16 +104,17 @@ export default function StaffCreateModal({
             />
           </div>
 
-          <div className="col-span-12">
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tài khoản liên kết (Tự động cấp)</label>
-            <div className="premium-input rounded-md bg-gray-50 border border-gray-300 py-2.5 px-3 text-sm text-gray-650 font-semibold">
-              Tài khoản: <span className="text-primary-600">{nextUsername || "Đang ..."}</span> (Mật khẩu mặc định: 123123)
+          {(position === "Quản lý" || position === "Kỹ thuật") && (
+            <div className="col-span-12 animate-fade-in">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Tài khoản liên kết (Tự động cấp)</label>
+              <div className="premium-input rounded-md bg-gray-50 border border-gray-300 py-2.5 px-3 text-sm text-gray-655 font-semibold">
+                Tài khoản: <span className="text-primary-600">{nextUsername || "Đang ..."}</span> (Mật khẩu mặc định: 123123)
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
       )}
     </Modal>
   );
 }
-

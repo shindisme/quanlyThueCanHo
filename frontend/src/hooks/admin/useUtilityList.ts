@@ -15,7 +15,7 @@ import type { ApartmentData } from "../../services/apartmentService";
 export function useUtilityList() {
   const queryClient = useQueryClient();
   const { role, managedBuildingId } = useAuthStore();
-  const isWritable = role === "MANAGER" || role === "STAFF";
+  const isWritable = role === "ADMIN" || role === "MANAGER" || role === "STAFF";
 
   // Filters
   const [search, setSearch] = useState("");

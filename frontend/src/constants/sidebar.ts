@@ -133,8 +133,13 @@ const tenantMenu: SidebarGroup[] = [
 const staffMenu: SidebarGroup[] = [
   {
     items: [
-      { label: "Điện nước", path: "/manager/utilities", icon: Zap },
+      { label: "Căn hộ", path: "/manager/apartments", icon: Home },
+      { label: "Người thuê", path: "/manager/tenants", icon: Users },
+      { label: "Hợp đồng", path: "/manager/contracts", icon: FileText },
+      { label: "Hoá đơn", path: "/manager/invoices", icon: Receipt },
       { label: "Yêu cầu sửa chữa", path: "/manager/maintenance", icon: Wrench },
+      { label: "Lịch xem phòng", path: "/manager/schedules", icon: CalendarDays },
+      { label: "Điện nước", path: "/manager/utilities", icon: Zap },
       { label: "Hồ sơ cá nhân", path: "/manager/profile", icon: User },
     ],
   },

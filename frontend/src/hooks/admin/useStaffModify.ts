@@ -37,9 +37,13 @@ export function useStaffModify({
         throw new Error("Không tìm thấy thông tin nhân viên chỉnh sửa");
       }
       let initialPassword = "";
+      let createdAccount = false;
+      let deletedAccount = false;
 
-      // Nếu chưa có tài khoản, tự động tạo tài khoản theo thứ tự dựa trên chức vụ mới
-      if (!editItem.user_id) {
+      const isActor = position === "Quản lý" || position === "Kỹ thuật";
+
+      // Nếu chưa có tài khoản, tự động tạo tài khoản nếu chức vụ mới cần tài khoản
+      if (!editItem.user_id && isActor) {
         const isManager = position === "Quản lý";
         const roleToCreate = isManager ? "MANAGER" : "STAFF";
 
@@ -48,6 +52,17 @@ export function useStaffModify({
           role: roleToCreate,
         });
         initialPassword = (res as any).initial_password;
+        createdAccount = true;
+      }
+
+      // Nếu đã có tài khoản từ trước nhưng chức vụ mới không cần tài khoản
+      if (editItem.user_id && !isActor) {
+        try {
+          await authService.deleteUser(editItem.user_id);
+          deletedAccount = true;
+        } catch (e) {
+          console.error("Failed to delete user account on position update:", e);
+        }
       }
 
       await staffService.updateStaff(id, {
@@ -57,11 +72,13 @@ export function useStaffModify({
         building_id: buildingId ? Number(buildingId) : null,
       });
 
-      return { hasPriorUser: !!editItem.user_id, nextUsername, initialPassword };
+      return { hasPriorUser: !!editItem.user_id, nextUsername, initialPassword, createdAccount, deletedAccount };
     },
     onSuccess: (data) => {
-      if (!data.hasPriorUser) {
-        toast.success(`Đã tự động cấp tài khoản "${data.nextUsername}" và cập nhật thành công! Mật khẩu khởi tạo: ${data.initialPassword || "123456"}`, { duration: 10000 });
+      if (data.createdAccount) {
+        toast.success(`Đã tự động cấp tài khoản "${data.nextUsername}" cho vị trí mới! Mật khẩu: ${data.initialPassword || "123123"}`);
+      } else if (data.deletedAccount) {
+        toast.success("Đã cập nhật nhân viên và hủy tài khoản hệ thống.");
       } else {
         toast.success("Cập nhật thông tin nhân viên thành công!");
       }

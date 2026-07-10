@@ -91,7 +91,7 @@ export default function PaymentList({
                 </p>
               </div>
 
-              {pmt.status === "PENDING" && role === "MANAGER" && (
+              {pmt.status === "PENDING" && (role === "ADMIN" || role === "MANAGER") && (
                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
                   <button
                     type="button"
@@ -178,7 +178,7 @@ export default function PaymentList({
                   </TableCell>
                   <TableCell className="text-center">{getPaymentStatusBadge(pmt.status)}</TableCell>
                   <TableCell className="text-right whitespace-nowrap">
-                    {pmt.status === "PENDING" && role === "MANAGER" && (
+                    {pmt.status === "PENDING" && (role === "ADMIN" || role === "MANAGER") && (
                       <div className="flex items-center justify-end gap-1">
                         <button
                           type="button"

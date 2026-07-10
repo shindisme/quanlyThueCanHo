@@ -62,7 +62,8 @@ export default function ContractList({
           const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
           const code = `HD-${String(c.id).padStart(5, "0")}`;
           const tenantName = tenant ? tenant.full_name : "-";
-          const aptDisplay = apt ? formatApartmentDisplay(apt.room_number, apt.floor, role || undefined, bld?.branch_name) : `-`;
+          const roomName = apt ? formatApartmentDisplay(apt.room_number, apt.floor) : "-";
+          const branch = bld?.branch_name;
 
           return (
             <div key={c.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
@@ -78,7 +79,11 @@ export default function ContractList({
                   <span className="font-semibold text-gray-700">Người thuê:</span> {tenantName}
                 </p>
                 <p>
-                  <span className="font-semibold text-gray-700">Căn hộ:</span> <span className="text-primary-600 font-semibold">{aptDisplay}</span>
+                  <span className="font-semibold text-gray-700">Căn hộ:</span>{" "}
+                  <span className="font-bold text-gray-955">{roomName}</span>{" "}
+                  {role === "ADMIN" && branch && (
+                    <span className="text-xs font-semibold text-purple-600">({branch})</span>
+                  )}
                 </p>
                 <p>
                   <span className="font-semibold text-gray-700">Giá thuê:</span> <span className="font-bold text-gray-855">{formatCurrency(c.monthly_rent)} / tháng</span>
@@ -99,9 +104,9 @@ export default function ContractList({
                   onClick={() => setSelectedDocContract(c)}
                   className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-primary-600 hover:bg-primary-50 flex items-center gap-1 text-xs cursor-pointer"
                 >
-                  <FileText size={14} /> Tải/In HĐ
+                  <FileText size={14} /> In Hoá Đơn
                 </button>
-                {c.status === "ACTIVE" && role !== "TENANT" && (
+                {c.status === "ACTIVE" && (role === "ADMIN" || role === "MANAGER") && (
                   <>
                     <button
                       onClick={() => {
@@ -159,13 +164,21 @@ export default function ContractList({
               const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
               const code = `HD-${String(c.id).padStart(5, "0")}`;
               const tenantName = tenant ? tenant.full_name : "-";
-              const aptDisplay = apt ? formatApartmentDisplay(apt.room_number, apt.floor, role || undefined, bld?.branch_name) : `-`;
+              const roomName = apt ? formatApartmentDisplay(apt.room_number, apt.floor) : "-";
+              const branch = bld?.branch_name;
 
               return (
                 <TableRow key={c.id}>
                   <TableCell className="font-semibold text-gray-800">{code}</TableCell>
                   <TableCell className="text-gray-655 font-medium">{tenantName}</TableCell>
-                  <TableCell className="text-primary-600 font-semibold">{aptDisplay}</TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <div className="flex flex-col">
+                      <span className="font-semibold">{roomName}</span>
+                      {role === "ADMIN" && branch && (
+                        <span className="text-[10px] font-semibold text-purple-600">{branch}</span>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-gray-600">{formatCurrency(c.monthly_rent)}</TableCell>
                   <TableCell className="text-xs text-gray-500 font-medium">
                     {formatDate(c.start_date)} - {formatDate(c.end_date)}
@@ -187,7 +200,7 @@ export default function ContractList({
                       >
                         <FileText size={16} />
                       </button>
-                      {c.status === "ACTIVE" && role !== "TENANT" && (
+                      {c.status === "ACTIVE" && (role === "ADMIN" || role === "MANAGER") && (
                         <>
                           <button
                             onClick={() => {

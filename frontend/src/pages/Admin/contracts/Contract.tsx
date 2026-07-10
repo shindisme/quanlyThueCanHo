@@ -83,12 +83,19 @@ export default function Contract() {
         count={filteredContracts.length}
         iconColor="linear-gradient(135deg, #EF4444, #F87171)"
         actions={
-          <SearchInput
-            value={search}
-            onChange={(v) => { setSearch(v); setCurrentPage(1); }}
-            placeholder="Tìm kiếm theo mã, khách, phòng..."
-            className="w-64 sm:w-80 flex-1 min-w-0"
-          />
+          <>
+            <SearchInput
+              value={search}
+              onChange={(v) => { setSearch(v); setCurrentPage(1); }}
+              placeholder="Tìm kiếm theo mã, khách, phòng..."
+              className="w-64 sm:w-80 flex-1 min-w-0"
+            />
+            {(role === "ADMIN" || role === "MANAGER") && (
+              <Button onClick={() => createModal.onOpen()}>
+                Tạo hợp đồng
+              </Button>
+            )}
+          </>
         }
       />
 

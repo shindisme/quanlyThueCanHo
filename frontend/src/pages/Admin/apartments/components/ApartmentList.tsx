@@ -56,20 +56,19 @@ export default function ApartmentList({
       {/* View Card */}
       <div className="grid grid-cols-1 gap-4 md:hidden">
         {paginatedApartments.map((apt) => {
-          const aptDisplay = formatApartmentDisplay(
-            apt.room_number,
-            apt.floor,
-            role || undefined,
-            buildings.find((b) => b.id === apt.building_id)?.branch_name
-          );
+          const roomName = formatApartmentDisplay(apt.room_number, apt.floor);
+          const branch = buildings.find((b) => b.id === apt.building_id)?.branch_name;
           return (
             <div key={apt.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
                 <span
-                  className="font-semibold text-primary-600 cursor-pointer text-base hover:underline"
+                  className="font-semibold text-primary-600 cursor-pointer text-base hover:underline flex flex-col"
                   onClick={() => navigate(`/${role?.toLowerCase()}/apartments/${apt.id}`)}
                 >
-                  {aptDisplay}
+                  <span>{roomName}</span>
+                  {role === "ADMIN" && branch && (
+                    <span className="text-xs font-semibold text-purple-600">{branch}</span>
+                  )}
                 </span>
                 <div className="flex items-center gap-2">
                   {role === "ADMIN" && (
@@ -110,18 +109,22 @@ export default function ApartmentList({
                 >
                   <Eye size={14} /> Chi tiết
                 </button>
-                <button
-                  onClick={() => { setEditItem(apt); modifyModal.onOpen(); }}
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-primary-600 hover:bg-primary-50 flex items-center gap-1 text-xs cursor-pointer"
-                >
-                  <Pencil size={14} /> Sửa
-                </button>
-                <button
-                  onClick={() => setDeleteItem(apt)}
-                  className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1 text-xs cursor-pointer"
-                >
-                  <Trash2 size={14} /> Xóa
-                </button>
+                {role !== "STAFF" && (
+                  <>
+                    <button
+                      onClick={() => { setEditItem(apt); modifyModal.onOpen(); }}
+                      className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-primary-600 hover:bg-primary-50 flex items-center gap-1 text-xs cursor-pointer"
+                    >
+                      <Pencil size={14} /> Sửa
+                    </button>
+                    <button
+                      onClick={() => setDeleteItem(apt)}
+                      className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1 text-xs cursor-pointer"
+                    >
+                      <Trash2 size={14} /> Xóa
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           );
@@ -160,13 +163,17 @@ export default function ApartmentList({
           <TableBody>
             {paginatedApartments.map((apt) => (
               <TableRow key={apt.id}>
-                <TableCell className="font-semibold text-primary-600">
-                  {formatApartmentDisplay(
-                    apt.room_number,
-                    apt.floor,
-                    role || undefined,
-                    buildings.find((b) => b.id === apt.building_id)?.branch_name
-                  )}
+                <TableCell className="whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <span className="font-semibold">
+                      {formatApartmentDisplay(apt.room_number, apt.floor)}
+                    </span>
+                    {role === "ADMIN" && (
+                      <span className="text-[10px] font-semibold text-purple-600">
+                        {buildings.find((b) => b.id === apt.building_id)?.branch_name}
+                      </span>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell className="text-gray-600">{apt.area} m²</TableCell>
                 <TableCell className="text-gray-655">{apt.bedrooms}</TableCell>
@@ -193,14 +200,18 @@ export default function ApartmentList({
                       className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Xem chi tiết">
                       <Eye size={16} />
                     </button>
-                    <button onClick={() => { setEditItem(apt); modifyModal.onOpen(); }}
-                      className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Sửa">
-                      <Pencil size={16} />
-                    </button>
-                    <button onClick={() => { setDeleteItem(apt); }}
-                      className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer" title="Xóa">
-                      <Trash2 size={16} />
-                    </button>
+                    {role !== "STAFF" && (
+                      <>
+                        <button onClick={() => { setEditItem(apt); modifyModal.onOpen(); }}
+                          className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer" title="Sửa">
+                          <Pencil size={16} />
+                        </button>
+                        <button onClick={() => { setDeleteItem(apt); }}
+                          className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer" title="Xóa">
+                          <Trash2 size={16} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
