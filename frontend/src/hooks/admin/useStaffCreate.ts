@@ -33,10 +33,27 @@ export function useStaffCreate({ isOpen, onClose, onSuccess, positions }: UseSta
         position,
         building_id,
       });
-      return { username: res.user?.username || "" };
+      const isActor = position === "Quản lý" || position === "Kỹ thuật";
+      if (!isActor && res.user?.id) {
+        try {
+          await authService.deleteUser(res.user.id);
+        } catch (e) {
+          console.error("Failed to delete user account for non-actor staff:", e);
+        }
+      }
+      return {
+        username: res.user?.username || "",
+        userId: res.user?.id,
+        isActor,
+        fullName: res.full_name
+      };
     },
     onSuccess: (data) => {
-      toast.success(`Đã tự động cấp tài khoản "${data.username}" (mật khẩu mặc định: 123123) và thêm nhân viên thành công!`);
+      if (data.isActor) {
+        toast.success(`Đã tự động cấp tài khoản "${data.username}" và thêm nhân viên thành công!`);
+      } else {
+        toast.success(`Đã thêm nhân viên "${data.fullName}" thành công.`);
+      }
       setFullName("");
       setPhone("");
       setPosition(positions[0]);

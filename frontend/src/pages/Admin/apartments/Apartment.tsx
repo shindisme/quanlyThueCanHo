@@ -71,7 +71,9 @@ export default function Apartment() {
               placeholder="Tìm kiếm..."
               className="w-64 sm:w-80 flex-1 min-w-0"
             />
-            <Button onClick={createModal.onOpen}><Plus size={18} /> Thêm căn hộ</Button>
+            {role !== "STAFF" && (
+              <Button onClick={createModal.onOpen}><Plus size={18} /> Thêm căn hộ</Button>
+            )}
           </div>
         }
       />

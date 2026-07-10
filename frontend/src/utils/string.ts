@@ -17,10 +17,14 @@ export function formatApartmentDisplay(
 ): string {
   const cleanRoom = roomNumber.replace(/^P\.?/i, "").trim();
   const floorStr = String(floor);
-  const baseName =
-    cleanRoom.length >= floorStr.length + 2 && cleanRoom.startsWith(floorStr)
-      ? `P.${cleanRoom}`
-      : `P.${floorStr}${cleanRoom}`;
+  
+  let roomPart = cleanRoom;
+  if (cleanRoom.startsWith(floorStr) && cleanRoom.length > floorStr.length) {
+    roomPart = cleanRoom.slice(floorStr.length);
+  }
+  
+  const paddedRoom = roomPart.padStart(2, "0");
+  const baseName = `P.${floorStr}${paddedRoom}`;
 
   if (role === "ADMIN" && branchName) {
     return `${baseName} - ${branchName}`;

@@ -26,6 +26,7 @@ interface UtilityListProps {
   handleOpenModifyModal: (item: UtilityReadingData, viewOnly: boolean) => void;
   handleOpenDeleteModal: (item: UtilityReadingData) => void;
   filteredRentedApartmentsLength: number;
+  role: string | null;
 }
 
 export default function UtilityList({
@@ -43,6 +44,7 @@ export default function UtilityList({
   handleOpenModifyModal,
   handleOpenDeleteModal,
   filteredRentedApartmentsLength,
+  role,
 }: UtilityListProps) {
   return (
     <div className="space-y-4">
@@ -120,7 +122,7 @@ export default function UtilityList({
                     >
                       <Pencil size={14} /> {r ? "Sửa" : "Ghi mới"}
                     </button>
-                    {r && (
+                    {r && role !== "STAFF" && (
                       <button
                         onClick={() => handleOpenDeleteModal(r)}
                         className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1 text-xs cursor-pointer"
@@ -239,7 +241,7 @@ export default function UtilityList({
                           >
                             <Pencil size={15} />
                           </button>
-                          {r && (
+                          {r && role !== "STAFF" && (
                             <button
                               onClick={() => handleOpenDeleteModal(r)}
                               className="p-1.5 text-gray-400 hover:text-red-650 hover:bg-red-50 rounded-lg cursor-pointer"

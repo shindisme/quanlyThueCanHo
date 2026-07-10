@@ -179,6 +179,7 @@ export default function Utility() {
         handleOpenModifyModal={handleOpenModifyModal}
         handleOpenDeleteModal={handleOpenDeleteModal}
         filteredRentedApartmentsLength={filteredRentedApartments.length}
+        role={role}
       />
 
       {/* Pagination */}

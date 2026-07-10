@@ -119,12 +119,11 @@ export default function Schedule() {
           <div className="grid grid-cols-1 gap-4 md:hidden">
             {paginatedSchedules.map((s) => {
               const guestName = parseGuestName(s.guest_name).name;
-              const aptDisplay = s.apartment ? formatApartmentDisplay(
+              const roomName = s.apartment ? formatApartmentDisplay(
                 s.apartment.room_number,
-                s.apartment.floor,
-                role || undefined,
-                buildings.find((b) => b.id === s.apartment?.building_id)?.branch_name
-              ) : `#${s.apartment_id}`;
+                s.apartment.floor
+              ) : "";
+              const branch = buildings.find((b) => b.id === s.apartment?.building_id)?.branch_name;
               const formattedTime = new Date(s.schedule_time).toLocaleString("vi-VN");
 
               return (
@@ -138,7 +137,17 @@ export default function Schedule() {
 
                   <div className="text-sm text-gray-500 space-y-1">
                     <p>
-                      <span className="font-semibold text-gray-700">Căn hộ:</span> <span className="text-primary-600 font-semibold">{aptDisplay}</span>
+                      <span className="font-semibold text-gray-700">Căn hộ:</span>{" "}
+                      {s.apartment ? (
+                        <>
+                          <span className="font-bold text-gray-955">{roomName}</span>{" "}
+                          {role === "ADMIN" && branch && (
+                            <span className="text-xs font-semibold text-purple-600">({branch})</span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-gray-400">#{s.apartment_id}</span>
+                      )}
                     </p>
                     <p>
                       <span className="font-semibold text-gray-700">Số điện thoại:</span> {maskPhone(s.guest_phone)}
@@ -219,14 +228,16 @@ export default function Schedule() {
                     <TableCell className="font-semibold text-gray-800">{parseGuestName(s.guest_name).name}</TableCell>
                     <TableCell className="text-gray-655">
                       {s.apartment ? (
-                        <span className="font-medium text-primary-600">
-                          {formatApartmentDisplay(
-                            s.apartment.room_number,
-                            s.apartment.floor,
-                            role || undefined,
-                            buildings.find((b) => b.id === s.apartment?.building_id)?.branch_name
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-primary-600">
+                            {formatApartmentDisplay(s.apartment.room_number, s.apartment.floor)}
+                          </span>
+                          {role === "ADMIN" && (
+                            <span className="text-[10px] font-semibold text-purple-600">
+                              {buildings.find((b) => b.id === s.apartment?.building_id)?.branch_name}
+                            </span>
                           )}
-                        </span>
+                        </div>
                       ) : (
                         <span className="text-gray-400">#{s.apartment_id}</span>
                       )}
