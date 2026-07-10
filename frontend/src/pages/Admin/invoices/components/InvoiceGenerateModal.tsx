@@ -32,7 +32,7 @@ export default function InvoiceGenerateModal({
   const [buildingId, setBuildingId] = useState(
     role === "MANAGER" && managedBuildingId ? String(managedBuildingId) : ""
   );
-  
+
   // Set default due date to 15th of next month or 15 days from now
   const getDefaultDueDate = () => {
     const d = new Date();
@@ -42,11 +42,11 @@ export default function InvoiceGenerateModal({
   const [dueDate, setDueDate] = useState(getDefaultDueDate());
 
   // Pricing config defaults
-  const [managementFee, setManagementFee] = useState("50000"); // 50k VND flat
-  const [managementFeePerM2, setManagementFeePerM2] = useState("0");
-  const [electricUnitPrice, setElectricUnitPrice] = useState("3500"); // 3.5k VND / kWh
-  const [waterUnitPrice, setWaterUnitPrice] = useState("15000"); // 15k VND / m3
-  const [internetFee, setInternetFee] = useState("150000"); // 150k VND flat
+  const [managementFee] = useState("50000"); // 50k VND flat
+  const [managementFeePerM2] = useState("0");
+  const [electricUnitPrice] = useState("3500"); // 3.5k VND / kWh
+  const [waterUnitPrice] = useState("15000"); // 15k VND / m3
+  const [internetFee] = useState("150000"); // 150k VND flat
   const [notify, setNotify] = useState(true);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -90,7 +90,7 @@ export default function InvoiceGenerateModal({
               options={monthOptions}
               value={month}
               onChange={setMonth}
-              triggerClassName="h-[42px] rounded-none border-gray-300 px-4"
+              triggerClassName="h-[42px] rounded-xl border-gray-300 px-4"
               clearable={false}
               searchable={false}
             />
@@ -101,7 +101,7 @@ export default function InvoiceGenerateModal({
               options={yearOptions}
               value={year}
               onChange={setYear}
-              triggerClassName="h-[42px] rounded-none border-gray-300 px-4"
+              triggerClassName="h-[42px] rounded-xl border-gray-300 px-4"
               clearable={false}
               searchable={false}
             />
@@ -112,7 +112,7 @@ export default function InvoiceGenerateModal({
               options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
               value={buildingId}
               onChange={setBuildingId}
-              triggerClassName="h-[42px] rounded-none border-gray-300 px-4"
+              triggerClassName="h-[42px] rounded-lg border-gray-300 px-4"
               placeholder="Chọn tòa nhà"
               clearable={false}
               disabled={role === "MANAGER"}
@@ -127,7 +127,7 @@ export default function InvoiceGenerateModal({
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="rounded-none h-[42px]"
+              className="rounded-lg h-[42px]"
               required
             />
           </div>
@@ -143,63 +143,55 @@ export default function InvoiceGenerateModal({
             </label>
           </div>
         </div>
-
         <div className="border-t border-gray-200 pt-3">
-          <h5 className="font-bold text-gray-800 mb-3 text-xs uppercase tracking-wider">Cấu hình đơn giá dịch vụ</h5>
+          <div className="flex items-center justify-between mb-3">
+            <h5 className="font-bold text-gray-800 text-xs uppercase tracking-wider">Đơn giá dịch vụ áp dụng</h5>
+            <span className="text-[10px] bg-gray-100 text-gray-500 font-semibold px-2 py-0.5 rounded-full border border-gray-200">Cố định hệ thống</span>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label className="text-xs font-semibold text-gray-650 block mb-1 select-none">Đơn giá Điện (VND / kWh)</label>
+              <label className="text-xs font-semibold text-gray-400 block mb-1 select-none">Đơn giá Điện (VND / kWh)</label>
               <Input
-                type="number"
-                value={electricUnitPrice}
-                onChange={(e) => setElectricUnitPrice(e.target.value)}
-                className="rounded-none"
-                required
-                min={0}
+                type="text"
+                value="Theo biểu giá EVN"
+                disabled
+                className="rounded-lg bg-gray-50 text-gray-500 font-medium h-[42px]"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-650 block mb-1 select-none">Đơn giá Nước (VND / m³)</label>
+              <label className="text-xs font-semibold text-gray-400 block mb-1 select-none">Đơn giá Nước (VND / m³)</label>
               <Input
-                type="number"
-                value={waterUnitPrice}
-                onChange={(e) => setWaterUnitPrice(e.target.value)}
-                className="rounded-none"
-                required
-                min={0}
+                type="text"
+                value="25,000"
+                disabled
+                className="rounded-lg bg-gray-50 text-gray-500 font-medium h-[42px]"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-650 block mb-1 select-none">Phí Internet / Phòng (VND)</label>
+              <label className="text-xs font-semibold text-gray-400 block mb-1 select-none">Phí dịch vụ cố định (VND)</label>
               <Input
-                type="number"
-                value={internetFee}
-                onChange={(e) => setInternetFee(e.target.value)}
-                className="rounded-none"
-                required
-                min={0}
+                type="text"
+                value="300,000"
+                disabled
+                className="rounded-lg bg-gray-50 text-gray-500 font-medium h-[42px]"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-650 block mb-1 select-none">Phí quản lý cố định (VND)</label>
+              <label className="text-xs font-semibold text-gray-400 block mb-1 select-none">Phí quản lý cố định (VND)</label>
               <Input
-                type="number"
-                value={managementFee}
-                onChange={(e) => setManagementFee(e.target.value)}
-                className="rounded-none"
-                required
-                min={0}
+                type="text"
+                value="0"
+                disabled
+                className="rounded-lg bg-gray-50 text-gray-500 font-medium h-[42px]"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-650 block mb-1 select-none">Phí quản lý theo m² (VND / m²)</label>
+              <label className="text-xs font-semibold text-gray-400 block mb-1 select-none">Phí quản lý theo m² (VND / m²)</label>
               <Input
-                type="number"
-                value={managementFeePerM2}
-                onChange={(e) => setManagementFeePerM2(e.target.value)}
-                className="rounded-none"
-                required
-                min={0}
+                type="text"
+                value="10,000"
+                disabled
+                className="rounded-lg bg-gray-50 text-gray-500 font-medium h-[42px]"
               />
             </div>
           </div>
@@ -209,7 +201,7 @@ export default function InvoiceGenerateModal({
           <Button variant="outline" type="button" onClick={onClose} disabled={isGenerating} className="rounded-none">
             Hủy bỏ
           </Button>
-          <Button type="submit" disabled={isGenerating} className="rounded-none">
+          <Button type="submit" disabled={isGenerating} className="rounded-lg">
             {isGenerating ? "Đang tính tiền..." : "Xác nhận & Tạo hóa đơn"}
           </Button>
         </div>

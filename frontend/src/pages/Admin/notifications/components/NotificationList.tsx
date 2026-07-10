@@ -6,12 +6,14 @@ interface NotificationListProps {
   notifications: Notification[];
   markRead: (id: number, isRead: boolean) => void;
   deleteNotification: (id: number) => void;
+  onViewDetails?: (notif: Notification) => void;
 }
 
 export default function NotificationList({
   notifications,
   markRead,
   deleteNotification,
+  onViewDetails,
 }: NotificationListProps) {
   function getNotificationIcon(notifType: string) {
     if (notifType === "INVOICE")
@@ -54,7 +56,10 @@ export default function NotificationList({
           {getNotificationIcon(notif.type)}
 
           {/* Content info */}
-          <div className="flex-1 min-w-0">
+          <div
+            className="flex-1 min-w-0 cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => onViewDetails?.(notif)}
+          >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
               <h4
                 className={`text-sm leading-snug ${

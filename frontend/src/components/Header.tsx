@@ -412,7 +412,7 @@ export default function Header() {
                       onClick={() => {
                         if (!notif.is_read) markReadMutation.mutate(notif.id);
                         setNotifOpen(false);
-                        navigate(`/${role?.toLowerCase()}/notifications`);
+                        navigate(`/${role?.toLowerCase()}/notifications`, { state: { selectedNotifId: notif.id } });
                       }}
                       className={`w-full text-left px-5 py-3.5 flex gap-3 items-start hover:bg-gray-50/60 transition-all duration-150 cursor-pointer ${!notif.is_read ? "bg-indigo-50/15" : ""
                         }`}

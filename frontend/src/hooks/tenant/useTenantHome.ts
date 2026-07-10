@@ -60,33 +60,47 @@ export function useTenantHome() {
     ? contracts[0].tenant
     : null;
 
+  const { data: apartmentsRes, isLoading: loadingApartments } = useQuery({
+    queryKey: ["apartments"],
+    queryFn: () => apartmentService.getAllApartments({ limit: 100 }),
+    enabled: !!userId,
+  });
+
+  const { data: buildingsRes, isLoading: loadingBuildings } = useQuery({
+    queryKey: ["buildings"],
+    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
+    enabled: !!userId,
+  });
+
   const activeContract = contracts
     ? contracts.find((c) => c.status === "ACTIVE")
     : null;
 
-  const { data: apartmentsRes, isLoading: loadingApartments } = useQuery({
-    queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartments({ limit: 100 }),
-    enabled: !!activeContract,
-  });
+  const endedContract = contracts
+    ? contracts
+        .filter((c) => c.status === "ENDED")
+        .sort((a, b) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime())[0]
+    : null;
 
   const apartment = activeContract && apartmentsRes?.data
     ? apartmentsRes.data.find((a) => a.id === activeContract.apartment_id)
     : null;
 
-  const { data: buildingsRes, isLoading: loadingBuildings } = useQuery({
-    queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
-    enabled: !!apartment,
-  });
+  const endedApartment = endedContract && apartmentsRes?.data
+    ? apartmentsRes.data.find((a) => a.id === endedContract.apartment_id)
+    : null;
 
   const building = apartment && buildingsRes?.data
     ? buildingsRes.data.find((b) => b.id === apartment.building_id)
     : null;
 
+  const endedBuilding = endedApartment && buildingsRes?.data
+    ? buildingsRes.data.find((b) => b.id === endedApartment.building_id)
+    : null;
+
   const displayName = currentTenant?.full_name || email?.split("@")[0] || "Người thuê";
 
-  const isLoading = loadingOccupants || loadingContracts || (!!activeContract && loadingApartments) || (!!apartment && loadingBuildings);
+  const isLoading = loadingOccupants || loadingContracts || loadingApartments || loadingBuildings;
 
   return {
     email,
@@ -95,6 +109,9 @@ export function useTenantHome() {
     activeContract,
     apartment,
     building,
+    endedContract,
+    endedApartment,
+    endedBuilding,
     isLoading,
   };
 }

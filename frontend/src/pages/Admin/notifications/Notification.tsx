@@ -1,4 +1,6 @@
+import { useState, useEffect } from "react";
 import { Bell, Mail, CheckSquare, Plus } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import PageHeader from "../../../components/PageHeader";
 import SearchInput from "../../../components/ui/SearchInput";
 import Combobox from "../../../components/ui/Combobox";
@@ -8,6 +10,7 @@ import Modal from "../../../components/ui/Modal";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import NotificationList from "./components/NotificationList";
+import NotificationDetailModal from "./components/NotificationDetailModal";
 import { useNotificationCenter } from "../../../hooks/common/useNotificationCenter";
 import { useNotificationSend } from "../../../hooks/admin/useNotificationSend";
 
@@ -32,8 +35,27 @@ export default function Notification() {
     setCurrentPage,
     totalPages,
   } = useNotificationCenter();
+  const [selectedNotif, setSelectedNotif] = useState<any>(null);
+  const location = useLocation();
 
-  // Send hook for Admin/Manager
+  useEffect(() => {
+    if (location.state?.selectedNotifId && notifications.length > 0) {
+      const found = notifications.find((n) => n.id === location.state.selectedNotifId);
+      if (found) {
+        setSelectedNotif(found);
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, notifications]);
+
+  useEffect(() => {
+    if (selectedNotif && !selectedNotif.is_read) {
+      markRead(selectedNotif.id, true);
+      selectedNotif.is_read = true;
+    }
+  }, [selectedNotif, markRead]);
+
+  // Send hook for Admin
   const {
     buildings,
     apartments,
@@ -131,6 +153,7 @@ export default function Notification() {
             notifications={notifications}
             markRead={markRead}
             deleteNotification={deleteNotification}
+            onViewDetails={(notif) => setSelectedNotif(notif)}
           />
 
           {/* Pagination */}
@@ -268,7 +291,7 @@ export default function Notification() {
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Nhập chi tiết nội dung thông báo phát sóng..."
+              placeholder="Nhập chi tiết nội dung thông báo.."
               required
               className="w-full min-h-[120px] p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-600 text-sm transition-all"
               disabled={isSending}
@@ -285,6 +308,13 @@ export default function Notification() {
           </div>
         </form>
       </Modal>
+
+      {/* Modal Chi tiết Thông báo */}
+      <NotificationDetailModal
+        isOpen={selectedNotif !== null}
+        onClose={() => setSelectedNotif(null)}
+        notification={selectedNotif}
+      />
     </div>
   );
 }

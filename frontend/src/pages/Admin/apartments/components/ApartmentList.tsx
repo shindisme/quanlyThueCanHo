@@ -66,7 +66,7 @@ export default function ApartmentList({
                   onClick={() => navigate(`/${role?.toLowerCase()}/apartments/${apt.id}`)}
                 >
                   <span>{roomName}</span>
-                  {role === "ADMIN" && branch && (
+                  {(role === "ADMIN" || role === "MANAGER") && branch && (
                     <span className="text-xs font-semibold text-purple-600">{branch}</span>
                   )}
                 </span>
@@ -168,7 +168,7 @@ export default function ApartmentList({
                     <span className="font-semibold">
                       {formatApartmentDisplay(apt.room_number, apt.floor)}
                     </span>
-                    {role === "ADMIN" && (
+                    {(role === "ADMIN" || role === "MANAGER") && (
                       <span className="text-[10px] font-semibold text-purple-600">
                         {buildings.find((b) => b.id === apt.building_id)?.branch_name}
                       </span>

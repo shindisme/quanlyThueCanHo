@@ -42,10 +42,10 @@ export default function InvoiceList({
   function getRoomDisplay(inv: Invoice) {
     const apt = inv.contract?.apartment;
     if (!apt) return { room: "Chưa rõ", branch: "" };
-    
+
     const roomNum = formatApartmentDisplay(apt.room_number, apt.floor);
     const branchName = apt.building?.branch_name || "";
-    if (role === "ADMIN" && branchName) {
+    if (branchName) {
       return { room: roomNum, branch: branchName };
     }
     return { room: roomNum, branch: "" };
@@ -71,9 +71,11 @@ export default function InvoiceList({
                 <p>
                   <span className="font-semibold text-gray-700">Phòng:</span> <span className="font-bold text-gray-900">{room}</span> {branch && <span className="text-xs font-semibold text-purple-600">({branch})</span>}
                 </p>
-                <p>
-                  <span className="font-semibold text-gray-700">Người thuê:</span> {inv.contract?.tenant?.full_name} ({inv.contract?.tenant?.phone})
-                </p>
+                {role !== "TENANT" && (
+                  <p>
+                    <span className="font-semibold text-gray-700">Người thuê:</span> {inv.contract?.tenant?.full_name} ({inv.contract?.tenant?.phone})
+                  </p>
+                )}
                 <p>
                   <span className="font-semibold text-gray-700">Kỳ thanh toán:</span> {billingMonthYear}
                 </p>
@@ -104,8 +106,8 @@ export default function InvoiceList({
                     type="button"
                     onClick={() => onToggleStatus(inv)}
                     className={`px-3 py-1.5 rounded-lg border flex items-center gap-1 text-xs cursor-pointer ${inv.status === "PAID"
-                        ? "border-red-200 text-red-650 hover:bg-red-50"
-                        : "border-green-200 text-green-650 hover:bg-green-55/20"
+                      ? "border-red-200 text-red-650 hover:bg-red-50"
+                      : "border-green-200 text-green-650 hover:bg-green-55/20"
                       }`}
                   >
                     {inv.status === "PAID" ? <XCircle size={14} /> : <CheckCircle size={14} />}
@@ -118,7 +120,7 @@ export default function InvoiceList({
         })}
       </div>
 
-      {/* View List (Desktop) */}
+      {/* View List*/}
       <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-md rounded-none">
         <Table>
           <TableHeader>
@@ -129,9 +131,11 @@ export default function InvoiceList({
               <TableHead onClick={() => requestSort("contract.apartment.room_number")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 Phòng {getSortIcon("contract.apartment.room_number")}
               </TableHead>
-              <TableHead onClick={() => requestSort("tenant.full_name")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Người thuê {getSortIcon("tenant.full_name")}
-              </TableHead>
+              {role !== "TENANT" && (
+                <TableHead onClick={() => requestSort("tenant.full_name")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                  Người thuê {getSortIcon("tenant.full_name")}
+                </TableHead>
+              )}
               <TableHead onClick={() => requestSort("created_at")} className="text-center cursor-pointer select-none hover:bg-gray-100 transition-colors">
                 Tháng/Năm {getSortIcon("created_at")}
               </TableHead>
@@ -162,12 +166,14 @@ export default function InvoiceList({
                       {branch && <span className="text-[10px] font-semibold text-purple-600">{branch}</span>}
                     </div>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <div className="flex flex-col">
-                      <span className="font-medium text-gray-800">{inv.contract?.tenant?.full_name}</span>
-                      <span className="text-xs text-gray-400">{inv.contract?.tenant?.phone}</span>
-                    </div>
-                  </TableCell>
+                  {role !== "TENANT" && (
+                    <TableCell className="whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-800">{inv.contract?.tenant?.full_name}</span>
+                        <span className="text-xs text-gray-400">{inv.contract?.tenant?.phone}</span>
+                      </div>
+                    </TableCell>
+                  )}
                   <TableCell className="text-center whitespace-nowrap">{billingMonthYear}</TableCell>
                   <TableCell className="text-center text-gray-600 whitespace-nowrap">{formatDate(inv.due_date)}</TableCell>
                   <TableCell className="text-right font-bold text-gray-900 whitespace-nowrap">

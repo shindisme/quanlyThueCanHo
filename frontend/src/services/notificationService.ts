@@ -28,8 +28,10 @@ export async function getAllNotifications(params?: NotificationFilters): Promise
     pagination?: NotificationPagination;
   }
   const res = await api.get<NotificationsResponse>("/notifications", { params });
+  const rawData = res.data.data || [];
+  const translatedData = rawData.map(translateNotification);
   return {
-    data: res.data.data || [],
+    data: translatedData,
     pagination: res.data.meta?.pagination || res.data.pagination
   };
 }
@@ -66,7 +68,7 @@ export async function sendInvoiceNotifications(payload: SendInvoiceNotifications
 
 export async function markNotificationRead(id: number, is_read: boolean = true): Promise<Notification> {
   const res = await api.patch<{ data: Notification }>(`/notifications/${id}/read`, { is_read });
-  return res.data.data;
+  return translateNotification(res.data.data);
 }
 
 export async function markAllNotificationsRead(): Promise<{ success: boolean; message: string }> {

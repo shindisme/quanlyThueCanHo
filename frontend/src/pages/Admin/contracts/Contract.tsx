@@ -15,6 +15,7 @@ import ContractList from "./components/ContractList";
 import ContractDetailModal from "./components/ContractDetailModal";
 import ContractDocModal from "./components/ContractDocModal";
 import ContractCreateModal from "./components/ContractCreateModal";
+import CheckoutModal from "./components/CheckoutModal";
 
 export default function Contract() {
   const {
@@ -200,15 +201,11 @@ export default function Contract() {
         )}
       </Modal>
 
-      <ConfirmDialog
+      <CheckoutModal
         isOpen={!!terminateItem}
         onClose={() => setTerminateItem(null)}
-        onConfirm={handleTerminateContract}
-        title="Hủy hợp đồng"
-        message={`Bạn có chắc chắn muốn KẾT THÚC hợp đồng ${terminateItem ? `HD-${String(terminateItem.id).padStart(5, "0")}` : ""} không?.`}
-        variant="danger"
-        confirmText="Xác nhận hủy"
-        cancelText="Hủy bỏ"
+        contract={terminateItem}
+        onConfirmCheckout={handleTerminateContract}
         isLoading={terminating}
       />
 
