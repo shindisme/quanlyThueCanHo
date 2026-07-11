@@ -5,19 +5,14 @@ import PageHeader from "../../../components/PageHeader";
 import Modal from "../../../components/ui/Modal";
 import Button from "../../../components/ui/Button";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
-import { useDebounce } from "../../../hooks/common/useDebounce";
-import { useTenantContracts } from "../../../hooks/tenant/useTenantContracts";
+import { useDebounce } from "../../../hooks/useDebounce";
+import { useTenantContracts } from "./hooks/useTenantContracts";
 import { formatCurrency, numberToVietnameseWords } from "../../../utils/currency";
 import { formatDate } from "../../../utils/date";
 import { formatApartmentDisplay, removeVietnameseTones } from "../../../utils/string";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "../../../components/ui/Table";
+import DataTable, { type Column } from "../../../components/ui/DataTable";
+import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS, type ContractStatus } from "../../../constants/enums";
+import type { RentalContract } from "../../../types";
 import { useState } from "react";
 import { createMaintenanceRequest } from "../../../services/maintenanceService";
 import { toast } from "sonner";
@@ -58,11 +53,108 @@ export default function MyContracts() {
     return removeVietnameseTones(code).includes(term) || removeVietnameseTones(room).includes(term);
   });
 
-  function getStatusBadge(status: string) {
-    if (status === "ACTIVE") return <Badge variant="success">Hiệu lực</Badge>;
-    if (status === "ENDED") return <Badge variant="gray">Đã kết thúc</Badge>;
-    return <Badge variant="danger">Thanh lý</Badge>;
+  function getStatusBadge(status: ContractStatus) {
+    const label = CONTRACT_STATUS_LABELS[status] || status;
+    const variant = CONTRACT_STATUS_COLORS[status] || "gray";
+    return <Badge variant={variant as any}>{label}</Badge>;
   }
+
+  const columns: Column<RentalContract>[] = [
+    {
+      key: "id",
+      label: "Mã hợp đồng",
+      render: (c) => <span className="font-semibold text-gray-800">HD-{String(c.id).padStart(5, "0")}</span>
+    },
+    {
+      key: "apartment",
+      label: "Căn hộ",
+      render: (c) => {
+        const apt = apartments.find((a) => a.id === c.apartment_id);
+        const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
+        return (
+          <div className="flex flex-col">
+            <span className="font-medium text-gray-800">
+              {formatApartmentDisplay(apt?.room_number || "", apt?.floor || 0)}
+            </span>
+            {bld?.branch_name && (
+              <span className="text-xs font-semibold text-purple-600">{bld.branch_name}</span>
+            )}
+          </div>
+        );
+      }
+    },
+    {
+      key: "start_date",
+      label: "Bắt đầu",
+      render: (c) => <span className="text-gray-600">{formatDate(c.start_date)}</span>
+    },
+    {
+      key: "end_date",
+      label: "Kết thúc",
+      render: (c) => <span className="text-gray-600">{formatDate(c.end_date)}</span>
+    },
+    {
+      key: "monthly_rent",
+      label: "Tiền thuê/tháng",
+      className: "text-right",
+      render: (c) => <span className="font-medium text-gray-800">{formatCurrency(c.monthly_rent)}</span>
+    },
+    {
+      key: "deposit_amount",
+      label: "Tiền cọc",
+      className: "text-right",
+      render: (c) => <span className="font-medium text-gray-800">{formatCurrency(c.deposit_amount)}</span>
+    },
+    {
+      key: "status",
+      label: "Trạng thái",
+      className: "text-center",
+      render: (c) => getStatusBadge(c.status as ContractStatus)
+    },
+    {
+      key: "actions",
+      label: "Chức năng",
+      className: "text-right",
+      render: (c) => (
+        <div className="flex items-center justify-end gap-1">
+          <button
+            type="button"
+            onClick={() => setViewContractDoc(c)}
+            className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer transition-colors"
+            title="Xem hợp đồng"
+          >
+            <FileText size={16} />
+          </button>
+          {c.status === "ENDED" && (
+            <button
+              type="button"
+              onClick={() => setReviewContractItem(c)}
+              className="p-2 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 cursor-pointer transition-colors"
+              title="Đánh giá"
+            >
+              <Star size={16} />
+            </button>
+          )}
+          {c.status === "ACTIVE" && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedRequestContract(c);
+                const defaultDate = new Date();
+                defaultDate.setDate(defaultDate.getDate() + 30);
+                setCheckoutDate(defaultDate.toISOString().split("T")[0]);
+                setCheckoutReason("");
+              }}
+              className="p-2 rounded-lg text-gray-400 hover:text-red-650 hover:bg-red-50 cursor-pointer transition-colors"
+              title="Yêu cầu trả phòng"
+            >
+              <XCircle size={16} />
+            </button>
+          )}
+        </div>
+      )
+    }
+  ];
 
   if (isLoading) {
     return (
@@ -85,103 +177,8 @@ export default function MyContracts() {
 
       <SearchInput value={search} onChange={setSearch} placeholder="Tìm theo mã hợp đồng hoặc số phòng..." className="max-w-md" />
 
-      <div className="border border-gray-200 bg-white rounded-none shadow-xl overflow-x-auto mt-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Mã hợp đồng</TableHead>
-              <TableHead>Căn hộ</TableHead>
-              <TableHead>Bắt đầu</TableHead>
-              <TableHead>Kết thúc</TableHead>
-              <TableHead className="text-right">Tiền thuê/tháng</TableHead>
-              <TableHead className="text-right">Tiền cọc</TableHead>
-              <TableHead className="text-center">Trạng thái</TableHead>
-              <TableHead className="text-right">Chức năng</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((c) => {
-              const apt = apartments.find((a) => a.id === c.apartment_id);
-              const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
-              const code = `HD-${String(c.id).padStart(5, "0")}`;
-
-              return (
-                <TableRow key={c.id}>
-                  <TableCell className="font-semibold text-gray-800 whitespace-nowrap">
-                    {code}
-                  </TableCell>
-                  <TableCell className="font-medium text-gray-800 whitespace-nowrap">
-                    <div className="flex flex-col">
-                      <span>{formatApartmentDisplay(apt?.room_number || "", apt?.floor || 0)}</span>
-                      {bld?.branch_name && (
-                        <span className="text-xs font-semibold text-purple-600">{bld.branch_name}</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-gray-600 whitespace-nowrap">
-                    {formatDate(c.start_date)}
-                  </TableCell>
-                  <TableCell className="text-gray-600 whitespace-nowrap">
-                    {formatDate(c.end_date)}
-                  </TableCell>
-                  <TableCell className="text-right font-medium text-gray-800 whitespace-nowrap">
-                    {formatCurrency(c.monthly_rent)}
-                  </TableCell>
-                  <TableCell className="text-right font-medium text-gray-800 whitespace-nowrap">
-                    {formatCurrency(c.deposit_amount)}
-                  </TableCell>
-                  <TableCell className="text-center whitespace-nowrap">
-                    {getStatusBadge(c.status)}
-                  </TableCell>
-                  <TableCell className="text-right whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setViewContractDoc(c)}
-                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer transition-colors"
-                        title="Xem hợp đồng"
-                      >
-                        <FileText size={16} />
-                      </button>
-                      {c.status === "ENDED" && (
-                        <button
-                          type="button"
-                          onClick={() => setReviewContractItem(c)}
-                          className="p-2 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 cursor-pointer transition-colors"
-                          title="Đánh giá"
-                        >
-                          <Star size={16} />
-                        </button>
-                      )}
-                      {c.status === "ACTIVE" && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedRequestContract(c);
-                            const defaultDate = new Date();
-                            defaultDate.setDate(defaultDate.getDate() + 30);
-                            setCheckoutDate(defaultDate.toISOString().split("T")[0]);
-                            setCheckoutReason("");
-                          }}
-                          className="p-2 rounded-lg text-gray-400 hover:text-red-650 hover:bg-red-50 cursor-pointer transition-colors"
-                          title="Yêu cầu trả phòng"
-                        >
-                          <XCircle size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-
-        {filtered.length === 0 && (
-          <div className="p-8 text-center text-gray-400 bg-white border-t border-gray-100">
-            Không tìm thấy hợp đồng nào.
-          </div>
-        )}
+      <div className="mt-6">
+        <DataTable columns={columns} data={filtered} emptyMessage="Không tìm thấy hợp đồng nào." />
       </div>
 
       <Modal

@@ -9,7 +9,7 @@ import BuildingCreateModal from "./components/BuildingCreateModal";
 import BuildingModifyModal from "./components/BuildingModifyModal";
 import BuildingDeleteModal from "./components/BuildingDeleteModal";
 import BuildingList from "./components/BuildingList";
-import { useBuildingList } from "../../../hooks/admin/useBuildingList";
+import { useBuildingList } from "./hooks/useBuildingList";
 
 export default function BuildingsPage() {
   const {
@@ -29,8 +29,6 @@ export default function BuildingsPage() {
     totalPages,
     filtered,
     sortedBuildings,
-    requestSort,
-    getSortIcon,
     handleDelete,
     fetchBuildings,
   } = useBuildingList();
@@ -85,8 +83,6 @@ export default function BuildingsPage() {
           setEditItem={setEditItem}
           setShowModifyModal={modifyModal.onOpen}
           setDeleteItem={setDeleteItem}
-          requestSort={requestSort}
-          getSortIcon={getSortIcon}
         />
       )}
 

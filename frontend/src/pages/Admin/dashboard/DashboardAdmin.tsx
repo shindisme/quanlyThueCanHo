@@ -6,7 +6,7 @@ import {
   AreaChart, Area, PieChart, Pie, Cell,
 } from "recharts";
 import { useState } from "react";
-import { useAdminDashboard } from "../../../hooks/admin/useAdminDashboard";
+import { useAdminDashboard } from "./hooks/useAdminDashboard";
 import Combobox from "../../../components/ui/Combobox";
 import { toast } from "sonner";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";

@@ -7,7 +7,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, PieChart, Pie, Cell
 } from "recharts";
-import { useManagerDashboard } from "../../../hooks/manager/useManagerDashboard";
+import { useManagerDashboard } from "./hooks/useManagerDashboard";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
 function StatCard({ icon: Icon, label, value, trend, trendValue, iconColor, iconBg, variant = "default" }: {

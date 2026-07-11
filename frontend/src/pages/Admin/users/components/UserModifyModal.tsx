@@ -2,7 +2,7 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Combobox from "../../../../components/ui/Combobox";
 import Input from "../../../../components/ui/Input";
-import { useUserModify } from "../../../../hooks/admin/useUserModify";
+import { useUserModify } from "../hooks/useUserModify";
 import type { UserData } from "../../../../services/authService";
 
 interface UserModifyModalProps {

@@ -5,7 +5,7 @@ import Combobox from "../../../components/ui/Combobox";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import DefaultPagination from "../../../components/ui/Pagination";
 import PaymentList from "./components/PaymentList";
-import { usePaymentList } from "../../../hooks/admin/usePaymentList";
+import { usePaymentList } from "./hooks/usePaymentList";
 
 export default function PaymentsPage() {
   const {
@@ -28,9 +28,7 @@ export default function PaymentsPage() {
     handleApprove,
     handleReject,
 
-    // Sorting & Pagination
-    requestSort,
-    getSortIcon,
+    // Pagination
     currentPage,
     setCurrentPage,
     totalPages,
@@ -117,8 +115,6 @@ export default function PaymentsPage() {
             isUpdating={isUpdating}
             handleApprove={handleApprove}
             handleReject={handleReject}
-            requestSort={requestSort}
-            getSortIcon={getSortIcon}
           />
 
           {/* Pagination */}

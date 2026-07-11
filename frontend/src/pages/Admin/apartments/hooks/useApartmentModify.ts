@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import * as apartmentService from "../../services/apartmentService";
-import type { ApartmentData } from "../../services/apartmentService";
-import type { BuildingData } from "../../services/buildingService";
-import { apartmentSchema } from "../../schemas/apartment.schema";
-import { isValidImageFile } from "../../utils/file";
+import * as apartmentService from "../../../../services/apartmentService";
+import type { ApartmentData } from "../../../../services/apartmentService";
+import type { BuildingData } from "../../../../services/buildingService";
+import { apartmentSchema } from "../../../../schemas/apartment.schema";
+import { isValidImageFile } from "../../../../utils/file";
 
 interface UseApartmentModifyProps {
   isOpen: boolean;

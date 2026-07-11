@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { bookViewing, getViewingAvailability } from "../../services/scheduleService";
-import type { ApartmentData } from "../../services/apartmentService";
-import { scheduleSchema } from "../../schemas/schedule.schema";
+import { bookViewing, getViewingAvailability } from "../../../services/scheduleService";
+import type { ApartmentData } from "../../../services/apartmentService";
+import { scheduleSchema } from "../../../schemas/schedule.schema";
 
 interface UseApartmentBookingProps {
   apartment: ApartmentData | null;

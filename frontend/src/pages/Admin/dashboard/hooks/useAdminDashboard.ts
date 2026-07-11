@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAuthStore } from "../../stores/auth.store";
-import * as buildingService from "../../services/buildingService";
-import * as apartmentService from "../../services/apartmentService";
-import * as contractService from "../../services/contractService";
-import * as invoiceService from "../../services/invoiceService";
+import { useAuthStore } from "../../../../stores/auth.store";
+import * as buildingService from "../../../../services/buildingService";
+import * as apartmentService from "../../../../services/apartmentService";
+import * as contractService from "../../../../services/contractService";
+import * as invoiceService from "../../../../services/invoiceService";
 
 export function useAdminDashboard() {
   const { email } = useAuthStore();

@@ -6,7 +6,7 @@ import Pagination from "../../../components/ui/Pagination";
 import Combobox from "../../../components/ui/Combobox";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
-import { useApartmentList } from "../../../hooks/admin/useApartmentList";
+import { useApartmentList } from "./hooks/useApartmentList";
 import ApartmentList from "./components/ApartmentList";
 import ApartmentCreateModal from "./components/ApartmentCreateModal";
 import ApartmentModifyModal from "./components/ApartmentModifyModal";
@@ -41,8 +41,6 @@ export default function ApartmentsPage() {
     totalPages,
     paginatedApartments,
     handleDelete,
-    requestSort,
-    getSortIcon,
   } = useApartmentList();
 
   if (loading) {
@@ -146,8 +144,6 @@ export default function ApartmentsPage() {
           setEditItem={setEditItem}
           modifyModal={modifyModal}
           setDeleteItem={setDeleteItem}
-          requestSort={requestSort}
-          getSortIcon={getSortIcon}
         />
       )}
 

@@ -3,10 +3,10 @@ import Button from "../../../components/ui/Button";
 import PageHeader from "../../../components/PageHeader";
 import Modal from "../../../components/ui/Modal";
 import Input from "../../../components/ui/Input";
-import { Calendar } from "../../../components/ui/Calendar";
+import { DatePicker } from "../../../components/ui/DatePicker";
 import { formatCurrency } from "../../../utils/currency";
 import { formatDate } from "../../../utils/date";
-import { useProfile, type Occupant } from "../../../hooks/common/useProfile";
+import { useProfile, type Occupant } from "./hooks/useProfile";
 
 export default function ProfilePage() {
   const {
@@ -294,7 +294,7 @@ export default function ProfilePage() {
               />
               <div className="w-full">
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày sinh</label>
-                <Calendar
+                <DatePicker
                   value={occupantForm.dob || null}
                   onChange={(date) => {
                     if (!date) {

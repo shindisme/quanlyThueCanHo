@@ -7,7 +7,7 @@ import Button from "../../components/ui/Button";
 import Badge from "../../components/ui/Badge";
 import Modal from "../../components/ui/Modal";
 import Input from "../../components/ui/Input";
-import { Calendar } from "../../components/ui/Calendar";
+import { DatePicker } from "../../components/ui/DatePicker";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../constants/enums";
 import { formatCurrency } from "../../utils/currency";
 import { formatApartmentDisplay } from "../../utils/string";
@@ -19,7 +19,7 @@ import type { BuildingData } from "../../services/buildingService";
 import { getApartmentReviews } from "../../services/reviewService";
 import type { ReviewData } from "../../services/reviewService";
 import type { ApartmentImage } from "../../types";
-import { useApartmentBooking } from "../../hooks/guest/useApartmentBooking";
+import { useApartmentBooking } from "./hooks/useApartmentBooking";
 
 const timeSlots = [
   "09h00",
@@ -369,7 +369,7 @@ export default function GuestApartmentDetail() {
 
             <div className="col-span-12">
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày muốn xem *</label>
-              <Calendar
+              <DatePicker
                 value={selectedDate || null}
                 onChange={(date) => {
                   if (!date) {

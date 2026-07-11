@@ -1,13 +1,13 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import * as paymentService from "../../services/paymentService";
-import * as buildingService from "../../services/buildingService";
-import { useDebounce } from "../common/useDebounce";
-import { usePagination } from "../common/usePagination";
-import { useSort } from "../common/useSort";
-import { useUserRole } from "../common/useUserRole";
-import type { Payment } from "../../types";
+import * as paymentService from "../../../../services/paymentService";
+import * as buildingService from "../../../../services/buildingService";
+import { useDebounce } from "../../../../hooks/useDebounce";
+import { usePagination } from "../../../../hooks/usePagination";
+import { useSort } from "../../../../hooks/useSort";
+import { useUserRole } from "../../../../hooks/useUserRole";
+import type { Payment } from "../../../../types";
 
 export function usePaymentList() {
   const queryClient = useQueryClient();

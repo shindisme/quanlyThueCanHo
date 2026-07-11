@@ -1,19 +1,19 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import * as authService from "../../services/authService";
-import type { UserData } from "../../services/authService";
-import * as tenantService from "../../services/tenantService";
-import * as staffService from "../../services/staffService";
-import * as contractService from "../../services/contractService";
-import * as apartmentService from "../../services/apartmentService";
-import * as buildingService from "../../services/buildingService";
-import { useSort } from "../common/useSort";
-import { useDebounce } from "../common/useDebounce";
-import { useOnOff } from "../common/useOnOff";
-import { useUserRole } from "../common/useUserRole";
-import { usePagination } from "../common/usePagination";
-import { removeVietnameseTones } from "../../utils/string";
+import * as authService from "../../../../services/authService";
+import type { UserData } from "../../../../services/authService";
+import * as tenantService from "../../../../services/tenantService";
+import * as staffService from "../../../../services/staffService";
+import * as contractService from "../../../../services/contractService";
+import * as apartmentService from "../../../../services/apartmentService";
+import * as buildingService from "../../../../services/buildingService";
+import { useSort } from "../../../../hooks/useSort";
+import { useDebounce } from "../../../../hooks/useDebounce";
+import { useOnOff } from "../../../../hooks/useOnOff";
+import { useUserRole } from "../../../../hooks/useUserRole";
+import { usePagination } from "../../../../hooks/usePagination";
+import { removeVietnameseTones } from "../../../../utils/string";
 
 export function useUserList() {
   const queryClient = useQueryClient();

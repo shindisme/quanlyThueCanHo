@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { cn } from "../../lib/utils";
 import EmptyState from "./EmptyState";
 import LoadingSpinner from "./LoadingSpinner";
-import { useSort } from "../../hooks/common/useSort";
+import { useSort } from "../../hooks/useSort";
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import {
   Table,

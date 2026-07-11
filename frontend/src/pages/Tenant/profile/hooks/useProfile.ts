@@ -1,15 +1,15 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "../../stores/auth.store";
-import { changePassword } from "../../services/authService";
-import * as contractService from "../../services/contractService";
-import * as apartmentService from "../../services/apartmentService";
-import * as buildingService from "../../services/buildingService";
-import * as staffService from "../../services/staffService";
-import * as tenantService from "../../services/tenantService";
-import { changePasswordSchema, occupantSchema } from "../../schemas/user.schema";
-import type { TenantOccupant } from "../../types";
+import { useAuthStore } from "../../../../stores/auth.store";
+import { changePassword } from "../../../../services/authService";
+import * as contractService from "../../../../services/contractService";
+import * as apartmentService from "../../../../services/apartmentService";
+import * as buildingService from "../../../../services/buildingService";
+import * as staffService from "../../../../services/staffService";
+import * as tenantService from "../../../../services/tenantService";
+import { changePasswordSchema, occupantSchema } from "../../../../schemas/user.schema";
+import type { TenantOccupant } from "../../../../types";
 
 export interface Occupant {
   id: number;

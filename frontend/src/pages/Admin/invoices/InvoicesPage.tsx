@@ -5,7 +5,7 @@ import Combobox from "../../../components/ui/Combobox";
 import Button from "../../../components/ui/Button";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import DefaultPagination from "../../../components/ui/Pagination";
-import { useInvoiceList } from "../../../hooks/admin/useInvoiceList";
+import { useInvoiceList } from "./hooks/useInvoiceList";
 import InvoiceTable from "./components/InvoiceList";
 import InvoiceDetailModal from "./components/InvoiceDetailModal";
 import InvoiceGenerateModal from "./components/InvoiceGenerateModal";
@@ -29,10 +29,6 @@ export default function InvoicesPage() {
     setMonthFilter,
     yearFilter,
     setYearFilter,
-
-    // Sorting
-    requestSort,
-    getSortIcon,
 
     // Pagination
     currentPage,
@@ -188,8 +184,6 @@ export default function InvoicesPage() {
             onOpenDetails={handleOpenDetails}
             onToggleStatus={handleToggleStatus}
             onPrint={printInvoiceHelper}
-            getSortIcon={getSortIcon}
-            requestSort={requestSort}
           />
 
           {/* Pagination */}

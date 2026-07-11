@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import * as staffService from "../../services/staffService";
-import * as buildingService from "../../services/buildingService";
-import type { BuildingData } from "../../services/buildingService";
-import * as authService from "../../services/authService";
-import type { UserData } from "../../services/authService";
-import type { Staff } from "../../types";
-import { staffSchema } from "../../schemas/staff.schema";
+import * as staffService from "../../../../services/staffService";
+import * as buildingService from "../../../../services/buildingService";
+import type { BuildingData } from "../../../../services/buildingService";
+import * as authService from "../../../../services/authService";
+import type { UserData } from "../../../../services/authService";
+import type { Staff } from "../../../../types";
+import { staffSchema } from "../../../../schemas/staff.schema";
 
 interface UseStaffModifyProps {
   isOpen: boolean;

@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAuthStore } from "../../stores/auth.store";
-import * as contractService from "../../services/contractService";
-import * as apartmentService from "../../services/apartmentService";
-import * as invoiceService from "../../services/invoiceService";
+import { useAuthStore } from "../../../../stores/auth.store";
+import * as contractService from "../../../../services/contractService";
+import * as apartmentService from "../../../../services/apartmentService";
+import * as invoiceService from "../../../../services/invoiceService";
 
 function parseJwt(token: string) {
   try {

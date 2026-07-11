@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import * as tenantService from "../../services/tenantService";
-import { tenantSchema } from "../../schemas/tenant.schema";
-import type { Tenant } from "../../types";
+import * as tenantService from "../../../../services/tenantService";
+import { tenantSchema } from "../../../../schemas/tenant.schema";
+import type { Tenant } from "../../../../types";
 
 interface UseTenantCreateProps {
   onClose: () => void;
@@ -22,7 +22,7 @@ export function useTenantCreate({ onClose, onSuccess }: UseTenantCreateProps) {
     mutationFn: async ({ payload, username, finalEmail, finalPhone, cleanCitizenId }: {
       payload: Partial<Tenant>;
       username: string;
-      finalEmail: string;
+      finalEmail: string | null;
       finalPhone: string | null;
       cleanCitizenId: string;
     }) => {

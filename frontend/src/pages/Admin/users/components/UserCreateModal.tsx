@@ -2,7 +2,7 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Combobox from "../../../../components/ui/Combobox";
 import Input from "../../../../components/ui/Input";
-import { useUserCreate } from "../../../../hooks/admin/useUserCreate";
+import { useUserCreate } from "../hooks/useUserCreate";
 
 interface UserCreateModalProps {
   isOpen: boolean;

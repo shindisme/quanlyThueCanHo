@@ -2,12 +2,12 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "react-router-dom";
 import { toast } from "sonner";
-import * as paymentService from "../../services/paymentService";
-import * as invoiceService from "../../services/invoiceService";
-import { useOnOff } from "../common/useOnOff";
-import { usePagination } from "../common/usePagination";
-import { useSort } from "../common/useSort";
-import type { Payment } from "../../types";
+import * as paymentService from "../../../../services/paymentService";
+import * as invoiceService from "../../../../services/invoiceService";
+import { useOnOff } from "../../../../hooks/useOnOff";
+import { usePagination } from "../../../../hooks/usePagination";
+import { useSort } from "../../../../hooks/useSort";
+import type { Payment } from "../../../../types";
 
 export function useTenantPayments() {
   const queryClient = useQueryClient();

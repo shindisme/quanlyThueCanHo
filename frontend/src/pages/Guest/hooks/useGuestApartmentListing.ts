@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import * as buildingService from "../../services/buildingService";
-import * as apartmentService from "../../services/apartmentService";
-import { useDebounce } from "../common/useDebounce";
-import { removeVietnameseTones } from "../../utils/string";
+import * as buildingService from "../../../services/buildingService";
+import * as apartmentService from "../../../services/apartmentService";
+import { useDebounce } from "../../../hooks/useDebounce";
+import { removeVietnameseTones } from "../../../utils/string";
 import {
   findNearestBuilding,
   geocodeSearchText,
   getLocationSuggestionMessage,
-} from "../../utils/locationSearch";
+} from "../../../utils/locationSearch";
 
 type LocationSuggestion = {
   search: string;

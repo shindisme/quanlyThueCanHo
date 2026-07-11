@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import * as apartmentService from "../../services/apartmentService";
-import * as buildingService from "../../services/buildingService";
-import type { ApartmentData } from "../../services/apartmentService";
-import { useDebounce } from "../common/useDebounce";
-import { useOnOff } from "../common/useOnOff";
-import { usePagination } from "../common/usePagination";
-import { useUserRole } from "../common/useUserRole";
-import { useSort } from "../common/useSort";
-import { removeVietnameseTones } from "../../utils/string";
+import * as apartmentService from "../../../../services/apartmentService";
+import * as buildingService from "../../../../services/buildingService";
+import type { ApartmentData } from "../../../../services/apartmentService";
+import { useDebounce } from "../../../../hooks/useDebounce";
+import { useOnOff } from "../../../../hooks/useOnOff";
+import { usePagination } from "../../../../hooks/usePagination";
+import { useUserRole } from "../../../../hooks/useUserRole";
+import { useSort } from "../../../../hooks/useSort";
+import { removeVietnameseTones } from "../../../../utils/string";
 
 export function useApartmentList() {
   const queryClient = useQueryClient();

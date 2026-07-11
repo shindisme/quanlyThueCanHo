@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import * as scheduleService from "../../services/scheduleService";
-import type { ScheduleData } from "../../services/scheduleService";
-import * as buildingService from "../../services/buildingService";
-import { useDebounce } from "../common/useDebounce";
-import { usePagination } from "../common/usePagination";
-import { useUserRole } from "../common/useUserRole";
-import { useSort } from "../common/useSort";
-import { removeVietnameseTones, parseGuestName } from "../../utils/string";
+import * as scheduleService from "../../../../services/scheduleService";
+import type { ScheduleData } from "../../../../services/scheduleService";
+import * as buildingService from "../../../../services/buildingService";
+import { useDebounce } from "../../../../hooks/useDebounce";
+import { usePagination } from "../../../../hooks/usePagination";
+import { useUserRole } from "../../../../hooks/useUserRole";
+import { useSort } from "../../../../hooks/useSort";
+import { removeVietnameseTones, parseGuestName } from "../../../../utils/string";
 
 export function useScheduleList() {
   const queryClient = useQueryClient();

@@ -1,9 +1,9 @@
 import { useParams } from "react-router-dom";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import * as buildingService from "../../services/buildingService";
-import * as apartmentService from "../../services/apartmentService";
-import { useAuthStore } from "../../stores/auth.store";
+import * as buildingService from "../../../../services/buildingService";
+import * as apartmentService from "../../../../services/apartmentService";
+import { useAuthStore } from "../../../../stores/auth.store";
 
 export function useBuildingDetail() {
   const { id } = useParams();

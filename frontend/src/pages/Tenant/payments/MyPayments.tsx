@@ -6,7 +6,7 @@ import Modal from "../../../components/ui/Modal";
 import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import Badge, { type BadgeVariant } from "../../../components/ui/Badge";
-import { useTenantPayments } from "../../../hooks/tenant/useTenantPayments";
+import { useTenantPayments } from "./hooks/useTenantPayments";
 import { formatDate } from "../../../utils/date";
 
 export default function MyPayments() {

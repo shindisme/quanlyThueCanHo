@@ -3,7 +3,7 @@ import {
   Calendar, CreditCard, ArrowUpRight, Wrench, Users, Zap, Star
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useTenantHome } from "../../../hooks/tenant/useTenantHome";
+import { useTenantHome } from "./hooks/useTenantHome";
 import { formatCurrency } from "../../../utils/currency";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import Modal from "../../../components/ui/Modal";

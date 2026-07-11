@@ -4,9 +4,9 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { loginSchema } from "../../schemas/auth.schema"
-import { useAuthStore } from "../../stores/auth.store"
-import { login } from "../../services/authService"
+import { loginSchema } from "../schemas/auth.schema"
+import { useAuthStore } from "../stores/auth.store"
+import { login } from "../services/authService"
 
 interface LoginForm {
   email: string
@@ -72,8 +72,8 @@ export function useLogin() {
 
       if ((result.role === "MANAGER" || result.role === "STAFF") && userId) {
         try {
-          const { getAllStaff } = await import("../../services/staffService")
-          const { getAllBuildings } = await import("../../services/buildingService")
+          const { getAllStaff } = await import("../services/staffService")
+          const { getAllBuildings } = await import("../services/buildingService")
 
           const staffRes = await getAllStaff()
           const currentStaff = staffRes.data.find((s) => s.user_id === userId)

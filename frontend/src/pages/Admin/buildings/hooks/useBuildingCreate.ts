@@ -3,11 +3,11 @@ import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { buildingSchema, type BuildingFormValues } from "../../schemas/building.schema"
-import * as buildingService from "../../services/buildingService"
-import type { Staff } from "../../types"
+import { buildingSchema, type BuildingFormValues } from "../../../../schemas/building.schema"
+import * as buildingService from "../../../../services/buildingService"
+import type { Staff } from "../../../../types"
 
-import { isValidImageFile } from "../../utils/file"
+import { isValidImageFile } from "../../../../utils/file"
 
 interface UseBuildingCreateProps {
   isOpen: boolean
@@ -60,7 +60,7 @@ export function useBuildingCreate({ isOpen, onClose, onSuccess }: UseBuildingCre
   async function fetchManagers() {
     try {
       setLoading(true);
-      const { getAllStaff } = await import("../../services/staffService")
+      const { getAllStaff } = await import("../../../../services/staffService")
       const staffRes = await getAllStaff()
       setStaffList(staffRes.data)
     } catch {

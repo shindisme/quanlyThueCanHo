@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import * as buildingService from "../../services/buildingService";
-import * as apartmentService from "../../services/apartmentService";
+import * as buildingService from "../../../services/buildingService";
+import * as apartmentService from "../../../services/apartmentService";
 
 export function useHomePage() {
   const [searchQuery, setSearchQuery] = useState("");

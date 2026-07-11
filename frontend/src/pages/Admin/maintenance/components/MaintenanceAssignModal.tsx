@@ -1,7 +1,7 @@
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Combobox from "../../../../components/ui/Combobox";
-import Calendar from "../../../../components/ui/Calendar";
+import DatePicker from "../../../../components/ui/DatePicker";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 
 interface MaintenanceAssignModalProps {
@@ -54,7 +54,7 @@ export default function MaintenanceAssignModal({
 
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-gray-650 mb-1 select-none">Thời gian hẹn sửa chữa</label>
-            <Calendar
+            <DatePicker
               showTime={true}
               value={scheduledAt ? new Date(scheduledAt) : null}
               onChange={(date) => {

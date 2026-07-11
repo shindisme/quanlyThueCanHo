@@ -1,11 +1,11 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import * as invoiceService from "../../services/invoiceService";
-import { useDebounce } from "../common/useDebounce";
-import { useOnOff } from "../common/useOnOff";
-import { usePagination } from "../common/usePagination";
-import { useSort } from "../common/useSort";
-import type { Invoice } from "../../types";
+import * as invoiceService from "../../../../services/invoiceService";
+import { useDebounce } from "../../../../hooks/useDebounce";
+import { useOnOff } from "../../../../hooks/useOnOff";
+import { usePagination } from "../../../../hooks/usePagination";
+import { useSort } from "../../../../hooks/useSort";
+import type { Invoice } from "../../../../types";
 
 export function useTenantInvoices() {
   const [search, setSearch] = useState("");

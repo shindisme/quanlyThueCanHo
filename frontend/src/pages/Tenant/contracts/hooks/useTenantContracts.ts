@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import * as buildingService from "../../services/buildingService";
-import * as apartmentService from "../../services/apartmentService";
-import * as contractService from "../../services/contractService";
-import { createReview } from "../../services/reviewService";
+import * as buildingService from "../../../../services/buildingService";
+import * as apartmentService from "../../../../services/apartmentService";
+import * as contractService from "../../../../services/contractService";
+import { createReview } from "../../../../services/reviewService";
 import { toast } from "sonner";
-import type { RentalContract } from "../../types";
+import type { RentalContract } from "../../../../types";
 
 export function useTenantContracts() {
   const queryClient = useQueryClient();

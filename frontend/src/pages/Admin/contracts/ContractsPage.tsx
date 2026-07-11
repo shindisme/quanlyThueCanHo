@@ -5,12 +5,12 @@ import SearchInput from "../../../components/ui/SearchInput";
 import Pagination from "../../../components/ui/Pagination";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import Modal from "../../../components/ui/Modal";
-import { Calendar } from "../../../components/ui/Calendar";
+import { DatePicker } from "../../../components/ui/DatePicker";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import { toast } from "sonner";
 import { useAuthStore } from "../../../stores/auth.store";
 
-import { useContractList } from "../../../hooks/admin/useContractList";
+import { useContractList } from "./hooks/useContractList";
 import ContractList from "./components/ContractList";
 import ContractDetailModal from "./components/ContractDetailModal";
 import ContractDocModal from "./components/ContractDocModal";
@@ -46,8 +46,6 @@ export default function Contract() {
     initialFloor,
     setInitialFloor,
     filteredContracts,
-    requestSort,
-    getSortIcon,
     currentPage,
     setCurrentPage,
     totalPages,
@@ -123,8 +121,6 @@ export default function Contract() {
             setSelectedExtendContract={setSelectedExtendContract}
             setExtendEndDate={setExtendEndDate}
             setTerminateItem={setTerminateItem}
-            requestSort={requestSort}
-            getSortIcon={getSortIcon}
             onRenewContract={(c) => {
               const apt = apartments.find((a) => a.id === c.apartment_id);
               setInitialTenantId(c.tenant_id);
@@ -172,7 +168,7 @@ export default function Contract() {
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-700 block">Chọn ngày kết thúc mới</label>
-              <Calendar
+              <DatePicker
                 value={extendEndDate || null}
                 onChange={(date: Date | null) => {
                   if (!date) {

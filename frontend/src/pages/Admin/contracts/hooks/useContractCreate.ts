@@ -3,12 +3,12 @@ import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { contractSchema, type ContractFormValues } from "../../schemas/contract.schema"
-import * as apartmentService from "../../services/apartmentService"
-import * as tenantService from "../../services/tenantService"
-import { createContract } from "../../services/contractService"
-import type { ApartmentData } from "../../services/apartmentService"
-import type { RentalContract } from "../../types"
+import { contractSchema, type ContractFormValues } from "../../../../schemas/contract.schema"
+import * as apartmentService from "../../../../services/apartmentService"
+import * as tenantService from "../../../../services/tenantService"
+import { createContract } from "../../../../services/contractService"
+import type { ApartmentData } from "../../../../services/apartmentService"
+import type { RentalContract } from "../../../../types"
 
 interface UseContractCreateProps {
   isOpen: boolean

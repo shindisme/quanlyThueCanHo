@@ -1,12 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "../../stores/auth.store";
+import { useAuthStore } from "../../../../stores/auth.store";
 import { toast } from "sonner";
-import * as staffService from "../../services/staffService";
-import * as buildingService from "../../services/buildingService";
-import type { Staff } from "../../types";
-import { useDebounce } from "../common/useDebounce";
-import { removeVietnameseTones } from "../../utils/string";
+import * as staffService from "../../../../services/staffService";
+import * as buildingService from "../../../../services/buildingService";
+import type { Staff } from "../../../../types";
+import { useDebounce } from "../../../../hooks/useDebounce";
+import { useOnOff } from "../../../../hooks/useOnOff";
+import { usePagination } from "../../../../hooks/usePagination";
+import { removeVietnameseTones } from "../../../../utils/string";
 
 export function useStaffList() {
   const queryClient = useQueryClient();
@@ -16,11 +18,10 @@ export function useStaffList() {
   const debouncedSearch = useDebounce(search, 300);
   const [positionFilter, setPositionFilter] = useState("");
   const [buildingFilter, setBuildingFilter] = useState<number | "">("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
 
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showModifyModal, setShowModifyModal] = useState(false);
+  const createModal = useOnOff();
+  const modifyModal = useOnOff();
+
   const [editItem, setEditItem] = useState<Staff | null>(null);
   const [deleteItem, setDeleteItem] = useState<Staff | null>(null);
   const [viewItem, setViewItem] = useState<Staff | null>(null);
@@ -63,15 +64,12 @@ export function useStaffList() {
     return matchSearch && matchPosition && matchBuilding;
   });
 
-  const totalPages = Math.ceil(filtered.length / pageSize);
+  const pagination = usePagination({
+    totalItems: filtered.length,
+    initialPageSize: 10,
+  });
 
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const paginated = filtered.slice(pagination.startIdx, pagination.endIdx);
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => staffService.deleteStaff(id),
@@ -108,13 +106,12 @@ export function useStaffList() {
     setPositionFilter,
     buildingFilter,
     setBuildingFilter,
-    currentPage,
-    setCurrentPage,
-    pageSize,
-    showCreateModal,
-    setShowCreateModal,
-    showModifyModal,
-    setShowModifyModal,
+    currentPage: pagination.currentPage,
+    setCurrentPage: pagination.setCurrentPage,
+    totalPages: pagination.totalPages,
+    pageSize: pagination.pageSize,
+    createModal,
+    modifyModal,
     editItem,
     setEditItem,
     deleteItem,
@@ -122,7 +119,6 @@ export function useStaffList() {
     viewItem,
     setViewItem,
     filtered,
-    totalPages,
     paginated,
     handleDelete,
     getBuildingName,

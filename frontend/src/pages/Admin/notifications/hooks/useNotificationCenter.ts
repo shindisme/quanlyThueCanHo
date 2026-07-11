@@ -1,12 +1,12 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import * as notificationService from "../../services/notificationService";
-import { useDebounce } from "./useDebounce";
-import { usePagination } from "./usePagination";
-import { useSort } from "./useSort";
-import { useUserRole } from "./useUserRole";
-import type { Notification } from "../../types";
+import * as notificationService from "../../../../services/notificationService";
+import { useDebounce } from "../../../../hooks/useDebounce";
+import { usePagination } from "../../../../hooks/usePagination";
+import { useSort } from "../../../../hooks/useSort";
+import { useUserRole } from "../../../../hooks/useUserRole";
+import type { Notification } from "../../../../types";
 
 export function useNotificationCenter() {
   const queryClient = useQueryClient();

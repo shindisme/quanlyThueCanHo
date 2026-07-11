@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import * as tenantService from "../../services/tenantService";
-import type { Tenant } from "../../types";
-import { tenantSchema } from "../../schemas/tenant.schema";
+import * as tenantService from "../../../../services/tenantService";
+import type { Tenant } from "../../../../types";
+import { tenantSchema } from "../../../../schemas/tenant.schema";
 
 interface UseTenantModifyProps {
   isOpen: boolean;

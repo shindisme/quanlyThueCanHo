@@ -1,13 +1,13 @@
 import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "../../stores/auth.store";
-import * as contractService from "../../services/contractService";
-import * as apartmentService from "../../services/apartmentService";
-import * as buildingService from "../../services/buildingService";
-import * as tenantService from "../../services/tenantService";
-import { createReview } from "../../services/reviewService";
+import { useAuthStore } from "../../../../stores/auth.store";
+import * as contractService from "../../../../services/contractService";
+import * as apartmentService from "../../../../services/apartmentService";
+import * as buildingService from "../../../../services/buildingService";
+import * as tenantService from "../../../../services/tenantService";
+import { createReview } from "../../../../services/reviewService";
 import { toast } from "sonner";
-import type { TenantOccupant } from "../../types";
+import type { TenantOccupant } from "../../../../types";
 
 function parseJwt(token: string) {
   try {

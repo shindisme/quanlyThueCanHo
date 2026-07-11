@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import * as notificationService from "../../services/notificationService";
-import * as buildingService from "../../services/buildingService";
-import * as apartmentService from "../../services/apartmentService";
-import { useOnOff } from "../common/useOnOff";
-import { useUserRole } from "../common/useUserRole";
+import * as notificationService from "../../../../services/notificationService";
+import * as buildingService from "../../../../services/buildingService";
+import * as apartmentService from "../../../../services/apartmentService";
+import { useOnOff } from "../../../../hooks/useOnOff";
+import { useUserRole } from "../../../../hooks/useUserRole";
 
 export function useNotificationSend() {
   const queryClient = useQueryClient();

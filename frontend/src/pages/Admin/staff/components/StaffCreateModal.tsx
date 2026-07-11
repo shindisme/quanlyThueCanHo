@@ -3,7 +3,7 @@ import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
 import Combobox from "../../../../components/ui/Combobox";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
-import { useStaffCreate } from "../../../../hooks/admin/useStaffCreate";
+import { useStaffCreate } from "../hooks/useStaffCreate";
 
 interface StaffCreateModalProps {
   isOpen: boolean;

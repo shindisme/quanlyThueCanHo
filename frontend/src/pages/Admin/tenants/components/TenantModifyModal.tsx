@@ -1,9 +1,9 @@
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
-import { Calendar } from "../../../../components/ui/Calendar";
+import { DatePicker } from "../../../../components/ui/DatePicker";
 import type { Tenant } from "../../../../types";
-import { useTenantModify } from "../../../../hooks/admin/useTenantModify";
+import { useTenantModify } from "../hooks/useTenantModify";
 
 interface TenantModifyModalProps {
   isOpen: boolean;
@@ -58,7 +58,7 @@ export default function TenantModifyModal({
           </div>
           <div className="col-span-12 sm:col-span-6">
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày sinh</label>
-            <Calendar
+            <DatePicker
               value={dob || null}
               onChange={(date) => {
                 if (!date) {

@@ -7,7 +7,7 @@ import DataTable, { type Column } from "../../../components/ui/DataTable";
 import Pagination from "../../../components/ui/Pagination";
 import type { Tenant as TenantType } from "../../../types";
 import { maskPhone, maskCCCD, formatApartmentDisplay } from "../../../utils/string";
-import { useTenantList } from "../../../hooks/admin/useTenantList";
+import { useTenantList } from "./hooks/useTenantList";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
 import TenantCreateModal from "./components/TenantCreateModal";
@@ -24,8 +24,6 @@ export default function TenantsPage() {
     currentPage,
     setCurrentPage,
     totalPages,
-    startIdx,
-    endIdx,
     createModal,
     modifyModal,
     editItem,
@@ -35,13 +33,12 @@ export default function TenantsPage() {
     viewItem,
     setViewItem,
     filtered,
+    paginated,
     loadData,
     handleDelete,
     loading,
     role,
   } = useTenantList();
-
-  const paginated = filtered.slice(startIdx, endIdx);
 
   if (loading) {
     return (

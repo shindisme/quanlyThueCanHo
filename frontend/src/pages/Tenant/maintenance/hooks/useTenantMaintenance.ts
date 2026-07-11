@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useAuthStore } from "../../stores/auth.store";
-import * as maintenanceService from "../../services/maintenanceService";
-import * as contractService from "../../services/contractService";
-import { createMaintenanceSchema } from "../../schemas/maintenance.schema";
+import { useAuthStore } from "../../../../stores/auth.store";
+import * as maintenanceService from "../../../../services/maintenanceService";
+import * as contractService from "../../../../services/contractService";
+import { createMaintenanceSchema } from "../../../../schemas/maintenance.schema";
+import { useOnOff } from "../../../../hooks/useOnOff";
 
 export function useTenantMaintenance() {
   const { token, role } = useAuthStore();
   const queryClient = useQueryClient();
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const createModal = useOnOff();
   const [search, setSearch] = useState("");
 
   // Form states
@@ -56,7 +57,7 @@ export function useTenantMaintenance() {
       setTitle("");
       setDescription("");
       setPriority("MEDIUM");
-      setShowCreateModal(false);
+      createModal.onClose();
       queryClient.invalidateQueries({ queryKey: ["maintenanceRequests"] });
     },
     onError: (error: unknown) => {
@@ -111,8 +112,7 @@ export function useTenantMaintenance() {
     myRequests,
     search,
     setSearch,
-    showCreateModal,
-    setShowCreateModal,
+    createModal,
     title,
     setTitle,
     description,

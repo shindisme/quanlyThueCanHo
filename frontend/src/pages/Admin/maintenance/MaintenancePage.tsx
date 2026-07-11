@@ -5,12 +5,12 @@ import PageHeader from "../../../components/PageHeader";
 import Combobox from "../../../components/ui/Combobox";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import { removeVietnameseTones } from "../../../utils/string";
-import { useAdminMaintenance } from "../../../hooks/admin/useAdminMaintenance";
+import { useAdminMaintenance } from "./hooks/useAdminMaintenance";
 import MaintenanceList from "./components/MaintenanceList";
 import MaintenanceAssignModal from "./components/MaintenanceAssignModal";
 import MaintenanceUnableModal from "./components/MaintenanceUnableModal";
 import MaintenanceDetailModal from "./components/MaintenanceDetailModal";
-import { useSort } from "../../../hooks/common/useSort";
+import { useSort } from "../../../hooks/useSort";
 
 export default function MaintenancePage() {
   const {
@@ -68,7 +68,7 @@ export default function MaintenancePage() {
     return titleNorm.includes(term) || tenantName.includes(term) || roomNorm.includes(term);
   });
 
-  const { items: sortedRequests, requestSort, getSortIcon } = useSort(filteredRequests);
+  const { items: sortedRequests } = useSort(filteredRequests);
 
   return loading ? (
     <div className="flex flex-col items-center justify-center min-h-[400px]">
@@ -155,8 +155,6 @@ export default function MaintenancePage() {
           onOpenAssign={handleOpenAssign}
           onOpenUnable={handleOpenUnable}
           onComplete={handleComplete}
-          requestSort={requestSort}
-          getSortIcon={getSortIcon}
         />
       )}
 

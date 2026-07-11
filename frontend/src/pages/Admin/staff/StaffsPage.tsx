@@ -14,7 +14,7 @@ import StaffCreateModal from "./components/StaffCreateModal";
 import StaffModifyModal from "./components/StaffModifyModal";
 import StaffDeleteModal from "./components/StaffDeleteModal";
 import StaffDetailModal from "./components/StaffDetailModal";
-import { useStaffList } from "../../../hooks/admin/useStaffList";
+import { useStaffList } from "./hooks/useStaffList";
 
 export default function StaffsPage() {
   const {
@@ -32,10 +32,8 @@ export default function StaffsPage() {
     setCurrentPage,
     totalPages,
     paginated,
-    showCreateModal,
-    setShowCreateModal,
-    showModifyModal,
-    setShowModifyModal,
+    createModal,
+    modifyModal,
     editItem,
     setEditItem,
     deleteItem,
@@ -122,7 +120,7 @@ export default function StaffsPage() {
           <button
             onClick={() => {
               setEditItem(s);
-              setShowModifyModal(true);
+              modifyModal.onOpen();
             }}
             className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
             title="Chỉnh sửa"
@@ -162,7 +160,7 @@ export default function StaffsPage() {
               placeholder="Tìm theo họ tên hoặc SĐT..."
               className="w-64 sm:w-80"
             />
-            <Button onClick={() => setShowCreateModal(true)}>
+            <Button onClick={createModal.onOpen}>
               <Plus size={18} /> Thêm nhân viên
             </Button>
           </div>
@@ -211,15 +209,15 @@ export default function StaffsPage() {
 
       {/* Modals */}
       <StaffCreateModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        isOpen={createModal.isOpen}
+        onClose={createModal.onClose}
         onSuccess={loadData}
       />
 
       <StaffModifyModal
-        isOpen={showModifyModal}
+        isOpen={modifyModal.isOpen}
         onClose={() => {
-          setShowModifyModal(false);
+          modifyModal.onClose();
           setEditItem(null);
         }}
         onSuccess={loadData}

@@ -11,8 +11,8 @@ import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import NotificationList from "./components/NotificationList";
 import NotificationDetailModal from "./components/NotificationDetailModal";
-import { useNotificationCenter } from "../../../hooks/common/useNotificationCenter";
-import { useNotificationSend } from "../../../hooks/admin/useNotificationSend";
+import { useNotificationCenter } from "./hooks/useNotificationCenter";
+import { useNotificationSend } from "./hooks/useNotificationSend";
 
 export default function NotificationsPage() {
   const {
@@ -73,7 +73,7 @@ export default function NotificationsPage() {
     selectedApartmentIds,
     handleToggleApartment,
     broadcastModal,
-    handleBroadcastSubmit,
+    handleSendNotificationSubmit,
     isSending,
   } = useNotificationSend();
 
@@ -169,7 +169,7 @@ export default function NotificationsPage() {
 
       {/* Broadcast Modal for Operators */}
       <Modal isOpen={broadcastModal.isOpen} onClose={broadcastModal.onClose} title="Phát Thông Báo Ban Quản Trị">
-        <form onSubmit={handleBroadcastSubmit} className="space-y-4 text-sm font-sans">
+        <form onSubmit={handleSendNotificationSubmit} className="space-y-4 text-sm font-sans">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-gray-650 block mb-1">Tòa nhà / Chi nhánh</label>

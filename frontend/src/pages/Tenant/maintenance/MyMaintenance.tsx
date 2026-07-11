@@ -9,7 +9,8 @@ import Combobox from "../../../components/ui/Combobox";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import { formatDate } from "../../../utils/date";
 import { removeVietnameseTones } from "../../../utils/string";
-import { useTenantMaintenance } from "../../../hooks/tenant/useTenantMaintenance";
+import { useTenantMaintenance } from "./hooks/useTenantMaintenance";
+import { REQUEST_STATUS_LABELS, REQUEST_STATUS_COLORS, PRIORITY_LABELS, PRIORITY_COLORS, type RequestStatus, type Priority } from "../../../constants/enums";
 import {
   Table,
   TableHeader,
@@ -24,8 +25,7 @@ export default function MyMaintenance() {
     myRequests,
     search,
     setSearch,
-    showCreateModal,
-    setShowCreateModal,
+    createModal,
     title,
     setTitle,
     description,
@@ -46,18 +46,16 @@ export default function MyMaintenance() {
     return titleNorm.includes(term) || descNorm.includes(term);
   });
 
-  function getStatusBadge(status: string) {
-    if (status === "PENDING") return <Badge variant="warning">Chờ xử lý</Badge>;
-    if (status === "PROCESSING") return <Badge variant="info">Đang sửa chữa</Badge>;
-    if (status === "DONE") return <Badge variant="success">Hoàn thành</Badge>;
-    if (status === "NEEDS_RESCHEDULE") return <Badge variant="danger">Hẹn lại lịch</Badge>;
-    return <Badge variant="gray">Đã hủy</Badge>;
+  function getStatusBadge(status: RequestStatus) {
+    const label = REQUEST_STATUS_LABELS[status] || status;
+    const variant = REQUEST_STATUS_COLORS[status] || "gray";
+    return <Badge variant={variant as any}>{label}</Badge>;
   }
 
-  function getPriorityBadge(priority: string) {
-    if (priority === "HIGH") return <Badge variant="danger">Khẩn cấp</Badge>;
-    if (priority === "MEDIUM") return <Badge variant="warning">Trung bình</Badge>;
-    return <Badge variant="gray">Thấp</Badge>;
+  function getPriorityBadge(priority: Priority) {
+    const label = PRIORITY_LABELS[priority] || priority;
+    const variant = PRIORITY_COLORS[priority] || "gray";
+    return <Badge variant={variant as any}>{label}</Badge>;
   }
 
   if (loading) {
@@ -78,7 +76,7 @@ export default function MyMaintenance() {
         count={myRequests.length}
         iconColor="linear-gradient(135deg, #EC4899, #F472B6)"
         actions={
-          <Button onClick={() => setShowCreateModal(true)} disabled={loading || !activeContract}>
+          <Button onClick={createModal.onOpen} disabled={loading || !activeContract}>
             <Plus size={18} /> Gửi yêu cầu mới
           </Button>
         }
@@ -195,7 +193,7 @@ export default function MyMaintenance() {
       )}
 
       {/* Modal gửi yêu cầu mới */}
-      <Modal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} title="Gửi Yêu Cầu Sửa Chữa Mới">
+      <Modal isOpen={createModal.isOpen} onClose={createModal.onClose} title="Gửi Yêu Cầu Sửa Chữa Mới">
         <form onSubmit={handleCreateMaintenanceRequest} className="space-y-4">
           <Input
             label="Tiêu đề yêu cầu"
@@ -233,7 +231,7 @@ export default function MyMaintenance() {
           </div>
 
           <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-            <Button variant="outline" type="button" onClick={() => setShowCreateModal(false)} disabled={saving}>
+            <Button variant="outline" type="button" onClick={createModal.onClose} disabled={saving}>
               Hủy bỏ
             </Button>
             <Button type="submit" disabled={saving}>Gửi yêu cầu</Button>

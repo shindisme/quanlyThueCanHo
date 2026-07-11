@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import * as authService from "../../services/authService";
-import type { UserData } from "../../services/authService";
+import * as authService from "../../../../services/authService";
+import type { UserData } from "../../../../services/authService";
 import { toast } from "sonner";
 
 interface UseUserModifyProps {

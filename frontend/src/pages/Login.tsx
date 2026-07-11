@@ -1,6 +1,6 @@
 import { Eye, EyeOff, User, Lock, Building2 } from "lucide-react"
 import Button from "../components/ui/Button"
-import { useLogin } from "../hooks/common/useLogin"
+import { useLogin } from "../hooks/useLogin"
 
 export default function Login() {
   const {

@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useAuthStore } from "../../stores/auth.store";
-import * as maintenanceService from "../../services/maintenanceService";
-import * as staffService from "../../services/staffService";
-import * as buildingService from "../../services/buildingService";
-import { confirmMaintenanceSchema, unableMaintenanceSchema } from "../../schemas/maintenance.schema";
-import type { MaintenanceRequest } from "../../types";
+import { useAuthStore } from "../../../../stores/auth.store";
+import * as maintenanceService from "../../../../services/maintenanceService";
+import * as staffService from "../../../../services/staffService";
+import * as buildingService from "../../../../services/buildingService";
+import { confirmMaintenanceSchema, unableMaintenanceSchema } from "../../../../schemas/maintenance.schema";
+import type { MaintenanceRequest } from "../../../../types";
 
 export function useAdminMaintenance() {
   const { token, role, managedBuildingId } = useAuthStore();

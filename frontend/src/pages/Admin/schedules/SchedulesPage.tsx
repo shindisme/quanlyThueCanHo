@@ -8,7 +8,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from ".
 import Pagination from "../../../components/ui/Pagination";
 import { maskPhone } from "../../../utils/string";
 import { formatApartmentDisplay, parseGuestName } from "../../../utils/string";
-import { useScheduleList } from "../../../hooks/admin/useScheduleList";
+import { useScheduleList } from "./hooks/useScheduleList";
 
 import ScheduleDeleteModal from "./components/ScheduleDeleteModal";
 import ScheduleDetailModal from "./components/ScheduleDetailModal";

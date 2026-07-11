@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import * as authService from "../../services/authService";
+import * as authService from "../../../../services/authService";
 import { toast } from "sonner";
-import { userCreateSchema } from "../../schemas/user.schema";
+import { userCreateSchema } from "../../../../schemas/user.schema";
 
 interface UseUserCreateProps {
   onClose: () => void;

@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "../../stores/auth.store";
-import { useDebounce } from "../common/useDebounce";
-import { useSort } from "../common/useSort";
-import { useOnOff } from "../common/useOnOff";
-import * as buildingService from "../../services/buildingService";
-import type { BuildingData } from "../../services/buildingService";
+import { useAuthStore } from "../../../../stores/auth.store";
+import { useDebounce } from "../../../../hooks/useDebounce";
+import { useSort } from "../../../../hooks/useSort";
+import { useOnOff } from "../../../../hooks/useOnOff";
+import * as buildingService from "../../../../services/buildingService";
+import type { BuildingData } from "../../../../services/buildingService";
 import { toast } from "sonner";
 
 export function useBuildingList() {
