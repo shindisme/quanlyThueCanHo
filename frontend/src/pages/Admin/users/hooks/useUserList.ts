@@ -53,17 +53,15 @@ export function useUserList() {
     queryFn: () => contractService.getAllContractPages(),
   });
 
-  const { data: apartmentsRes, isLoading: loadingApartments } = useQuery({
+  const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartments({ limit: 100 }),
+    queryFn: () => apartmentService.getAllApartmentPages(),
   });
-  const apartments = apartmentsRes?.data || [];
 
-  const { data: buildingsRes, isLoading: loadingBuildings } = useQuery({
+  const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
+    queryFn: () => buildingService.getAllBuildingPages(),
   });
-  const buildings = buildingsRes?.data || [];
 
   const loading = loadingUsers || loadingTenants || loadingStaff || loadingContracts || loadingApartments || loadingBuildings;
 

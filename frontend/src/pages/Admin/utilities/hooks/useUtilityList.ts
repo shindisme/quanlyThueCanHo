@@ -45,22 +45,20 @@ export function useUtilityList() {
   });
   const readings = readingsRes?.data || [];
 
-  const { data: buildingsRes, isLoading: loadingBuildings, refetch: refetchBuildings } = useQuery({
+  const { data: buildings = [], isLoading: loadingBuildings, refetch: refetchBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
+    queryFn: () => buildingService.getAllBuildingPages(),
   });
-  const buildings = buildingsRes?.data || [];
 
-  const aptParams: Parameters<typeof apartmentService.getAllApartments>[0] = { limit: 100 };
+  const aptParams: { building_id?: number; search?: string; status?: string } = {};
   if (role !== "ADMIN" && managedBuildingId) {
     aptParams.building_id = managedBuildingId;
   }
 
-  const { data: apartmentsRes, isLoading: loadingApartments, refetch: refetchApartments } = useQuery({
+  const { data: apartments = [], isLoading: loadingApartments, refetch: refetchApartments } = useQuery({
     queryKey: ["apartments", role, managedBuildingId],
-    queryFn: () => apartmentService.getAllApartments(aptParams),
+    queryFn: () => apartmentService.getAllApartmentPages(aptParams),
   });
-  const apartments = apartmentsRes?.data || [];
 
   const loading = loadingReadings || loadingBuildings || loadingApartments;
 

@@ -50,8 +50,7 @@ export function useContractCreate({
         const finalEmail = data.new_tenant_email?.trim() || defaultEmail
         const finalPhone = data.new_tenant_phone?.trim() || null
 
-        const allTenantsRes = await tenantService.getAllTenants({ limit: 100 }).catch(() => ({ data: [] }));
-        const allTenants = allTenantsRes.data || [];
+        const allTenants = await tenantService.getAllTenantPages().catch(() => []);
 
         if (finalPhone) {
           const dup = allTenants.find((t) => t.phone === finalPhone);
@@ -204,15 +203,10 @@ export function useContractCreate({
     let active = true
     if (buildingIdValue) {
       setLoadingApartments(true)
-      Promise.all([
-        apartmentService.getAllApartments({ building_id: buildingIdValue, limit: 100, page: 1 }),
-        apartmentService.getAllApartments({ building_id: buildingIdValue, limit: 100, page: 2 }),
-      ])
-        .then(([res1, res2]) => {
+      apartmentService.getAllApartmentPages({ building_id: buildingIdValue })
+        .then((data) => {
           if (active) {
-            const combined = [...res1.data, ...res2.data]
-            const unique = combined.filter((a, index, self) => self.findIndex((t) => t.id === a.id) === index)
-            setBuildingApartments(unique)
+            setBuildingApartments(data)
           }
         })
         .catch(() => {
@@ -280,9 +274,9 @@ export function useContractCreate({
     if (!buildingIdValue || !floorValue) return []
     return buildingApartments.filter(
       (a) =>
-          a.building_id === buildingIdValue &&
-          a.floor === floorValue &&
-          (["available", "vacant", "AVAILABLE"].includes(a.status) || a.id === initialApartmentId)
+        a.building_id === buildingIdValue &&
+        a.floor === floorValue &&
+        (["available", "vacant", "AVAILABLE"].includes(a.status) || a.id === initialApartmentId)
     )
   })()
 

@@ -46,21 +46,20 @@ export function useManagerDashboard() {
   const displayName = currentStaff?.full_name || email?.split("@")[0] || "Quản lý";
 
   // Query buildings if staff has building_id
-  const { data: buildingsRes } = useQuery({
+  const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings(),
+    queryFn: () => buildingService.getAllBuildingPages(),
     enabled: !!currentStaff?.building_id && (!managedBuildingId || !managedBuildingName),
   });
 
-  // Sync manager building mapping if not present in Zustand store
   useEffect(() => {
     if (currentStaff && currentStaff.building_id && (!managedBuildingId || !managedBuildingName)) {
-      const currentBld = buildingsRes?.data?.find((b) => b.id === currentStaff.building_id);
+      const currentBld = buildings.find((b) => b.id === currentStaff.building_id);
       if (currentBld && role && email) {
         setAuth(token, role, email, currentStaff.building_id, currentBld.branch_name);
       }
     }
-  }, [currentStaff, buildingsRes, managedBuildingId, managedBuildingName, role, email, token, setAuth]);
+  }, [currentStaff, buildings, managedBuildingId, managedBuildingName, role, email, token, setAuth]);
 
   const activeBuildingId = managedBuildingId || currentStaff?.building_id || undefined;
 

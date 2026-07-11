@@ -32,21 +32,18 @@ export function useApartmentList() {
   const debouncedSearch = useDebounce(search, 300);
 
   // Lấy danh sách tòa nhà
-  const { data: buildingsRes } = useQuery({
+  const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings(),
+    queryFn: () => buildingService.getAllBuildingPages(),
   });
-  const buildings = buildingsRes?.data || [];
 
   // Lấy danh sách căn hộ
-  const { data: apartmentsRes, isLoading: loading, refetch: fetchApartments } = useQuery({
+  const { data: apartments = [], isLoading: loading, refetch: fetchApartments } = useQuery({
     queryKey: ["apartments", filterBuilding],
-    queryFn: () => apartmentService.getAllApartments({
+    queryFn: () => apartmentService.getAllApartmentPages({
       building_id: filterBuilding,
-      limit: 100,
     }),
   });
-  const apartments: ApartmentData[] = apartmentsRes?.data || [];
 
   useEffect(() => {
     const stored = localStorage.getItem("featured-apartment-ids");

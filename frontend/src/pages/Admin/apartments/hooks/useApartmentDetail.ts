@@ -30,11 +30,10 @@ export function useApartmentDetail() {
   const [activeTab, setActiveTab] = useState<"tenant" | "tenantHistory" | "reviews">("tenant");
   const [images, setImages] = useState<ApartmentImage[]>([]);
 
-  const { data: buildingsRes } = useQuery({
+  const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings(),
+    queryFn: () => buildingService.getAllBuildingPages(),
   });
-  const buildings = buildingsRes?.data || [];
 
   const { data: apartment, isLoading: loadingApartment, refetch: fetchApartment } = useQuery({
     queryKey: ["apartment", id],

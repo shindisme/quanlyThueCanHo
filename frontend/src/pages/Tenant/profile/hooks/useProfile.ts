@@ -84,24 +84,24 @@ export function useProfile() {
     ? contracts.find((c) => c.status === "ACTIVE")
     : null;
 
-  const { data: apartmentsRes } = useQuery({
+  const { data: apartments = [] } = useQuery({
     queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartments({ limit: 100 }),
+    queryFn: () => apartmentService.getAllApartmentPages(),
     enabled: !!userContract,
   });
 
-  const apartmentInfo = userContract && apartmentsRes?.data
-    ? apartmentsRes.data.find((a) => a.id === userContract.apartment_id)
+  const apartmentInfo = userContract
+    ? apartments.find((a) => a.id === userContract.apartment_id)
     : null;
 
-  const { data: buildingsRes } = useQuery({
+  const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
+    queryFn: () => buildingService.getAllBuildingPages(),
     enabled: !!apartmentInfo,
   });
 
-  const buildingInfo = apartmentInfo && buildingsRes?.data
-    ? buildingsRes.data.find((b) => b.id === apartmentInfo.building_id)
+  const buildingInfo = apartmentInfo
+    ? buildings.find((b) => b.id === apartmentInfo.building_id)
     : null;
 
   const { data: staffRes } = useQuery({

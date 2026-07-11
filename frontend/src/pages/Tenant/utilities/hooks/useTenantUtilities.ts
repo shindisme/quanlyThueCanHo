@@ -36,13 +36,13 @@ export function useTenantUtilities() {
     ? contracts.find((c) => c.status === "ACTIVE")
     : null;
 
-  const { data: apartmentsRes, isLoading: loadingApartments } = useQuery({
+  const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartments({ limit: 100 }),
+    queryFn: () => apartmentService.getAllApartmentPages(),
     enabled: !!activeContract,
   });
-  const apartment = activeContract && apartmentsRes?.data
-    ? apartmentsRes.data.find((a) => a.id === activeContract.apartment_id)
+  const apartment = activeContract
+    ? apartments.find((a) => a.id === activeContract.apartment_id)
     : null;
 
   const { data: invoicesRes, isLoading: loadingInvoices } = useQuery({

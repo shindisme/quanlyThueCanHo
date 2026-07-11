@@ -39,17 +39,15 @@ export function useTenantList() {
   });
   const contracts = contractsRes || [];
 
-  const { data: apartmentsRes, isLoading: loadingApartments, refetch: refetchApartments } = useQuery({
+  const { data: apartments = [], isLoading: loadingApartments, refetch: refetchApartments } = useQuery({
     queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartments({ limit: 100 }),
+    queryFn: () => apartmentService.getAllApartmentPages(),
   });
-  const apartments = apartmentsRes?.data || [];
 
-  const { data: buildingsRes, isLoading: loadingBuildings, refetch: refetchBuildings } = useQuery({
+  const { data: buildings = [], isLoading: loadingBuildings, refetch: refetchBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
+    queryFn: () => buildingService.getAllBuildingPages(),
   });
-  const buildings = buildingsRes?.data || [];
 
   const loading = loadingTenants || loadingContracts || loadingApartments || loadingBuildings;
 

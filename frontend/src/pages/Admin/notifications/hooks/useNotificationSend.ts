@@ -24,24 +24,21 @@ export function useNotificationSend() {
   const broadcastModal = useOnOff();
 
   // Fetch toà nhà
-  const { data: buildingsRes } = useQuery({
+  const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings(),
+    queryFn: () => buildingService.getAllBuildingPages(),
     enabled: role === "ADMIN",
   });
-  const buildings = buildingsRes?.data || [];
 
   // Fetch căn hộ
-  const { data: apartmentsRes, isLoading: loadingApartments } = useQuery({
+  const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments-for-target", buildingId],
     queryFn: () =>
-      apartmentService.getAllApartments({
+      apartmentService.getAllApartmentPages({
         building_id: buildingId,
-        limit: 100,
       }),
     enabled: !!buildingId && targetType === "APARTMENTS",
   });
-  const apartments = apartmentsRes?.data || [];
 
   // Reset căn hộ nếu tòa nhà thay đổi
   useEffect(() => {

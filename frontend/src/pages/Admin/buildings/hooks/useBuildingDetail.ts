@@ -21,12 +21,7 @@ export function useBuildingDetail() {
     queryKey: ["building-apartments", id],
     queryFn: async () => {
       if (!id) return [];
-      const [aRes1, aRes2] = await Promise.all([
-        apartmentService.getAllApartments({ building_id: Number(id), limit: 100, page: 1 }),
-        apartmentService.getAllApartments({ building_id: Number(id), limit: 100, page: 2 }),
-      ]);
-      const combined = [...aRes1.data, ...aRes2.data];
-      return combined.filter((a, index, self) => self.findIndex(t => t.id === a.id) === index);
+      return await apartmentService.getAllApartmentPages({ building_id: Number(id) });
     },
     enabled: !!id,
   });

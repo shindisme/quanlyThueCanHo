@@ -117,6 +117,20 @@ export async function getAllBuildings(params?: {
   return { data: mappedData, pagination };
 }
 
+export async function getAllBuildingPages(params?: Omit<Parameters<typeof getAllBuildings>[0], "page" | "limit">): Promise<BuildingData[]> {
+  const first = await getAllBuildings({ ...params, page: 1, limit: 100 });
+  const totalPages = first.pagination?.totalPages ?? 1;
+  if (totalPages <= 1) return first.data;
+
+  const rest = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      getAllBuildings({ ...params, page: index + 2, limit: 100 })
+    )
+  );
+
+  return [first, ...rest].flatMap((page) => page.data);
+}
+
 export async function getBuildingById(id: number): Promise<BuildingData> {
   const res = await api.get<{ data: RawBuildingData }>(`/buildings/${id}`);
   const b = res.data.data;

@@ -34,11 +34,10 @@ export function useInvoiceList() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
   // Lấy danh sách chi nhánh để lọc & chọn
-  const { data: buildingsRes } = useQuery({
+  const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings(),
+    queryFn: () => buildingService.getAllBuildingPages(),
   });
-  const buildings = buildingsRes?.data || [];
 
   // Load invoices
   const { data: invoicesRes, isLoading, refetch } = useQuery({

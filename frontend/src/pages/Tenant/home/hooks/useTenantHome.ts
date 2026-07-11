@@ -63,15 +63,15 @@ export function useTenantHome() {
     ? contracts[0].tenant
     : null;
 
-  const { data: apartmentsRes, isLoading: loadingApartments } = useQuery({
+  const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartments({ limit: 100 }),
+    queryFn: () => apartmentService.getAllApartmentPages(),
     enabled: !!userId,
   });
 
-  const { data: buildingsRes, isLoading: loadingBuildings } = useQuery({
+  const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
+    queryFn: () => buildingService.getAllBuildingPages(),
     enabled: !!userId,
   });
 
@@ -85,20 +85,20 @@ export function useTenantHome() {
       .sort((a, b) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime())[0]
     : null;
 
-  const apartment = activeContract && apartmentsRes?.data
-    ? apartmentsRes.data.find((a) => a.id === activeContract.apartment_id)
+  const apartment = activeContract
+    ? apartments.find((a) => a.id === activeContract.apartment_id)
     : null;
 
-  const endedApartment = endedContract && apartmentsRes?.data
-    ? apartmentsRes.data.find((a) => a.id === endedContract.apartment_id)
+  const endedApartment = endedContract
+    ? apartments.find((a) => a.id === endedContract.apartment_id)
     : null;
 
-  const building = apartment && buildingsRes?.data
-    ? buildingsRes.data.find((b) => b.id === apartment.building_id)
+  const building = apartment
+    ? buildings.find((b) => b.id === apartment.building_id)
     : null;
 
-  const endedBuilding = endedApartment && buildingsRes?.data
-    ? buildingsRes.data.find((b) => b.id === endedApartment.building_id)
+  const endedBuilding = endedApartment
+    ? buildings.find((b) => b.id === endedApartment.building_id)
     : null;
 
   const displayName = currentTenant?.full_name || email?.split("@")[0] || "Người thuê";

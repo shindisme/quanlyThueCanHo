@@ -23,11 +23,10 @@ export function usePaymentList() {
 
   const debouncedSearch = useDebounce(search, 300);
 
-  const { data: buildingsRes } = useQuery({
+  const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings(),
+    queryFn: () => buildingService.getAllBuildingPages(),
   });
-  const buildings = buildingsRes?.data || [];
 
   // Fetch payments
   const { data: paymentsRes, isLoading, refetch } = useQuery({

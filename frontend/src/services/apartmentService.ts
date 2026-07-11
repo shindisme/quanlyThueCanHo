@@ -55,6 +55,20 @@ export async function getAllApartments(params?: {
   return { data: rawData, pagination };
 }
 
+export async function getAllApartmentPages(params?: Omit<Parameters<typeof getAllApartments>[0], "page" | "limit">): Promise<ApartmentData[]> {
+  const first = await getAllApartments({ ...params, page: 1, limit: 100 });
+  const totalPages = first.pagination?.totalPages ?? 1;
+  if (totalPages <= 1) return first.data;
+
+  const rest = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      getAllApartments({ ...params, page: index + 2, limit: 100 })
+    )
+  );
+
+  return [first, ...rest].flatMap((page) => page.data);
+}
+
 export async function getApartmentById(id: number): Promise<ApartmentData> {
   const res = await api.get<{ data: ApartmentData }>(`/apartments/${id}`);
   return res.data.data;

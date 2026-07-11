@@ -58,11 +58,10 @@ export function useGuestApartmentListing() {
   const [locationSuggestion, setLocationSuggestion] = useState<LocationSuggestion | null>(null);
   const [locationSearching, setLocationSearching] = useState(false);
 
-  const { data: buildingsRes, isLoading: loadingBuildings } = useQuery({
+  const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
+    queryFn: () => buildingService.getAllBuildingPages(),
   });
-  const buildings = buildingsRes?.data || [];
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: ["guest-apartments", buildingFilter],

@@ -50,24 +50,15 @@ export function useContractList() {
     queryFn: () => contractService.getAllContractPages(),
   });
 
-  const { data: buildingsRes, isLoading: loadingBuildings } = useQuery({
+  const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
+    queryFn: () => buildingService.getAllBuildingPages(),
   });
-  const buildings = buildingsRes?.data || [];
 
-  const { data: apartmentsRes, isLoading: loadingApartments } = useQuery({
+  const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments", "all"],
-    queryFn: async () => {
-      const pages = [1, 2, 3, 4, 5, 6, 7];
-      const resList = await Promise.all(
-        pages.map((p) => apartmentService.getAllApartments({ limit: 100, page: p }))
-      );
-      const combined = resList.flatMap((r) => r.data);
-      return combined.filter((a, index, self) => self.findIndex(t => t.id === a.id) === index);
-    }
+    queryFn: () => apartmentService.getAllApartmentPages(),
   });
-  const apartments = apartmentsRes || [];
 
   const { data: tenantsRes, isLoading: loadingTenants } = useQuery({
     queryKey: ["tenants"],
