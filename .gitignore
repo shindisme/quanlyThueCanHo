@@ -1,4 +1,4 @@
-node_modules/
+/node_modules/
 
 .env
 .env.local
@@ -12,3 +12,4 @@ node_modules/
 *.sw?
 AGENTS.md
 RTK.md
+backups/

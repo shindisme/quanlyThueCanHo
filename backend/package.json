@@ -30,6 +30,7 @@
     "prisma": "^6.15.0",
     "qrcode": "^1.5.4",
     "vnpay": "^2.5.0",
+    "xlsx": "^0.18.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {
