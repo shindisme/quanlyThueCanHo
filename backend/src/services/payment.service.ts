@@ -428,10 +428,10 @@ const createPaidNotification = async (
     await transaction.notification.create({
         data: {
             user_id: userId,
-            title: "Hoa don da thanh toan",
+            title: "Hóa đơn đã thanh toán",
             content:
-                `Hoa don ${invoice.invoice_code} `
-                + "da duoc ghi nhan thanh toan.",
+                `Hóa đơn ${invoice.invoice_code} `
+                + "đã được ghi nhận thanh toán thành công.",
             type: "INVOICE_PAID"
         }
     });

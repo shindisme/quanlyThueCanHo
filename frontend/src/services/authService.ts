@@ -1,3 +1,4 @@
+import type { Tenant } from "../types";
 import api from "../lib/api";
 
 export interface LoginResponse {
@@ -10,11 +11,17 @@ export interface UserData {
   role: string;
   status: string;
   created_at: string;
+  tenant?: Tenant | null;
+  tenant_profile?: Tenant | null;
   managed_building?: {
     id: number;
     branch_name: string;
     address_new: string;
   } | null;
+}
+
+export interface CreateUserResponse extends UserData {
+  initial_password?: string;
 }
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
@@ -30,8 +37,8 @@ export async function getAllUsers(): Promise<UserData[]> {
 export async function createUser(data: {
   username: string;
   role: string;
-}) {
-  const res = await api.post("/auth/create-user", data);
+}): Promise<CreateUserResponse> {
+  const res = await api.post<{ data: CreateUserResponse }>("/auth/create-user", data);
   return res.data.data;
 }
 

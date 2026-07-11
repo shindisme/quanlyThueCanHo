@@ -6,7 +6,7 @@ import {
 import { formatCurrency } from "../../utils/currency";
 import { formatApartmentDisplay } from "../../utils/string";
 import LoadingSpinner from "../../components/ui/LoadingSpinner";
-import { useHomePage } from "../../hooks/common/useHomePage";
+import { useHomePage } from "./hooks/useHomePage";
 import type { ApartmentData } from "../../services/apartmentService";
 import type { ApartmentImage } from "../../types";
 

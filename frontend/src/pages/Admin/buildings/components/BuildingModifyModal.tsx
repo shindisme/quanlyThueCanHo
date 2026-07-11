@@ -5,7 +5,7 @@ import Combobox from "../../../../components/ui/Combobox";
 import Input from "../../../../components/ui/Input";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import type { BuildingData } from "../../../../services/buildingService";
-import { useBuildingModify } from "../../../../hooks/admin/useBuildingModify";
+import { useBuildingModify } from "../hooks/useBuildingModify";
 
 interface BuildingModifyModalProps {
   isOpen: boolean;

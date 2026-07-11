@@ -1,4 +1,5 @@
 import {
+    ContractStatus,
     Prisma,
     Role,
     UserStatus
@@ -37,6 +38,29 @@ const tenantSelect = {
             role: true,
             status: true,
             created_at: true
+        }
+    },
+    contracts: {
+        where: { status: ContractStatus.ACTIVE },
+        orderBy: { start_date: "desc" },
+        take: 1,
+        select: {
+            id: true,
+            apartment_id: true,
+            tenant_id: true,
+            start_date: true,
+            end_date: true,
+            deposit_amount: true,
+            monthly_rent: true,
+            status: true,
+            contract_file: true,
+            signed_at: true,
+            created_at: true,
+            apartment: {
+                include: {
+                    building: true
+                }
+            }
         }
     }
 } satisfies Prisma.TenantSelect;

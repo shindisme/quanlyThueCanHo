@@ -7,7 +7,7 @@ import Button from "../../components/ui/Button";
 import Badge from "../../components/ui/Badge";
 import Modal from "../../components/ui/Modal";
 import Input from "../../components/ui/Input";
-import { Calendar } from "../../components/ui/Calendar";
+import { DatePicker } from "../../components/ui/DatePicker";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../constants/enums";
 import { formatCurrency } from "../../utils/currency";
 import { formatApartmentDisplay } from "../../utils/string";
@@ -19,7 +19,7 @@ import type { BuildingData } from "../../services/buildingService";
 import { getApartmentReviews } from "../../services/reviewService";
 import type { ReviewData } from "../../services/reviewService";
 import type { ApartmentImage } from "../../types";
-import { useApartmentBooking } from "../../hooks/guest/useApartmentBooking";
+import { useApartmentBooking } from "./hooks/useApartmentBooking";
 
 const timeSlots = [
   "09h00",
@@ -41,20 +41,20 @@ export default function GuestApartmentDetail() {
     setShowScheduleForm,
     selectedDate,
     setSelectedDate,
-    selectedSlot,
-    setSelectedSlot,
-    saving,
-    scheduleForm,
-    setScheduleForm,
-    isSlotBooked,
-    handleSubmitSchedule,
-    holdTimeLeft,
-    handleSelectSlot,
+    selectedTimeSlot,
+    setSelectedTimeSlot,
+    isPending,
+    bookingForm,
+    setBookingForm,
+    checkIsSlotBooked,
+    handleBookingScheduleSubmit,
+    holdTimeRemaining,
+    handleSelectBookingSlot,
     handleResetBooking,
   } = useApartmentBooking({ apartment });
 
   const isSlotDisabled = (slot: string) => {
-    if (isSlotBooked(slot)) return true;
+    if (checkIsSlotBooked(slot)) return true;
     if (!selectedDate) return false;
 
     const [hoursStr, minutesStr] = slot.split("h");
@@ -322,7 +322,7 @@ export default function GuestApartmentDetail() {
         footer={
           <>
             <Button variant="outline" onClick={handleResetBooking}>Hủy</Button>
-            <Button onClick={handleSubmitSchedule} isLoading={saving}>Gửi yêu cầu</Button>
+            <Button onClick={handleBookingScheduleSubmit} isLoading={isPending}>Gửi yêu cầu</Button>
           </>
         }
       >
@@ -335,8 +335,8 @@ export default function GuestApartmentDetail() {
               <Input
                 label="Họ tên *"
                 type="text"
-                value={scheduleForm.guest_name}
-                onChange={(e) => setScheduleForm({ ...scheduleForm, guest_name: e.target.value })}
+                value={bookingForm.guest_name}
+                onChange={(e) => setBookingForm({ ...bookingForm, guest_name: e.target.value })}
                 placeholder="Nhập họ và tên..."
                 icon={<User size={16} />}
                 className="rounded-md text-xs"
@@ -347,8 +347,8 @@ export default function GuestApartmentDetail() {
               <Input
                 label="Số điện thoại *"
                 type="tel"
-                value={scheduleForm.guest_phone}
-                onChange={(e) => setScheduleForm({ ...scheduleForm, guest_phone: e.target.value })}
+                value={bookingForm.guest_phone}
+                onChange={(e) => setBookingForm({ ...bookingForm, guest_phone: e.target.value })}
                 placeholder="Nhập số điện thoại..."
                 icon={<Phone size={16} />}
                 className="rounded-md text-xs"
@@ -359,8 +359,8 @@ export default function GuestApartmentDetail() {
               <Input
                 label="Email *"
                 type="email"
-                value={scheduleForm.guest_email}
-                onChange={(e) => setScheduleForm({ ...scheduleForm, guest_email: e.target.value })}
+                value={bookingForm.guest_email}
+                onChange={(e) => setBookingForm({ ...bookingForm, guest_email: e.target.value })}
                 placeholder="Nhập email..."
                 icon={<Mail size={16} />}
                 className="rounded-md text-xs"
@@ -369,12 +369,12 @@ export default function GuestApartmentDetail() {
 
             <div className="col-span-12">
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày muốn xem *</label>
-              <Calendar
+              <DatePicker
                 value={selectedDate || null}
                 onChange={(date) => {
                   if (!date) {
                     setSelectedDate("");
-                    setSelectedSlot("");
+                    setSelectedTimeSlot("");
                     return;
                   }
                   const today = new Date();
@@ -387,7 +387,7 @@ export default function GuestApartmentDetail() {
                   const m = String(date.getMonth() + 1).padStart(2, "0");
                   const d = String(date.getDate()).padStart(2, "0");
                   setSelectedDate(`${y}-${m}-${d}`);
-                  setSelectedSlot("");
+                  setSelectedTimeSlot("");
                 }}
                 placeholder="Chọn ngày xem..."
               />
@@ -398,15 +398,15 @@ export default function GuestApartmentDetail() {
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Chọn giờ xem *</label>
                 <div className="grid grid-cols-2 gap-3 mt-2">
                   {timeSlots.map((slot) => {
-                    const booked = isSlotBooked(slot);
+                    const booked = checkIsSlotBooked(slot);
                     const disabled = isSlotDisabled(slot);
-                    const selected = selectedSlot === slot;
+                    const selected = selectedTimeSlot === slot;
                     return (
                       <button
                         key={slot}
                         type="button"
                         disabled={disabled}
-                        onClick={() => handleSelectSlot(slot)}
+                        onClick={() => handleSelectBookingSlot(slot)}
                         className={`py-2.5 px-3 border rounded-md text-xs font-semibold text-center transition-all cursor-pointer ${disabled
                           ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                           : selected
@@ -414,7 +414,7 @@ export default function GuestApartmentDetail() {
                             : "bg-white text-gray-700 border-gray-300 hover:border-primary-500 hover:text-primary-600"
                           }`}
                       >
-                        {slot} {selected && `(Giữ chỗ ${Math.floor(holdTimeLeft / 60)}:${String(holdTimeLeft % 60).padStart(2, "0")})`} {booked && " (Đã đặt)"}
+                        {slot} {selected && `(Giữ chỗ ${Math.floor(holdTimeRemaining / 60)}:${String(holdTimeRemaining % 60).padStart(2, "0")})`} {booked && " (Đã đặt)"}
                       </button>
                     );
                   })}
@@ -426,8 +426,8 @@ export default function GuestApartmentDetail() {
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ghi chú</label>
               <textarea
                 rows={3}
-                value={scheduleForm.note}
-                onChange={(e) => setScheduleForm({ ...scheduleForm, note: e.target.value })}
+                value={bookingForm.note}
+                onChange={(e) => setBookingForm({ ...bookingForm, note: e.target.value })}
                 placeholder="Lưu ý gì thêm..."
                 className="premium-input rounded-md resize-none text-xs"
               />

@@ -1,16 +1,16 @@
 import { Eye, EyeOff, User, Lock, Building2 } from "lucide-react"
 import Button from "../components/ui/Button"
-import { useLogin } from "../hooks/common/useLogin"
+import { useLogin } from "../hooks/useLogin"
 
 export default function Login() {
   const {
     register,
     handleSubmit,
-    onSubmit,
+    handleLogin,
     errors,
     showPassword,
     setShowPassword,
-    isLoading,
+    isPending,
   } = useLogin()
 
   return (
@@ -31,7 +31,7 @@ export default function Login() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <form onSubmit={handleSubmit(handleLogin)} className="space-y-5">
             {/* Username */}
             <div>
               <label className="flex items-center text-sm font-medium text-gray-700 mb-1.5 font-sans">
@@ -79,10 +79,9 @@ export default function Login() {
               )}
             </div>
 
-            {/* Nút đăng nhập */}
             <Button
               type="submit"
-              isLoading={isLoading}
+              isLoading={isPending}
               className="w-full py-3 text-base"
               size="lg"
             >
@@ -100,8 +99,6 @@ export default function Login() {
         <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full opacity-15"
           style={{ background: "radial-gradient(circle, #C4B5FD, transparent)" }} />
         <div className="absolute top-1/3 right-1/4 w-48 h-48 rounded-3xl rotate-45 opacity-10 bg-white" />
-
-        {/* Content */}
         <div className="relative z-10 text-center text-white px-12 max-w-lg">
           <div className="w-20 h-20 bg-white/15 rounded-2xl flex items-center justify-center mx-auto mb-8 backdrop-blur-sm border border-white/20">
             <Building2 size={40} className="text-white" />

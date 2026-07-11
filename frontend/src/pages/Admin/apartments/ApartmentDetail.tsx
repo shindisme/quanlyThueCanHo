@@ -2,13 +2,14 @@ import { Link } from "react-router-dom"
 import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Home, Trash2, Plus, Star } from "lucide-react"
 import LoadingSpinner from "../../../components/ui/LoadingSpinner"
 import Card from "../../../components/ui/Card"
-import Badge, { type BadgeVariant } from "../../../components/ui/Badge"
+import Badge from "../../../components/ui/Badge"
 import Button from "../../../components/ui/Button"
 import ApartmentModifyModal from "./components/ApartmentModifyModal"
 import { useAuthStore } from "../../../stores/auth.store"
 import { formatDate } from "../../../utils/date"
 import { formatApartmentDisplay, maskCCCD } from "../../../utils/string"
-import { useApartmentDetail } from "../../../hooks/guest/useApartmentDetail"
+import { useApartmentDetail } from "./hooks/useApartmentDetail"
+import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS, type ApartmentStatus } from "../../../constants/enums"
 
 export default function ApartmentDetail() {
   const { role } = useAuthStore()
@@ -58,14 +59,10 @@ export default function ApartmentDetail() {
     return new Intl.NumberFormat("vi-VN").format(price) + " đ"
   }
 
-  function getStatusBadge(status: string) {
-    const map: Record<string, { label: string; variant: BadgeVariant }> = {
-      AVAILABLE: { label: "Còn trống", variant: "success" },
-      RENTED: { label: "Đang thuê", variant: "info" },
-      MAINTENANCE: { label: "Bảo trì", variant: "warning" },
-    }
-    const s = map[status] || { label: status, variant: "gray" }
-    return <Badge variant={s.variant}>{s.label}</Badge>
+  function getStatusBadge(status: ApartmentStatus) {
+    const label = APARTMENT_STATUS_LABELS[status] || status
+    const variant = APARTMENT_STATUS_COLORS[status] || "gray"
+    return <Badge variant={variant as any}>{label}</Badge>
   }
 
   return (
@@ -121,7 +118,7 @@ export default function ApartmentDetail() {
                 )}
               </h1>
               <div className="flex items-center gap-2 mt-1">
-                {getStatusBadge(apartment.status)}
+                {getStatusBadge(apartment.status as ApartmentStatus)}
                 {apartment.building && (
                   <span className="text-sm text-gray-400">{apartment.building.name}</span>
                 )}

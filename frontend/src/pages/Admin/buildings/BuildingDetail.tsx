@@ -7,7 +7,7 @@ import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
 import BuildingModifyModal from "./components/BuildingModifyModal";
 import { formatApartmentDisplay } from "../../../utils/string";
-import { useBuildingDetail } from "../../../hooks/admin/useBuildingDetail";
+import { useBuildingDetail } from "./hooks/useBuildingDetail";
 
 function getApartmentThumbnail(apt: any): string {
   if (apt && apt.images && Array.isArray(apt.images) && apt.images.length > 0) {

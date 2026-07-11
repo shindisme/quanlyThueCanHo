@@ -5,7 +5,7 @@ import SearchInput from "../../../components/ui/SearchInput";
 import Combobox from "../../../components/ui/Combobox";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import DefaultPagination from "../../../components/ui/Pagination";
-import { useTenantInvoices } from "../../../hooks/tenant/useTenantInvoices";
+import { useTenantInvoices } from "./hooks/useTenantInvoices";
 import InvoiceTable from "../../Admin/invoices/components/InvoiceList";
 import InvoiceDetailModal from "../../Admin/invoices/components/InvoiceDetailModal";
 import { printInvoiceHelper } from "../../../utils/print";
@@ -20,10 +20,6 @@ export default function MyInvoices() {
     setSearch,
     statusFilter,
     setStatusFilter,
-
-    // Sorting
-    requestSort,
-    getSortIcon,
 
     // Pagination
     currentPage,
@@ -52,22 +48,22 @@ export default function MyInvoices() {
         <SearchInput
           value={search}
           onChange={setSearch}
-          placeholder="Tìm theo mã HD..."
-          className="flex-1 min-w-0"
+          placeholder="Tìm hóa đơn theo mã phòng..."
+          className="flex-1"
         />
 
         <Combobox
           options={[
+            { value: "", label: "Tất cả trạng thái" },
             { value: "PAID", label: "Đã thanh toán" },
             { value: "UNPAID", label: "Chưa thanh toán" },
-            { value: "OVERDUE", label: "Quá hạn" },
+            { value: "OVERDUE", label: "Quá hạn" }
           ]}
           value={statusFilter}
           onChange={setStatusFilter}
-          placeholder="Tất cả trạng thái"
+          placeholder="Trạng thái"
           searchable={false}
-          className="w-full sm:w-64 font-sans"
-          triggerClassName="h-[42px] rounded-none border-gray-300 px-3"
+          triggerClassName="h-[42px] border-gray-300 px-3 rounded-xl min-w-[160px]"
           clearable={true}
         />
       </div>
@@ -91,11 +87,8 @@ export default function MyInvoices() {
             onOpenDetails={handleOpenDetails}
             onToggleStatus={() => { }}
             onPrint={printInvoiceHelper}
-            getSortIcon={getSortIcon}
-            requestSort={requestSort}
           />
 
-          {/* Add quick action card for unpaid invoices */}
           {invoices.some((inv) => inv.status === "UNPAID") && (
             <div className="bg-amber-50 border border-amber-200 p-4 shadow-md rounded-none flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">

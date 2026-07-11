@@ -4,7 +4,7 @@ import Button from "../../../../components/ui/Button"
 import Combobox from "../../../../components/ui/Combobox"
 import Input from "../../../../components/ui/Input"
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner"
-import { useBuildingCreate } from "../../../../hooks/admin/useBuildingCreate"
+import { useBuildingCreate } from "../hooks/useBuildingCreate"
 
 interface BuildingCreateModalProps {
   isOpen: boolean

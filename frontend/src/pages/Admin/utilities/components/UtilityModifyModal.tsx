@@ -3,7 +3,7 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Combobox from "../../../../components/ui/Combobox";
 import Input from "../../../../components/ui/Input";
-import { useUtilityModify } from "../../../../hooks/admin/useUtilityModify";
+import { useUtilityModify } from "../hooks/useUtilityModify";
 import type { BuildingData } from "../../../../services/buildingService";
 import type { ApartmentData } from "../../../../services/apartmentService";
 import type { UtilityReadingData } from "../../../../services/utilityService";
@@ -29,23 +29,23 @@ export default function UtilityModifyModal({
 }: UtilityModifyModalProps) {
   const {
     saving,
-    formBuildingId,
-    setFormBuildingId,
-    formFloor,
-    setFormFloor,
-    formApartmentId,
-    setFormApartmentId,
-    formMonth,
-    setFormMonth,
-    formYear,
-    setFormYear,
-    formElectricOld,
-    formElectricNew,
-    setFormElectricNew,
-    formWaterOld,
-    formWaterNew,
-    setFormWaterNew,
-    handleSave,
+    buildingId,
+    setBuildingId,
+    floor,
+    setFloor,
+    apartmentId,
+    setApartmentId,
+    month,
+    setMonth,
+    year,
+    setYear,
+    electricOld,
+    electricNew,
+    setElectricNew,
+    waterOld,
+    waterNew,
+    setWaterNew,
+    handleUpdateUtilityReading,
     getMonthOptions,
     getYearOptions,
     buildingOptions,
@@ -72,7 +72,7 @@ export default function UtilityModifyModal({
             {isViewOnly ? "Đóng" : "Hủy"}
           </Button>
           {!isViewOnly && (
-            <Button onClick={handleSave} isLoading={saving}>
+            <Button onClick={handleUpdateUtilityReading} isLoading={saving}>
               Lưu thông tin
             </Button>
           )}
@@ -87,11 +87,11 @@ export default function UtilityModifyModal({
           </label>
           <Combobox
             options={buildingOptions}
-            value={formBuildingId}
+            value={buildingId}
             onChange={(val) => {
-              setFormBuildingId(val);
-              setFormFloor("");
-              setFormApartmentId("");
+              setBuildingId(val);
+              setFloor("");
+              setApartmentId("");
             }}
             disabled={true}
             placeholder="Chọn chi nhánh"
@@ -107,10 +107,10 @@ export default function UtilityModifyModal({
             <label className="block text-sm font-semibold text-gray-800 mb-1.5">Tầng *</label>
             <Combobox
               options={floorOptions}
-              value={formFloor}
+              value={floor}
               onChange={(val) => {
-                setFormFloor(val);
-                setFormApartmentId("");
+                setFloor(val);
+                setApartmentId("");
               }}
               disabled={true}
               placeholder="Chọn tầng"
@@ -127,8 +127,8 @@ export default function UtilityModifyModal({
             </label>
             <Combobox
               options={modalApartmentOptions}
-              value={formApartmentId}
-              onChange={(val) => setFormApartmentId(val)}
+              value={apartmentId}
+              onChange={(val) => setApartmentId(val)}
               disabled={true}
               placeholder="Chọn phòng"
               searchPlaceholder="Tìm phòng..."
@@ -143,8 +143,8 @@ export default function UtilityModifyModal({
             <label className="block text-sm font-semibold text-gray-800 mb-1.5">Tháng ghi *</label>
             <Combobox
               options={getMonthOptions()}
-              value={String(formMonth)}
-              onChange={(val) => setFormMonth(Number(val))}
+              value={String(month)}
+              onChange={(val) => setMonth(Number(val))}
               disabled={true}
               placeholder="Chọn tháng"
               searchable={false}
@@ -156,8 +156,8 @@ export default function UtilityModifyModal({
             <label className="block text-sm font-semibold text-gray-800 mb-1.5">Năm ghi *</label>
             <Combobox
               options={getYearOptions()}
-              value={String(formYear)}
-              onChange={(val) => setFormYear(Number(val))}
+              value={String(year)}
+              onChange={(val) => setYear(Number(val))}
               disabled={true}
               placeholder="Chọn năm"
               searchable={false}
@@ -176,22 +176,22 @@ export default function UtilityModifyModal({
             <Input
               label="Chỉ số điện cũ"
               type="number"
-              value={formElectricOld}
+              value={electricOld}
               disabled={true}
               placeholder="0"
             />
             <Input
               label="Chỉ số điện mới *"
               type="number"
-              value={formElectricNew}
-              onChange={(e) => setFormElectricNew(e.target.value)}
+              value={electricNew}
+              onChange={(e) => setElectricNew(e.target.value)}
               disabled={isViewOnly}
               placeholder="Nhập số điện mới"
             />
           </div>
           <p className="text-xs text-emerald-700 font-semibold text-right">
             Điện năng sử dụng:{" "}
-            {Math.max(0, (Number(formElectricNew) || 0) - (Number(formElectricOld) || 0))} kWh
+            {Math.max(0, (Number(electricNew) || 0) - (Number(electricOld) || 0))} kWh
           </p>
         </div>
 
@@ -204,22 +204,22 @@ export default function UtilityModifyModal({
             <Input
               label="Chỉ số nước cũ"
               type="number"
-              value={formWaterOld}
+              value={waterOld}
               disabled={true}
               placeholder="0"
             />
             <Input
               label="Chỉ số nước mới *"
               type="number"
-              value={formWaterNew}
-              onChange={(e) => setFormWaterNew(e.target.value)}
+              value={waterNew}
+              onChange={(e) => setWaterNew(e.target.value)}
               disabled={isViewOnly}
               placeholder="Nhập số nước mới"
             />
           </div>
           <p className="text-xs text-blue-700 font-semibold text-right">
             Lượng nước sử dụng:{" "}
-            {Math.max(0, (Number(formWaterNew) || 0) - (Number(formWaterOld) || 0))} m³
+            {Math.max(0, (Number(waterNew) || 0) - (Number(waterOld) || 0))} m³
           </p>
         </div>
       </div>

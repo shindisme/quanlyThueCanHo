@@ -5,7 +5,7 @@ import type { ApartmentData } from "../../../../services/apartmentService";
 import type { BuildingData } from "../../../../services/buildingService";
 import Combobox from "../../../../components/ui/Combobox";
 import Input from "../../../../components/ui/Input";
-import { useApartmentModify } from "../../../../hooks/admin/useApartmentModify";
+import { useApartmentModify } from "../hooks/useApartmentModify";
 
 interface ApartmentModifyModalProps {
   isOpen: boolean;

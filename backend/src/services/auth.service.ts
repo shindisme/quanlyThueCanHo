@@ -1,4 +1,5 @@
 import {
+    ContractStatus,
     Role,
     UserStatus,
     type Prisma
@@ -44,6 +45,39 @@ const userSummarySelect = {
                     id: true,
                     branch_name: true,
                     address_new: true
+                }
+            }
+        }
+    },
+    tenant: {
+        select: {
+            id: true,
+            user_id: true,
+            full_name: true,
+            phone: true,
+            email: true,
+            citizen_id: true,
+            contracts: {
+                where: { status: ContractStatus.ACTIVE },
+                orderBy: { start_date: "desc" },
+                take: 1,
+                select: {
+                    id: true,
+                    apartment_id: true,
+                    tenant_id: true,
+                    start_date: true,
+                    end_date: true,
+                    deposit_amount: true,
+                    monthly_rent: true,
+                    status: true,
+                    contract_file: true,
+                    signed_at: true,
+                    created_at: true,
+                    apartment: {
+                        include: {
+                            building: true
+                        }
+                    }
                 }
             }
         }
@@ -275,6 +309,7 @@ export const getAllUsersService = async (actor: Actor) => {
         role: user.role,
         status: user.status,
         created_at: user.created_at,
+        tenant: user.tenant ?? null,
         managed_building: user.staff?.building
             ? {
                 id: user.staff.building.id,

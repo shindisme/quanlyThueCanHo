@@ -1,6 +1,7 @@
 import { Check, X } from "lucide-react";
-import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../../../../components/ui/Table";
+import Badge from "../../../../components/ui/Badge";
+import DataTable, { type Column } from "../../../../components/ui/DataTable";
+import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS, PAYMENT_METHOD_LABELS, type PaymentStatus, type PaymentMethod } from "../../../../constants/enums";
 import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import type { Payment } from "../../../../types";
@@ -11,8 +12,6 @@ interface PaymentListProps {
   isUpdating: boolean;
   handleApprove: (id: number) => void;
   handleReject: (id: number) => void;
-  requestSort: (key: string) => void;
-  getSortIcon: (key: string) => React.ReactNode;
 }
 
 export default function PaymentList({
@@ -21,207 +20,131 @@ export default function PaymentList({
   isUpdating,
   handleApprove,
   handleReject,
-  requestSort,
-  getSortIcon,
 }: PaymentListProps) {
   function formatCurrency(amount: number) {
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
   }
 
-  function getPaymentStatusBadge(status: string) {
-    const statusMap: Record<string, { label: string; variant: BadgeVariant }> = {
-      SUCCESS: { label: "Thành công", variant: "success" },
-      PENDING: { label: "Chờ duyệt", variant: "warning" },
-      FAILED: { label: "Thất bại", variant: "danger" },
-    };
-    const s = statusMap[status] || { label: status, variant: "gray" };
-    return <Badge variant={s.variant}>{s.label}</Badge>;
+  function getPaymentStatusBadge(status: PaymentStatus) {
+    const label = PAYMENT_STATUS_LABELS[status] || status;
+    const variant = PAYMENT_STATUS_COLORS[status] || "gray";
+    return <Badge variant={variant as any}>{label}</Badge>;
   }
 
-  function getMethodLabel(method: string) {
-    const methodMap: Record<string, string> = {
-      VNPAY: "VNPay",
-      E_WALLET: "VNPay",
-      BANK_TRANSFER: "Chuyển khoản",
-    };
-    return methodMap[method] || method;
+  function getMethodLabel(method: PaymentMethod) {
+    return PAYMENT_METHOD_LABELS[method] || method;
   }
 
-  // hiển thị phòng theo role
   function getRoomDisplay(pmt: Payment) {
     const apt = pmt.invoice?.contract?.apartment;
     if (!apt) return { room: "", branch: "" };
     
     const roomNum = formatApartmentDisplay(apt.room_number, apt.floor);
     const branchName = apt.building?.branch_name || "";
-    if (role === "ADMIN" && branchName) {
-      return { room: roomNum, branch: branchName };
-    }
-    return { room: roomNum, branch: "" };
+    return { room: roomNum, branch: branchName };
   }
 
+  const columns: Column<Payment>[] = [
+    {
+      key: "transaction_code",
+      label: "Mã giao dịch",
+      sortValue: (pmt) => pmt.transaction_code || "",
+      render: (pmt) => <span className="font-semibold text-gray-805 font-mono">{pmt.transaction_code || "-"}</span>
+    },
+    {
+      key: "invoice",
+      label: "Hóa đơn / Phòng",
+      sortValue: (pmt) => pmt.invoice?.invoice_code || "",
+      render: (pmt) => {
+        const invoiceCode = pmt.invoice?.invoice_code || `HD-${String(pmt.invoice_id).padStart(5, "0")}`;
+        const { room, branch } = getRoomDisplay(pmt);
+        return (
+          <div className="flex flex-col">
+            <span className="font-semibold text-gray-700">{invoiceCode}</span>
+            {room && (
+              <span className="text-[11px] font-bold text-gray-900">
+                {room} {role === "ADMIN" && branch && <span className="text-xs font-semibold text-purple-600">({branch})</span>}
+              </span>
+            )}
+          </div>
+        );
+      }
+    },
+    {
+      key: "tenant",
+      label: "Người nộp",
+      sortValue: (pmt) => pmt.invoice?.contract?.tenant?.full_name || "",
+      render: (pmt) => {
+        const tenantName = pmt.invoice?.contract?.tenant?.full_name || "Chưa rõ";
+        const tenantPhone = pmt.invoice?.contract?.tenant?.phone || "";
+        return (
+          <div className="flex flex-col">
+            <span className="font-medium text-gray-700">{tenantName}</span>
+            {tenantPhone && <span className="text-[10px] text-gray-400">{tenantPhone}</span>}
+          </div>
+        );
+      }
+    },
+    {
+      key: "payment_method",
+      label: "Phương thức",
+      sortValue: (pmt) => pmt.payment_method,
+      render: (pmt) => <span className="text-gray-600">{getMethodLabel(pmt.payment_method as PaymentMethod)}</span>
+    },
+    {
+      key: "amount",
+      label: "Tổng tiền",
+      sortValue: (pmt) => Number(pmt.amount),
+      render: (pmt) => <span className="font-bold text-gray-900">{formatCurrency(Number(pmt.amount))}</span>
+    },
+    {
+      key: "paid_at",
+      label: "Thời gian",
+      sortValue: (pmt) => new Date(pmt.paid_at).getTime(),
+      render: (pmt) => <span className="text-gray-500">{formatDate(pmt.paid_at)}</span>
+    },
+    {
+      key: "status",
+      label: "Trạng thái",
+      sortValue: (pmt) => pmt.status,
+      render: (pmt) => getPaymentStatusBadge(pmt.status as PaymentStatus)
+    },
+    {
+      key: "actions",
+      label: "Chức năng",
+      className: "text-right",
+      render: (pmt) => (
+        <div className="flex items-center justify-end gap-1">
+          {pmt.status === "PENDING" && (role === "ADMIN" || role === "MANAGER") && (
+            <>
+              <button
+                type="button"
+                onClick={() => handleApprove(pmt.id)}
+                disabled={isUpdating}
+                className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer disabled:opacity-50"
+                title="Duyệt giao dịch"
+              >
+                <Check size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleReject(pmt.id)}
+                disabled={isUpdating}
+                className="p-2 rounded-lg text-gray-400 hover:text-red-650 hover:bg-red-50 cursor-pointer disabled:opacity-50"
+                title="Từ chối giao dịch"
+              >
+                <X size={16} />
+              </button>
+            </>
+          )}
+        </div>
+      )
+    }
+  ];
+
   return (
-    <div className="space-y-4">
-      {/* View Card */}
-      <div className="grid grid-cols-1 gap-4 md:hidden">
-        {payments.map((pmt) => {
-          const invoiceCode = pmt.invoice?.invoice_code || `HD-${String(pmt.invoice_id).padStart(5, "0")}`;
-          const { room, branch } = getRoomDisplay(pmt);
-          const tenantName = pmt.invoice?.contract?.tenant?.full_name || "Chưa rõ";
-          const tenantPhone = pmt.invoice?.contract?.tenant?.phone || "";
-
-          return (
-            <div key={pmt.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-gray-800 text-base font-mono">{pmt.transaction_code || "-"}</span>
-                {getPaymentStatusBadge(pmt.status)}
-              </div>
-
-              <div className="text-sm text-gray-500 space-y-1">
-                <p>
-                  <span className="font-semibold text-gray-700">Thời gian:</span> {formatDate(pmt.paid_at)}
-                </p>
-                 <p>
-                   <span className="font-semibold text-gray-700">Hóa đơn:</span> {invoiceCode}{" "}
-                   {room && (
-                     <>
-                       - <span className="font-bold text-gray-900">{room}</span>{" "}
-                       {role === "ADMIN" && branch && (
-                         <span className="text-xs font-semibold text-purple-600">({branch})</span>
-                       )}
-                     </>
-                   )}
-                 </p>
-                 <p>
-                   <span className="font-semibold text-gray-700">Khách thuê:</span> <span className="font-semibold text-gray-800">{tenantName}</span> {tenantPhone && `(${tenantPhone})`}
-                 </p>
-                <p>
-                  <span className="font-semibold text-gray-700">Phương thức:</span> {getMethodLabel(pmt.payment_method)}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-700">Số tiền:</span> <span className="font-bold text-gray-900">{formatCurrency(Number(pmt.amount))}</span>
-                </p>
-              </div>
-
-              {pmt.status === "PENDING" && (role === "ADMIN" || role === "MANAGER") && (
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-                  <button
-                    type="button"
-                    onClick={() => handleApprove(pmt.id)}
-                    disabled={isUpdating}
-                    className="px-3 py-1.5 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 flex items-center gap-1 text-xs cursor-pointer"
-                  >
-                    <Check size={14} className="stroke-3" /> Phê duyệt
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleReject(pmt.id)}
-                    disabled={isUpdating}
-                    className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1 text-xs cursor-pointer"
-                  >
-                    <X size={14} className="stroke-3" /> Từ chối
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* View List*/}
-      <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-md rounded-none">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead onClick={() => requestSort("paid_at")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Thời gian {getSortIcon("paid_at")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("invoice.invoice_code")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Hóa đơn {getSortIcon("invoice.invoice_code")}
-              </TableHead>
-              <TableHead className="select-none">Khách thuê</TableHead>
-              <TableHead onClick={() => requestSort("payment_method")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Phương thức {getSortIcon("payment_method")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("transaction_code")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Mã giao dịch {getSortIcon("transaction_code")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("amount")} className="text-right cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Số tiền {getSortIcon("amount")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("status")} className="text-center cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Trạng thái {getSortIcon("status")}
-              </TableHead>
-              <TableHead className="text-right">Chức năng</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {payments.map((pmt) => {
-              const invoiceCode = pmt.invoice?.invoice_code || `HD-${String(pmt.invoice_id).padStart(5, "0")}`;
-               const { room, branch } = getRoomDisplay(pmt);
-               const tenantName = pmt.invoice?.contract?.tenant?.full_name || "Chưa rõ";
-               const tenantPhone = pmt.invoice?.contract?.tenant?.phone || "";
-
-              return (
-                <TableRow key={pmt.id}>
-                  <TableCell className="text-gray-600 whitespace-nowrap">{formatDate(pmt.paid_at)}</TableCell>
-                   <TableCell className="font-semibold text-gray-800 whitespace-nowrap">
-                     <div className="flex flex-col">
-                       <span>{invoiceCode}</span>
-                       {room && (
-                         <div className="flex flex-col mt-0.5 font-normal">
-                           <span className="text-xs font-semibold text-primary-600">{room}</span>
-                           {role === "ADMIN" && branch && (
-                             <span className="text-[10px] font-semibold text-purple-600">{branch}</span>
-                           )}
-                         </div>
-                       )}
-                     </div>
-                   </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <div className="flex flex-col">
-                      <span className="font-medium text-gray-800">{tenantName}</span>
-                      {tenantPhone && <span className="text-xs text-gray-400">{tenantPhone}</span>}
-                    </div>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap font-medium text-gray-700">{getMethodLabel(pmt.payment_method)}</TableCell>
-                  <TableCell className="font-mono text-xs text-gray-600 max-w-xs truncate" title={pmt.transaction_code || ""}>
-                    {pmt.transaction_code || "-"}
-                  </TableCell>
-                  <TableCell className="text-right font-bold text-gray-900 whitespace-nowrap">
-                    {formatCurrency(Number(pmt.amount))}
-                  </TableCell>
-                  <TableCell className="text-center">{getPaymentStatusBadge(pmt.status)}</TableCell>
-                  <TableCell className="text-right whitespace-nowrap">
-                    {pmt.status === "PENDING" && (role === "ADMIN" || role === "MANAGER") && (
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleApprove(pmt.id)}
-                          disabled={isUpdating}
-                          className="p-1.5 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 cursor-pointer disabled:opacity-50 transition-colors shadow-sm"
-                          title="Phê duyệt giao dịch"
-                        >
-                          <Check size={14} className="stroke-3" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleReject(pmt.id)}
-                          disabled={isUpdating}
-                          className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 cursor-pointer disabled:opacity-50 transition-colors shadow-sm"
-                          title="Từ chối giao dịch"
-                        >
-                          <X size={14} className="stroke-3" />
-                        </button>
-                      </div>
-                    )}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+    <div className="mt-6">
+      <DataTable columns={columns} data={payments} emptyMessage="Không tìm thấy giao dịch nào." />
     </div>
   );
 }

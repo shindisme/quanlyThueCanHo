@@ -1,6 +1,7 @@
 import api from "../lib/api";
-import type { RentalContract } from "../types";
+import type { RentalContract, Tenant, Apartment } from "../types";
 import type { ContractStatus } from "../constants/enums";
+import type { ApiPagination } from "./tenantService";
 
 interface RawContract {
   id: number;
@@ -15,9 +16,19 @@ interface RawContract {
   signed_at?: string | null;
   created_by?: number | null;
   created_at: string;
-  tenant?: any;
-  apartment?: any;
+  tenant?: Tenant;
+  apartment?: Apartment;
 }
+
+type ContractQuery = {
+  buildingId?: number;
+  status?: string;
+  search?: string;
+  tenantId?: number;
+  apartmentId?: number;
+  page?: number;
+  limit?: number;
+};
 
 function mapBackendToFrontend(c: RawContract): RentalContract {
   return {
@@ -38,23 +49,49 @@ function mapBackendToFrontend(c: RawContract): RentalContract {
   };
 }
 
-export async function getAllContracts(params?: {
-  buildingId?: number;
-  status?: string;
-  search?: string;
-  tenantId?: number;
-}): Promise<RentalContract[]> {
-  const res = await api.get<{ success: boolean; data: RawContract[] }>("/contracts", {
+async function getContractsPage(params?: ContractQuery): Promise<{
+  data: RentalContract[];
+  pagination?: ApiPagination;
+}> {
+  const res = await api.get<{
+    success: boolean;
+    data: RawContract[];
+    meta?: { pagination?: ApiPagination };
+  }>("/contracts", {
     params: {
-      buildingId: params?.buildingId,
+      building_id: params?.buildingId,
       status: params?.status,
       search: params?.search,
-      tenantId: params?.tenantId,
+      tenant_id: params?.tenantId,
+      apartment_id: params?.apartmentId,
+      page: params?.page,
+      limit: params?.limit,
     },
   });
 
   const rawContracts = res.data.data || [];
-  return rawContracts.map(mapBackendToFrontend);
+  return {
+    data: rawContracts.map(mapBackendToFrontend),
+    pagination: res.data.meta?.pagination,
+  };
+}
+
+export async function getAllContracts(params?: ContractQuery): Promise<RentalContract[]> {
+  return (await getContractsPage(params)).data;
+}
+
+export async function getAllContractPages(params?: Omit<ContractQuery, "page" | "limit">): Promise<RentalContract[]> {
+  const first = await getContractsPage({ ...params, page: 1, limit: 100 });
+  const totalPages = first.pagination?.totalPages ?? 1;
+  if (totalPages <= 1) return first.data;
+
+  const rest = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      getContractsPage({ ...params, page: index + 2, limit: 100 })
+    )
+  );
+
+  return [first, ...rest].flatMap((page) => page.data);
 }
 
 export async function getContractById(id: number): Promise<RentalContract | null> {

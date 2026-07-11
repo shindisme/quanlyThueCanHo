@@ -9,7 +9,7 @@ import { formatApartmentDisplay } from "../../utils/string";
 
 import type { ApartmentData } from "../../services/apartmentService";
 import type { ApartmentImage } from "../../types";
-import { useGuestApartmentListing } from "../../hooks/guest/useGuestApartmentListing";
+import { useGuestApartmentListing } from "./hooks/useGuestApartmentListing";
 
 function getApartmentThumbnail(apt: ApartmentData): string {
   if (apt && apt.images && Array.isArray(apt.images) && apt.images.length > 0) {

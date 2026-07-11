@@ -1,13 +1,7 @@
 import { Eye, FileText, Calendar as CalendarIcon, XCircle } from "lucide-react";
 import Badge from "../../../../components/ui/Badge";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "../../../../components/ui/Table";
+import DataTable, { type Column } from "../../../../components/ui/DataTable";
+import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS, type ContractStatus } from "../../../../constants/enums";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay } from "../../../../utils/string";
@@ -26,8 +20,6 @@ interface ContractListProps {
   setSelectedExtendContract: (c: RentalContract) => void;
   setExtendEndDate: (date: string) => void;
   setTerminateItem: (c: RentalContract) => void;
-  requestSort: (key: string) => void;
-  getSortIcon: (key: string) => React.ReactNode;
   onRenewContract?: (c: RentalContract) => void;
 }
 
@@ -42,218 +34,135 @@ export default function ContractList({
   setSelectedExtendContract,
   setExtendEndDate,
   setTerminateItem,
-  requestSort,
-  getSortIcon,
   onRenewContract,
 }: ContractListProps) {
 
-
-  function getStatusBadge(status: string) {
-    if (status === "ACTIVE") return <Badge variant="success">Còn hạn</Badge>;
-    if (status === "ENDED") return <Badge variant="gray">Hết hạn</Badge>;
-    return <Badge variant="danger">Đã thanh lý</Badge>;
+  function getStatusBadge(status: ContractStatus) {
+    const label = CONTRACT_STATUS_LABELS[status] || status;
+    const variant = CONTRACT_STATUS_COLORS[status] || "gray";
+    return <Badge variant={variant as any}>{label}</Badge>;
   }
 
+  const tenantName = (c: RentalContract) =>
+    c.tenant?.full_name || tenants.find((t) => t.id === c.tenant_id)?.full_name || "";
+
+  const contractApartment = (c: RentalContract) =>
+    c.apartment || apartments.find((a) => a.id === c.apartment_id);
+
+  const contractBuilding = (c: RentalContract) => {
+    const apt = contractApartment(c);
+    return apt?.building || (apt ? buildings.find((b) => b.id === apt.building_id) : null);
+  };
+
+  const columns: Column<RentalContract>[] = [
+    {
+      key: "id",
+      label: "Mã HĐ",
+      sortValue: (c) => c.id,
+      render: (c) => <span className="font-semibold text-gray-800">HD-{String(c.id).padStart(5, "0")}</span>
+    },
+    {
+      key: "tenant",
+      label: "Người thuê",
+      sortValue: (c) => tenantName(c),
+      render: (c) => <span className="font-medium text-gray-700">{tenantName(c) || "-"}</span>
+    },
+    {
+      key: "apartment",
+      label: "Căn hộ",
+      sortValue: (c) => contractApartment(c)?.room_number || "",
+      render: (c) => {
+        const apt = contractApartment(c);
+        const bld = contractBuilding(c);
+        return (
+          <div className="flex flex-col">
+            <span className="font-semibold text-gray-800">
+              {apt ? formatApartmentDisplay(apt.room_number, apt.floor) : "-"}
+            </span>
+            {role === "ADMIN" && bld?.branch_name && (
+              <span className="text-[10px] font-semibold text-purple-600">{bld.branch_name}</span>
+            )}
+          </div>
+        );
+      }
+    },
+    {
+      key: "monthly_rent",
+      label: "Giá thuê",
+      sortValue: (c) => c.monthly_rent,
+      render: (c) => <span className="font-semibold text-gray-855">{formatCurrency(c.monthly_rent)} / tháng</span>
+    },
+    {
+      key: "end_date",
+      label: "Thời hạn",
+      sortValue: (c) => new Date(c.end_date).getTime(),
+      render: (c) => <span className="text-xs text-gray-500">{formatDate(c.start_date)} - {formatDate(c.end_date)}</span>
+    },
+    {
+      key: "status",
+      label: "Trạng thái",
+      sortValue: (c) => c.status,
+      render: (c) => getStatusBadge(c.status as ContractStatus)
+    },
+    {
+      key: "actions",
+      label: "Chức năng",
+      className: "text-right",
+      render: (c) => (
+        <div className="flex items-center justify-end gap-1">
+          <button
+            onClick={() => setSelectedDetailContract(c)}
+            className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
+            title="Xem chi tiết"
+          >
+            <Eye size={16} />
+          </button>
+          <button
+            onClick={() => setSelectedDocContract(c)}
+            className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
+            title="Biên bản bàn giao"
+          >
+            <FileText size={16} />
+          </button>
+          {c.status === "ENDED" ? (
+            <button
+              onClick={() => onRenewContract?.(c)}
+              className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer"
+              title="Ký lại hợp đồng"
+            >
+              <CalendarIcon size={16} />
+            </button>
+          ) : (
+            c.status === "ACTIVE" && (
+              <button
+                onClick={() => {
+                  setSelectedExtendContract(c);
+                  setExtendEndDate("");
+                }}
+                className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer"
+                title="Gia hạn hợp đồng"
+              >
+                <CalendarIcon size={16} />
+              </button>
+            )
+          )}
+          {c.status === "ACTIVE" && (role === "ADMIN" || role === "MANAGER") && (
+            <button
+              onClick={() => setTerminateItem(c)}
+              className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-55/20 cursor-pointer"
+              title="Hủy/Thanh lý hợp đồng"
+            >
+              <XCircle size={16} />
+            </button>
+          )}
+        </div>
+      )
+    }
+  ];
+
   return (
-    <div className="space-y-4">
-      {/* View Card */}
-      <div className="grid grid-cols-1 gap-4 md:hidden">
-        {paginatedContracts.map((c) => {
-          const tenant = tenants.find((t) => t.id === c.tenant_id);
-          const apt = apartments.find((a) => a.id === c.apartment_id);
-          const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
-          const code = `HD-${String(c.id).padStart(5, "0")}`;
-          const tenantName = tenant ? tenant.full_name : "-";
-          const roomName = apt ? formatApartmentDisplay(apt.room_number, apt.floor) : "-";
-          const branch = bld?.branch_name;
-
-          return (
-            <div key={c.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-gray-800 text-base">
-                  {code}
-                </span>
-                {getStatusBadge(c.status)}
-              </div>
-
-              <div className="text-sm text-gray-500 space-y-1">
-                <p>
-                  <span className="font-semibold text-gray-700">Người thuê:</span> {tenantName}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-700">Căn hộ:</span>{" "}
-                  <span className="font-bold text-gray-955">{roomName}</span>{" "}
-                  {role === "ADMIN" && branch && (
-                    <span className="text-xs font-semibold text-purple-600">({branch})</span>
-                  )}
-                </p>
-                <p>
-                  <span className="font-semibold text-gray-700">Giá thuê:</span> <span className="font-bold text-gray-855">{formatCurrency(c.monthly_rent)} / tháng</span>
-                </p>
-                <p className="text-xs">
-                  <span className="font-semibold text-gray-700">Thời hạn:</span> {formatDate(c.start_date)} - {formatDate(c.end_date)}
-                </p>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-                <button
-                  onClick={() => setSelectedDetailContract(c)}
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-primary-600 hover:bg-primary-50 flex items-center gap-1 text-xs cursor-pointer"
-                >
-                  <Eye size={14} /> Chi tiết
-                </button>
-                <button
-                  onClick={() => setSelectedDocContract(c)}
-                  className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-primary-600 hover:bg-primary-50 flex items-center gap-1 text-xs cursor-pointer"
-                >
-                  <FileText size={14} /> In Hoá Đơn
-                </button>
-                {(role === "ADMIN" || role === "MANAGER") && (
-                  <>
-                    {c.status === "ENDED" ? (
-                      <button
-                        onClick={() => onRenewContract?.(c)}
-                        className="px-3 py-1.5 rounded-lg border border-green-200 text-green-600 hover:bg-green-55/20 flex items-center gap-1 text-xs cursor-pointer"
-                      >
-                        <CalendarIcon size={14} /> Ký lại HĐ
-                      </button>
-                    ) : (
-                      c.status === "ACTIVE" && (
-                        <button
-                          onClick={() => {
-                            setSelectedExtendContract(c);
-                            setExtendEndDate("");
-                          }}
-                          className="px-3 py-1.5 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 flex items-center gap-1 text-xs cursor-pointer"
-                        >
-                          <CalendarIcon size={14} /> Gia hạn
-                        </button>
-                      )
-                    )}
-                    {c.status === "ACTIVE" && (
-                      <button
-                        onClick={() => setTerminateItem(c)}
-                        className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1 text-xs cursor-pointer"
-                      >
-                        <XCircle size={14} /> Hủy HĐ
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* View List */}
-      <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-lg">
-        <Table className="compact">
-          <TableHeader>
-            <TableRow>
-              <TableHead onClick={() => requestSort("id")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Mã HĐ {getSortIcon("id")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("tenant")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Người thuê {getSortIcon("tenant")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("apartment")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Căn hộ {getSortIcon("apartment")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("monthly_rent")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Giá thuê {getSortIcon("monthly_rent")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("end_date")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Thời hạn {getSortIcon("end_date")}
-              </TableHead>
-              <TableHead onClick={() => requestSort("status")} className="cursor-pointer select-none hover:bg-gray-100 transition-colors">
-                Trạng thái {getSortIcon("status")}
-              </TableHead>
-              <TableHead className="text-right">Chức năng</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedContracts.map((c) => {
-              const tenant = tenants.find((t) => t.id === c.tenant_id);
-              const apt = apartments.find((a) => a.id === c.apartment_id);
-              const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
-              const code = `HD-${String(c.id).padStart(5, "0")}`;
-              const tenantName = tenant ? tenant.full_name : "-";
-              const roomName = apt ? formatApartmentDisplay(apt.room_number, apt.floor) : "-";
-              const branch = bld?.branch_name;
-
-              return (
-                <TableRow key={c.id}>
-                  <TableCell className="font-semibold text-gray-800">{code}</TableCell>
-                  <TableCell className="text-gray-655 font-medium">{tenantName}</TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <div className="flex flex-col">
-                      <span className="font-semibold">{roomName}</span>
-                      {role === "ADMIN" && branch && (
-                        <span className="text-[10px] font-semibold text-purple-600">{branch}</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-gray-600">{formatCurrency(c.monthly_rent)}</TableCell>
-                  <TableCell className="text-xs text-gray-500 font-medium">
-                    {formatDate(c.start_date)} - {formatDate(c.end_date)}
-                  </TableCell>
-                  <TableCell>{getStatusBadge(c.status)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => setSelectedDetailContract(c)}
-                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
-                        title="Xem chi tiết"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button
-                        onClick={() => setSelectedDocContract(c)}
-                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
-                        title="Tải/In hợp đồng"
-                      >
-                        <FileText size={16} />
-                      </button>
-                      {c.status === "ENDED" ? (
-                        <button
-                          onClick={() => onRenewContract?.(c)}
-                          className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer"
-                          title="Ký lại hợp đồng"
-                        >
-                          <CalendarIcon size={16} />
-                        </button>
-                      ) : (
-                        c.status === "ACTIVE" && (
-                          <button
-                            onClick={() => {
-                              setSelectedExtendContract(c);
-                              setExtendEndDate("");
-                            }}
-                            className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer"
-                            title="Gia hạn hợp đồng"
-                          >
-                            <CalendarIcon size={16} />
-                          </button>
-                        )
-                      )}
-                      {c.status === "ACTIVE" && (role === "ADMIN" || role === "MANAGER") && (
-                        <button
-                          onClick={() => setTerminateItem(c)}
-                          className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-55/20 cursor-pointer"
-                          title="Hủy/Thanh lý hợp đồng"
-                        >
-                          <XCircle size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </div>
+    <div className="mt-6">
+      <DataTable columns={columns} data={paginatedContracts} emptyMessage="Không tìm thấy hợp đồng nào." />
     </div>
   );
 }

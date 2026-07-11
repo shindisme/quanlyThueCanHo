@@ -1,5 +1,6 @@
 import {
     ApartmentStatus,
+    ContractStatus,
     Prisma,
     Role
 } from "@prisma/client";
@@ -47,6 +48,63 @@ const apartmentSelect = {
             { is_thumbnail: "desc" },
             { id: "asc" }
         ]
+    }
+} satisfies Prisma.ApartmentSelect;
+
+const apartmentDetailSelect = {
+    ...apartmentSelect,
+    contracts: {
+        where: { status: ContractStatus.ACTIVE },
+        orderBy: { start_date: "desc" },
+        take: 1,
+        select: {
+            id: true,
+            apartment_id: true,
+            tenant_id: true,
+            start_date: true,
+            end_date: true,
+            deposit_amount: true,
+            monthly_rent: true,
+            status: true,
+            contract_file: true,
+            signed_at: true,
+            created_at: true,
+            tenant: {
+                select: {
+                    id: true,
+                    user_id: true,
+                    full_name: true,
+                    phone: true,
+                    email: true,
+                    date_of_birth: true,
+                    citizen_id: true,
+                    address: true,
+                    is_verified: true,
+                    created_at: true,
+                    user: {
+                        select: {
+                            id: true,
+                            username: true,
+                            role: true,
+                            status: true,
+                            created_at: true
+                        }
+                    },
+                    occupants: {
+                        orderBy: { created_at: "desc" },
+                        select: {
+                            id: true,
+                            tenant_id: true,
+                            full_name: true,
+                            phone: true,
+                            citizen_id: true,
+                            date_of_birth: true,
+                            created_at: true
+                        }
+                    }
+                }
+            }
+        }
     }
 } satisfies Prisma.ApartmentSelect;
 
@@ -240,7 +298,7 @@ export const getAllApartmentsService = async (filters: {
 export const getApartmentByIdService = async (id: number) => {
     return prisma.apartment.findUnique({
         where: { id },
-        select: apartmentSelect
+        select: apartmentDetailSelect
     });
 };
 

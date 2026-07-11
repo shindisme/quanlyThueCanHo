@@ -4,7 +4,7 @@ import Input from "../../../../components/ui/Input";
 import Combobox from "../../../../components/ui/Combobox";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import type { Staff } from "../../../../types";
-import { useStaffModify } from "../../../../hooks/admin/useStaffModify";
+import { useStaffModify } from "../hooks/useStaffModify";
 
 interface StaffModifyModalProps {
   isOpen: boolean;

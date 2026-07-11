@@ -1,23 +1,21 @@
-import { FileText, Star } from "lucide-react";
+import { FileText, Star, XCircle, AlertTriangle } from "lucide-react";
 import Badge from "../../../components/ui/Badge";
 import SearchInput from "../../../components/ui/SearchInput";
 import PageHeader from "../../../components/PageHeader";
 import Modal from "../../../components/ui/Modal";
 import Button from "../../../components/ui/Button";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
-import { useDebounce } from "../../../hooks/common/useDebounce";
-import { useTenantContracts } from "../../../hooks/tenant/useTenantContracts";
+import { useDebounce } from "../../../hooks/useDebounce";
+import { useTenantContracts } from "./hooks/useTenantContracts";
 import { formatCurrency, numberToVietnameseWords } from "../../../utils/currency";
 import { formatDate } from "../../../utils/date";
 import { formatApartmentDisplay, removeVietnameseTones } from "../../../utils/string";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "../../../components/ui/Table";
+import DataTable, { type Column } from "../../../components/ui/DataTable";
+import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS, type ContractStatus } from "../../../constants/enums";
+import type { RentalContract } from "../../../types";
+import { useState } from "react";
+import { createMaintenanceRequest } from "../../../services/maintenanceService";
+import { toast } from "sonner";
 
 export default function MyContracts() {
   const {
@@ -39,6 +37,12 @@ export default function MyContracts() {
     isLoading,
   } = useTenantContracts();
 
+  // Local state for Tenant checkout request
+  const [selectedRequestContract, setSelectedRequestContract] = useState<any | null>(null);
+  const [checkoutDate, setCheckoutDate] = useState("");
+  const [checkoutReason, setCheckoutReason] = useState("");
+  const [submittingCheckoutRequest, setSubmittingCheckoutRequest] = useState(false);
+
   const debouncedSearch = useDebounce(search, 300);
 
   const filtered = myContracts.filter((c) => {
@@ -49,11 +53,108 @@ export default function MyContracts() {
     return removeVietnameseTones(code).includes(term) || removeVietnameseTones(room).includes(term);
   });
 
-  function getStatusBadge(status: string) {
-    if (status === "ACTIVE") return <Badge variant="success">Hiệu lực</Badge>;
-    if (status === "ENDED") return <Badge variant="gray">Đã kết thúc</Badge>;
-    return <Badge variant="danger">Thanh lý</Badge>;
+  function getStatusBadge(status: ContractStatus) {
+    const label = CONTRACT_STATUS_LABELS[status] || status;
+    const variant = CONTRACT_STATUS_COLORS[status] || "gray";
+    return <Badge variant={variant as any}>{label}</Badge>;
   }
+
+  const columns: Column<RentalContract>[] = [
+    {
+      key: "id",
+      label: "Mã hợp đồng",
+      render: (c) => <span className="font-semibold text-gray-800">HD-{String(c.id).padStart(5, "0")}</span>
+    },
+    {
+      key: "apartment",
+      label: "Căn hộ",
+      render: (c) => {
+        const apt = apartments.find((a) => a.id === c.apartment_id);
+        const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
+        return (
+          <div className="flex flex-col">
+            <span className="font-medium text-gray-800">
+              {formatApartmentDisplay(apt?.room_number || "", apt?.floor || 0)}
+            </span>
+            {bld?.branch_name && (
+              <span className="text-xs font-semibold text-purple-600">{bld.branch_name}</span>
+            )}
+          </div>
+        );
+      }
+    },
+    {
+      key: "start_date",
+      label: "Bắt đầu",
+      render: (c) => <span className="text-gray-600">{formatDate(c.start_date)}</span>
+    },
+    {
+      key: "end_date",
+      label: "Kết thúc",
+      render: (c) => <span className="text-gray-600">{formatDate(c.end_date)}</span>
+    },
+    {
+      key: "monthly_rent",
+      label: "Tiền thuê/tháng",
+      className: "text-right",
+      render: (c) => <span className="font-medium text-gray-800">{formatCurrency(c.monthly_rent)}</span>
+    },
+    {
+      key: "deposit_amount",
+      label: "Tiền cọc",
+      className: "text-right",
+      render: (c) => <span className="font-medium text-gray-800">{formatCurrency(c.deposit_amount)}</span>
+    },
+    {
+      key: "status",
+      label: "Trạng thái",
+      className: "text-center",
+      render: (c) => getStatusBadge(c.status as ContractStatus)
+    },
+    {
+      key: "actions",
+      label: "Chức năng",
+      className: "text-right",
+      render: (c) => (
+        <div className="flex items-center justify-end gap-1">
+          <button
+            type="button"
+            onClick={() => setViewContractDoc(c)}
+            className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer transition-colors"
+            title="Xem hợp đồng"
+          >
+            <FileText size={16} />
+          </button>
+          {c.status === "ENDED" && (
+            <button
+              type="button"
+              onClick={() => setReviewContractItem(c)}
+              className="p-2 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 cursor-pointer transition-colors"
+              title="Đánh giá"
+            >
+              <Star size={16} />
+            </button>
+          )}
+          {c.status === "ACTIVE" && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedRequestContract(c);
+                const defaultDate = new Date();
+                defaultDate.setDate(defaultDate.getDate() + 30);
+                setCheckoutDate(defaultDate.toISOString().split("T")[0]);
+                setCheckoutReason("");
+              }}
+              className="p-2 rounded-lg text-gray-400 hover:text-red-650 hover:bg-red-50 cursor-pointer transition-colors"
+              title="Yêu cầu trả phòng"
+            >
+              <XCircle size={16} />
+            </button>
+          )}
+        </div>
+      )
+    }
+  ];
 
   if (isLoading) {
     return (
@@ -76,87 +177,8 @@ export default function MyContracts() {
 
       <SearchInput value={search} onChange={setSearch} placeholder="Tìm theo mã hợp đồng hoặc số phòng..." className="max-w-md" />
 
-      <div className="border border-gray-200 bg-white rounded-none shadow-xl overflow-x-auto mt-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Mã hợp đồng</TableHead>
-              <TableHead>Căn hộ</TableHead>
-              <TableHead>Bắt đầu</TableHead>
-              <TableHead>Kết thúc</TableHead>
-              <TableHead className="text-right">Tiền thuê/tháng</TableHead>
-              <TableHead className="text-right">Tiền cọc</TableHead>
-              <TableHead className="text-center">Trạng thái</TableHead>
-              <TableHead className="text-right">Chức năng</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((c) => {
-              const apt = apartments.find((a) => a.id === c.apartment_id);
-              const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
-              const code = `HD-${String(c.id).padStart(5, "0")}`;
-
-              return (
-                <TableRow key={c.id}>
-                  <TableCell className="font-semibold text-gray-800 whitespace-nowrap">
-                    {code}
-                  </TableCell>
-                  <TableCell className="font-medium text-gray-800 whitespace-nowrap">
-                    <div className="flex flex-col">
-                      <span>{formatApartmentDisplay(apt?.room_number || "", apt?.floor || 0)}</span>
-                      {bld?.branch_name && (
-                        <span className="text-xs font-semibold text-purple-600">{bld.branch_name}</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-gray-600 whitespace-nowrap">
-                    {formatDate(c.start_date)}
-                  </TableCell>
-                  <TableCell className="text-gray-600 whitespace-nowrap">
-                    {formatDate(c.end_date)}
-                  </TableCell>
-                  <TableCell className="text-right font-medium text-gray-800 whitespace-nowrap">
-                    {formatCurrency(c.monthly_rent)}
-                  </TableCell>
-                  <TableCell className="text-right font-medium text-gray-800 whitespace-nowrap">
-                    {formatCurrency(c.deposit_amount)}
-                  </TableCell>
-                  <TableCell className="text-center whitespace-nowrap">
-                    {getStatusBadge(c.status)}
-                  </TableCell>
-                  <TableCell className="text-right whitespace-nowrap">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setViewContractDoc(c)}
-                        className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer transition-colors"
-                        title="Xem hợp đồng"
-                      >
-                        <FileText size={16} />
-                      </button>
-                      {c.status === "ENDED" && (
-                        <button
-                          type="button"
-                          onClick={() => setReviewContractItem(c)}
-                          className="p-2 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 cursor-pointer transition-colors"
-                          title="Đánh giá"
-                        >
-                          <Star size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-
-        {filtered.length === 0 && (
-          <div className="p-8 text-center text-gray-400 bg-white border-t border-gray-100">
-            Không tìm thấy hợp đồng nào.
-          </div>
-        )}
+      <div className="mt-6">
+        <DataTable columns={columns} data={filtered} emptyMessage="Không tìm thấy hợp đồng nào." />
       </div>
 
       <Modal
@@ -550,6 +572,120 @@ export default function MyContracts() {
                 placeholder="Nhập nội dung nhận xét của bạn về căn hộ, dịch vụ, quản lý..."
                 className="premium-input rounded-xl resize-none text-xs"
               />
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Modal Yêu cầu trả phòng */}
+      <Modal
+        isOpen={selectedRequestContract !== null}
+        onClose={() => setSelectedRequestContract(null)}
+        title="Gửi yêu cầu trả phòng sớm"
+        footer={
+          <div className="flex justify-end gap-2 w-full font-sans">
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => setSelectedRequestContract(null)}
+              disabled={submittingCheckoutRequest}
+              className="rounded-xl"
+            >
+              Hủy bỏ
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!selectedRequestContract) return;
+                if (!checkoutDate) {
+                  toast.error("Vui lòng chọn ngày đề xuất trả phòng!");
+                  return;
+                }
+                const minDate = new Date();
+                minDate.setDate(minDate.getDate() + 30);
+                const chosenDate = new Date(checkoutDate);
+                if (chosenDate.setHours(0, 0, 0, 0) < minDate.setHours(0, 0, 0, 0)) {
+                  toast.error("Theo quy định, ngày trả phòng phải báo trước ít nhất 1 tháng (30 ngày)!");
+                  return;
+                }
+                if (!checkoutReason.trim()) {
+                  toast.error("Vui lòng nhập lý do trả phòng!");
+                  return;
+                }
+
+                setSubmittingCheckoutRequest(true);
+                try {
+                  const todayStr = new Date().toLocaleDateString("vi-VN");
+                  const chosenStr = new Date(checkoutDate).toLocaleDateString("vi-VN");
+                  await createMaintenanceRequest({
+                    apartment_id: selectedRequestContract.apartment_id,
+                    title: `[Yêu cầu trả phòng] Hợp đồng HD-${String(selectedRequestContract.id).padStart(5, "0")}`,
+                    description: `Khách gửi yêu cầu trả phòng sớm.\n- Ngày báo yêu cầu: ${todayStr}\n- Ngày đề xuất trả phòng: ${chosenStr}\n- Lý do: ${checkoutReason.trim()}`,
+                    priority: "HIGH",
+                  });
+                  toast.success("Gửi yêu cầu trả phòng thành công! Ban quản lý sẽ liên hệ làm việc với bạn.");
+                  setSelectedRequestContract(null);
+                } catch (err: any) {
+                  toast.error(err.response?.data?.message || err.message || "Không thể gửi yêu cầu.");
+                } finally {
+                  setSubmittingCheckoutRequest(false);
+                }
+              }}
+              disabled={submittingCheckoutRequest}
+              className="rounded-xl bg-red-650 hover:bg-red-700 text-white font-bold"
+            >
+              {submittingCheckoutRequest ? "Đang gửi..." : "Gửi yêu cầu"}
+            </Button>
+          </div>
+        }
+      >
+        {selectedRequestContract && (
+          <div className="space-y-4 font-sans text-xs sm:text-sm text-left">
+            <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex gap-3 text-amber-800">
+              <AlertTriangle className="shrink-0 text-amber-600" size={20} />
+              <div className="space-y-1">
+                <h4 className="font-bold text-amber-900 text-xs sm:text-sm">Quy định trả phòng sớm</h4>
+                <p className="text-xs text-amber-700 leading-normal">
+                  Theo quy định trong hợp đồng thuê, khách thuê khi muốn trả phòng hoặc hủy hợp đồng trước hạn phải thông báo cho Ban quản lý **trước ít nhất 1 tháng (30 ngày)**.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-gray-550 block mb-1">Ngày thông báo (Hôm nay)</label>
+                  <input
+                    type="text"
+                    value={new Date().toLocaleDateString("vi-VN")}
+                    disabled
+                    className="w-full rounded-lg border-gray-300 bg-gray-150 p-2 text-xs font-semibold text-gray-700"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-550 block mb-1">Ngày đề xuất trả phòng sớm nhất *</label>
+                  <input
+                    type="date"
+                    value={checkoutDate}
+                    onChange={(e) => setCheckoutDate(e.target.value)}
+                    min={(() => {
+                      const minDate = new Date();
+                      minDate.setDate(minDate.getDate() + 30);
+                      return minDate.toISOString().split("T")[0];
+                    })()}
+                    className="w-full rounded-lg border-gray-300 p-2 text-xs font-semibold text-gray-800 focus:ring-primary-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-gray-550 block mb-1">Lý do trả phòng *</label>
+                <textarea
+                  value={checkoutReason}
+                  onChange={(e) => setCheckoutReason(e.target.value)}
+                  placeholder="Vui lòng nhập lý do trả phòng sớm (ví dụ: Chuyển công tác, thay đổi nhu cầu...)"
+                  className="w-full rounded-lg border-gray-300 p-2.5 text-xs focus:ring-primary-500 min-h-[80px]"
+                />
+              </div>
             </div>
           </div>
         )}

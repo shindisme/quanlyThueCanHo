@@ -1,4 +1,5 @@
 import api from "../lib/api";
+import type { RentalContract } from "../types";
 
 export interface ApartmentData {
   id: number;
@@ -17,6 +18,7 @@ export interface ApartmentData {
     address_new?: string;
     branch_name?: string;
   };
+  contracts?: RentalContract[];
   images?: {
     id: number;
     apartment_id: number;
