@@ -5,7 +5,6 @@ import { utilitySchema } from "../../../../schemas/utility.schema";
 import * as utilityService from "../../../../services/utilityService";
 import type { BuildingData } from "../../../../services/buildingService";
 import type { ApartmentData } from "../../../../services/apartmentService";
-import type { UtilityReadingData } from "../../../../services/utilityService";
 
 interface UseUtilityCreateProps {
   isOpen: boolean;
@@ -13,7 +12,6 @@ interface UseUtilityCreateProps {
   onSuccess: () => void;
   buildings: BuildingData[];
   apartments: ApartmentData[];
-  readings: UtilityReadingData[];
   preselectedApartment: ApartmentData | null;
   defaultMonth: number;
   defaultYear: number;
@@ -27,7 +25,6 @@ export function useUtilityCreate({
   onSuccess,
   buildings,
   apartments,
-  readings,
   preselectedApartment,
   defaultMonth,
   defaultYear,
@@ -84,27 +81,52 @@ export function useUtilityCreate({
     }
   }, [isOpen, preselectedApartment, defaultMonth, defaultYear, role, managedBuildingId]);
 
-  // Autofill old indices when apartmentId changes
+  // Autofill old indices from the previous month reading.
   useEffect(() => {
-    if (apartmentId && isOpen) {
-      const aptReadings = readings
-        .filter((r) => r.apartment_id === Number(apartmentId))
-        .sort((a, b) => {
-          if (a.year !== b.year) return b.year - a.year;
-          return b.month - a.month;
-        });
-
-      if (aptReadings.length > 0) {
-        setElectricOld(String(aptReadings[0].electric_new));
-        setWaterOld(String(aptReadings[0].water_new));
-      } else {
-        setElectricOld("0");
-        setWaterOld("0");
-      }
+    if (!apartmentId || !isOpen) {
+      setElectricOld("");
+      setWaterOld("");
+      return;
     }
-  }, [apartmentId, isOpen, readings]);
+
+    const previousMonth = month === 1 ? 12 : month - 1;
+    const previousYear = month === 1 ? year - 1 : year;
+    let cancelled = false;
+
+    setElectricOld("");
+    setWaterOld("");
+
+    utilityService.getAllUtilityReadings({
+      apartment_id: Number(apartmentId),
+      month: previousMonth,
+      year: previousYear,
+      limit: 1,
+    }).then((result) => {
+      if (cancelled) return;
+
+      const previousReading = result.data[0];
+      setElectricOld(previousReading ? String(previousReading.electric_new) : "0");
+      setWaterOld(previousReading ? String(previousReading.water_new) : "0");
+    }).catch((error) => {
+      if (cancelled) return;
+
+      console.error(error);
+      toast.error("Không thể lấy chỉ số điện nước kỳ trước");
+      setElectricOld("0");
+      setWaterOld("0");
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apartmentId, isOpen, month, year]);
 
   function handleCreateUtilityReading() {
+    if (electricOld === "" || waterOld === "") {
+      toast.error("Đang lấy chỉ số điện nước kỳ trước");
+      return;
+    }
+
     const payload = {
       apartment_id: apartmentId ? Number(apartmentId) : 0,
       month: month,

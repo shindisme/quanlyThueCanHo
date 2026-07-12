@@ -48,12 +48,11 @@ export function useAdminMaintenance() {
   const requests = requestsRes?.data || [];
 
   // Fetch buildings
-  const { data: buildingsRes, isLoading: loadingBuildings } = useQuery({
+  const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
+    queryFn: () => buildingService.getAllBuildingPages(),
     enabled: role === "ADMIN",
   });
-  const buildings = buildingsRes?.data || [];
 
   // Fetch technicians
   const { data: staffRes, isLoading: loadingStaff } = useQuery({

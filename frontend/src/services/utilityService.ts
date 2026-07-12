@@ -41,7 +41,7 @@ export interface UtilityPagination {
   totalPages: number;
 }
 
-export async function getAllUtilityReadings(params?: {
+type UtilityReadingQuery = {
   apartment_id?: number;
   building_id?: number;
   month?: number;
@@ -50,7 +50,9 @@ export async function getAllUtilityReadings(params?: {
   search?: string;
   page?: number;
   limit?: number;
-}): Promise<{ data: UtilityReadingData[]; pagination: UtilityPagination }> {
+};
+
+export async function getAllUtilityReadings(params?: UtilityReadingQuery): Promise<{ data: UtilityReadingData[]; pagination: UtilityPagination }> {
   interface UtilityReadingsResponse {
     data: UtilityReadingData[];
     meta?: {
@@ -64,6 +66,19 @@ export async function getAllUtilityReadings(params?: {
   return { data: rawData, pagination };
 }
 
+export async function getAllUtilityReadingPages(params?: Omit<UtilityReadingQuery, "page" | "limit">): Promise<UtilityReadingData[]> {
+  const first = await getAllUtilityReadings({ ...params, page: 1, limit: 100 });
+  const totalPages = first.pagination?.totalPages ?? 1;
+  if (totalPages <= 1) return first.data;
+
+  const rest = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      getAllUtilityReadings({ ...params, page: index + 2, limit: 100 })
+    )
+  );
+
+  return [first, ...rest].flatMap((page) => page.data);
+}
 export async function getUtilityReadingById(id: number): Promise<UtilityReadingData> {
   const res = await api.get<{ data: UtilityReadingData }>(`/utility-readings/${id}`);
   return res.data.data;

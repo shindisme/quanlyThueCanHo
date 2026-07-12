@@ -9,11 +9,10 @@ export function useAdminDashboard() {
   const { email } = useAuthStore();
   const displayName = "Quản trị viên";
 
-  const { data: buildingsData, isLoading: loadingBuildings } = useQuery({
+  const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
+    queryFn: () => buildingService.getAllBuildingPages(),
   });
-  const buildings = buildingsData?.data || [];
 
   const { data: apartmentsData, isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments"],
@@ -29,9 +28,9 @@ export function useAdminDashboard() {
 
   const { data: invoicesData, isLoading: loadingInvoices } = useQuery({
     queryKey: ["invoices"],
-    queryFn: () => invoiceService.getAllInvoices({ limit: 100 }),
+    queryFn: () => invoiceService.getAllInvoicePages(),
   });
-  const invoices = invoicesData?.data || [];
+  const invoices = invoicesData || [];
 
   const isLoading = loadingBuildings || loadingApartments || loadingContracts || loadingInvoices;
 

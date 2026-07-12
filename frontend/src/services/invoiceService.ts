@@ -36,6 +36,20 @@ export async function getAllInvoices(params?: InvoiceFilters): Promise<{ data: I
   };
 }
 
+export async function getAllInvoicePages(params?: Omit<InvoiceFilters, "page" | "limit">): Promise<Invoice[]> {
+  const first = await getAllInvoices({ ...params, page: 1, limit: 100 });
+  const totalPages = first.pagination?.totalPages ?? 1;
+  if (totalPages <= 1) return first.data;
+
+  const rest = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      getAllInvoices({ ...params, page: index + 2, limit: 100 })
+    )
+  );
+
+  return [first, ...rest].flatMap((page) => page.data);
+}
+
 export async function getInvoiceById(id: number): Promise<Invoice> {
   const res = await api.get<{ data: Invoice }>(`/invoices/${id}`);
   return res.data.data;

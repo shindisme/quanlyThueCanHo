@@ -194,7 +194,6 @@ export default function UtilitiesPage() {
         onSuccess={fetchData}
         buildings={buildings}
         apartments={apartments}
-        readings={readings}
         preselectedApartment={preselectedApartment}
         defaultMonth={Number(filterMonth) || new Date().getMonth() + 1}
         defaultYear={Number(filterYear) || new Date().getFullYear()}

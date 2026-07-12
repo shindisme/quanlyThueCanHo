@@ -6,7 +6,6 @@ import Input from "../../../../components/ui/Input";
 import { useUtilityCreate } from "../hooks/useUtilityCreate";
 import type { BuildingData } from "../../../../services/buildingService";
 import type { ApartmentData } from "../../../../services/apartmentService";
-import type { UtilityReadingData } from "../../../../services/utilityService";
 
 interface UtilityCreateModalProps {
   isOpen: boolean;
@@ -14,7 +13,6 @@ interface UtilityCreateModalProps {
   onSuccess: () => void;
   buildings: BuildingData[];
   apartments: ApartmentData[];
-  readings: UtilityReadingData[];
   preselectedApartment: ApartmentData | null;
   defaultMonth: number;
   defaultYear: number;
@@ -28,7 +26,6 @@ export default function UtilityCreateModal({
   onSuccess,
   buildings,
   apartments,
-  readings,
   preselectedApartment,
   defaultMonth,
   defaultYear,
@@ -65,7 +62,6 @@ export default function UtilityCreateModal({
     onSuccess,
     buildings,
     apartments,
-    readings,
     preselectedApartment,
     defaultMonth,
     defaultYear,

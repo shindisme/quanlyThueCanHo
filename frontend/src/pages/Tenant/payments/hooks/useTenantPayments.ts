@@ -93,9 +93,9 @@ export function useTenantPayments() {
   // Fetch unpaid invoices for payment selection
   const { data: unpaidInvoicesRes, isLoading: loadingInvoices } = useQuery({
     queryKey: ["tenant-unpaid-invoices"],
-    queryFn: () => invoiceService.getAllInvoices({ status: "UNPAID", limit: 100 }),
+    queryFn: () => invoiceService.getAllInvoicePages({ status: "UNPAID" }),
   });
-  const unpaidInvoices = unpaidInvoicesRes?.data || [];
+  const unpaidInvoices = unpaidInvoicesRes || [];
 
   // Fetch payment transactions history
   const { data: paymentsRes, isLoading: loadingPayments } = useQuery({

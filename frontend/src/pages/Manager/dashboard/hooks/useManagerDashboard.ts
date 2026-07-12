@@ -94,12 +94,11 @@ export function useManagerDashboard() {
 
   const { data: invoicesData, isLoading: loadingInvoices } = useQuery({
     queryKey: ["invoices", activeBuildingId],
-    queryFn: () => invoiceService.getAllInvoices({
+    queryFn: () => invoiceService.getAllInvoicePages({
       building_id: activeBuildingId || undefined,
-      limit: 100
     }),
   });
-  const invoices = invoicesData?.data || [];
+  const invoices = invoicesData || [];
 
   const { data: maintenanceData, isLoading: loadingMaintenance } = useQuery({
     queryKey: ["maintenanceRequests", activeBuildingId],

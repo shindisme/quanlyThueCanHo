@@ -31,13 +31,12 @@ export function useStaffList() {
     queryFn: () => staffService.getAllStaff(),
   });
 
-  const { data: buildingsRes, isLoading: loadingBuildings } = useQuery({
+  const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
+    queryFn: () => buildingService.getAllBuildingPages(),
   });
 
   const staffList = staffRes?.data || [];
-  const buildings = buildingsRes?.data || [];
   const loading = loadingStaff || loadingBuildings;
 
   function loadData() {

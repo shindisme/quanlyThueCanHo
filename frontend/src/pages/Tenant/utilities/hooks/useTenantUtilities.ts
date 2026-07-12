@@ -47,10 +47,10 @@ export function useTenantUtilities() {
 
   const { data: invoicesRes, isLoading: loadingInvoices } = useQuery({
     queryKey: ["invoices"],
-    queryFn: () => invoiceService.getAllInvoices({ limit: 100 }),
+    queryFn: () => invoiceService.getAllInvoicePages(),
     enabled: !!activeContract,
   });
-  const invoices = invoicesRes?.data || [];
+  const invoices = invoicesRes || [];
 
   const readings = (() => {
     // Sort invoices chronologically to reconstruct cumulative readings
