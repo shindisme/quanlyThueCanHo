@@ -41,6 +41,24 @@ export interface UtilityPagination {
   totalPages: number;
 }
 
+const meter = (value: number) => Math.round(Number(value) || 0);
+
+const normalizeUtilityReading = (reading: UtilityReadingData): UtilityReadingData => {
+  const electricOld = meter(reading.electric_old);
+  const electricNew = meter(reading.electric_new);
+  const waterOld = meter(reading.water_old);
+  const waterNew = meter(reading.water_new);
+
+  return {
+    ...reading,
+    electric_old: electricOld,
+    electric_new: electricNew,
+    electric_consumption: Math.max(0, electricNew - electricOld),
+    water_old: waterOld,
+    water_new: waterNew,
+    water_consumption: Math.max(0, waterNew - waterOld),
+  };
+};
 type UtilityReadingQuery = {
   apartment_id?: number;
   building_id?: number;
@@ -61,7 +79,7 @@ export async function getAllUtilityReadings(params?: UtilityReadingQuery): Promi
     pagination?: UtilityPagination;
   }
   const res = await api.get<UtilityReadingsResponse>("/utility-readings", { params });
-  const rawData = res.data.data || [];
+  const rawData = (res.data.data || []).map(normalizeUtilityReading);
   const pagination = res.data.meta?.pagination || res.data.pagination || { total: rawData.length, page: 1, limit: 10, totalPages: 1 };
   return { data: rawData, pagination };
 }
@@ -79,9 +97,36 @@ export async function getAllUtilityReadingPages(params?: Omit<UtilityReadingQuer
 
   return [first, ...rest].flatMap((page) => page.data);
 }
+export async function getMyUtilityReadings(params?: Omit<UtilityReadingQuery, "apartment_id" | "building_id" | "recorded_by">): Promise<{ data: UtilityReadingData[]; pagination: UtilityPagination }> {
+  interface UtilityReadingsResponse {
+    data: UtilityReadingData[];
+    meta?: {
+      pagination?: UtilityPagination;
+    };
+    pagination?: UtilityPagination;
+  }
+  const res = await api.get<UtilityReadingsResponse>("/utility-readings/my", { params });
+  const rawData = (res.data.data || []).map(normalizeUtilityReading);
+  const pagination = res.data.meta?.pagination || res.data.pagination || { total: rawData.length, page: 1, limit: 10, totalPages: 1 };
+  return { data: rawData, pagination };
+}
+
+export async function getMyUtilityReadingPages(params?: Omit<UtilityReadingQuery, "apartment_id" | "building_id" | "recorded_by" | "page" | "limit">): Promise<UtilityReadingData[]> {
+  const first = await getMyUtilityReadings({ ...params, page: 1, limit: 100 });
+  const totalPages = first.pagination?.totalPages ?? 1;
+  if (totalPages <= 1) return first.data;
+
+  const rest = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      getMyUtilityReadings({ ...params, page: index + 2, limit: 100 })
+    )
+  );
+
+  return [first, ...rest].flatMap((page) => page.data);
+}
 export async function getUtilityReadingById(id: number): Promise<UtilityReadingData> {
   const res = await api.get<{ data: UtilityReadingData }>(`/utility-readings/${id}`);
-  return res.data.data;
+  return normalizeUtilityReading(res.data.data);
 }
 
 export async function createUtilityReading(data: {

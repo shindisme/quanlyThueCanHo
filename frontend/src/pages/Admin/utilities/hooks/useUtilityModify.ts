@@ -58,10 +58,10 @@ export function useUtilityModify({
       setApartmentId(String(editItem.apartment_id));
       setMonth(editItem.month);
       setYear(editItem.year);
-      setElectricOld(String(editItem.electric_old));
-      setElectricNew(String(editItem.electric_new));
-      setWaterOld(String(editItem.water_old));
-      setWaterNew(String(editItem.water_new));
+      setElectricOld(String(Math.round(Number(editItem.electric_old))));
+      setElectricNew(String(Math.round(Number(editItem.electric_new))));
+      setWaterOld(String(Math.round(Number(editItem.water_old))));
+      setWaterNew(String(Math.round(Number(editItem.water_new))));
     }
   }, [editItem, isOpen]);
 
@@ -72,10 +72,10 @@ export function useUtilityModify({
       apartment_id: Number(apartmentId),
       month: month,
       year: year,
-      electric_old: Number(electricOld || 0),
-      electric_new: Number(electricNew || 0),
-      water_old: Number(waterOld || 0),
-      water_new: Number(waterNew || 0),
+      electric_old: Math.round(Number(electricOld || 0)),
+      electric_new: Math.round(Number(electricNew || 0)),
+      water_old: Math.round(Number(waterOld || 0)),
+      water_new: Math.round(Number(waterNew || 0)),
     };
 
     const validationResult = utilitySchema.safeParse(payload);

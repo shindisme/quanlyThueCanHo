@@ -3,7 +3,7 @@ import { z } from "zod";
 const emptyObjectSchema = z.object({}).strict();
 const optionalEmptyBodySchema = emptyObjectSchema.default({});
 const positiveIdSchema = z.coerce.number().int().positive();
-const meterSchema = z.coerce.number().finite().nonnegative();
+const meterSchema = z.coerce.number().int().nonnegative();
 const monthSchema = z.coerce.number().int().min(1).max(12);
 const yearSchema = z.coerce.number().int().min(2000).max(3000);
 

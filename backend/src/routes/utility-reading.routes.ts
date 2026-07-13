@@ -22,7 +22,16 @@ const utilityRoles = [
     Role.STAFF
 ];
 
-router.use(authenticate, authorizeRole(utilityRoles));
+router.use(authenticate);
+
+router.get(
+    "/my",
+    authorizeRole([Role.TENANT]),
+    validate(listUtilityReadingsRequestSchema),
+    utilityReadingController.getMine
+);
+
+router.use(authorizeRole(utilityRoles));
 
 router.get(
     "/",

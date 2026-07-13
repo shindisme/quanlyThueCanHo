@@ -105,8 +105,8 @@ export function useUtilityCreate({
       if (cancelled) return;
 
       const previousReading = result.data[0];
-      setElectricOld(previousReading ? String(previousReading.electric_new) : "0");
-      setWaterOld(previousReading ? String(previousReading.water_new) : "0");
+      setElectricOld(previousReading ? String(Math.round(Number(previousReading.electric_new))) : "0");
+      setWaterOld(previousReading ? String(Math.round(Number(previousReading.water_new))) : "0");
     }).catch((error) => {
       if (cancelled) return;
 
@@ -131,10 +131,10 @@ export function useUtilityCreate({
       apartment_id: apartmentId ? Number(apartmentId) : 0,
       month: month,
       year: year,
-      electric_old: Number(electricOld || 0),
-      electric_new: Number(electricNew || 0),
-      water_old: Number(waterOld || 0),
-      water_new: Number(waterNew || 0),
+      electric_old: Math.round(Number(electricOld || 0)),
+      electric_new: Math.round(Number(electricNew || 0)),
+      water_old: Math.round(Number(waterOld || 0)),
+      water_new: Math.round(Number(waterNew || 0)),
     };
 
     const validationResult = utilitySchema.safeParse(payload);

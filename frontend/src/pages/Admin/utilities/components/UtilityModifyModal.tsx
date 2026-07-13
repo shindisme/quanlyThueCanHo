@@ -8,6 +8,10 @@ import type { BuildingData } from "../../../../services/buildingService";
 import type { ApartmentData } from "../../../../services/apartmentService";
 import type { UtilityReadingData } from "../../../../services/utilityService";
 
+const meter = (value: string | number) => Math.round(Number(value) || 0);
+const meterUsage = (oldValue: string | number, newValue: string | number) =>
+  Math.max(0, meter(newValue) - meter(oldValue));
+
 interface UtilityModifyModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -191,7 +195,7 @@ export default function UtilityModifyModal({
           </div>
           <p className="text-xs text-emerald-700 font-semibold text-right">
             Điện năng sử dụng:{" "}
-            {Math.max(0, (Number(electricNew) || 0) - (Number(electricOld) || 0))} kWh
+            {meterUsage(electricOld, electricNew)} kWh
           </p>
         </div>
 

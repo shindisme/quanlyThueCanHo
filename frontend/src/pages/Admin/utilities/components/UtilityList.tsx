@@ -11,6 +11,10 @@ import { formatDate } from "../../../../utils/date";
 import type { UtilityReadingData } from "../../../../services/utilityService";
 import type { ApartmentData } from "../../../../services/apartmentService";
 
+const meter = (value: number) => Math.round(Number(value));
+const meterUsage = (oldValue: number, newValue: number) =>
+  Math.max(0, meter(newValue) - meter(oldValue));
+
 interface UtilityListProps {
   paginatedApartments: ApartmentData[];
   readings: UtilityReadingData[];
@@ -58,8 +62,8 @@ export default function UtilityList({
               x.year === Number(filterYear)
           );
 
-          const electricDiff = r ? Number(r.electric_new) - Number(r.electric_old) : "-";
-          const waterDiff = r ? Number(r.water_new) - Number(r.water_old) : "-";
+          const electricDiff = r ? meterUsage(r.electric_old, r.electric_new) : "-";
+          const waterDiff = r ? meterUsage(r.water_old, r.water_new) : "-";
           const staffName = r?.staff?.full_name || (r ? "Hệ thống" : "-");
           const createdAt = r ? formatDate(r.created_at) : "-";
 
@@ -183,8 +187,8 @@ export default function UtilityList({
                   x.year === Number(filterYear)
               );
 
-              const electricDiff = r ? Number(r.electric_new) - Number(r.electric_old) : "-";
-              const waterDiff = r ? Number(r.water_new) - Number(r.water_old) : "-";
+              const electricDiff = r ? meterUsage(r.electric_old, r.electric_new) : "-";
+              const waterDiff = r ? meterUsage(r.water_old, r.water_new) : "-";
               const staffName = r?.staff?.full_name || (r ? "Hệ thống" : "-");
               const createdAt = r ? formatDate(r.created_at) : "-";
 
