@@ -12,7 +12,7 @@ const requireTenantId = (actor: Actor) => {
         throw new AppError(
             403,
             "TENANT_PROFILE_REQUIRED",
-            "A linked tenant profile is required"
+            "Yêu cầu phải có hồ sơ khách thuê liên kết"
         );
     }
 
@@ -57,7 +57,7 @@ export const createReviewService = async (
             throw new AppError(
                 409,
                 "REVIEW_ALREADY_EXISTS",
-                "This apartment has already been reviewed"
+                "Căn hộ này đã được đánh giá rồi"
             );
         }
 
@@ -68,7 +68,7 @@ export const createReviewService = async (
             throw new AppError(
                 404,
                 "NOT_FOUND",
-                "An ended contract for this apartment was not found"
+                "Không tìm thấy hợp đồng đã kết thúc cho căn hộ này"
             );
         }
 

@@ -850,7 +850,7 @@ export const updateInvoiceStatusService = async (
             throw new AppError(
                 409,
                 "CONCURRENT_MODIFICATION",
-                "Invoice status changed during this operation"
+                "Trạng thái hóa đơn đã thay đổi trong quá trình thực hiện"
             );
         }
 

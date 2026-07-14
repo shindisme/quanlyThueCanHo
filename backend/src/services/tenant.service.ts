@@ -86,13 +86,13 @@ const tenantDetailSelect = {
 const notFound = () => new AppError(
     404,
     "NOT_FOUND",
-    "Tenant was not found"
+    "Khách thuê không tồn tại"
 );
 
 const occupantNotFound = () => new AppError(
     404,
     "NOT_FOUND",
-    "Occupant was not found"
+    "Nhân khẩu không tồn tại"
 );
 
 const requireTenantId = (actor: Actor) => {
@@ -100,7 +100,7 @@ const requireTenantId = (actor: Actor) => {
         throw new AppError(
             403,
             "TENANT_PROFILE_REQUIRED",
-            "A linked tenant profile is required"
+            "Yêu cầu phải có hồ sơ khách thuê liên kết"
         );
     }
 
@@ -345,7 +345,7 @@ export const getTenantById = async (
             throw new AppError(
                 403,
                 "TENANT_PROFILE_REQUIRED",
-                "A tenant profile is required"
+                "Yêu cầu phải có hồ sơ khách thuê"
             );
         }
 
@@ -394,7 +394,7 @@ export const updateTenant = async (
         throw new AppError(
             403,
             "FORBIDDEN",
-            "Managers cannot change tenant verification"
+            "Quản lý không thể thay đổi trạng thái xác minh của khách thuê"
         );
     }
 
@@ -410,7 +410,7 @@ export const updateTenant = async (
         throw new AppError(
             400,
             "VALIDATION_ERROR",
-            "No Manager-editable field was provided"
+            "Không có trường dữ liệu nào mà Quản lý được phép chỉnh sửa được cung cấp"
         );
     }
 

@@ -46,25 +46,25 @@ type ContractWithRelations = Prisma.RentalContractGetPayload<{
 const notFound = () => new AppError(
     404,
     "NOT_FOUND",
-    "Contract was not found"
+    "Hợp đồng không tồn tại"
 );
 
 const activeContractConflict = () => new AppError(
     409,
     "ACTIVE_CONTRACT_EXISTS",
-    "Apartment already has an active contract"
+    "Căn hộ này đã có hợp đồng đang hoạt động"
 );
 
 const contractNotActive = () => new AppError(
     409,
     "CONTRACT_NOT_ACTIVE",
-    "Only active contracts can be changed"
+    "Chỉ có thể thay đổi các hợp đồng đang hoạt động"
 );
 
 const concurrentModification = () => new AppError(
     409,
     "CONCURRENT_MODIFICATION",
-    "Contract changed during this operation"
+    "Hợp đồng đã bị thay đổi trong quá trình thực hiện"
 );
 
 const SERIALIZABLE_RETRY_LIMIT = 3;
@@ -186,7 +186,7 @@ const getContractScope = (
             throw new AppError(
                 403,
                 "TENANT_PROFILE_REQUIRED",
-                "A tenant profile is required"
+                "Yêu cầu phải có hồ sơ khách thuê"
             );
         }
 
@@ -198,7 +198,7 @@ const getContractScope = (
     throw new AppError(
         403,
         "FORBIDDEN",
-        "You do not have permission to access contracts"
+        "Bạn không có quyền truy cập hợp đồng"
     );
 };
 
@@ -249,7 +249,7 @@ const ensureNewEndDate = (
         throw new AppError(
             400,
             "INVALID_DATE_RANGE",
-            "Contract end date cannot be in the past"
+            "Ngày kết thúc hợp đồng không thể nhỏ hơn ngày hiện tại"
         );
     }
 
@@ -257,7 +257,7 @@ const ensureNewEndDate = (
         throw new AppError(
             400,
             "INVALID_DATE_RANGE",
-            "New end date must be later than the current end date"
+            "Ngày kết thúc mới phải sau ngày kết thúc hiện tại"
         );
     }
 };
@@ -270,7 +270,7 @@ const assertPositiveMoney = (
         throw new AppError(
             400,
             "VALIDATION_ERROR",
-            `${field} must be positive, fit Decimal(12,2), and use at most two decimal places`
+            `${field} phải là số dương, đúng định dạng Decimal(12,2) và tối đa 2 chữ số thập phân`
         );
     }
 };
@@ -280,7 +280,7 @@ const assertInvoiceMoney = (value: number) => {
         throw new AppError(
             400,
             "VALIDATION_ERROR",
-            "Invoice total must fit Decimal(12,2)"
+            "Tổng tiền hóa đơn phải đúng định dạng Decimal(12,2)"
         );
     }
 };
@@ -438,72 +438,72 @@ export const createContractService = async (
 
     try {
         return await runSerializableTransaction(async (transaction) => {
-        const apartmentScope: Prisma.ApartmentWhereInput = {
-            id: input.apartment_id,
-            ...(managerAssignment
-                ? {
-                    building_id: managerAssignment.buildingId,
-                    building: managerAssignment.assignmentWhere
-                }
-                : {})
-        };
-        const tenantScope: Prisma.TenantWhereInput = {
-            id: input.tenant_id,
-            ...(managerAssignment
-                ? getManagerTenantScope(actor)
-                : {})
-        };
-        const [apartment, tenant] = await Promise.all([
-            transaction.apartment.findFirst({
-                where: apartmentScope,
-                select: {
-                    id: true,
-                    building_id: true,
-                    status: true,
-                    area: true
-                }
-            }),
-            transaction.tenant.findFirst({
-                where: tenantScope,
-                select: {
-                    id: true,
-                    onboarding_building_id: true,
-                    user_id: true
-                }
-            })
-        ]);
+            const apartmentScope: Prisma.ApartmentWhereInput = {
+                id: input.apartment_id,
+                ...(managerAssignment
+                    ? {
+                        building_id: managerAssignment.buildingId,
+                        building: managerAssignment.assignmentWhere
+                    }
+                    : {})
+            };
+            const tenantScope: Prisma.TenantWhereInput = {
+                id: input.tenant_id,
+                ...(managerAssignment
+                    ? getManagerTenantScope(actor)
+                    : {})
+            };
+            const [apartment, tenant] = await Promise.all([
+                transaction.apartment.findFirst({
+                    where: apartmentScope,
+                    select: {
+                        id: true,
+                        building_id: true,
+                        status: true,
+                        area: true
+                    }
+                }),
+                transaction.tenant.findFirst({
+                    where: tenantScope,
+                    select: {
+                        id: true,
+                        onboarding_building_id: true,
+                        user_id: true
+                    }
+                })
+            ]);
 
-        if (!apartment || !tenant) {
-            throw new AppError(
-                404,
-                "NOT_FOUND",
-                "Apartment or tenant was not found"
-            );
-        }
+            if (!apartment || !tenant) {
+                throw new AppError(
+                    404,
+                    "NOT_FOUND",
+                    "Căn hộ hoặc khách thuê không tồn tại"
+                );
+            }
 
-        if (apartment.status !== ApartmentStatus.AVAILABLE) {
-            throw new AppError(
-                409,
-                "APARTMENT_UNAVAILABLE",
-                "Apartment is not available"
-            );
-        }
+            if (apartment.status !== ApartmentStatus.AVAILABLE) {
+                throw new AppError(
+                    409,
+                    "APARTMENT_UNAVAILABLE",
+                    "Căn hộ không có sẵn"
+                );
+            }
 
-        const existingContract =
-            await transaction.rentalContract.findFirst({
-                where: {
-                    apartment_id: apartment.id,
-                    status: ContractStatus.ACTIVE
-                },
-                select: { id: true }
-            });
+            const existingContract =
+                await transaction.rentalContract.findFirst({
+                    where: {
+                        apartment_id: apartment.id,
+                        status: ContractStatus.ACTIVE
+                    },
+                    select: { id: true }
+                });
 
-        if (existingContract) {
-            throw activeContractConflict();
-        }
+            if (existingContract) {
+                throw activeContractConflict();
+            }
 
-        const apartmentConnect:
-            Prisma.ApartmentWhereUniqueInput = {
+            const apartmentConnect:
+                Prisma.ApartmentWhereUniqueInput = {
                 id: apartment.id,
                 status: ApartmentStatus.AVAILABLE,
                 contracts: {
@@ -517,96 +517,96 @@ export const createContractService = async (
                     }
                     : {})
             };
-        const tenantConnect: Prisma.TenantWhereUniqueInput = {
-            ...(managerAssignment
-                ? getManagerTenantScope(actor)
-                : {}),
-            id: tenant.id
-        };
-        const contract = await transaction.rentalContract.create({
-            data: {
-                apartment: { connect: apartmentConnect },
-                tenant: { connect: tenantConnect },
-                start_date: input.start_date,
-                end_date: input.end_date,
-                deposit_amount: input.deposit_amount,
-                monthly_rent: input.monthly_rent,
-                signed_at: input.signed_at,
-                contract_file: input.contract_file,
-                status: ContractStatus.ACTIVE
-            }
-        });
-
-        await transaction.apartment.update({
-            where: {
-                id: apartment.id,
-                status: ApartmentStatus.AVAILABLE,
+            const tenantConnect: Prisma.TenantWhereUniqueInput = {
                 ...(managerAssignment
-                    ? {
-                        building_id: managerAssignment.buildingId,
-                        building:
-                            managerAssignment.assignmentWhere
-                    }
-                    : {})
-            },
-            data: { status: ApartmentStatus.RENTED }
-        });
-
-        const firstInvoiceItems = buildFirstRentalInvoiceItems({
-            depositAmount: input.deposit_amount,
-            monthlyRent: input.monthly_rent,
-            area: apartment.area
-        });
-        const firstInvoiceTotal = sumBillingItems(firstInvoiceItems);
-        assertInvoiceMoney(firstInvoiceTotal);
-
-        const firstInvoiceCode = buildFirstInvoiceCode(
-            contract.id,
-            input.start_date
-        );
-        await transaction.invoice.create({
-            data: {
-                contract_id: contract.id,
-                tenant_id: tenant.id,
-                invoice_code: firstInvoiceCode,
-                total_amount: firstInvoiceTotal,
-                due_date: new Date(),
-                status: "UNPAID",
-                items: {
-                    create: firstInvoiceItems
-                }
-            }
-        });
-
-        if (tenant.user_id) {
-            await transaction.notification.create({
+                    ? getManagerTenantScope(actor)
+                    : {}),
+                id: tenant.id
+            };
+            const contract = await transaction.rentalContract.create({
                 data: {
-                    user_id: tenant.user_id,
-                    title: "Hóa đơn mới",
-                    content: "Hóa đơn " + firstInvoiceCode + " đã được tạo với tổng tiền " + firstInvoiceTotal + ".",
-                    type: "INVOICE_CREATED"
+                    apartment: { connect: apartmentConnect },
+                    tenant: { connect: tenantConnect },
+                    start_date: input.start_date,
+                    end_date: input.end_date,
+                    deposit_amount: input.deposit_amount,
+                    monthly_rent: input.monthly_rent,
+                    signed_at: input.signed_at,
+                    contract_file: input.contract_file,
+                    status: ContractStatus.ACTIVE
                 }
             });
-        }
 
-        if (
-            tenant.onboarding_building_id
-            === apartment.building_id
-        ) {
-            await transaction.tenant.updateMany({
+            await transaction.apartment.update({
                 where: {
-                    id: tenant.id,
-                    onboarding_building_id: apartment.building_id,
+                    id: apartment.id,
+                    status: ApartmentStatus.AVAILABLE,
                     ...(managerAssignment
                         ? {
-                            onboarding_building:
+                            building_id: managerAssignment.buildingId,
+                            building:
                                 managerAssignment.assignmentWhere
                         }
                         : {})
                 },
-                data: { onboarding_building_id: null }
+                data: { status: ApartmentStatus.RENTED }
             });
-        }
+
+            const firstInvoiceItems = buildFirstRentalInvoiceItems({
+                depositAmount: input.deposit_amount,
+                monthlyRent: input.monthly_rent,
+                area: apartment.area
+            });
+            const firstInvoiceTotal = sumBillingItems(firstInvoiceItems);
+            assertInvoiceMoney(firstInvoiceTotal);
+
+            const firstInvoiceCode = buildFirstInvoiceCode(
+                contract.id,
+                input.start_date
+            );
+            await transaction.invoice.create({
+                data: {
+                    contract_id: contract.id,
+                    tenant_id: tenant.id,
+                    invoice_code: firstInvoiceCode,
+                    total_amount: firstInvoiceTotal,
+                    due_date: new Date(),
+                    status: "UNPAID",
+                    items: {
+                        create: firstInvoiceItems
+                    }
+                }
+            });
+
+            if (tenant.user_id) {
+                await transaction.notification.create({
+                    data: {
+                        user_id: tenant.user_id,
+                        title: "Hóa đơn mới",
+                        content: "Hóa đơn " + firstInvoiceCode + " đã được tạo với tổng tiền " + firstInvoiceTotal + ".",
+                        type: "INVOICE_CREATED"
+                    }
+                });
+            }
+
+            if (
+                tenant.onboarding_building_id
+                === apartment.building_id
+            ) {
+                await transaction.tenant.updateMany({
+                    where: {
+                        id: tenant.id,
+                        onboarding_building_id: apartment.building_id,
+                        ...(managerAssignment
+                            ? {
+                                onboarding_building:
+                                    managerAssignment.assignmentWhere
+                            }
+                            : {})
+                    },
+                    data: { onboarding_building_id: null }
+                });
+            }
 
             return normalizeCreatedContract(contract);
         });
@@ -712,7 +712,7 @@ export const endContractService = async (
         throw new AppError(
             400,
             "INVALID_DATE_RANGE",
-            "Contract cannot be ended in the future"
+            "Hợp đồng không thể kết thúc ở tương lai"
         );
     }
 
@@ -720,7 +720,7 @@ export const endContractService = async (
         throw new AppError(
             400,
             "INVALID_DATE_RANGE",
-            "Contract cannot end before its start date"
+            "Hợp đồng không thể kết thúc trước ngày bắt đầu"
         );
     }
 

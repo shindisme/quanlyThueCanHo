@@ -79,7 +79,7 @@ type ManagerAssignment =
 const notFound = () => new AppError(
     404,
     "NOT_FOUND",
-    "Notification was not found"
+    "Thông báo không tồn tại"
 );
 
 const forbidden = (message: string) => new AppError(
@@ -91,7 +91,7 @@ const forbidden = (message: string) => new AppError(
 const concurrentModification = () => new AppError(
     409,
     "CONCURRENT_MODIFICATION",
-    "Notification scope changed during this operation"
+    "Phạm vi thông báo đã bị thay đổi trong quá trình thực hiện"
 );
 
 const SERIALIZABLE_RETRY_LIMIT = 3;
@@ -207,7 +207,7 @@ const getNotificationScope = (
         };
     }
 
-    throw forbidden("You do not have access to notifications");
+    throw forbidden("Bạn không có quyền truy cập vào thông báo");
 };
 
 const assertCanManageNotifications = (actor: NotificationActor) => {

@@ -49,7 +49,7 @@ const privateBuildingSelect = {
 const notFound = () => new AppError(
     404,
     "NOT_FOUND",
-    "Building was not found"
+    "Tòa nhà không tồn tại"
 );
 
 const assertManagerBuildingTarget = (id: number, actor: Actor) => {
@@ -171,7 +171,7 @@ export const assertBuildingUpdateAccessService = (
             throw new AppError(
                 403,
                 "FORBIDDEN",
-                "Managers cannot change building staff assignments"
+                "Quản lý không có quyền thay đổi phân công nhân viên của tòa nhà"
             );
         }
     }

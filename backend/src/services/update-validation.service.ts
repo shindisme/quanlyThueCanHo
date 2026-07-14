@@ -11,10 +11,10 @@ export const assertUpdateHasChanges = (
     throw new AppError(
         400,
         "VALIDATION_ERROR",
-        "Request validation failed",
+        "Yêu cầu xác thực thất bại",
         [{
             field: "body",
-            message: "At least one field or file is required"
+            message: "Yêu cầu ít nhất một trường dữ liệu hoặc tệp tin"
         }]
     );
 };

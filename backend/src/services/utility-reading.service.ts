@@ -58,7 +58,7 @@ type Assignment = ReturnType<typeof getCurrentManagerAssignment>;
 const notFound = () => new AppError(
     404,
     "NOT_FOUND",
-    "Utility reading was not found"
+    "Chỉ số dịch vụ không tồn tại"
 );
 
 const validationError = (message: string) => new AppError(

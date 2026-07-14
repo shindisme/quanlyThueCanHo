@@ -17,19 +17,19 @@ const DUMMY_PASSWORD_HASH =
 const invalidCredentialsError = () => new AppError(
     401,
     "INVALID_CREDENTIALS",
-    "Invalid username or password"
+    "Tên đăng nhập hoặc mật khẩu không chính xác"
 );
 
 const forbiddenError = () => new AppError(
     403,
     "FORBIDDEN",
-    "You do not have permission to perform this action"
+    "Bạn không có quyền thực hiện hành động này"
 );
 
 const userNotFoundError = () => new AppError(
     404,
     "NOT_FOUND",
-    "User was not found"
+    "Tài khoản không tồn tại"
 );
 
 const userSummarySelect = {
@@ -100,7 +100,7 @@ const managerUserScope = (
         throw new AppError(
             403,
             "MANAGER_BUILDING_REQUIRED",
-            "A building assignment is required for Manager operations"
+            "Cần có sự phân công quản lý tòa nhà cho các hoạt động của Quản lý"
         );
     }
 
@@ -174,7 +174,7 @@ const getManagerBuildingId = (actor: Actor) => {
         throw new AppError(
             403,
             "MANAGER_BUILDING_REQUIRED",
-            "A building assignment is required for Manager operations"
+            "Cần có sự phân công quản lý tòa nhà cho các hoạt động của Quản lý"
         );
     }
 
@@ -234,8 +234,8 @@ const assertCanManageTarget = async (
 export const createAccountByAdminService = async (
     actor: Actor,
     data: {
-    username: string;
-    role: Role;
+        username: string;
+        role: Role;
     }
 ) => {
     if (actor.role !== Role.ADMIN) {
@@ -337,7 +337,7 @@ export const loginService = async (username: string, password: string) => {
         throw new AppError(
             403,
             "ACCOUNT_DISABLED",
-            "This account is disabled"
+            "Tài khoản này đã bị vô hiệu hóa"
         );
     }
 
@@ -347,7 +347,7 @@ export const loginService = async (username: string, password: string) => {
         throw new AppError(
             500,
             "JWT_NOT_CONFIGURED",
-            "JWT authentication is not configured"
+            "Cấu hình xác thực JWT chưa được thiết lập"
         );
     }
 
@@ -478,7 +478,7 @@ export const changePasswordService = async (
     const user = await prisma.user.findUnique({ where: { id } });
 
     if (!user) {
-        throw new AppError(404, "NOT_FOUND", "User was not found");
+        throw new AppError(404, "NOT_FOUND", "Tài khoản không tồn tại");
     }
 
     const isMatch = await bcrypt.compare(oldPass, user.password_hash);
@@ -487,7 +487,7 @@ export const changePasswordService = async (
         throw new AppError(
             400,
             "INVALID_PASSWORD",
-            "Current password is incorrect"
+            "Mật khẩu hiện tại không chính xác"
         );
     }
 

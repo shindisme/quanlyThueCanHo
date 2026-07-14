@@ -50,7 +50,7 @@ const STAFF_USERNAME_RETRY_LIMIT = 3;
 const notFound = () => new AppError(
     404,
     "NOT_FOUND",
-    "Staff member was not found"
+    "Nhân viên không tồn tại"
 );
 
 const forbidden = (message: string) => new AppError(

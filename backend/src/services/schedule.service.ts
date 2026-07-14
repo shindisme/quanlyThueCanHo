@@ -68,7 +68,7 @@ type ScheduleWithApartment =
 const notFound = () => new AppError(
     404,
     "NOT_FOUND",
-    "Viewing schedule was not found"
+    "Lịch xem căn hộ không tồn tại"
 );
 
 const conflict = (message: string) => new AppError(
@@ -80,13 +80,13 @@ const conflict = (message: string) => new AppError(
 const slotUnavailable = () => new AppError(
     409,
     "SLOT_UNAVAILABLE",
-    "This viewing time is unavailable"
+    "Thời gian xem căn hộ này không khả dụng"
 );
 
 const concurrentModification = () => new AppError(
     409,
     "CONCURRENT_MODIFICATION",
-    "Viewing schedule changed during this operation"
+    "Lịch xem căn hộ đã bị thay đổi trong quá trình thực hiện"
 );
 
 const SERIALIZABLE_RETRY_LIMIT = 3;
@@ -143,7 +143,7 @@ const getScheduleScope = (
     throw new AppError(
         403,
         "FORBIDDEN",
-        "You do not have access to viewing schedules"
+        "Bạn không có quyền truy cập lịch xem căn hộ"
     );
 };
 
@@ -237,7 +237,7 @@ export const bookViewingService = async (
         throw new AppError(
             400,
             "VALIDATION_ERROR",
-            "schedule_time must be in the future"
+            "Thời gian xem phải ở tương lai"
         );
     }
 
@@ -251,7 +251,7 @@ export const bookViewingService = async (
         throw new AppError(
             400,
             "VALIDATION_ERROR",
-            "schedule_time must use an available viewing hour"
+            "Thời gian xem phải chọn khung giờ khả dụng"
         );
     }
 
@@ -264,7 +264,7 @@ export const bookViewingService = async (
         throw new AppError(
             404,
             "NOT_FOUND",
-            "Apartment was not found"
+            "Căn hộ không tồn tại"
         );
     }
 
@@ -356,7 +356,7 @@ export const bookViewingService = async (
         throw new AppError(
             503,
             "EMAIL_UNAVAILABLE",
-            "Unable to send the viewing confirmation email"
+            "Không thể gửi email xác nhận lịch xem"
         );
     }
 

@@ -96,8 +96,8 @@ const notFound = (resource: "invoice" | "payment") =>
         404,
         "NOT_FOUND",
         resource === "invoice"
-            ? "Invoice was not found"
-            : "Payment was not found"
+            ? "Hóa đơn không tồn tại"
+            : "Khoản thanh toán không tồn tại"
     );
 
 const validationError = (message: string) =>
@@ -107,7 +107,7 @@ const concurrentModification = () =>
     new AppError(
         409,
         "CONCURRENT_MODIFICATION",
-        "Payment changed during this operation"
+        "Khoản thanh toán đã bị thay đổi trong quá trình thực hiện"
     );
 
 const SERIALIZABLE_RETRY_LIMIT = 3;
@@ -153,7 +153,7 @@ const runSerializableTransaction = async <T>(
                     throw new AppError(
                         503,
                         "TRANSACTION_TIMEOUT",
-                        "Database transaction timed out. Please try again."
+                        "Giao dịch cơ sở dữ liệu đã hết thời gian chờ. Vui lòng thử lại."
                     );
                 }
 
@@ -251,7 +251,7 @@ const requireTenantId = (actor: Actor) => {
         throw new AppError(
             403,
             "TENANT_PROFILE_REQUIRED",
-            "A linked tenant profile is required"
+            "Yêu cầu phải có hồ sơ khách thuê liên kết"
         );
     }
 
@@ -291,7 +291,7 @@ const getInvoiceScopeWhere = (
     throw new AppError(
         403,
         "FORBIDDEN",
-        "Payment access is forbidden"
+        "Truy cập thanh toán bị cấm"
     );
 };
 
@@ -389,7 +389,7 @@ const assertCanManagePayments = (actor: Actor) => {
         throw new AppError(
             403,
             "FORBIDDEN",
-            "Payment management is forbidden"
+            "Quyền quản lý thanh toán bị cấm"
         );
     }
 };
@@ -541,7 +541,7 @@ const mapPaymentWriteError = (error: unknown): never => {
         throw new AppError(
             409,
             "TRANSACTION_CODE_CONFLICT",
-            "Transaction code already exists"
+            "Mã giao dịch đã tồn tại"
         );
     }
 
@@ -698,7 +698,7 @@ export const createPaymentService = async (
         throw new AppError(
             403,
             "FORBIDDEN",
-            "Tenants may only create pending payments"
+            "Khách thuê chỉ có thể tạo thanh toán ở trạng thái chờ"
         );
     }
 
@@ -732,7 +732,7 @@ export const createPaymentService = async (
                     throw new AppError(
                         409,
                         "INVOICE_ALREADY_PAID",
-                        "Invoice is already paid"
+                        "Hóa đơn đã được thanh toán"
                     );
                 }
 
@@ -830,7 +830,7 @@ export const createVnpayPaymentUrlService = async (
         throw new AppError(
             403,
             "FORBIDDEN",
-            "Only tenants can pay invoices online"
+            "Chỉ khách thuê mới có thể thanh toán hóa đơn trực tuyến"
         );
     }
 
@@ -856,7 +856,7 @@ export const createVnpayPaymentUrlService = async (
                 throw new AppError(
                     409,
                     "INVOICE_ALREADY_PAID",
-                    "Invoice is already paid"
+                    "Hóa đơn đã được thanh toán"
                 );
             }
 
@@ -879,7 +879,7 @@ export const createVnpayPaymentUrlService = async (
                 throw new AppError(
                     409,
                     "INVOICE_ALREADY_PAID",
-                    "Invoice is already paid"
+                    "Hóa đơn đã được thanh toán"
                 );
             }
 

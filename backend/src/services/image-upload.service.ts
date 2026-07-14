@@ -42,7 +42,7 @@ export const withCompensatedImageUploads = async <T>(
 
         if (cleanupFailures.length > 0) {
             console.error(
-                "Failed to clean up uploaded ImageKit files",
+                "Lỗi khi xóa file đã upload",
                 cleanupFailures.map((result) => result.reason)
             );
         }

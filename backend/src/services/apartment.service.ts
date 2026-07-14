@@ -111,13 +111,13 @@ const apartmentDetailSelect = {
 const notFound = () => new AppError(
     404,
     "NOT_FOUND",
-    "Apartment was not found"
+    "Căn hộ không tồn tại"
 );
 
 const concurrentModification = () => new AppError(
     409,
     "CONCURRENT_MODIFICATION",
-    "Apartment changed during this operation"
+    "Căn hộ đã bị thay đổi trong quá trình thực hiện"
 );
 
 const SERIALIZABLE_RETRY_LIMIT = 3;
@@ -162,7 +162,7 @@ export const assertApartmentCreateAccessService = (
         throw new AppError(
             400,
             "VALIDATION_ERROR",
-            "building_id is required for an Admin"
+            "building_id là bắt buộc đối với tài khoản Admin"
         );
     }
 };
@@ -208,7 +208,7 @@ export const createApartmentWithImagesService = async (
 
     // The assertion above narrows this at runtime for Admin requests.
     if (buildingId === undefined) {
-        throw new AppError(400, "VALIDATION_ERROR", "building_id is required");
+        throw new AppError(400, "VALIDATION_ERROR", "building_id là bắt buộc");
     }
 
     const {

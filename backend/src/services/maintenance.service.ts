@@ -56,10 +56,10 @@ const maintenanceInclude = {
 const notFound = () => new AppError(
     404,
     "NOT_FOUND",
-    "Maintenance request was not found"
+    "Yêu cầu bảo trì không tồn tại"
 );
 
-const forbidden = (message = "You do not have access to maintenance requests") => new AppError(
+const forbidden = (message = "Bạn không có quyền truy cập các yêu cầu bảo trì") => new AppError(
     403,
     "FORBIDDEN",
     message
@@ -78,7 +78,7 @@ const isRecordNotFound = (error: unknown) =>
 const invalidTechnician = () => new AppError(
     400,
     "INVALID_TECHNICIAN",
-    "Assigned staff must be an active technician in the same building"
+    "Nhân viên được phân công phải là kỹ thuật viên đang hoạt động trong cùng tòa nhà"
 );
 
 const formatSchedule = (value: Date) =>
@@ -299,7 +299,7 @@ export const confirmMaintenanceRequestService = async (
         throw new AppError(
             400,
             "INVALID_SCHEDULE",
-            "scheduled_at must be in the future"
+            "Thời gian lên lịch phải ở tương lai"
         );
     }
 
