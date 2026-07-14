@@ -43,16 +43,15 @@ export function useInvoiceList() {
   const { data: invoicesRes, isLoading, refetch } = useQuery({
     queryKey: ["invoices", statusFilter, buildingFilter, monthFilter, yearFilter, debouncedSearch],
     queryFn: () =>
-      invoiceService.getAllInvoices({
+      invoiceService.getAllInvoicePages({
         status: statusFilter || undefined,
         building_id: buildingFilter,
         month: monthFilter,
         year: yearFilter,
         search: debouncedSearch || undefined,
-        limit: 100,
       }),
   });
-  const invoices = invoicesRes?.data || [];
+  const invoices = invoicesRes || [];
 
   // Sắp xếp
   const { items: sortedInvoices, requestSort, getSortIcon, sortConfig } = useSort<Invoice>(invoices, {

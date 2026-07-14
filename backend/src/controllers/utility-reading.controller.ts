@@ -70,6 +70,24 @@ export const getAll = async (
     );
 };
 
+export const getMine = async (
+    request: Request,
+    response: Response
+) => {
+    const { query } =
+        getValidated<ListUtilityReadingsRequest>(request);
+    const result =
+        await utilityReadingService.getMyUtilityReadingsService(
+            query,
+            request.actor!
+        );
+
+    return sendPaginated(
+        response,
+        result.data,
+        result.pagination
+    );
+};
 export const getById = async (
     request: Request,
     response: Response

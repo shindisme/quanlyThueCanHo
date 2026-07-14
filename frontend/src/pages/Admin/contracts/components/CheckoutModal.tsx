@@ -6,7 +6,7 @@ import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import type { RentalContract } from "../../../../types";
 import { formatCurrency } from "../../../../utils/currency";
 import { createUtilityReading, getAllUtilityReadings } from "../../../../services/utilityService";
-import { generateMonthlyInvoices, getAllInvoices } from "../../../../services/invoiceService";
+import { generateMonthlyInvoices, getAllInvoicePages } from "../../../../services/invoiceService";
 import { toast } from "sonner";
 import { Zap, Droplet, Receipt, ShieldCheck, HelpCircle } from "lucide-react";
 
@@ -91,11 +91,11 @@ export default function CheckoutModal({
 
   const fetchUnpaidInvoices = async () => {
     if (!contract) return;
-    const invRes = await getAllInvoices({
+    const invoices = await getAllInvoicePages({
       tenant_id: contract.tenant_id,
       status: "UNPAID",
     });
-    const total = invRes.data.reduce((sum, inv) => sum + Number(inv.total_amount), 0);
+    const total = invoices.reduce((sum, inv) => sum + Number(inv.total_amount), 0);
     setUnpaidAmount(total);
   };
 

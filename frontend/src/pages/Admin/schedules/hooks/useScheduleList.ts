@@ -26,12 +26,10 @@ export function useScheduleList() {
     queryFn: () => scheduleService.getSchedules(),
   });
 
-  const { data: buildingsRes, isLoading: loadingBuildings } = useQuery({
+  const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildings({ limit: 100 }),
+    queryFn: () => buildingService.getAllBuildingPages(),
   });
-
-  const buildings = buildingsRes?.data || [];
   const loading = loadingSchedules || loadingBuildings;
 
   const displaySchedules = (() => {

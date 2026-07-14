@@ -20,13 +20,12 @@ export function useTenantInvoices() {
   const { data: invoicesRes, isLoading } = useQuery({
     queryKey: ["tenant-invoices", statusFilter, debouncedSearch],
     queryFn: () =>
-      invoiceService.getAllInvoices({
+      invoiceService.getAllInvoicePages({
         status: statusFilter || undefined,
         search: debouncedSearch || undefined,
-        limit: 100,
       }),
   });
-  const invoices = invoicesRes?.data || [];
+  const invoices = invoicesRes || [];
 
   // Sorting
   const { items: sortedInvoices, requestSort, getSortIcon, sortConfig } = useSort<Invoice>(invoices, {

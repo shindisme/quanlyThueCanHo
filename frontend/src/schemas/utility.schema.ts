@@ -12,13 +12,15 @@ export const utilitySchema = z.object({
     .number({ message: "Vui lòng chọn năm" })
     .min(2000, { message: "Năm phải từ năm 2000 trở lên" })
     .max(3000, { message: "Năm tối đa là năm 3000" }),
-  electric_old: z.number().min(0),
+  electric_old: z.number().int().min(0),
   electric_new: z
     .number({ message: "Chỉ số điện mới phải là số" })
+    .int({ message: "Chỉ số điện mới phải là số nguyên" })
     .min(0, { message: "Chỉ số điện mới không được nhỏ hơn 0" }),
-  water_old: z.number().min(0),
+  water_old: z.number().int().min(0),
   water_new: z
     .number({ message: "Chỉ số nước mới phải là số" })
+    .int({ message: "Chỉ số nước mới phải là số nguyên" })
     .min(0, { message: "Chỉ số nước mới không được nhỏ hơn 0" }),
 }).refine((data) => data.electric_new >= data.electric_old, {
   message: "Chỉ số điện mới không được nhỏ hơn chỉ số cũ",

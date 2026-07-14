@@ -34,16 +34,23 @@ export function useUtilityList() {
   const [preselectedApartment, setPreselectedApartment] = useState<ApartmentData | null>(null);
   const [deleteItem, setDeleteItem] = useState<UtilityReadingData | null>(null);
 
-  const readingsParams: Parameters<typeof utilityService.getAllUtilityReadings>[0] = { limit: 100 };
-  if (role !== "ADMIN" && managedBuildingId) {
-    readingsParams.building_id = managedBuildingId;
-  }
+  const selectedMonth = Number(filterMonth) || undefined;
+  const selectedYear = Number(filterYear) || undefined;
+  const selectedBuildingId = role !== "ADMIN" && managedBuildingId
+    ? managedBuildingId
+    : filterBuilding
+      ? Number(filterBuilding)
+      : undefined;
+  const readingsParams: Parameters<typeof utilityService.getAllUtilityReadingPages>[0] = {};
+  if (selectedMonth !== undefined) readingsParams.month = selectedMonth;
+  if (selectedYear !== undefined) readingsParams.year = selectedYear;
+  if (selectedBuildingId !== undefined) readingsParams.building_id = selectedBuildingId;
 
-  const { data: readingsRes, isLoading: loadingReadings, refetch: refetchReadings } = useQuery({
-    queryKey: ["utilityReadings", role, managedBuildingId],
-    queryFn: () => utilityService.getAllUtilityReadings(readingsParams),
+  const { data: readingsRes = [], isLoading: loadingReadings, refetch: refetchReadings } = useQuery({
+    queryKey: ["utilityReadings", role, managedBuildingId, filterBuilding, filterMonth, filterYear],
+    queryFn: () => utilityService.getAllUtilityReadingPages(readingsParams),
   });
-  const readings = readingsRes?.data || [];
+  const readings = readingsRes;
 
   const { data: buildings = [], isLoading: loadingBuildings, refetch: refetchBuildings } = useQuery({
     queryKey: ["buildings"],

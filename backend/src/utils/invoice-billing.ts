@@ -42,6 +42,10 @@ const roundMoney = (
     value: Prisma.Decimal | number | string
 ) => roundDecimalMoney(value).toNumber();
 
+const roundMeterQuantity = (
+    value: Prisma.Decimal | number | string
+) => Math.max(0, Math.round(toDecimal(value).toNumber()));
+
 const managementFeeAmount = (
     area: Prisma.Decimal | number | string
 ) => roundMoney(toDecimal(area).mul(MANAGEMENT_FEE_PER_M2));
@@ -165,11 +169,11 @@ export const buildRecurringMonthlyInvoiceItems = (input: {
     const rentAmount = roundMoney(input.monthlyRent);
     const area = roundMoney(input.area);
     const managementAmount = managementFeeAmount(input.area);
-    const electricQuantity = roundMoney(input.electricConsumption);
-    const electricAmount = calculateElectricAmount(input.electricConsumption);
-    const waterQuantity = roundMoney(input.waterConsumption);
+    const electricQuantity = roundMeterQuantity(input.electricConsumption);
+    const electricAmount = calculateElectricAmount(electricQuantity);
+    const waterQuantity = roundMeterQuantity(input.waterConsumption);
     const waterAmount = roundMoney(
-        toDecimal(input.waterConsumption).mul(WATER_UNIT_PRICE)
+        toDecimal(waterQuantity).mul(WATER_UNIT_PRICE)
     );
 
     return [

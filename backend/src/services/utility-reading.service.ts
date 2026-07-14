@@ -1,4 +1,5 @@
 import {
+    ContractStatus,
     Prisma,
     Role
 } from "@prisma/client";
@@ -107,11 +108,14 @@ const getReadingScope = (
 
 const toNumber = (value: Prisma.Decimal | number) => Number(value);
 
+const toMeterInteger = (value: Prisma.Decimal | number) =>
+    Math.round(toNumber(value));
+
 const normalizeReading = (reading: UtilityReadingWithRelations) => {
-    const electricOld = toNumber(reading.electric_old);
-    const electricNew = toNumber(reading.electric_new);
-    const waterOld = toNumber(reading.water_old);
-    const waterNew = toNumber(reading.water_new);
+    const electricOld = toMeterInteger(reading.electric_old);
+    const electricNew = toMeterInteger(reading.electric_new);
+    const waterOld = toMeterInteger(reading.water_old);
+    const waterNew = toMeterInteger(reading.water_new);
 
     return {
         ...reading,
@@ -119,8 +123,8 @@ const normalizeReading = (reading: UtilityReadingWithRelations) => {
         electric_new: electricNew,
         water_old: waterOld,
         water_new: waterNew,
-        electric_consumption: electricNew - electricOld,
-        water_consumption: waterNew - waterOld
+        electric_consumption: Math.max(0, electricNew - electricOld),
+        water_consumption: Math.max(0, waterNew - waterOld)
     };
 };
 
@@ -264,10 +268,10 @@ export const createUtilityReadingService = async (
 
     const oldMeters = await resolveOldMeters(data);
     const meterData = {
-        electric_old: oldMeters.electric_old,
-        electric_new: data.electric_new,
-        water_old: oldMeters.water_old,
-        water_new: data.water_new
+        electric_old: toMeterInteger(oldMeters.electric_old),
+        electric_new: toMeterInteger(data.electric_new),
+        water_old: toMeterInteger(oldMeters.water_old),
+        water_new: toMeterInteger(data.water_new)
     };
     assertValidMeters(meterData);
 
@@ -393,6 +397,90 @@ export const getUtilityReadingsService = async (
     };
 };
 
+export const getMyUtilityReadingsService = async (
+    filters: UtilityReadingFilters,
+    actor: Actor
+) => {
+    if (actor.role !== Role.TENANT || actor.tenantId === undefined) {
+        throw forbidden("A tenant profile is required");
+    }
+
+    const page = filters.page;
+    const limit = filters.limit;
+    const where: Prisma.UtilityReadingWhereInput = {
+        apartment: {
+            contracts: {
+                some: {
+                    tenant_id: actor.tenantId,
+                    status: ContractStatus.ACTIVE
+                }
+            }
+        }
+    };
+
+    if (filters.month !== undefined) {
+        where.month = filters.month;
+    }
+    if (filters.year !== undefined) {
+        where.year = filters.year;
+    }
+    if (filters.search) {
+        where.OR = [
+            {
+                apartment: {
+                    room_number: {
+                        contains: filters.search,
+                        mode: "insensitive"
+                    }
+                }
+            },
+            {
+                apartment: {
+                    building: {
+                        branch_name: {
+                            contains: filters.search,
+                            mode: "insensitive"
+                        }
+                    }
+                }
+            },
+            {
+                staff: {
+                    full_name: {
+                        contains: filters.search,
+                        mode: "insensitive"
+                    }
+                }
+            }
+        ];
+    }
+
+    const skip = (page - 1) * limit;
+    const [readings, total] = await prisma.$transaction([
+        prisma.utilityReading.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy: [
+                { year: "desc" },
+                { month: "desc" },
+                { created_at: "desc" }
+            ],
+            include: readingInclude
+        }),
+        prisma.utilityReading.count({ where })
+    ]);
+
+    return {
+        data: readings.map(normalizeReading),
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+        }
+    };
+};
 export const getUtilityReadingByIdService = async (
     id: number,
     actor: Actor
@@ -432,14 +520,18 @@ export const updateUtilityReadingService = async (
     }
 
     const meterData = {
-        electric_old: data.electric_old
-            ?? toNumber(current.electric_old),
-        electric_new: data.electric_new
-            ?? toNumber(current.electric_new),
-        water_old: data.water_old
-            ?? toNumber(current.water_old),
-        water_new: data.water_new
-            ?? toNumber(current.water_new)
+        electric_old: data.electric_old !== undefined
+            ? toMeterInteger(data.electric_old)
+            : toMeterInteger(current.electric_old),
+        electric_new: data.electric_new !== undefined
+            ? toMeterInteger(data.electric_new)
+            : toMeterInteger(current.electric_new),
+        water_old: data.water_old !== undefined
+            ? toMeterInteger(data.water_old)
+            : toMeterInteger(current.water_old),
+        water_new: data.water_new !== undefined
+            ? toMeterInteger(data.water_new)
+            : toMeterInteger(current.water_new)
     };
     assertValidMeters(meterData);
 

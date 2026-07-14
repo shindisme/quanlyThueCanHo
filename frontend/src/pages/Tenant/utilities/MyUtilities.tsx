@@ -6,6 +6,10 @@ import { formatDate } from "../../../utils/date";
 import { formatApartmentDisplay } from "../../../utils/string";
 import DataTable, { type Column } from "../../../components/ui/DataTable";
 
+const meter = (value: number) => Math.round(Number(value));
+const meterUsage = (oldValue: number, newValue: number) =>
+  Math.max(0, meter(newValue) - meter(oldValue));
+
 export default function MyUtilities() {
   const {
     apartment,
@@ -37,37 +41,37 @@ export default function MyUtilities() {
       key: "electric_old",
       label: "Số điện cũ",
       className: "text-center",
-      render: (r) => <span className="text-gray-600">{r.electric_old}</span>
+      render: (r) => <span className="text-gray-600">{meter(r.electric_old)}</span>
     },
     {
       key: "electric_new",
       label: "Số điện mới",
       className: "text-center",
-      render: (r) => <span className="text-gray-600">{r.electric_new}</span>
+      render: (r) => <span className="text-gray-600">{meter(r.electric_new)}</span>
     },
     {
       key: "electric_consumption",
       label: "Tiêu thụ điện (kWh)",
       className: "text-center bg-primary-50/10 font-semibold text-primary-600",
-      render: (r) => <span>{r.electric_new - r.electric_old}</span>
+      render: (r) => <span>{meterUsage(r.electric_old, r.electric_new)}</span>
     },
     {
       key: "water_old",
       label: "Số nước cũ",
       className: "text-center",
-      render: (r) => <span className="text-gray-600">{r.water_old}</span>
+      render: (r) => <span className="text-gray-600">{meter(r.water_old)}</span>
     },
     {
       key: "water_new",
       label: "Số nước mới",
       className: "text-center",
-      render: (r) => <span className="text-gray-600">{r.water_new}</span>
+      render: (r) => <span className="text-gray-600">{meter(r.water_new)}</span>
     },
     {
       key: "water_consumption",
       label: "Tiêu thụ nước (m³)",
       className: "text-center bg-emerald-50/10 font-semibold text-emerald-600",
-      render: (r) => <span>{r.water_new - r.water_old}</span>
+      render: (r) => <span>{meterUsage(r.water_old, r.water_new)}</span>
     },
     {
       key: "created_at",
