@@ -5,8 +5,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   AreaChart, Area, PieChart, Pie, Cell,
 } from "recharts";
-import { useState } from "react";
-import { useAdminDashboard } from "./hooks/useAdminDashboard";
+import { useDashboardAdmin } from "./hooks/useDashboardAdmin";
 import Combobox from "../../../components/ui/Combobox";
 import { toast } from "sonner";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
@@ -17,14 +16,25 @@ export default function DashboardAdmin() {
   const {
     displayName,
     buildings,
-    apartments,
-    contracts,
-    invoices,
-    isLoading
-  } = useAdminDashboard();
-
-  const [selectedBranch, setSelectedBranch] = useState("");
-  const [timeFrame, setTimeFrame] = useState<"month" | "year">("month");
+    isLoading,
+    selectedBranch,
+    setSelectedBranch,
+    timeFrame,
+    setTimeFrame,
+    today,
+    totalBuildingsCount,
+    totalApartmentsCount,
+    activeTenantsCount,
+    monthlyRevenue,
+    chartData,
+    roomStatusData,
+    expiredContractsCount,
+    expiring30DaysCount,
+    expiring60DaysCount,
+    expiring90DaysCount,
+    branchOptions,
+    currentYear
+  } = useDashboardAdmin();
 
   function formatCurrency(amount: number) {
     if (amount >= 1000000000) {
@@ -35,138 +45,6 @@ export default function DashboardAdmin() {
     }
     return new Intl.NumberFormat("vi-VN").format(amount) + " đ";
   }
-
-  const today = new Date().toLocaleDateString("vi-VN", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
-  // Calculate statistics based on selected building filter
-  const branchId = selectedBranch ? Number(selectedBranch) : null;
-
-  const filteredBuildings = branchId ? buildings.filter(b => b.id === branchId) : buildings;
-  const filteredApartments = branchId ? apartments.filter(a => a.building_id === branchId) : apartments;
-  const filteredInvoices = branchId
-    ? invoices.filter(inv => inv.contract?.apartment?.building_id === branchId)
-    : invoices;
-
-  const totalBuildingsCount = filteredBuildings.length;
-
-  const totalApartmentsCount = filteredBuildings.reduce((sum, b) => sum + (b.total_apartments || b._count?.apartments || 0), 0);
-
-  const activeContractsForExpiration = contracts.filter(c => {
-    return !branchId || filteredApartments.some(a => a.id === c.apartment_id);
-  });
-
-  const activeContracts = activeContractsForExpiration.filter(c => c.status === "ACTIVE");
-
-  const buildingTenantIds = new Set(activeContracts.map(c => c.tenant_id));
-  const activeTenantsCount = buildingTenantIds.size;
-
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
-
-  const currentMonthPaidInvoices = filteredInvoices.filter(inv => {
-    if (inv.status !== "PAID") return false;
-    const date = new Date(inv.paid_at || inv.created_at);
-    return date.getMonth() + 1 === currentMonth && date.getFullYear() === currentYear;
-  });
-
-  const monthlyRevenue = currentMonthPaidInvoices.reduce((sum, inv) => sum + Number(inv.total_amount), 0);
-
-  const months = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
-  const monthlyRevenueData = months.map((m, index) => {
-    const monthVal = index + 1;
-    const revenue = filteredInvoices.filter(inv => {
-      if (inv.status !== "PAID") return false;
-      const date = new Date(inv.paid_at || inv.created_at);
-      return date.getMonth() + 1 === monthVal && date.getFullYear() === currentYear;
-    }).reduce((sum, inv) => sum + Number(inv.total_amount), 0);
-
-    const lastYear = filteredInvoices.filter(inv => {
-      if (inv.status !== "PAID") return false;
-      const date = new Date(inv.paid_at || inv.created_at);
-      return date.getMonth() + 1 === monthVal && date.getFullYear() === currentYear - 1;
-    }).reduce((sum, inv) => sum + Number(inv.total_amount), 0);
-
-    return {
-      name: m,
-      "Doanh thu": revenue,
-      "Năm trước": lastYear,
-    };
-  });
-
-  const years = [currentYear - 2, currentYear - 1, currentYear];
-  const yearlyRevenueData = years.map(yr => {
-    const revenue = filteredInvoices.filter(inv => {
-      if (inv.status !== "PAID") return false;
-      const date = new Date(inv.paid_at || inv.created_at);
-      return date.getFullYear() === yr;
-    }).reduce((sum, inv) => sum + Number(inv.total_amount), 0);
-
-    return {
-      name: String(yr),
-      "Doanh thu": revenue,
-    };
-  });
-
-  const chartData = timeFrame === "month" ? monthlyRevenueData : yearlyRevenueData;
-
-  // Room Status Calculations
-  const rentedCount = filteredApartments.filter(a => a.status === "RENTED").length;
-  const availableCount = filteredApartments.filter(a => a.status === "AVAILABLE").length;
-  const maintenanceCount = filteredApartments.filter(a => a.status === "MAINTENANCE").length;
-
-  const roomStatusData = [
-    { name: "Đang thuê", value: rentedCount, color: "#10B981" },
-    { name: "Trống", value: availableCount, color: "#3B82F6" },
-    { name: "Bảo trì", value: maintenanceCount, color: "#F59E0B" },
-  ];
-
-  // Contract Expiration Calculations
-  const now = new Date();
-  const getBoundaryDate = (days: number) => {
-    const d = new Date();
-    d.setDate(d.getDate() + days);
-    return d;
-  };
-  const time30Days = getBoundaryDate(30);
-  const time60Days = getBoundaryDate(60);
-  const time90Days = getBoundaryDate(90);
-
-  const expiredContractsCount = activeContractsForExpiration.filter(c => {
-    if (c.status !== "ACTIVE") return false;
-    return new Date(c.end_date) < now;
-  }).length;
-
-  const expiring30DaysCount = activeContractsForExpiration.filter(c => {
-    if (c.status !== "ACTIVE") return false;
-    const endDate = new Date(c.end_date);
-    return endDate >= now && endDate <= time30Days;
-  }).length;
-
-  const expiring60DaysCount = activeContractsForExpiration.filter(c => {
-    if (c.status !== "ACTIVE") return false;
-    const endDate = new Date(c.end_date);
-    return endDate >= now && endDate <= time60Days;
-  }).length;
-
-  const expiring90DaysCount = activeContractsForExpiration.filter(c => {
-    if (c.status !== "ACTIVE") return false;
-    const endDate = new Date(c.end_date);
-    return endDate >= now && endDate <= time90Days;
-  }).length;
-
-  // Combobox Options mapping
-  const branchOptions = [
-    { value: "", label: "Tất cả chi nhánh" },
-    ...buildings.map(b => ({
-      value: String(b.id),
-      label: b.branch_name
-    }))
-  ];
 
   if (isLoading) {
     return (
@@ -312,7 +190,6 @@ export default function DashboardAdmin() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-              <Calendar size={18} className="text-primary-600" />
               Theo dõi thời hạn hợp đồng
             </h3>
             <p className="text-xs text-gray-500 mt-0.5">Thống kê số lượng hợp đồng thuê đến hạn bàn giao</p>
@@ -334,13 +211,13 @@ export default function DashboardAdmin() {
 
           {/* 60 days */}
           <div className="col-span-12 sm:col-span-6 lg:col-span-3 p-4 border border-amber-100 bg-amber-50/20 rounded-none shadow-md hover:shadow-lg transition-all flex flex-col justify-center h-full">
-            <span className="text-xs text-amber-600 font-bold uppercase tracking-wider">Trong 60 ngày</span>
+            <span className="text-xs text-amber-600 font-bold uppercase tracking-wider">Từ 31 - 60 ngày</span>
             <p className="text-2xl font-black text-amber-700 mt-1">{expiring60DaysCount}</p>
           </div>
 
           {/* 90 days */}
           <div className="col-span-12 sm:col-span-6 lg:col-span-3 p-4 border border-blue-100 bg-blue-50/20 rounded-none shadow-md hover:shadow-lg transition-all flex flex-col justify-center h-full">
-            <span className="text-xs text-blue-600 font-bold uppercase tracking-wider">Trong 90 ngày</span>
+            <span className="text-xs text-blue-600 font-bold uppercase tracking-wider">Từ 61 - 90 ngày</span>
             <p className="text-2xl font-black text-blue-700 mt-1">{expiring90DaysCount}</p>
           </div>
         </div>

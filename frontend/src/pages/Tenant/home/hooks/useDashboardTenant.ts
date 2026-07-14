@@ -36,7 +36,7 @@ function toOccupant(occupant: TenantOccupant) {
   };
 }
 
-export function useTenantHome() {
+export function useDashboardTenant() {
   const { email, token } = useAuthStore();
   const queryClient = useQueryClient();
 
@@ -48,6 +48,7 @@ export function useTenantHome() {
     queryFn: tenantService.getMyOccupants,
     enabled: !!token,
   });
+
   const occupants = useMemo(
     () => occupantData.map(toOccupant),
     [occupantData]
@@ -55,7 +56,7 @@ export function useTenantHome() {
 
   const { data: contracts, isLoading: loadingContracts } = useQuery({
     queryKey: ["contracts"],
-    queryFn: () => contractService.getAllContracts(),
+    queryFn: () => contractService.getAllContractPages(),
     enabled: !!userId,
   });
 

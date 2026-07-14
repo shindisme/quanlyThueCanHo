@@ -145,7 +145,7 @@ export default function MyContracts() {
                 setCheckoutDate(defaultDate.toISOString().split("T")[0]);
                 setCheckoutReason("");
               }}
-              className="p-2 rounded-lg text-gray-400 hover:text-red-650 hover:bg-red-50 cursor-pointer transition-colors"
+              className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer transition-colors"
               title="Yêu cầu trả phòng"
             >
               <XCircle size={16} />
@@ -235,11 +235,25 @@ export default function MyContracts() {
           const excessSurcharge = excess * 1000000;
           const baseRent = apt ? apt.rental_price : viewContractDoc.monthly_rent - excessSurcharge;
 
-          const durationYears = (() => {
-            if (!viewContractDoc.start_date || !viewContractDoc.end_date) return 1;
-            const diffMs = new Date(viewContractDoc.end_date).getTime() - new Date(viewContractDoc.start_date).getTime();
-            const years = diffMs / (1000 * 60 * 60 * 24 * 365.25);
-            return Math.max(1, Math.round(years * 10) / 10);
+          const durationText = (() => {
+            if (!viewContractDoc.start_date || !viewContractDoc.end_date) return "12 tháng";
+            const start = new Date(viewContractDoc.start_date);
+            const end = new Date(viewContractDoc.end_date);
+            const diffMs = end.getTime() - start.getTime();
+            const totalDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+            const months = Math.round(totalDays / 30.4375);
+            
+            if (months <= 0) return `${totalDays} ngày`;
+            
+            if (months % 12 === 0) {
+              return `${months / 12} năm`;
+            } else if (months < 12) {
+              return `${months} tháng`;
+            } else {
+              const yrs = Math.floor(months / 12);
+              const mths = months % 12;
+              return `${yrs} năm ${mths} tháng`;
+            }
           })();
 
           const signedDate = new Date(viewContractDoc.signedAt || viewContractDoc.created_at || Date.now());
@@ -330,7 +344,7 @@ export default function MyContracts() {
                     <div className="pl-4 text-xs text-gray-700">
                       <p>
                         Thời hạn thuê căn hộ chung cư nêu tại Điều 1 Hợp đồng là:{" "}
-                        <span className="font-semibold">{durationYears} năm</span> (từ ngày{" "}
+                        <span className="font-semibold">{durationText}</span> (từ ngày{" "}
                         <span className="font-semibold">{formatDate(viewContractDoc.start_date)}</span> đến ngày{" "}
                         <span className="font-semibold">{formatDate(viewContractDoc.end_date)}</span>).
                       </p>
@@ -631,7 +645,7 @@ export default function MyContracts() {
                 }
               }}
               disabled={submittingCheckoutRequest}
-              className="rounded-xl bg-red-650 hover:bg-red-700 text-white font-bold"
+              className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold"
             >
               {submittingCheckoutRequest ? "Đang gửi..." : "Gửi yêu cầu"}
             </Button>

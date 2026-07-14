@@ -25,6 +25,9 @@ export default function MaintenancePage() {
     setPriorityFilter,
     buildingFilter,
     setBuildingFilter,
+    floorFilter,
+    setFloorFilter,
+    availableFloors,
     loading,
     loadingStaff,
     role,
@@ -128,11 +131,24 @@ export default function MaintenancePage() {
           clearable={true}
         />
 
+        <Combobox
+          options={availableFloors.map((fl) => ({ value: String(fl), label: `Tầng ${fl}` }))}
+          value={floorFilter}
+          onChange={setFloorFilter}
+          placeholder="Tất cả tầng"
+          className="flex-1 min-w-0 w-full font-sans"
+          triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
+          clearable={true}
+        />
+
         {role === "ADMIN" && (
           <Combobox
             options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
             value={buildingFilter}
-            onChange={setBuildingFilter}
+            onChange={(val) => {
+              setBuildingFilter(val);
+              setFloorFilter("");
+            }}
             placeholder="Tất cả tòa nhà"
             className="flex-1 min-w-0 w-full font-sans"
             triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"

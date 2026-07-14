@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Trash2, Check, Mail, Info, Wrench, Receipt } from "lucide-react";
 import { formatDate } from "../../../../utils/date";
 import type { Notification } from "../../../../types";
@@ -15,6 +16,13 @@ export default function NotificationList({
   deleteNotification,
   onViewDetails,
 }: NotificationListProps) {
+  const [expandedIds, setExpandedIds] = useState<Record<number, boolean>>({});
+
+  const toggleExpand = (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    setExpandedIds(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
   function getNotificationIcon(notifType: string) {
     if (notifType === "INVOICE")
       return (
@@ -74,9 +82,20 @@ export default function NotificationList({
                 {formatDate(notif.created_at)}
               </span>
             </div>
-            <p className="text-xs text-gray-500 mt-1.5 whitespace-pre-wrap leading-relaxed line-clamp-2">
+            <p className={`text-xs text-gray-500 mt-1.5 whitespace-pre-wrap leading-relaxed ${
+              expandedIds[notif.id] ? "" : "line-clamp-2"
+            }`}>
               {notif.content}
             </p>
+            {notif.content.length > 100 && (
+              <button
+                type="button"
+                onClick={(e) => toggleExpand(e, notif.id)}
+                className="text-[11px] text-primary-600 hover:text-primary-700 font-bold mt-1 inline-block focus:outline-none cursor-pointer"
+              >
+                {expandedIds[notif.id] ? "Thu gọn" : "Xem thêm"}
+              </button>
+            )}
           </div>
 
           {/* Actions */}

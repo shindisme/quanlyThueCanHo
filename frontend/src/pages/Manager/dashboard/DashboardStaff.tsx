@@ -1,57 +1,38 @@
 import {
-  Home, Users, DollarSign, Wrench, TrendingUp, TrendingDown,
-  CalendarDays, Clock, AlertCircle
+  Home, Users, Wrench, CalendarDays, Clock, AlertCircle
 } from "lucide-react";
-import { useState } from "react";
 import {
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  AreaChart, Area, PieChart, Pie, Cell
+  PieChart, Pie, Cell, Tooltip, ResponsiveContainer
 } from "recharts";
-import { useManagerDashboard } from "./hooks/useManagerDashboard";
+import { useDashboardStaff } from "./hooks/useDashboardStaff";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 
-function StatCard({ icon: Icon, label, value, trend, trendValue, iconColor, iconBg, variant = "default" }: {
+function StatCard({ icon: Icon, label, value, iconColor, iconBg }: {
   icon: React.ComponentType<{ size?: number; className?: string }>;
   label: string;
   value: string | number;
-  trend?: "up" | "down";
-  trendValue?: string;
   iconColor: string;
   iconBg: string;
-  variant?: "default" | "green";
 }) {
-  const isGreen = variant === "green";
   return (
-    <div className={`border transition-all duration-200 p-5 shadow-lg hover:shadow-xl rounded-none h-full flex flex-col justify-between ${isGreen ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white border-gray-200"
-      }`}>
+    <div className="border bg-white border-gray-200 p-5 shadow-lg hover:shadow-xl rounded-none h-full flex flex-col justify-between transition-all duration-200">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className={`text-xs font-medium uppercase tracking-wide mb-2 ${isGreen ? "text-emerald-100" : "text-gray-500"
-            }`}>{label}</p>
-          <p className={`text-2xl font-bold ${isGreen ? "text-white" : "text-gray-800"
-            }`}>{value}</p>
-          {trend && trendValue && (
-            <div className={`flex items-center gap-1 mt-2 text-xs font-medium ${isGreen ? "text-emerald-200" : trend === "up" ? "text-success-600" : "text-danger-600"
-              }`}>
-              {trend === "up" ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-              <span>{trendValue}</span>
-            </div>
-          )}
+          <p className="text-xs font-medium uppercase tracking-wide mb-2 text-gray-500">{label}</p>
+          <p className="text-2xl font-bold text-gray-800">{value}</p>
         </div>
-        <div className={`w-12 h-12 rounded-none flex items-center justify-center shrink-0 ${isGreen ? "bg-white/20" : iconBg
-          }`}>
-          <Icon size={22} className={isGreen ? "text-white" : iconColor} />
+        <div className={`w-12 h-12 rounded-none flex items-center justify-center shrink-0 ${iconBg}`}>
+          <Icon size={22} className={iconColor} />
         </div>
       </div>
     </div>
   );
 }
 
-function ChartCard({ title, subtitle, children, action }: {
+function ChartCard({ title, subtitle, children }: {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
-  action?: React.ReactNode;
 }) {
   return (
     <div className="bg-white border border-gray-200 p-5 shadow-lg rounded-none h-full flex flex-col justify-between">
@@ -61,7 +42,6 @@ function ChartCard({ title, subtitle, children, action }: {
             <h3 className="text-base font-bold text-gray-900">{title}</h3>
             {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
           </div>
-          {action}
         </div>
         <div>
           {children}
@@ -71,7 +51,7 @@ function ChartCard({ title, subtitle, children, action }: {
   );
 }
 
-export default function ManagerDashboard() {
+export default function DashboardStaff() {
   const {
     displayName,
     managedBuildingId,
@@ -79,38 +59,24 @@ export default function ManagerDashboard() {
     tenants,
     contracts,
     schedules,
-    invoices,
     maintenanceRequests,
     isLoading
-  } = useManagerDashboard();
-
-  const [timeFrame, setTimeFrame] = useState<"month" | "year">("month");
-
-  function formatCurrency(amount: number) {
-    if (amount >= 1000000) return (amount / 1000000).toFixed(0) + " tr";
-    return new Intl.NumberFormat("vi-VN").format(amount) + " đ";
-  }
+  } = useDashboardStaff();
 
   const today = new Date().toLocaleDateString("vi-VN", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 
-  // Filter apartments in manager's building
+  // Filter apartments in staff's building
   const buildingApartments = managedBuildingId
     ? apartments.filter(a => a.building_id === managedBuildingId)
     : apartments;
 
   const totalApartmentsCount = buildingApartments.length;
 
-  const rentedApts = buildingApartments.filter(a => a.status === "RENTED");
-  const availableApts = buildingApartments.filter(a => a.status === "AVAILABLE");
-  const maintenanceApts = buildingApartments.filter(a => a.status === "MAINTENANCE");
-
-  const rentedCount = rentedApts.length;
-  const availableCount = availableApts.length;
-  const maintenanceCount = maintenanceApts.length;
-
-
+  const rentedCount = buildingApartments.filter(a => a.status === "RENTED").length;
+  const availableCount = buildingApartments.filter(a => a.status === "AVAILABLE").length;
+  const maintenanceCount = buildingApartments.filter(a => a.status === "MAINTENANCE").length;
 
   // Filter active contracts
   const buildingContracts = contracts.filter(c => {
@@ -122,23 +88,6 @@ export default function ManagerDashboard() {
   const buildingTenantIds = new Set(buildingContracts.map(c => c.tenant_id));
   const activeTenantsCount = managedBuildingId ? buildingTenantIds.size : tenants.length;
 
-  // Filter invoices for building
-  const filteredInvoices = managedBuildingId
-    ? invoices.filter(inv => inv.contract?.apartment?.building_id === managedBuildingId)
-    : invoices;
-
-  // Monthly actual revenue: sum of total_amount of paid invoices in the current month
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
-
-  const currentMonthPaidInvoices = filteredInvoices.filter(inv => {
-    if (inv.status !== "PAID") return false;
-    const date = new Date(inv.paid_at || inv.created_at);
-    return date.getMonth() + 1 === currentMonth && date.getFullYear() === currentYear;
-  });
-
-  const monthlyRevenue = currentMonthPaidInvoices.reduce((sum, inv) => sum + Number(inv.total_amount), 0);
-
   // Expiring contracts within next 30 days
   const now = new Date();
   const thirtyDaysLater = new Date();
@@ -148,7 +97,7 @@ export default function ManagerDashboard() {
     return endDate >= now && endDate <= thirtyDaysLater;
   }).length;
 
-  // Pending schedules in manager's building
+  // Pending schedules in staff's building
   const pendingSchedulesCount = schedules.filter((s: any) => {
     const matchesBuilding = !managedBuildingId || s.apartment?.building_id === managedBuildingId;
     return s.status === "PENDING" && matchesBuilding;
@@ -159,31 +108,10 @@ export default function ManagerDashboard() {
     (r) => r.status === "PENDING" || r.status === "PROCESSING" || r.status === "NEEDS_RESCHEDULE"
   ).length;
 
-  // Revenue chart data: Switch between Monthly and Yearly based on timeFrame
-  const months = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
-  const monthlyRevenueData = months.map((m, index) => {
-    const monthVal = index + 1;
-    const revenue = filteredInvoices.filter(inv => {
-      if (inv.status !== "PAID") return false;
-      const date = new Date(inv.paid_at || inv.created_at);
-      return date.getMonth() + 1 === monthVal && date.getFullYear() === currentYear;
-    }).reduce((sum, inv) => sum + Number(inv.total_amount), 0);
-
-    return { name: m, "Doanh thu": revenue };
-  });
-
-  const years = [currentYear - 2, currentYear - 1, currentYear];
-  const yearlyRevenueData = years.map(yr => {
-    const revenue = filteredInvoices.filter(inv => {
-      if (inv.status !== "PAID") return false;
-      const date = new Date(inv.paid_at || inv.created_at);
-      return date.getFullYear() === yr;
-    }).reduce((sum, inv) => sum + Number(inv.total_amount), 0);
-
-    return { name: String(yr), "Doanh thu": revenue };
-  });
-
-  const chartData = timeFrame === "month" ? monthlyRevenueData : yearlyRevenueData;
+  // Processing maintenance requests
+  const processingMaintenanceRequests = maintenanceRequests.filter(
+    (r) => r.status === "PROCESSING"
+  ).length;
 
   const apartmentStatus = [
     { name: "Đang thuê", value: rentedCount, color: "#7C3AED" },
@@ -213,6 +141,7 @@ export default function ManagerDashboard() {
         <h1 className="text-2xl font-bold text-gray-800">
           Xin chào, <span className="text-primary-600">{displayName}</span>
         </h1>
+        <p className="text-sm text-gray-500 mt-1">Tổng quan công việc vận hành</p>
       </div>
 
       {/* KPI Cards */}
@@ -238,57 +167,77 @@ export default function ManagerDashboard() {
             iconColor="text-danger-600" iconBg="bg-danger-50" />
         </div>
         <div className="col-span-12 sm:col-span-6 lg:col-span-4">
-          <StatCard icon={DollarSign} label="Doanh thu tháng này" value={formatCurrency(monthlyRevenue)}
-            iconColor="text-white" iconBg="bg-white/20" variant="green" />
+          <StatCard icon={Wrench} label="Sự cố đang xử lý" value={processingMaintenanceRequests}
+            iconColor="text-orange-600" iconBg="bg-orange-50" />
         </div>
       </div>
 
       {/* Charts Row */}
       <div className="grid grid-cols-12 gap-6 items-stretch">
-        {/* Revenue chart */}
+        {/* Left panel: Maintenance Table */}
         <div className="col-span-12 lg:col-span-8">
           <ChartCard
-            title={`Doanh thu (${timeFrame === "month" ? `Năm ${currentYear}` : "Theo năm"})`}
-            action={
-              <div className="flex bg-gray-100 rounded-lg p-0.5 border border-gray-200">
-                <button
-                  onClick={() => setTimeFrame("month")}
-                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${timeFrame === "month"
-                    ? "bg-white text-emerald-600 shadow-sm"
-                    : "text-gray-500 hover:text-gray-800"
-                    }`}
-                >
-                  Theo tháng
-                </button>
-                <button
-                  onClick={() => setTimeFrame("year")}
-                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${timeFrame === "year"
-                    ? "bg-white text-emerald-600 shadow-sm"
-                    : "text-gray-500 hover:text-gray-800"
-                    }`}
-                >
-                  Theo năm
-                </button>
-              </div>
-            }
+            title="Yêu cầu sửa chữa cần xử lý"
+            subtitle="Các sự cố mới nhận hoặc đang tiến hành cần kiểm tra"
           >
-            <ResponsiveContainer width="100%" height={280} debounce={150}>
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="gradientRevenueManager" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#9CA3AF" />
-                <YAxis tick={{ fontSize: 11 }} stroke="#9CA3AF" tickFormatter={(v) => `${(v / 1000000).toFixed(0)}tr`} />
-                <Tooltip formatter={(value: any) => [formatCurrency(Number(value) || 0), ""]}
-                  contentStyle={{ borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "13px" }} />
-                <Area type="monotone" dataKey="Doanh thu" stroke="#10B981" strokeWidth={2.5}
-                  fill="url(#gradientRevenueManager)" name="Doanh thu" dot={{ fill: "#10B981", r: 4 }} />
-              </AreaChart>
-            </ResponsiveContainer>
+            {(() => {
+              const unresolvedRequests = maintenanceRequests
+                .filter(r => r.status === "PENDING" || r.status === "PROCESSING" || r.status === "NEEDS_RESCHEDULE")
+                .slice(0, 5);
+
+              if (unresolvedRequests.length === 0) {
+                return (
+                  <div className="text-center py-16 text-gray-400 font-sans text-sm">
+                    Không có yêu cầu sửa chữa nào cần xử lý.
+                  </div>
+                );
+              }
+
+              return (
+                <div className="overflow-x-auto min-h-[280px]">
+                  <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm font-sans">
+                    <thead>
+                      <tr className="text-left text-gray-500 font-bold uppercase tracking-wider">
+                        <th className="pb-3 pt-2">Căn hộ</th>
+                        <th className="pb-3 pt-2">Sự cố</th>
+                        <th className="pb-3 pt-2">Mức độ</th>
+                        <th className="pb-3 pt-2">Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-150">
+                      {unresolvedRequests.map((req) => {
+                        const aptLabel = req.apartment ? `P.${req.apartment.room_number}` : `Căn hộ #${req.apartment_id}`;
+                        const priorityLabel = req.priority === "HIGH" ? "Cao" : req.priority === "MEDIUM" ? "Trung bình" : "Thấp";
+                        const priorityColor = req.priority === "HIGH" ? "text-red-600 bg-red-50 border border-red-200" : req.priority === "MEDIUM" ? "text-amber-600 bg-amber-50 border border-amber-200" : "text-gray-650 bg-gray-50 border border-gray-200";
+                        
+                        const statusLabel = req.status === "PENDING" ? "Mới tạo" : req.status === "PROCESSING" ? "Đang xử lý" : "Hẹn lại lịch";
+                        const statusBg = req.status === "PENDING" ? "bg-amber-100 text-amber-800" : req.status === "PROCESSING" ? "bg-blue-100 text-blue-800" : "bg-red-100 text-red-800";
+                        
+                        return (
+                          <tr key={req.id} className="hover:bg-gray-50/50">
+                            <td className="py-3 font-semibold text-gray-800">{aptLabel}</td>
+                            <td className="py-3 font-medium text-gray-700">
+                              <div className="font-semibold text-gray-800 truncate max-w-[200px]" title={req.title}>{req.title}</div>
+                              <div className="text-xs text-gray-500 truncate max-w-[250px]" title={req.description}>{req.description}</div>
+                            </td>
+                            <td className="py-3">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${priorityColor}`}>
+                                {priorityLabel}
+                              </span>
+                            </td>
+                            <td className="py-3">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${statusBg}`}>
+                                {statusLabel}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
           </ChartCard>
         </div>
 

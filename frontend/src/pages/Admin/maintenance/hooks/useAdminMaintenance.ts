@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuthStore } from "../../../../stores/auth.store";
 import * as maintenanceService from "../../../../services/maintenanceService";
 import * as staffService from "../../../../services/staffService";
 import * as buildingService from "../../../../services/buildingService";
+import * as apartmentService from "../../../../services/apartmentService";
 import { confirmMaintenanceSchema, unableMaintenanceSchema } from "../../../../schemas/maintenance.schema";
 import type { MaintenanceRequest } from "../../../../types";
 
@@ -17,6 +18,7 @@ export function useAdminMaintenance() {
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [priorityFilter, setPriorityFilter] = useState<string>("");
   const [buildingFilter, setBuildingFilter] = useState<string>("");
+  const [floorFilter, setFloorFilter] = useState<string>("");
 
   // State modal phân công
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -54,14 +56,28 @@ export function useAdminMaintenance() {
     enabled: role === "ADMIN",
   });
 
+  const { data: apartments = [] } = useQuery({
+    queryKey: ["apartments"],
+    queryFn: () => apartmentService.getAllApartmentPages(),
+  });
+
+  const availableFloors = useMemo(() => {
+    const targetBuildingId = role === "MANAGER" ? managedBuildingId : (buildingFilter ? Number(buildingFilter) : null);
+    const apts = targetBuildingId
+      ? apartments.filter(a => a.building_id === targetBuildingId)
+      : apartments;
+    const floors = Array.from(new Set(apts.map(a => a.floor))).sort((a, b) => a - b);
+    return floors;
+  }, [apartments, buildingFilter, role, managedBuildingId]);
+
   // Fetch technicians
   const { data: staffRes, isLoading: loadingStaff } = useQuery({
-    queryKey: ["technicians", selectedRequest?.apartment?.building_id],
+    queryKey: ["technicians", selectedRequest?.apartment?.building_id || selectedRequest?.apartment?.building?.id || managedBuildingId],
     queryFn: () => {
-      const bId = selectedRequest?.apartment?.building_id;
-      return staffService.getAllStaff(bId ? { building_id: bId } : undefined);
+      const bId = selectedRequest?.apartment?.building_id || selectedRequest?.apartment?.building?.id || (role === "MANAGER" ? managedBuildingId : undefined);
+      return staffService.getAllStaff(bId ? { building_id: Number(bId) } : undefined);
     },
-    enabled: !!selectedRequest?.apartment?.building_id,
+    enabled: !!(selectedRequest?.apartment?.building_id || selectedRequest?.apartment?.building?.id || (role === "MANAGER" && managedBuildingId)),
   });
   const technicians = (staffRes?.data || []).filter(
     (s) => s.position !== "Quản lý"
@@ -161,10 +177,19 @@ export function useAdminMaintenance() {
     completeMutation.mutate(id);
   };
 
-  const loading = loadingRequests || loadingBuildings;
+  const filteredRequestsByFloor = useMemo(() => {
+    return requests.filter((r) => {
+      if (floorFilter && r.apartment?.floor !== Number(floorFilter)) {
+        return false;
+      }
+      return true;
+    });
+  }, [requests, floorFilter]);
+
+  const loading = loadingRequests || loadingBuildings || loadingStaff;
 
   return {
-    requests,
+    requests: filteredRequestsByFloor,
     buildings,
     technicians,
     search,
@@ -175,6 +200,9 @@ export function useAdminMaintenance() {
     setPriorityFilter,
     buildingFilter,
     setBuildingFilter,
+    floorFilter,
+    setFloorFilter,
+    availableFloors,
     loading,
     loadingStaff,
     role,

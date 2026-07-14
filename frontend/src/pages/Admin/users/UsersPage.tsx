@@ -36,6 +36,9 @@ export default function UsersPage() {
     setRoleFilter,
     statusFilter,
     setStatusFilter,
+    buildingFilter,
+    setBuildingFilter,
+    buildings,
     filtered,
     pagination,
     sortedUsers,
@@ -197,8 +200,7 @@ export default function UsersPage() {
       />
 
       {/* Tìm kiếm và Bộ lọc */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 w-full">
-
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 w-full font-sans">
         <Combobox
           options={[
             { value: "", label: "Tất cả vai trò" },
@@ -226,6 +228,17 @@ export default function UsersPage() {
           className="w-full"
           triggerClassName="rounded-md"
         />
+
+        {isAdmin && (
+          <Combobox
+            options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
+            value={buildingFilter}
+            onChange={setBuildingFilter}
+            placeholder="Tất cả tòa nhà"
+            triggerClassName="rounded-md"
+            clearable={true}
+          />
+        )}
       </div>
 
       {/* Bảng */}

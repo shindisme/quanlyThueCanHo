@@ -63,7 +63,6 @@ const adminMenu: SidebarGroup[] = [
     items: [
       { label: "Tài khoản", path: "/admin/users", icon: UserCog },
       // { label: "Báo cáo", path: "/admin/reports", icon: BarChart3 },
-      { label: "Cài đặt", path: "/admin/settings", icon: Settings },
     ],
   },
 ];
@@ -133,9 +132,20 @@ const tenantMenu: SidebarGroup[] = [
 const staffMenu: SidebarGroup[] = [
   {
     items: [
+      { label: "Dashboard", path: "/manager/dashboard", icon: LayoutDashboard },
+    ],
+  },
+  {
+    title: "Vận hành",
+    items: [
       { label: "Yêu cầu sửa chữa", path: "/manager/maintenance", icon: Wrench },
       { label: "Điện nước", path: "/manager/utilities", icon: Zap },
       { label: "Thông báo", path: "/manager/notifications", icon: Bell },
+    ],
+  },
+  {
+    title: "Khác",
+    items: [
       { label: "Hồ sơ cá nhân", path: "/manager/profile", icon: User },
     ],
   },

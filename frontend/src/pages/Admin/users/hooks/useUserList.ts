@@ -30,6 +30,7 @@ export function useUserList() {
 
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [buildingFilter, setBuildingFilter] = useState("");
 
   const { data: users = [], isLoading: loadingUsers, refetch: fetchUsers } = useQuery({
     queryKey: ["users"],
@@ -100,7 +101,7 @@ export function useUserList() {
         const tenantContracts = matchTenant.contracts?.length
           ? matchTenant.contracts
           : contracts.filter((c) => c.tenant_id === matchTenant.id);
-        const activeContract = tenantContracts.find((c) => c.status === "ACTIVE") || tenantContracts[0];
+        const activeContract = tenantContracts.find((c) => c.status === "ACTIVE");
         if (activeContract) {
           const apt = activeContract.apartment ?? apartments.find((a) => a.id === activeContract.apartment_id);
           const bld = apt?.building ?? (apt ? buildings.find((b) => b.id === apt.building_id) : null);
@@ -125,12 +126,42 @@ export function useUserList() {
     return "-";
   }
 
+  function getUserBuildingId(u: UserData): number | null {
+    if (u.role === "TENANT") {
+      const matchTenant = getTenantForUser(u);
+      if (matchTenant) {
+        const tenantContracts = matchTenant.contracts?.length
+          ? matchTenant.contracts
+          : contracts.filter((c) => c.tenant_id === matchTenant.id);
+        const activeContract = tenantContracts.find((c) => c.status === "ACTIVE");
+        if (activeContract) {
+          const apt = activeContract.apartment ?? apartments.find((a) => a.id === activeContract.apartment_id);
+          return apt?.building_id || null;
+        }
+      }
+    } else if (u.role === "MANAGER" || u.role === "STAFF") {
+      const matchStaff = staff.find(
+        (s) =>
+          s.user_id === u.id ||
+          (s.user && s.user.id === u.id) ||
+          (s.user && s.user.username === u.username)
+      );
+      return matchStaff?.building_id || null;
+    }
+    return null;
+  }
+
   // Lọc tìm kiếm
   const filtered = users.filter((u) => {
     // Role filter
     if (roleFilter && u.role !== roleFilter) return false;
     // Status filter
     if (statusFilter && u.status !== statusFilter) return false;
+    // Building filter
+    if (buildingFilter) {
+      const uBldId = getUserBuildingId(u);
+      if (uBldId !== Number(buildingFilter)) return false;
+    }
 
     const term = removeVietnameseTones(debouncedSearch);
     if (!term) return true;
@@ -229,6 +260,9 @@ export function useUserList() {
     setRoleFilter,
     statusFilter,
     setStatusFilter,
+    buildingFilter,
+    setBuildingFilter,
+    buildings,
     filtered,
     sortedUsers: paginatedUsers,
     pagination,

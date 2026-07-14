@@ -5,7 +5,6 @@ import * as apartmentService from "../../../../services/apartmentService";
 import * as tenantService from "../../../../services/tenantService";
 import * as contractService from "../../../../services/contractService";
 import * as scheduleService from "../../../../services/scheduleService";
-import * as invoiceService from "../../../../services/invoiceService";
 import * as staffService from "../../../../services/staffService";
 import * as buildingService from "../../../../services/buildingService";
 import * as maintenanceService from "../../../../services/maintenanceService";
@@ -27,7 +26,7 @@ function parseJwt(token: string) {
   }
 }
 
-export function useManagerDashboard() {
+export function useDashboardStaff() {
   const { email, token, role, managedBuildingId, managedBuildingName, setAuth } = useAuthStore();
 
   const decoded = token ? parseJwt(token) : null;
@@ -43,7 +42,7 @@ export function useManagerDashboard() {
     ? staffRes.data.find((s) => s.user_id === userId)
     : null;
 
-  const displayName = currentStaff?.full_name || email?.split("@")[0] || "Quản lý";
+  const displayName = currentStaff?.full_name || email?.split("@")[0] || "Nhân viên";
 
   // Query buildings if staff has building_id
   const { data: buildings = [] } = useQuery({
@@ -63,42 +62,29 @@ export function useManagerDashboard() {
 
   const activeBuildingId = managedBuildingId || currentStaff?.building_id || undefined;
 
-  const { data: apartmentsData, isLoading: loadingApartments } = useQuery({
+  const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments", activeBuildingId],
-    queryFn: () => apartmentService.getAllApartments({
-      building_id: activeBuildingId || undefined,
-      limit: 100
+    queryFn: () => apartmentService.getAllApartmentPages({
+      building_id: activeBuildingId || undefined
     }),
   });
-  const apartments = apartmentsData?.data || [];
 
-  const { data: tenantsData, isLoading: loadingTenants } = useQuery({
+  const { data: tenants = [], isLoading: loadingTenants } = useQuery({
     queryKey: ["tenants"],
-    queryFn: () => tenantService.getAllTenants({ limit: 100 }),
+    queryFn: () => tenantService.getAllTenantPages(),
   });
-  const tenants = tenantsData?.data || [];
 
-  const { data: contractsData, isLoading: loadingContracts } = useQuery({
+  const { data: contracts = [], isLoading: loadingContracts } = useQuery({
     queryKey: ["contracts", activeBuildingId],
-    queryFn: () => contractService.getAllContracts({
+    queryFn: () => contractService.getAllContractPages({
       buildingId: activeBuildingId || undefined
     }),
   });
-  const contracts = contractsData || [];
 
-  const { data: schedulesData, isLoading: loadingSchedules } = useQuery({
+  const { data: schedules = [], isLoading: loadingSchedules } = useQuery({
     queryKey: ["schedules"],
     queryFn: () => scheduleService.getSchedules(),
   });
-  const schedules = schedulesData || [];
-
-  const { data: invoicesData, isLoading: loadingInvoices } = useQuery({
-    queryKey: ["invoices", activeBuildingId],
-    queryFn: () => invoiceService.getAllInvoicePages({
-      building_id: activeBuildingId || undefined,
-    }),
-  });
-  const invoices = invoicesData || [];
 
   const { data: maintenanceData, isLoading: loadingMaintenance } = useQuery({
     queryKey: ["maintenanceRequests", activeBuildingId],
@@ -109,18 +95,15 @@ export function useManagerDashboard() {
   });
   const maintenanceRequests = maintenanceData?.data || [];
 
-  const isLoading = loadingStaff || loadingApartments || loadingTenants || loadingContracts || loadingSchedules || loadingInvoices || loadingMaintenance;
+  const isLoading = loadingStaff || loadingApartments || loadingTenants || loadingContracts || loadingSchedules || loadingMaintenance;
 
   return {
-    email,
     displayName,
-    managedBuildingName,
     managedBuildingId: activeBuildingId,
     apartments,
     tenants,
     contracts,
     schedules,
-    invoices,
     maintenanceRequests,
     isLoading,
   };

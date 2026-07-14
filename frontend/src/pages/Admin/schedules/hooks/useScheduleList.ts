@@ -16,6 +16,9 @@ export function useScheduleList() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [filterDay, setFilterDay] = useState("");
+  const [filterMonth, setFilterMonth] = useState("");
+  const [filterYear, setFilterYear] = useState("");
   const [deleteItem, setDeleteItem] = useState<ScheduleData | null>(null);
   const [viewItem, setViewItem] = useState<ScheduleData | null>(null);
 
@@ -54,7 +57,13 @@ export function useScheduleList() {
 
     const matchesStatus = !statusFilter || s.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
+    // Date filters
+    const schedDate = new Date(s.schedule_time);
+    const matchesDay = !filterDay || schedDate.getDate() === Number(filterDay);
+    const matchesMonth = !filterMonth || (schedDate.getMonth() + 1) === Number(filterMonth);
+    const matchesYear = !filterYear || schedDate.getFullYear() === Number(filterYear);
+
+    return matchesSearch && matchesStatus && matchesDay && matchesMonth && matchesYear;
   });
 
   const { items: sortedSchedules, requestSort, getSortIcon } = useSort(filtered, null, {
@@ -134,6 +143,12 @@ export function useScheduleList() {
     setSearch,
     statusFilter,
     setStatusFilter,
+    filterDay,
+    setFilterDay,
+    filterMonth,
+    setFilterMonth,
+    filterYear,
+    setFilterYear,
     deleteItem,
     setDeleteItem,
     viewItem,

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { removeVietnameseTones } from "../../../../utils/string";
@@ -19,6 +19,10 @@ export function useTenantList() {
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
+
+  const [selectedBuilding, setSelectedBuilding] = useState<string>("");
+  const [selectedFloor, setSelectedFloor] = useState<string>("");
+  const [selectedStatus, setSelectedStatus] = useState<string>("");
 
   const createModal = useOnOff();
   const modifyModal = useOnOff();
@@ -81,7 +85,7 @@ export function useTenantList() {
     const tenantContracts = t.contracts?.length
       ? t.contracts
       : contracts.filter((c) => c.tenant_id === t.id);
-    const activeContract = tenantContracts.find((c) => c.status === "ACTIVE") || tenantContracts[0];
+    const activeContract = tenantContracts.find((c) => c.status === "ACTIVE");
 
     if (activeContract) {
       const apt = activeContract.apartment ?? apartments.find((a) => a.id === activeContract.apartment_id);
@@ -102,8 +106,41 @@ export function useTenantList() {
     return { ...t, contracts: [] } as unknown as Tenant;
   });
 
+  const availableFloors = useMemo(() => {
+    const targetBuildingId = role === "MANAGER" ? managedBuildingId : (selectedBuilding ? Number(selectedBuilding) : null);
+    const apts = targetBuildingId
+      ? apartments.filter(a => a.building_id === targetBuildingId)
+      : apartments;
+    const floors = Array.from(new Set(apts.map(a => a.floor))).sort((a, b) => a - b);
+    return floors;
+  }, [apartments, selectedBuilding, role, managedBuildingId]);
+
   const filtered = displayTenantsWithContracts.filter((t) => {
+    const activeContract = t.contracts?.[0];
+
+    // Lọc theo tòa nhà
+    if (role === "ADMIN" && selectedBuilding) {
+      if (!activeContract || activeContract.apartment?.building_id !== Number(selectedBuilding)) {
+        return false;
+      }
+    }
+
+    // Lọc theo tầng
+    if (selectedFloor) {
+      if (!activeContract || activeContract.apartment?.floor !== Number(selectedFloor)) {
+        return false;
+      }
+    }
+
+    // Lọc theo trạng thái Đang thuê / Ngừng thuê
+    if (selectedStatus) {
+      const hasActiveContract = !!activeContract;
+      if (selectedStatus === "ACTIVE" && !hasActiveContract) return false;
+      if (selectedStatus === "INACTIVE" && hasActiveContract) return false;
+    }
+
     const term = removeVietnameseTones(debouncedSearch);
+    if (!term) return true;
     const nameNorm = removeVietnameseTones(t.full_name);
     const citizenNorm = removeVietnameseTones(t.citizen_id);
     return nameNorm.includes(term) || citizenNorm.includes(term);
@@ -165,5 +202,13 @@ export function useTenantList() {
     loading,
     role,
     managedBuildingId,
+    selectedBuilding,
+    setSelectedBuilding,
+    selectedFloor,
+    setSelectedFloor,
+    selectedStatus,
+    setSelectedStatus,
+    availableFloors,
+    buildings,
   };
 }

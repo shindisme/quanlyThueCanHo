@@ -4,7 +4,6 @@ import AdminLayout from "../layouts/AdminLayout";
 import TenantLayout from "../layouts/TenantLayout";
 import GuestLayout from "../layouts/GuestLayout";
 import RoleRoute from "./RoleRoute";
-import { useAuthStore } from "../stores/auth.store";
 
 // Trang Admin
 import AdminDashboard from "../pages/Admin/dashboard/DashboardAdmin";
@@ -22,14 +21,14 @@ import SchedulesPage from "../pages/Admin/schedules/SchedulesPage";
 import UtilitiesPage from "../pages/Admin/utilities/UtilitiesPage";
 import NotificationsPage from "../pages/Admin/notifications/NotificationsPage";
 import UsersPage from "../pages/Admin/users/UsersPage";
-import SettingsPage from "../pages/Admin/settings/SettingsPage";
+// import SettingsPage from "../pages/Admin/settings/SettingsPage";
 // import ReportDashboard from "../pages/Admin/reports/ReportDashboard";
 
 // Trang Manager
-import ManagerDashboard from "../pages/Manager/dashboard/Dashboard";
+import ManagerDashboard from "../pages/Manager/dashboard/DashboardManager";
 
 // Trang Tenant
-import TenantHome from "../pages/Tenant/home/Home";
+import DashboardTenant from "../pages/Tenant/home/DashboardTenant";
 import TenantContracts from "../pages/Tenant/contracts/MyContracts";
 import MyInvoices from "../pages/Tenant/invoices/MyInvoices";
 import MyPayments from "../pages/Tenant/payments/MyPayments";
@@ -43,14 +42,6 @@ import GuestApartmentListing from "../pages/Guest/ApartmentListing";
 import GuestApartmentDetail from "../pages/Guest/ApartmentDetail";
 import GuestContact from "../pages/Guest/Contact";
 import GuestAbout from "../pages/Guest/About";
-
-function ManagerIndexRedirect() {
-  const { role } = useAuthStore();
-  if (role === "STAFF") {
-    return <Navigate to="maintenance" replace />;
-  }
-  return <Navigate to="dashboard" replace />;
-}
 
 const router = createBrowserRouter([
   // Đăng nhập
@@ -105,7 +96,7 @@ const router = createBrowserRouter([
       { path: "notifications", element: <NotificationsPage /> },
       { path: "users", element: <UsersPage /> },
       // { path: "reports", element: <ReportDashboard /> },
-      { path: "settings", element: <SettingsPage /> },
+      // { path: "settings", element: <SettingsPage /> },
       { path: "profile", element: <ProfilePage /> },
     ],
   },
@@ -119,8 +110,8 @@ const router = createBrowserRouter([
       </RoleRoute>
     ),
     children: [
-      { index: true, element: <ManagerIndexRedirect /> },
-      { path: "dashboard", element: <RoleRoute allowedRoles={["MANAGER"]}><ManagerDashboard /></RoleRoute> },
+      { index: true, element: <Navigate to="dashboard" replace /> },
+      { path: "dashboard", element: <RoleRoute allowedRoles={["MANAGER", "STAFF"]}><ManagerDashboard /></RoleRoute> },
       { path: "apartments", element: <RoleRoute allowedRoles={["MANAGER"]}><ApartmentsPage /></RoleRoute> },
       { path: "apartments/:id", element: <RoleRoute allowedRoles={["MANAGER"]}><ApartmentDetail /></RoleRoute> },
       { path: "tenants", element: <RoleRoute allowedRoles={["MANAGER"]}><TenantsPage /></RoleRoute> },
@@ -147,7 +138,7 @@ const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <Navigate to="home" replace /> },
-      { path: "home", element: <TenantHome /> },
+      { path: "home", element: <DashboardTenant /> },
       { path: "contracts", element: <TenantContracts /> },
       { path: "invoices", element: <MyInvoices /> },
       { path: "payments", element: <MyPayments /> },

@@ -9,12 +9,8 @@ import { useAuthStore } from "../stores/auth.store"
 import { login } from "../services/authService"
 
 interface LoginForm {
-  email: string
+  username: string
   password: string
-}
-
-function resolveEmailFromUsername(username: string): string {
-  return username.trim()
 }
 
 function parseJwt(token: string) {
@@ -62,9 +58,9 @@ export function useLogin() {
   })
 
   const loginMutation = useMutation({
-    mutationFn: (data: LoginForm) => login(resolveEmailFromUsername(data.email), data.password),
+    mutationFn: (data: LoginForm) => login(data.username.trim(), data.password),
     onSuccess: async (result, variables) => {
-      const resolvedEmail = resolveEmailFromUsername(variables.email)
+      const username = variables.username.trim()
       const decoded = parseJwt(result.token)
       const userId = decoded ? (decoded.userId ? Number(decoded.userId) : (decoded.sub ? Number(decoded.sub) : null)) : null
       let managedBuildingId: number | null = null
@@ -93,7 +89,7 @@ export function useLogin() {
         }
       }
 
-      setAuth(result.token, result.role, resolvedEmail, managedBuildingId, managedBuildingName)
+      setAuth(result.token, result.role, username, managedBuildingId, managedBuildingName)
       toast.success("Đăng nhập thành công!")
 
       switch (result.role) {

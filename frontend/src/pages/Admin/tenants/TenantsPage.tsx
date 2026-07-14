@@ -9,6 +9,7 @@ import type { Tenant as TenantType } from "../../../types";
 import { maskPhone, maskCCCD, formatApartmentDisplay } from "../../../utils/string";
 import { useTenantList } from "./hooks/useTenantList";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
+import Combobox from "../../../components/ui/Combobox";
 
 import TenantCreateModal from "./components/TenantCreateModal";
 import TenantModifyModal from "./components/TenantModifyModal";
@@ -38,6 +39,14 @@ export default function TenantsPage() {
     handleDelete,
     loading,
     role,
+    selectedBuilding,
+    setSelectedBuilding,
+    selectedFloor,
+    setSelectedFloor,
+    selectedStatus,
+    setSelectedStatus,
+    availableFloors,
+    buildings,
   } = useTenantList();
 
   if (loading) {
@@ -155,6 +164,55 @@ export default function TenantsPage() {
           </div>
         }
       />
+
+      {/* Bộ lọc */}
+      <div className="flex flex-col sm:flex-row gap-3 w-full font-sans">
+        {role === "ADMIN" && (
+          <Combobox
+            options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
+            value={selectedBuilding}
+            onChange={(val) => {
+              setSelectedBuilding(val);
+              setSelectedFloor("");
+              setCurrentPage(1);
+            }}
+            placeholder="Tất cả tòa nhà"
+            className="flex-1 min-w-0 w-full"
+            triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
+            clearable={true}
+          />
+        )}
+
+        <Combobox
+          options={availableFloors.map((fl) => ({ value: String(fl), label: `Tầng ${fl}` }))}
+          value={selectedFloor}
+          onChange={(val) => {
+            setSelectedFloor(val);
+            setCurrentPage(1);
+          }}
+          placeholder="Tất cả tầng"
+          className="flex-1 min-w-0 w-full"
+          triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
+          clearable={true}
+        />
+
+        <Combobox
+          options={[
+            { value: "ACTIVE", label: "Đang thuê" },
+            { value: "INACTIVE", label: "Ngừng thuê" }
+          ]}
+          value={selectedStatus}
+          onChange={(val) => {
+            setSelectedStatus(val);
+            setCurrentPage(1);
+          }}
+          placeholder="Trạng thái"
+          searchable={false}
+          className="flex-1 min-w-0 w-full"
+          triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
+          clearable={true}
+        />
+      </div>
 
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-gray-500 bg-white rounded-xl border border-gray-200">

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as paymentService from "../../../../services/paymentService";
 import * as buildingService from "../../../../services/buildingService";
+import * as apartmentService from "../../../../services/apartmentService";
 import { useDebounce } from "../../../../hooks/useDebounce";
 import { usePagination } from "../../../../hooks/usePagination";
 import { useSort } from "../../../../hooks/useSort";
@@ -20,6 +21,8 @@ export function usePaymentList() {
   const [buildingFilter, setBuildingFilter] = useState<number | undefined>(
     role === "MANAGER" ? (managedBuildingId || undefined) : undefined
   );
+  const [selectedFloor, setSelectedFloor] = useState<string>("");
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -27,6 +30,20 @@ export function usePaymentList() {
     queryKey: ["buildings"],
     queryFn: () => buildingService.getAllBuildingPages(),
   });
+
+  const { data: apartments = [] } = useQuery({
+    queryKey: ["apartments"],
+    queryFn: () => apartmentService.getAllApartmentPages(),
+  });
+
+  const availableFloors = useMemo(() => {
+    const targetBuildingId = role === "MANAGER" ? managedBuildingId : buildingFilter;
+    const apts = targetBuildingId
+      ? apartments.filter(a => a.building_id === targetBuildingId)
+      : apartments;
+    const floors = Array.from(new Set(apts.map(a => a.floor))).sort((a, b) => a - b);
+    return floors;
+  }, [apartments, buildingFilter, role, managedBuildingId]);
 
   // Fetch payments
   const { data: paymentsRes, isLoading, refetch } = useQuery({
@@ -42,8 +59,28 @@ export function usePaymentList() {
   });
   const payments = paymentsRes?.data || [];
 
+  const filteredPayments = useMemo(() => {
+    return payments.filter(pmt => {
+      // 1. Lọc theo Tầng
+      if (selectedFloor) {
+        const apt = pmt.invoice?.contract?.apartment;
+        if (!apt || apt.floor !== Number(selectedFloor)) return false;
+      }
+      
+      // 2. Lọc theo Tháng
+      if (selectedMonth) {
+        const pmtDateStr = pmt.paid_at || pmt.created_at;
+        if (!pmtDateStr) return false;
+        const pmtMonth = new Date(pmtDateStr).getMonth() + 1;
+        if (pmtMonth !== Number(selectedMonth)) return false;
+      }
+      
+      return true;
+    });
+  }, [payments, selectedFloor, selectedMonth]);
+
   // Sắp xếp
-  const { items: sortedPayments, requestSort, getSortIcon, sortConfig } = useSort<Payment>(payments, {
+  const { items: sortedPayments, requestSort, getSortIcon, sortConfig } = useSort<Payment>(filteredPayments, {
     key: "paid_at",
     direction: "desc",
   });
@@ -99,6 +136,11 @@ export function usePaymentList() {
     setMethodFilter,
     buildingFilter,
     setBuildingFilter,
+    selectedFloor,
+    setSelectedFloor,
+    selectedMonth,
+    setSelectedMonth,
+    availableFloors,
 
     handleApprove,
     handleReject,

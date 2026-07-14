@@ -487,16 +487,6 @@ export default function Header() {
               Hồ sơ cá nhân
             </DropdownMenuItem>
 
-            {role === "ADMIN" && (
-              <DropdownMenuItem
-                onClick={() => navigate("/admin/settings")}
-                className="gap-3 px-3 py-2"
-              >
-                <Settings size={16} className="text-gray-400" />
-                Cài đặt
-              </DropdownMenuItem>
-            )}
-
             <div className="h-px bg-gray-100 my-1" />
 
             <DropdownMenuItem

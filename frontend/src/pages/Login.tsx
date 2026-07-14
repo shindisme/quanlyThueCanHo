@@ -42,13 +42,13 @@ export default function Login() {
                 <input
                   type="text"
                   placeholder="Nhập tên đăng nhập"
-                  {...register("email")}
+                  {...register("username")}
                   className={`premium-input rounded-xl pl-11!
-                    ${errors.email ? "border-danger-500 focus:border-danger-500 focus:ring-danger-500/20" : ""}`}
+                    ${errors.username ? "border-danger-500 focus:border-danger-500 focus:ring-danger-500/20" : ""}`}
                 />
               </div>
-              {errors.email && (
-                <p className="mt-1 text-xs text-danger-500">{errors.email.message}</p>
+              {errors.username && (
+                <p className="mt-1 text-xs text-danger-500">{errors.username.message}</p>
               )}
             </div>
 

@@ -3,13 +3,13 @@ import {
   Calendar, CreditCard, ArrowUpRight, Wrench, Users, Zap, Star
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useTenantHome } from "./hooks/useTenantHome";
+import { useDashboardTenant } from "./hooks/useDashboardTenant";
 import { formatCurrency } from "../../../utils/currency";
 import LoadingSpinner from "../../../components/ui/LoadingSpinner";
 import Modal from "../../../components/ui/Modal";
 import Button from "../../../components/ui/Button";
 
-export default function TenantHome() {
+export default function DashboardTenant() {
   const {
     displayName,
     occupants,
@@ -28,7 +28,7 @@ export default function TenantHome() {
     setComment,
     submittingReview,
     handleReviewSubmit,
-  } = useTenantHome();
+  } = useDashboardTenant();
 
   if (isLoading) {
     return (

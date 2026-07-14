@@ -23,6 +23,11 @@ export default function PaymentsPage() {
     setMethodFilter,
     buildingFilter,
     setBuildingFilter,
+    selectedFloor,
+    setSelectedFloor,
+    selectedMonth,
+    setSelectedMonth,
+    availableFloors,
 
     // Actions
     handleApprove,
@@ -55,7 +60,7 @@ export default function PaymentsPage() {
       {/* Filters bar */}
       <div className="flex flex-col gap-3 w-full">
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
           <Combobox
             options={[
               { value: "SUCCESS", label: "Thành công" },
@@ -87,8 +92,46 @@ export default function PaymentsPage() {
             <Combobox
               options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
               value={buildingFilter ? String(buildingFilter) : ""}
-              onChange={(val) => setBuildingFilter(val ? Number(val) : undefined)}
-              placeholder="Tất cả chi nhánh"
+              onChange={(val) => {
+                setBuildingFilter(val ? Number(val) : undefined);
+                setSelectedFloor("");
+              }}
+              placeholder="Tất cả tòa nhà"
+              triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
+              clearable={true}
+            />
+          )}
+
+          {role === "ADMIN" && (
+            <Combobox
+              options={availableFloors.map((fl) => ({ value: String(fl), label: `Tầng ${fl}` }))}
+              value={selectedFloor}
+              onChange={setSelectedFloor}
+              placeholder="Tất cả tầng"
+              triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
+              clearable={true}
+            />
+          )}
+
+          {role === "MANAGER" && (
+            <Combobox
+              options={[
+                { value: "1", label: "Tháng 1" },
+                { value: "2", label: "Tháng 2" },
+                { value: "3", label: "Tháng 3" },
+                { value: "4", label: "Tháng 4" },
+                { value: "5", label: "Tháng 5" },
+                { value: "6", label: "Tháng 6" },
+                { value: "7", label: "Tháng 7" },
+                { value: "8", label: "Tháng 8" },
+                { value: "9", label: "Tháng 9" },
+                { value: "10", label: "Tháng 10" },
+                { value: "11", label: "Tháng 11" },
+                { value: "12", label: "Tháng 12" },
+              ]}
+              value={selectedMonth}
+              onChange={setSelectedMonth}
+              placeholder="Tất cả tháng"
               triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
               clearable={true}
             />
