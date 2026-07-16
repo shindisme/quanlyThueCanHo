@@ -1,4 +1,4 @@
-import {
+﻿import {
     ContractStatus,
     Prisma,
     RequestStatus,
@@ -262,7 +262,7 @@ export const cancelMaintenanceRequestService = async (
     }
     if (current.status !== RequestStatus.PENDING) {
         throw conflict(
-            "Only a pending maintenance request can be cancelled"
+            "Chỉ yêu cầu bảo trì đang chờ xử lý mới có thể hủy"
         );
     }
 
@@ -278,7 +278,7 @@ export const cancelMaintenanceRequestService = async (
         });
     } catch (error) {
         if (isRecordNotFound(error)) {
-            throw conflict("Maintenance request status changed");
+            throw conflict("Trạng thái yêu cầu bảo trì đã thay đổi");
         }
         throw error;
     }
@@ -320,7 +320,7 @@ export const confirmMaintenanceRequestService = async (
         && current.status !== RequestStatus.NEEDS_RESCHEDULE
     ) {
         throw conflict(
-            "Only pending or reschedule-required requests can be confirmed"
+            "Chỉ yêu cầu bảo trì đang chờ hoặc cần đổi lịch mới có thể xác nhận"
         );
     }
 
@@ -369,7 +369,7 @@ export const confirmMaintenanceRequestService = async (
         });
     } catch (error) {
         if (isRecordNotFound(error)) {
-            throw conflict("Maintenance request status changed");
+            throw conflict("Trạng thái yêu cầu bảo trì đã thay đổi");
         }
         throw error;
     }
@@ -426,7 +426,7 @@ const getAssignedProcessingRequest = async (
     }
     if (current.status !== RequestStatus.PROCESSING) {
         throw conflict(
-            "Only a processing maintenance request can be updated"
+            "Chỉ yêu cầu bảo trì đang xử lý mới có thể cập nhật"
         );
     }
 
@@ -489,7 +489,7 @@ export const markMaintenanceUnableService = async (
         });
     } catch (error) {
         if (isRecordNotFound(error)) {
-            throw conflict("Maintenance request status changed");
+            throw conflict("Trạng thái yêu cầu bảo trì đã thay đổi");
         }
         throw error;
     }
@@ -550,7 +550,7 @@ export const completeMaintenanceRequestService = async (
         });
     } catch (error) {
         if (isRecordNotFound(error)) {
-            throw conflict("Maintenance request status changed");
+            throw conflict("Trạng thái yêu cầu bảo trì đã thay đổi");
         }
         throw error;
     }
@@ -567,3 +567,5 @@ export const completeMaintenanceRequestService = async (
 
     return updated;
 });
+
+

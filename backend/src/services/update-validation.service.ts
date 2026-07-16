@@ -1,4 +1,4 @@
-import { AppError } from "../errors/app-error.js";
+﻿import { AppError } from "../errors/app-error.js";
 
 export const assertUpdateHasChanges = (
     data: object,
@@ -11,10 +11,11 @@ export const assertUpdateHasChanges = (
     throw new AppError(
         400,
         "VALIDATION_ERROR",
-        "Yêu cầu xác thực thất bại",
+        "Dữ liệu yêu cầu không hợp lệ",
         [{
             field: "body",
-            message: "Yêu cầu ít nhất một trường dữ liệu hoặc tệp tin"
+            message: "Cần cung cấp ít nhất một trường dữ liệu hoặc tệp tin"
         }]
     );
 };
+

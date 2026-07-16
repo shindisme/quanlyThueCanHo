@@ -1,11 +1,13 @@
-import {
+﻿import {
     InvoiceStatus
 } from "@prisma/client";
 import { z } from "zod";
-
-const emptyObjectSchema = z.object({}).strict();
-const optionalEmptyBodySchema = emptyObjectSchema.default({});
-const positiveIdSchema = z.coerce.number().int().positive();
+import {
+    emptyObjectSchema,
+    idParamsSchema,
+    optionalEmptyBodySchema,
+    positiveIdSchema
+} from "./common.schema.js";
 const monthSchema = z.coerce.number().int().min(1).max(12);
 const yearSchema = z.coerce.number().int().min(2000).max(3000);
 const idListSchema = z.array(
@@ -67,7 +69,7 @@ export const sendInvoiceNotificationsRequestSchema = z.object({
             || body.invoice_ids !== undefined
         ),
         {
-            message: "building_id or invoice_ids is required",
+            message: "Cần cung cấp building_id hoặc invoice_ids",
             path: ["building_id"]
         }
     ).refine(
@@ -79,24 +81,20 @@ export const sendInvoiceNotificationsRequestSchema = z.object({
             && body.year !== undefined
         ),
         {
-            message: "month and year must be provided together",
+            message: "Cần cung cấp đồng thời tháng và năm",
             path: ["month"]
         }
     )
 }).strict();
 
 export const notificationIdRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: optionalEmptyBodySchema
 }).strict();
 
 export const markNotificationReadRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: z.preprocess(
         (value) => value ?? {},
@@ -127,3 +125,4 @@ export type NotificationIdRequest = z.infer<
 export type MarkNotificationReadRequest = z.infer<
     typeof markNotificationReadRequestSchema
 >;
+

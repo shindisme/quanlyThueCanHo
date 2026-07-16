@@ -1,4 +1,4 @@
-import {
+﻿import {
     Prisma,
     Role,
     UserStatus
@@ -314,7 +314,7 @@ export const updateStaffService = async (
         && input.building_id !== undefined
         && input.building_id !== actor.buildingId
     ) {
-        throw forbidden("Managers cannot transfer staff between buildings");
+        throw forbidden("Quản lý không thể chuyển nhân viên sang tòa nhà khác");
     }
 
     const {
@@ -422,3 +422,4 @@ export const deleteStaffService = async (
         });
     }
 });
+

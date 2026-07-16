@@ -1,4 +1,4 @@
-import {
+﻿import {
     Prisma,
     Role,
     ScheduleStatus
@@ -10,7 +10,7 @@ import type {
     ListSchedulesRequest
 } from "../schemas/schedule.schema.js";
 import type { Actor } from "../types/auth.js";
-import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
+import { getManagerApartmentScope } from "../utils/manager-scope.js";
 import {
     sendViewingScheduleCancelledEmail,
     sendViewingScheduleConfirmationEmail,
@@ -118,14 +118,7 @@ const runSerializableTransaction = async <T>(
     throw new Error("Serializable transaction retry exhausted");
 };
 
-const getManagerApartmentScope = (actor: Actor) => {
-    const assignment = getCurrentManagerAssignment(actor);
 
-    return {
-        building_id: assignment.buildingId,
-        building: assignment.assignmentWhere
-    } satisfies Prisma.ApartmentWhereInput;
-};
 
 const getScheduleScope = (
     actor: Actor
@@ -472,13 +465,13 @@ export const confirmScheduleService = async (
     const schedule = await getScheduleById(id, actor);
 
     if (schedule.status === ScheduleStatus.CANCELLED) {
-        throw conflict("A cancelled schedule cannot be confirmed");
+        throw conflict("Không thể xác nhận lịch xem căn hộ đã hủy");
     }
     if (schedule.status === ScheduleStatus.CONFIRMED) {
-        throw conflict("The viewing schedule is already confirmed");
+        throw conflict("Lịch xem căn hộ đã được xác nhận");
     }
     if (!schedule.guest_email) {
-        throw conflict("The viewing schedule has no guest email");
+        throw conflict("Lịch xem căn hộ không có email khách xem");
     }
 
     const blocking = await findBlockingSchedule(
@@ -488,7 +481,7 @@ export const confirmScheduleService = async (
         id
     );
     if (blocking) {
-        throw conflict("This viewing time is unavailable");
+        throw conflict("Thời gian xem căn hộ này không khả dụng");
     }
 
     let confirmed;
@@ -529,10 +522,10 @@ export const cancelScheduleService = async (
     const schedule = await getScheduleById(id, actor);
 
     if (schedule.status === ScheduleStatus.CONFIRMED) {
-        throw conflict("A confirmed viewing schedule cannot be cancelled");
+        throw conflict("Không thể hủy lịch xem căn hộ đã xác nhận");
     }
     if (schedule.status === ScheduleStatus.CANCELLED) {
-        throw conflict("The viewing schedule is already cancelled");
+        throw conflict("Lịch xem căn hộ đã được hủy");
     }
 
     const cancelled = await prisma.viewingSchedule.update({
@@ -591,3 +584,4 @@ export const deleteScheduleService = async (
 
     return { id };
 };
+

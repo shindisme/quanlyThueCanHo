@@ -1,4 +1,4 @@
-import { Bell, Menu, LogOut, User, ChevronDown, Settings, Mail, Info, Wrench, Receipt, ArrowRight } from "lucide-react";
+import { Bell, Menu, LogOut, User, ChevronDown, Mail, Info, Wrench, Receipt, ArrowRight } from "lucide-react";
 import { Fragment, useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -308,8 +308,8 @@ export default function Header() {
     });
   }
 
-  function handleLogout() {
-    logout();
+  async function handleLogout() {
+    await logout();
     navigate("/system/login");
   }
 

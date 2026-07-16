@@ -1,8 +1,10 @@
-import { z } from "zod";
-
-const emptyObjectSchema = z.object({}).strict();
-const optionalEmptyBodySchema = emptyObjectSchema.default({});
-const positiveIdSchema = z.coerce.number().int().positive();
+﻿import { z } from "zod";
+import {
+    emptyObjectSchema,
+    idParamsSchema,
+    optionalEmptyBodySchema,
+    positiveIdSchema
+} from "./common.schema.js";
 
 export const staffPositionSchema = z.enum([
     "Quản lý",
@@ -36,9 +38,7 @@ export const listStaffRequestSchema = z.object({
 }).strict();
 
 export const staffIdRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: optionalEmptyBodySchema
 }).strict();
@@ -50,9 +50,7 @@ export const createStaffRequestSchema = z.object({
 }).strict();
 
 export const updateStaffRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: z.object({
         full_name: staffFields.full_name.optional(),
@@ -61,7 +59,7 @@ export const updateStaffRequestSchema = z.object({
         building_id: staffFields.building_id
     }).strict().refine(
         (body) => Object.keys(body).length > 0,
-        "At least one field must be provided"
+        "Cần cung cấp ít nhất một trường dữ liệu"
     )
 }).strict();
 
@@ -77,3 +75,4 @@ export type CreateStaffRequest = z.infer<
 export type UpdateStaffRequest = z.infer<
     typeof updateStaffRequestSchema
 >;
+

@@ -2,7 +2,8 @@ import {
     ApartmentStatus,
     ContractStatus,
     Prisma,
-    Role
+    Role,
+    UserStatus
 } from "@prisma/client";
 import { prisma } from "../config/database.js";
 import { AppError } from "../errors/app-error.js";
@@ -15,7 +16,10 @@ import {
     isNonNegativeDecimal12_2Amount,
     isPositiveDecimal12_2Amount
 } from "../utils/money.js";
-import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
+import {
+    getCurrentManagerAssignment,
+    getManagerTenantScope
+} from "../utils/manager-scope.js";
 import {
     buildFirstRentalInvoiceItems,
     sumBillingItems
@@ -132,33 +136,7 @@ const normalizeContract = (contract: ContractWithRelations) => ({
     }
 });
 
-const getManagerTenantScope = (
-    actor: Actor
-) => {
-    const {
-        buildingId,
-        assignmentWhere
-    } = getCurrentManagerAssignment(actor);
 
-    return {
-        OR: [
-            {
-                onboarding_building_id: buildingId,
-                onboarding_building: assignmentWhere
-            },
-            {
-                contracts: {
-                    some: {
-                        apartment: {
-                            building_id: buildingId,
-                            building: assignmentWhere
-                        }
-                    }
-                }
-            }
-        ]
-    } satisfies Prisma.TenantWhereInput;
-};
 
 const getContractScope = (
     actor: Actor
@@ -586,6 +564,13 @@ export const createContractService = async (
                         content: "Hóa đơn " + firstInvoiceCode + " đã được tạo với tổng tiền " + firstInvoiceTotal + ".",
                         type: "INVOICE_CREATED"
                     }
+                });
+                await transaction.user.updateMany({
+                    where: {
+                        id: tenant.user_id,
+                        status: UserStatus.BANNED
+                    },
+                    data: { status: UserStatus.ACTIVE }
                 });
             }
 

@@ -1,14 +1,13 @@
-import {
+﻿import {
     Role,
     UserStatus
 } from "@prisma/client";
 import { z } from "zod";
-
-const emptyObjectSchema = z.object({}).strict();
-const optionalEmptyBodySchema = emptyObjectSchema.default({});
-const positiveIdParamsSchema = z.object({
-    id: z.coerce.number().int().positive()
-}).strict();
+import {
+    emptyObjectSchema,
+    idParamsSchema,
+    optionalEmptyBodySchema
+} from "./common.schema.js";
 
 export const emptyAuthRequestSchema = z.object({
     params: emptyObjectSchema,
@@ -35,7 +34,7 @@ export const changePasswordRequestSchema = z.object({
 }).strict();
 
 export const userIdRequestSchema = z.object({
-    params: positiveIdParamsSchema,
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: optionalEmptyBodySchema
 }).strict();
@@ -50,7 +49,7 @@ export const createUserRequestSchema = z.object({
 }).strict();
 
 export const updateUserRequestSchema = z.object({
-    params: positiveIdParamsSchema,
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: z.object({
         username: z.string().trim().min(3).max(100).optional(),
@@ -63,7 +62,7 @@ export const updateUserRequestSchema = z.object({
                 body.username !== undefined
                 || body.role !== undefined
                 || body.status !== undefined,
-            { message: "At least one field must be provided" }
+            { message: "Cần cung cấp ít nhất một trường dữ liệu" }
         )
 }).strict();
 
@@ -74,3 +73,4 @@ export type ChangePasswordRequest = z.infer<
 export type UserIdRequest = z.infer<typeof userIdRequestSchema>;
 export type CreateUserRequest = z.infer<typeof createUserRequestSchema>;
 export type UpdateUserRequest = z.infer<typeof updateUserRequestSchema>;
+

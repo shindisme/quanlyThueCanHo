@@ -1,4 +1,4 @@
-import {
+﻿import {
     Role
 } from "@prisma/client";
 import type {
@@ -30,7 +30,7 @@ const assertRecordedByIsServerControlled = (
         throw new AppError(
             400,
             "VALIDATION_ERROR",
-            "recorded_by is derived from the authenticated actor"
+            "recorded_by được xác định từ tài khoản đang đăng nhập"
         );
     }
 };
@@ -135,3 +135,4 @@ export const remove = async (
 
     return sendSuccess(response, { deleted: true });
 };
+

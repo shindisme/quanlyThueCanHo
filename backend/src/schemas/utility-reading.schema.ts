@@ -1,8 +1,10 @@
-import { z } from "zod";
-
-const emptyObjectSchema = z.object({}).strict();
-const optionalEmptyBodySchema = emptyObjectSchema.default({});
-const positiveIdSchema = z.coerce.number().int().positive();
+﻿import { z } from "zod";
+import {
+    emptyObjectSchema,
+    idParamsSchema,
+    optionalEmptyBodySchema,
+    positiveIdSchema
+} from "./common.schema.js";
 const meterSchema = z.coerce.number().int().nonnegative();
 const monthSchema = z.coerce.number().int().min(1).max(12);
 const yearSchema = z.coerce.number().int().min(2000).max(3000);
@@ -23,9 +25,7 @@ export const listUtilityReadingsRequestSchema = z.object({
 }).strict();
 
 export const utilityReadingIdRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: optionalEmptyBodySchema
 }).strict();
@@ -57,9 +57,7 @@ export const createUtilityReadingRequestSchema = z.object({
 }).strict();
 
 export const updateUtilityReadingRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: z.object({
         apartment_id: utilityReadingBodyFields.apartment_id.optional(),
@@ -72,7 +70,7 @@ export const updateUtilityReadingRequestSchema = z.object({
         recorded_by: utilityReadingBodyFields.recorded_by.optional()
     }).strict().refine(
         (body) => Object.keys(body).length > 0,
-        { message: "At least one field must be provided" }
+        { message: "Cần cung cấp ít nhất một trường dữ liệu" }
     )
 }).strict();
 
@@ -88,3 +86,4 @@ export type CreateUtilityReadingRequest = z.infer<
 export type UpdateUtilityReadingRequest = z.infer<
     typeof updateUtilityReadingRequestSchema
 >;
+

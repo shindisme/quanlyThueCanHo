@@ -1,6 +1,5 @@
 import { z } from "zod";
-
-const emptyObjectSchema = z.object({}).strict();
+import { emptyObjectSchema } from "./common.schema.js";
 
 export const chatbotRequestSchema = z.object({
     params: emptyObjectSchema,

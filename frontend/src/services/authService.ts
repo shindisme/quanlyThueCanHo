@@ -5,6 +5,11 @@ export interface LoginResponse {
   token: string;
   role: string;
 }
+
+export interface LogoutResponse {
+  logged_out: boolean;
+  banned: boolean;
+}
 export interface UserData {
   id: number;
   username: string;
@@ -26,6 +31,15 @@ export interface CreateUserResponse extends UserData {
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
   const res = await api.post<{ data: LoginResponse }>("/auth/login", { username, password });
+  return res.data.data;
+}
+
+export async function logout(token: string): Promise<LogoutResponse> {
+  const res = await api.post<{ data: LogoutResponse }>(
+    "/auth/logout",
+    {},
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
   return res.data.data;
 }
 

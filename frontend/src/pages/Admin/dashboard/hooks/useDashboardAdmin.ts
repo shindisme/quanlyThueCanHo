@@ -165,6 +165,7 @@ export function useDashboardAdmin() {
   return {
     email,
     displayName,
+    buildings,
     isLoading,
     selectedBranch,
     setSelectedBranch,

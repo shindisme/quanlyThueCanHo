@@ -1,4 +1,4 @@
-import { Settings, ShieldCheck, Database, Server, Info, Key } from "lucide-react";
+import { Settings, ShieldCheck, Database, Server, Key } from "lucide-react";
 import PageHeader from "../../../components/PageHeader";
 import { useUserRole } from "../../../hooks/useUserRole";
 

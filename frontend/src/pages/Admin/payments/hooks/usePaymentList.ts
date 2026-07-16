@@ -69,7 +69,7 @@ export function usePaymentList() {
       
       // 2. Lọc theo Tháng
       if (selectedMonth) {
-        const pmtDateStr = pmt.paid_at || pmt.created_at;
+        const pmtDateStr = pmt.paid_at;
         if (!pmtDateStr) return false;
         const pmtMonth = new Date(pmtDateStr).getMonth() + 1;
         if (pmtMonth !== Number(selectedMonth)) return false;

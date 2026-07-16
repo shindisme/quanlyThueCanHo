@@ -1,4 +1,4 @@
-import {
+﻿import {
     Prisma,
     Role
 } from "@prisma/client";
@@ -215,7 +215,7 @@ const assertCanManageNotifications = (actor: NotificationActor) => {
         actor.role !== Role.ADMIN
         && actor.role !== Role.MANAGER
     ) {
-        throw forbidden("You do not have permission to send notifications");
+        throw forbidden("Bạn không có quyền gửi thông báo");
     }
 };
 
@@ -700,3 +700,4 @@ export const deleteNotificationService = async (
         throw notFound();
     }
 };
+

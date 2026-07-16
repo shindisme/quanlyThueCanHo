@@ -1,5 +1,5 @@
 import {
-  Building2, Home, Users, DollarSign, Calendar
+  Building2, Home, Users, DollarSign
 } from "lucide-react";
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,

@@ -24,6 +24,12 @@ router.post(
     authController.login
 );
 router.post(
+    "/logout",
+    authenticate,
+    validate(emptyAuthRequestSchema),
+    authController.logout
+);
+router.post(
     "/change-password",
     authenticate,
     validate(changePasswordRequestSchema),

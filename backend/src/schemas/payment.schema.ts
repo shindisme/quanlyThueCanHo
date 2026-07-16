@@ -1,16 +1,18 @@
-import { PaymentStatus } from "@prisma/client";
+﻿import { PaymentStatus } from "@prisma/client";
 import { z } from "zod";
 import { isDecimal12_2Amount } from "../utils/money.js";
-
-const emptyObjectSchema = z.object({}).strict();
-const optionalEmptyBodySchema = emptyObjectSchema.default({});
-const queryIdSchema = z.coerce.number().int().positive();
+import {
+    emptyObjectSchema,
+    idParamsSchema,
+    optionalEmptyBodySchema,
+    positiveIdSchema as queryIdSchema
+} from "./common.schema.js";
 const jsonIdSchema = z.number().finite().int().positive();
 const paymentMethodSchema = z.string().trim().min(1).max(50);
 const paymentAmountSchema = z.number()
     .refine(
         isDecimal12_2Amount,
-        "amount must fit Decimal(12,2) and use at most two decimal places"
+        "Số tiền phải nằm trong Decimal(12,2) và có tối đa 2 chữ số thập phân"
     );
 
 export const listPaymentsRequestSchema = z.object({
@@ -30,9 +32,7 @@ export const listPaymentsRequestSchema = z.object({
 }).strict();
 
 export const paymentIdRequestSchema = z.object({
-    params: z.object({
-        id: queryIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: optionalEmptyBodySchema
 }).strict();
@@ -60,9 +60,7 @@ export const createVnpayPaymentRequestSchema = z.object({
 }).strict();
 
 export const updatePaymentStatusRequestSchema = z.object({
-    params: z.object({
-        id: queryIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: z.object({
         status: z.nativeEnum(PaymentStatus)
@@ -91,3 +89,4 @@ export type UpdatePaymentStatusRequest = z.infer<
 export type CreateVnpayPaymentRequest = z.infer<
     typeof createVnpayPaymentRequestSchema
 >;
+

@@ -82,7 +82,7 @@ export function useDashboardManager() {
     }),
   });
 
-  const { data: schedules, isLoading: loadingSchedules } = useQuery({
+  const { data: schedules = [], isLoading: loadingSchedules } = useQuery({
     queryKey: ["schedules"],
     queryFn: () => scheduleService.getSchedules(),
   });

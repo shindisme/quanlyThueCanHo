@@ -1,4 +1,4 @@
-import type {
+﻿import type {
     Request,
     Response
 } from "express";
@@ -25,17 +25,25 @@ const withDisplayName = <
     name: building.branch_name
 });
 
+const withBuildingImageUpload = <T>(
+    request: Request,
+    operation: (imageUrl?: string) => Promise<T>
+) => withCompensatedImageUploads(
+    request.file ? [request.file] : [],
+    "/buildings",
+    async (images) => operation(images[0]?.url)
+);
+
 export const create = async (
     request: Request,
     response: Response
 ) => {
     const { body } = getValidated<CreateBuildingRequest>(request);
-    const building = await withCompensatedImageUploads(
-        request.file ? [request.file] : [],
-        "/buildings",
-        async (images) => buildingService.createBuildingService(
+    const building = await withBuildingImageUpload(
+        request,
+        (imageUrl) => buildingService.createBuildingService(
             body,
-            images[0]?.url
+            imageUrl
         )
     );
 
@@ -75,7 +83,7 @@ export const getById = async (
         throw new AppError(
             404,
             "NOT_FOUND",
-            "Building was not found"
+            "Không tìm thấy tòa nhà"
         );
     }
 
@@ -98,14 +106,13 @@ export const update = async (
         request.actor!
     );
 
-    const building = await withCompensatedImageUploads(
-        request.file ? [request.file] : [],
-        "/buildings",
-        async (images) => buildingService.updateBuildingService(
+    const building = await withBuildingImageUpload(
+        request,
+        (imageUrl) => buildingService.updateBuildingService(
             params.id,
             body,
             request.actor!,
-            images[0]?.url
+            imageUrl
         )
     );
 
@@ -121,3 +128,4 @@ export const remove = async (
     await buildingService.deleteBuildingService(params.id);
     return sendSuccess(response, { deleted: true });
 };
+

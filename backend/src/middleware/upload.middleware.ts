@@ -1,4 +1,4 @@
-import multer from "multer";
+﻿import multer from "multer";
 import { AppError } from "../errors/app-error.js";
 
 const storage = multer.memoryStorage();
@@ -20,7 +20,7 @@ export const upload = multer({
             callback(new AppError(
                 400,
                 "INVALID_FILE_TYPE",
-                "Only JPEG, PNG, and WebP images are allowed"
+                "Chỉ cho phép tải ảnh JPEG, PNG hoặc WebP"
             ));
             return;
         }
@@ -29,3 +29,4 @@ export const upload = multer({
     }
 });
 export const uploadMultiple = upload.array("images", 10);
+

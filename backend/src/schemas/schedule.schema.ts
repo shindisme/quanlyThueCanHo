@@ -3,13 +3,15 @@ import {
 } from "@prisma/client";
 import { z } from "zod";
 import {
+    emptyObjectSchema,
+    idParamsSchema,
+    optionalEmptyBodySchema,
+    positiveIdSchema
+} from "./common.schema.js";
+import {
     strictDateOnlySchema,
     strictRfc3339DateSchema
 } from "./strict-date.schema.js";
-
-const emptyObjectSchema = z.object({}).strict();
-const optionalEmptyBodySchema = emptyObjectSchema.default({});
-const positiveIdSchema = z.coerce.number().int().positive();
 
 export const bookViewingRequestSchema = z.object({
     params: emptyObjectSchema,
@@ -47,17 +49,13 @@ export const listSchedulesRequestSchema = z.object({
 }).strict();
 
 export const scheduleIdRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: optionalEmptyBodySchema
 }).strict();
 
 export const confirmScheduleRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: z.object({
         status: z.literal(ScheduleStatus.CONFIRMED).optional()

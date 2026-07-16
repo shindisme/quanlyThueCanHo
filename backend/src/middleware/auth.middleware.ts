@@ -1,4 +1,4 @@
-import {
+﻿import {
     Role,
     UserStatus,
 } from "@prisma/client";
@@ -11,7 +11,7 @@ import type { Actor } from "../types/auth.js";
 const invalidTokenError = () => new AppError(
     401,
     "INVALID_TOKEN",
-    "Authentication token is invalid or expired"
+    "Phiên đăng nhập không hợp lệ hoặc đã hết hạn"
 );
 
 const getBearerToken = (authorization: string | undefined) => {
@@ -21,7 +21,7 @@ const getBearerToken = (authorization: string | undefined) => {
         throw new AppError(
             401,
             "AUTHENTICATION_REQUIRED",
-            "Authentication is required"
+            "Yêu cầu đăng nhập"
         );
     }
 
@@ -54,7 +54,7 @@ export const authenticate: RequestHandler = async (request, _response, next) => 
         throw new AppError(
             500,
             "JWT_NOT_CONFIGURED",
-            "JWT authentication is not configured"
+            "Cấu hình xác thực JWT chưa được thiết lập"
         );
     }
 
@@ -90,7 +90,7 @@ export const authenticate: RequestHandler = async (request, _response, next) => 
         throw new AppError(
             403,
             "ACCOUNT_DISABLED",
-            "This account is disabled"
+            "Tài khoản này đã bị vô hiệu hóa"
         );
     }
 
@@ -122,7 +122,7 @@ export const authorizeRole = (roles: Role[]): RequestHandler => {
             throw new AppError(
                 401,
                 "AUTHENTICATION_REQUIRED",
-                "Authentication is required"
+                "Yêu cầu đăng nhập"
             );
         }
 
@@ -130,7 +130,7 @@ export const authorizeRole = (roles: Role[]): RequestHandler => {
             throw new AppError(
                 403,
                 "FORBIDDEN",
-                "You do not have permission to perform this action"
+                "Bạn không có quyền thực hiện hành động này"
             );
         }
 
@@ -147,7 +147,7 @@ export const requireManagerBuildingAssignment: RequestHandler = (
         throw new AppError(
             401,
             "AUTHENTICATION_REQUIRED",
-            "Authentication is required"
+            "Yêu cầu đăng nhập"
         );
     }
 
@@ -161,9 +161,10 @@ export const requireManagerBuildingAssignment: RequestHandler = (
         throw new AppError(
             403,
             "MANAGER_BUILDING_REQUIRED",
-            "A current building assignment is required"
+            "Quản lý cần được phân công tòa nhà hiện tại"
         );
     }
 
     next();
 };
+

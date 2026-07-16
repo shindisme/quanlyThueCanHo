@@ -1,4 +1,4 @@
-import {
+﻿import {
     InvoiceStatus,
     PaymentStatus,
     Prisma,
@@ -16,7 +16,7 @@ import {
     isDecimal12_2Amount,
     toMoneyCents
 } from "../utils/money.js";
-import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
+import { getManagerApartmentScope } from "../utils/manager-scope.js";
 import {
     buildVnpayPaymentUrl,
     formatVnpayDate,
@@ -258,14 +258,7 @@ const requireTenantId = (actor: Actor) => {
     return actor.tenantId;
 };
 
-const getManagerApartmentScope = (actor: Actor) => {
-    const assignment = getCurrentManagerAssignment(actor);
 
-    return {
-        building_id: assignment.buildingId,
-        building: assignment.assignmentWhere
-    } satisfies Prisma.ApartmentWhereInput;
-};
 
 const getInvoiceScopeWhere = (
     actor: Actor
@@ -410,7 +403,7 @@ const assertSuccessAmountWithinInvoice = (
         > toMoneyCents(toNumber(invoice.total_amount))
     ) {
         throw validationError(
-            "Successful payment total exceeds the invoice total"
+            "Tổng số tiền thanh toán thành công vượt quá tổng tiền hóa đơn"
         );
     }
 };
@@ -707,7 +700,7 @@ export const createPaymentService = async (
         && !isDecimal12_2Amount(input.amount)
     ) {
         throw validationError(
-            "Payment amount must be a valid Decimal(12,2) amount"
+            "Số tiền thanh toán phải đúng định dạng Decimal(12,2)"
         );
     }
 
@@ -752,7 +745,7 @@ export const createPaymentService = async (
 
                 if (!isDecimal12_2Amount(amount)) {
                     throw validationError(
-                        "Payment amount must be a valid Decimal(12,2) amount"
+                        "Số tiền thanh toán phải đúng định dạng Decimal(12,2)"
                     );
                 }
 
@@ -760,7 +753,7 @@ export const createPaymentService = async (
 
                 if (amountCents > remainingAmountCents) {
                     throw validationError(
-                        "Payment amount exceeds the remaining balance"
+                        "Số tiền thanh toán vượt quá số tiền còn lại của hóa đơn"
                     );
                 }
 
@@ -1063,7 +1056,7 @@ export const handleVnpayCallbackService = async (
         if (source === "IPN") {
             return getVnpayIpnResponse(
                 "97",
-                "Invalid signature"
+                "Chữ ký không hợp lệ"
             );
         }
 
@@ -1084,7 +1077,7 @@ export const handleVnpayCallbackService = async (
         if (source === "IPN") {
             return getVnpayIpnResponse(
                 "01",
-                "Order not found"
+                "Không tìm thấy đơn hàng"
             );
         }
 
@@ -1105,7 +1098,7 @@ export const handleVnpayCallbackService = async (
         if (source === "IPN") {
             return getVnpayIpnResponse(
                 "01",
-                "Order not found"
+                "Không tìm thấy đơn hàng"
             );
         }
 
@@ -1124,7 +1117,7 @@ export const handleVnpayCallbackService = async (
         if (source === "IPN") {
             return getVnpayIpnResponse(
                 "04",
-                "Invalid amount"
+                "Số tiền không hợp lệ"
             );
         }
 
@@ -1194,13 +1187,13 @@ export const handleVnpayCallbackService = async (
         if (callbackResult.alreadyUpdated) {
             return getVnpayIpnResponse(
                 "02",
-                "Order already confirmed"
+                "Đơn hàng đã được xác nhận"
             );
         }
 
         return getVnpayIpnResponse(
             "00",
-            "Confirm Success"
+            "Xác nhận thành công"
         );
     }
 
@@ -1213,3 +1206,5 @@ export const handleVnpayCallbackService = async (
         response_code: responseCode
     };
 };
+
+
