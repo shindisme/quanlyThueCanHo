@@ -4,6 +4,7 @@ import type {
 } from "express";
 import { getValidated } from "../middleware/validate.middleware.js";
 import type {
+    CompleteMaintenanceRequest,
     ConfirmMaintenanceRequest,
     CreateMaintenanceRequest,
     ListMaintenanceRequest,
@@ -120,11 +121,14 @@ export const complete = async (
     request: Request,
     response: Response
 ) => {
-    const { params } =
-        getValidated<MaintenanceIdRequest>(request);
+    const {
+        params,
+        body
+    } = getValidated<CompleteMaintenanceRequest>(request);
     const result =
         await maintenanceService.completeMaintenanceRequestService(
             params.id,
+            body,
             request.actor!
         );
 
