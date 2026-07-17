@@ -4,44 +4,44 @@ import AdminLayout from "../layouts/AdminLayout";
 import TenantLayout from "../layouts/TenantLayout";
 import GuestLayout from "../layouts/GuestLayout";
 import RoleRoute from "./RoleRoute";
+import RouteErrorBoundary from "../components/ui/RouteErrorBoundary";
 
 // Trang Admin
-import AdminDashboard from "../pages/Admin/dashboard/DashboardAdmin";
-import BuildingsPage from "../pages/Admin/buildings/BuildingsPage";
-import BuildingDetail from "../pages/Admin/buildings/BuildingDetail";
-import ApartmentsPage from "../pages/Admin/apartments/ApartmentsPage";
-import ApartmentDetail from "../pages/Admin/apartments/ApartmentDetail";
-import TenantsPage from "../pages/Admin/tenants/TenantsPage";
-import StaffPage from "../pages/Admin/staff/StaffsPage";
-import ContractsPage from "../pages/Admin/contracts/ContractsPage";
-import InvoicesPage from "../pages/Admin/invoices/InvoicesPage";
-import PaymentsPage from "../pages/Admin/payments/PaymentsPage";
-import MaintenancePage from "../pages/Admin/maintenance/MaintenancePage";
-import SchedulesPage from "../pages/Admin/schedules/SchedulesPage";
-import UtilitiesPage from "../pages/Admin/utilities/UtilitiesPage";
-import NotificationsPage from "../pages/Admin/notifications/NotificationsPage";
-import UsersPage from "../pages/Admin/users/UsersPage";
-// import SettingsPage from "../pages/Admin/settings/SettingsPage";
-// import ReportDashboard from "../pages/Admin/reports/ReportDashboard";
+import AdminDashboard from "../features/Admin/dashboard/pages/DashboardAdminPage";
+import BuildingsPage from "../features/Admin/buildings/pages/BuildingPage";
+import BuildingDetailPage from "../features/Admin/buildings/pages/BuildingDetailPage";
+import ApartmentsPage from "../features/Admin/apartments/pages/ApartmentPage";
+import ApartmentDetailPage from "../features/Admin/apartments/pages/ApartmentDetailPage";
+import TenantsPage from "../features/Admin/tenants/pages/TenantPage";
+import StaffPage from "../features/Admin/staffs/pages/StaffPage";
+import ContractsPage from "../features/Admin/contracts/pages/ContractPage";
+import InvoicesPage from "../features/Admin/invoices/pages/InvoicePage";
+import PaymentsPage from "../features/Admin/payments/pages/PaymentPage";
+import MaintenancePage from "../features/Admin/maintenance/pages/MaintenancePage";
+import SchedulesPage from "../features/Admin/schedules/pages/SchedulePage";
+import UtilitiesPage from "../features/Admin/utilities/pages/UtilitiesPage";
+import NotificationsPage from "../features/Admin/notifications/pages/NotificationPage";
+import UsersPage from "../features/Admin/users/pages/UserPage";
+// import SettingsPage from "../features/Admin/settings/pages/SettingsPage";
 
 // Trang Manager
-import ManagerDashboard from "../pages/Manager/dashboard/DashboardManager";
+import ManagerDashboard from "../features/Manager/dashboard/pages/DashboardManager";
 
 // Trang Tenant
-import DashboardTenant from "../pages/Tenant/home/DashboardTenant";
-import TenantContracts from "../pages/Tenant/contracts/MyContracts";
-import MyInvoices from "../pages/Tenant/invoices/MyInvoices";
-import MyPayments from "../pages/Tenant/payments/MyPayments";
-import MyMaintenance from "../pages/Tenant/maintenance/MyMaintenance";
-import MyUtilities from "../pages/Tenant/utilities/MyUtilities";
-import ProfilePage from "../pages/Tenant/profile/ProfilePage";
+import DashboardTenant from "../features/Tenant/home/pages/DashboardTenant";
+import TenantContracts from "../features/Tenant/contracts/pages/MyContracts";
+import MyInvoices from "../features/Tenant/invoices/pages/MyInvoices";
+import MyPayments from "../features/Tenant/payments/pages/MyPayments";
+import MyMaintenance from "../features/Tenant/maintenance/pages/MyMaintenance";
+import MyUtilities from "../features/Tenant/utilities/pages/MyUtilities";
+import ProfilePage from "../features/Tenant/profile/pages/ProfilePage";
 
 // Trang Guest
-import GuestHomePage from "../pages/Guest/HomePage";
-import GuestApartmentListing from "../pages/Guest/ApartmentListing";
-import GuestApartmentDetail from "../pages/Guest/ApartmentDetail";
-import GuestContact from "../pages/Guest/Contact";
-import GuestAbout from "../pages/Guest/About";
+import GuestHomePage from "../features/Guest/home/pages/HomePage";
+import GuestApartmentListing from "../features/Guest/apartments/pages/ApartmentListing";
+import GuestApartmentDetail from "../features/Guest/apartments/pages/ApartmentDetail";
+import GuestContact from "../features/Guest/contact/pages/Contact";
+import GuestAbout from "../features/Guest/about/pages/About";
 
 const router = createBrowserRouter([
   // Đăng nhập
@@ -60,6 +60,7 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <GuestLayout />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <GuestHomePage /> },
       { path: "apartments", element: <GuestApartmentListing /> },
@@ -78,13 +79,14 @@ const router = createBrowserRouter([
         <AdminLayout />
       </RoleRoute>
     ),
+    errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <Navigate to="dashboard" replace /> },
       { path: "dashboard", element: <AdminDashboard /> },
       { path: "buildings", element: <BuildingsPage /> },
-      { path: "buildings/:id", element: <BuildingDetail /> },
+      { path: "buildings/:id", element: <BuildingDetailPage /> },
       { path: "apartments", element: <ApartmentsPage /> },
-      { path: "apartments/:id", element: <ApartmentDetail /> },
+      { path: "apartments/:id", element: <ApartmentDetailPage /> },
       { path: "tenants", element: <TenantsPage /> },
       { path: "staff", element: <StaffPage /> },
       { path: "contracts", element: <ContractsPage /> },
@@ -109,11 +111,12 @@ const router = createBrowserRouter([
         <AdminLayout />
       </RoleRoute>
     ),
+    errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <Navigate to="dashboard" replace /> },
       { path: "dashboard", element: <RoleRoute allowedRoles={["MANAGER", "STAFF"]}><ManagerDashboard /></RoleRoute> },
       { path: "apartments", element: <RoleRoute allowedRoles={["MANAGER"]}><ApartmentsPage /></RoleRoute> },
-      { path: "apartments/:id", element: <RoleRoute allowedRoles={["MANAGER"]}><ApartmentDetail /></RoleRoute> },
+      { path: "apartments/:id", element: <RoleRoute allowedRoles={["MANAGER"]}><ApartmentDetailPage /></RoleRoute> },
       { path: "tenants", element: <RoleRoute allowedRoles={["MANAGER"]}><TenantsPage /></RoleRoute> },
       { path: "staff", element: <RoleRoute allowedRoles={["MANAGER"]}><StaffPage /></RoleRoute> },
       { path: "contracts", element: <RoleRoute allowedRoles={["MANAGER"]}><ContractsPage /></RoleRoute> },
@@ -136,6 +139,7 @@ const router = createBrowserRouter([
         <TenantLayout />
       </RoleRoute>
     ),
+    errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <Navigate to="home" replace /> },
       { path: "home", element: <DashboardTenant /> },

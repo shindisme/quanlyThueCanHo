@@ -23,3 +23,8 @@ export const buildingSchema = z.object({
 
 export type BuildingFormValues = z.infer<typeof buildingSchema>
 
+export const buildingModifySchema = buildingSchema.extend({
+  status: z.string().optional(),
+});
+export type BuildingModifyFormValues = z.infer<typeof buildingModifySchema>;
+

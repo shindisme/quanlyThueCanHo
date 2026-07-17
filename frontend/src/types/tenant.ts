@@ -31,3 +31,34 @@ export interface Tenant {
   maintenance_requests?: MaintenanceRequest[];
   occupants?: TenantOccupant[];
 }
+
+export interface Occupant {
+  id: number;
+  tenant_id: number;
+  full_name: string;
+  phone?: string | null;
+  citizen_id: string;
+  date_of_birth?: string | Date | null;
+  created_at?: string;
+}
+
+export interface CreateOccupantPayload {
+  full_name: string;
+  phone?: string | null;
+  citizen_id: string;
+  date_of_birth?: string | Date | null;
+}
+
+export interface TenantQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+export interface OccupantForm {
+  name: string;
+  cccd: string;
+  dob?: string | null;
+  phone?: string | null;
+}
+

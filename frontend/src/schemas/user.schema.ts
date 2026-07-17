@@ -5,8 +5,19 @@ export const userCreateSchema = z.object({
     .string()
     .min(3, { message: "Tên tài khoản phải từ 3 ký tự trở lên" })
     .max(100, { message: "Tên tài khoản tối đa 100 ký tự" }),
-  role: z.string().min(1, { message: "Vui lòng chọn vai trò" }),
+  role: z.enum(["ADMIN", "MANAGER", "STAFF", "TENANT"] as const, { message: "Vai trò không hợp lệ" }),
 });
+
+export const createUserSchema = userCreateSchema;
+
+export const updateUserSchema = z.object({
+  username: z.string().min(3, { message: "Tên tài khoản phải từ 3 ký tự trở lên" }).optional(),
+  role: z.enum(["ADMIN", "MANAGER", "STAFF", "TENANT"] as const, { message: "Vai trò không hợp lệ" }),
+  status: z.string().optional(),
+});
+
+export type CreateUserFormValues = z.infer<typeof createUserSchema>;
+export type UpdateUserFormValues = z.infer<typeof updateUserSchema>;
 
 export const changePasswordSchema = z
   .object({

@@ -35,3 +35,5 @@ export const apartmentSchema = z.object({
     .string(),
 });
 
+export type ApartmentFormValues = z.infer<typeof apartmentSchema>;
+

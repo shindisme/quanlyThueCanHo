@@ -7,7 +7,7 @@ export type BuildingStatus = "ACTIVE" | "INACTIVE";
 
 export type ApartmentStatus = "AVAILABLE" | "RENTED" | "MAINTENANCE";
 
-export type ContractStatus = "ACTIVE" | "ENDED" | "LIQUIDATED";
+export type ContractStatus = "ACTIVE" | "ENDED";
 
 export type InvoiceStatus = "PAID" | "UNPAID" | "OVERDUE";
 
@@ -46,7 +46,6 @@ export const BUILDING_STATUS_LABELS: Record<BuildingStatus, string> = {
 export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {
   ACTIVE: "Hiệu lực",
   ENDED: "Đã kết thúc",
-  LIQUIDATED: "Đã thanh lý",
 };
 
 export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
@@ -97,7 +96,6 @@ export const APARTMENT_STATUS_COLORS: Record<ApartmentStatus, string> = {
 export const CONTRACT_STATUS_COLORS: Record<ContractStatus, string> = {
   ACTIVE: "success",
   ENDED: "gray",
-  LIQUIDATED: "danger",
 };
 
 export const INVOICE_STATUS_COLORS: Record<InvoiceStatus, string> = {

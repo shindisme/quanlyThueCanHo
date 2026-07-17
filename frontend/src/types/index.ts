@@ -12,3 +12,5 @@ export * from "./schedule";
 export * from "./notification";
 export * from "./chatbot";
 export * from "./dashboard";
+export * from "./review";
+

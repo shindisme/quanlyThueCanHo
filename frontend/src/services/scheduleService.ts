@@ -1,62 +1,61 @@
 import api from "../lib/api";
+import type { ScheduleData, ScheduleFilters, BookViewingPayload, ApiPagination } from "../types";
+export type { ScheduleData, ScheduleFilters, BookViewingPayload };
+import { fetchAllPages } from "./apiHelper";
 
-export interface ScheduleData {
-  id: number;
-  guest_name: string;
-  guest_phone: string;
-  guest_email: string | null;
-  apartment_id: number;
-  schedule_time: string;
-  status: string;
-  created_at: string;
-  temp_locked_until: string | null;
-  apartment?: {
-    id: number;
-    room_number: string;
-    floor: number;
-    building_id: number;
-  };
-}
+const SCHEDULE_API = "/schedules";
 
-export async function bookViewing(data: {
-  guest_name: string;
-  guest_phone: string;
-  guest_email?: string;
-  apartment_id: number;
-  schedule_time: string;
-  note?: string;
-}) {
-  const res = await api.post("/schedules/book", {
+export async function bookViewing(data: BookViewingPayload): Promise<any> {
+  const res = await api.post(`${SCHEDULE_API}/book`, {
     ...data,
     schedule_time: `${data.schedule_time}+07:00`,
   });
   return res.data;
 }
 
-export async function getViewingAvailability(apartmentId: number, date: string) {
+export async function getViewingAvailability(apartmentId: number, date: string): Promise<{ available_hours: number[] }> {
   const res = await api.get<{ data: { available_hours: number[] } }>(
-    "/schedules/availability",
+    `${SCHEDULE_API}/availability`,
     { params: { apartment_id: apartmentId, date } },
   );
   return res.data.data;
 }
 
-export async function getSchedules(): Promise<ScheduleData[]> {
-  const res = await api.get<{ data?: ScheduleData[] }>("/schedules");
-  return res.data.data || (res.data as ScheduleData[]);
+export async function getAll(params?: ScheduleFilters): Promise<{ data: ScheduleData[]; pagination?: ApiPagination }> {
+  const res = await api.get<{ data: ScheduleData[]; meta?: { pagination?: ApiPagination }; pagination?: ApiPagination }>(SCHEDULE_API, { params });
+  const rawData = res.data.data || [];
+  const pagination = res.data.meta?.pagination || res.data.pagination;
+  return { data: rawData, pagination };
 }
 
-export async function confirmSchedule(id: number) {
-  const res = await api.put(`/schedules/${id}/confirm`, { status: "CONFIRMED" });
+export async function getAllPage(params?: Omit<ScheduleFilters, "page" | "limit">): Promise<{ data: ScheduleData[] }> {
+  return fetchAllPages<ScheduleData, ScheduleFilters>(getAll, params);
+}
+
+export async function confirmSchedule(id: number): Promise<any> {
+  const res = await api.put(`${SCHEDULE_API}/${id}/confirm`, { status: "CONFIRMED" });
   return res.data;
 }
 
-export async function cancelSchedule(id: number) {
-  const res = await api.put(`/schedules/${id}/cancel`);
+export async function cancelSchedule(id: number): Promise<any> {
+  const res = await api.put(`${SCHEDULE_API}/${id}/cancel`);
   return res.data;
 }
 
-export async function deleteSchedule(id: number) {
-  const res = await api.delete(`/schedules/${id}`);
+export async function deleteSchedule(id: number): Promise<any> {
+  const res = await api.delete(`${SCHEDULE_API}/${id}`);
   return res.data;
 }
+
+export const getAllSchedules = getAll;
+export const getAllSchedulesPage = getAllPage;
+
+export const scheduleService = {
+  bookViewing,
+  getViewingAvailability,
+  getAll,
+  getAllPage,
+  confirmSchedule,
+  cancelSchedule,
+  deleteSchedule,
+};

@@ -1,72 +1,30 @@
 import api from "../lib/api";
-import type { Payment } from "../types";
+import type { Payment, PaymentFilters, CreatePaymentPayload, CreateVnpayPaymentPayload, CreateVnpayPaymentResult, ApiPagination } from "../types";
+export type { PaymentFilters, CreatePaymentPayload, CreateVnpayPaymentPayload, CreateVnpayPaymentResult };
+import { fetchAllPages } from "./apiHelper";
 
-export interface PaymentFilters {
-  status?: string;
-  payment_method?: string;
-  invoice_id?: number;
-  tenant_id?: number;
-  contract_id?: number;
-  building_id?: number;
-  search?: string;
-  page?: number;
-  limit?: number;
-}
+const PAYMENT_API = "/payments";
 
-export interface PaymentPagination {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export async function getAllPayments(params?: PaymentFilters): Promise<{ data: Payment[]; pagination?: PaymentPagination }> {
-  interface PaymentsResponse {
-    data: Payment[];
-    meta?: {
-      pagination?: PaymentPagination;
-    };
-    pagination?: PaymentPagination;
-  }
-  const res = await api.get<PaymentsResponse>("/payments", { params });
+export async function getAll(params?: PaymentFilters): Promise<{ data: Payment[]; pagination?: ApiPagination }> {
+  const res = await api.get<{ data: Payment[]; meta?: { pagination?: ApiPagination }; pagination?: ApiPagination }>(PAYMENT_API, { params });
   return {
     data: res.data.data || [],
     pagination: res.data.meta?.pagination || res.data.pagination
   };
 }
 
-export async function getPaymentById(id: number): Promise<Payment> {
-  const res = await api.get<{ data: Payment }>(`/payments/${id}`);
+export async function getAllPage(params?: Omit<PaymentFilters, "page" | "limit">): Promise<{ data: Payment[] }> {
+  return fetchAllPages<Payment, PaymentFilters>(getAll, params);
+}
+
+export async function getById(id: number): Promise<Payment> {
+  const res = await api.get<{ data: Payment }>(`${PAYMENT_API}/${id}`);
   return res.data.data;
 }
 
-export interface CreatePaymentPayload {
-  invoice_id: number;
-  payment_method: string;
-  transaction_code?: string;
-  amount?: number;
-  status?: string;
-}
-
-export async function createPayment(payload: CreatePaymentPayload): Promise<Payment> {
-  const res = await api.post<{ data: Payment }>("/payments", payload);
+export async function create(payload: CreatePaymentPayload): Promise<Payment> {
+  const res = await api.post<{ data: Payment }>(PAYMENT_API, payload);
   return res.data.data;
-}
-
-export interface CreateVnpayPaymentPayload {
-  invoice_id: number;
-  bank_code?: string;
-}
-
-export interface CreateVnpayPaymentResult {
-  paymentId: number;
-  invoiceId: number;
-  transactionCode: string;
-  paymentMethod: string;
-  amount: number;
-  paymentUrl: string;
-  qrCodeDataUrl?: string;
-  qrCodeSvg?: string;
 }
 
 interface CreateVnpayPaymentResponse {
@@ -83,7 +41,7 @@ interface CreateVnpayPaymentResponse {
 }
 
 export async function createVnpayPayment(payload: CreateVnpayPaymentPayload): Promise<CreateVnpayPaymentResult> {
-  const res = await api.post<CreateVnpayPaymentResponse>("/payments/vnpay/create", payload);
+  const res = await api.post<CreateVnpayPaymentResponse>(`${PAYMENT_API}/vnpay/create`, payload);
   const data = res.data.data;
   return {
     paymentId: data.payment_id,
@@ -97,12 +55,28 @@ export async function createVnpayPayment(payload: CreateVnpayPaymentPayload): Pr
   };
 }
 
-export async function updatePaymentStatus(id: number, status: string): Promise<Payment> {
-  const res = await api.patch<{ data: Payment }>(`/payments/${id}/status`, { status });
+export async function updateStatus(id: number, status: string): Promise<Payment> {
+  const res = await api.patch<{ data: Payment }>(`${PAYMENT_API}/${id}/status`, { status });
   return res.data.data;
 }
 
 export async function getPaymentMethods(): Promise<string[]> {
-  const res = await api.get<{ data: string[] }>("/payments/methods");
+  const res = await api.get<{ data: string[] }>(`${PAYMENT_API}/methods`);
   return res.data.data || [];
 }
+
+export const getAllPayments = getAll;
+export const getAllPaymentsPage = getAllPage;
+export const getPaymentById = getById;
+export const createPayment = create;
+export const updatePaymentStatus = updateStatus;
+
+export const paymentService = {
+  getAll,
+  getAllPage,
+  getById,
+  create,
+  createVnpayPayment,
+  updateStatus,
+  getPaymentMethods,
+};

@@ -62,6 +62,7 @@ const adminMenu: SidebarGroup[] = [
     title: "Hệ thống",
     items: [
       { label: "Tài khoản", path: "/admin/users", icon: UserCog },
+      { label: "Cài đặt", path: "/admin/settings", icon: Settings }
       // { label: "Báo cáo", path: "/admin/reports", icon: BarChart3 },
     ],
   },

@@ -1,4 +1,4 @@
-import { Bell, Menu, LogOut, User, ChevronDown, Settings, Mail, Info, Wrench, Receipt, ArrowRight } from "lucide-react";
+import { Bell, Menu, LogOut, User, ChevronDown, Mail, Info, Wrench, Receipt, ArrowRight } from "lucide-react";
 import { Fragment, useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -144,9 +144,9 @@ export default function Header() {
     async function loadUserProfile() {
       try {
         if (role === "MANAGER" || role === "STAFF") {
-          const { getAllStaff } = await import("../services/staffService");
-          const staffRes = await getAllStaff();
-          const currentStaff = staffRes.data.find((s) => s.user_id === userId);
+          const { getAllStaffs } = await import("../services/staffService");
+          const staffRes = await getAllStaffs();
+          const currentStaff = staffRes.data.find((s: any) => s.user_id === userId);
           if (currentStaff) {
             setUserFullName(currentStaff.full_name);
             if (currentStaff.user?.username) {
@@ -191,13 +191,13 @@ export default function Header() {
           const decoded = parseJwt(token);
           const userId = decoded ? (decoded.userId ? Number(decoded.userId) : (decoded.sub ? Number(decoded.sub) : null)) : null;
           if (userId) {
-            const { getAllStaff } = await import("../services/staffService");
+            const { getAllStaffs } = await import("../services/staffService");
             const { getAllBuildings } = await import("../services/buildingService");
-            const staffRes = await getAllStaff();
-            const currentStaff = staffRes.data.find((s) => s.user_id === userId);
+            const staffRes = await getAllStaffs();
+            const currentStaff = staffRes.data.find((s: any) => s.user_id === userId);
             if (currentStaff && currentStaff.building_id) {
               const buildingsRes = await getAllBuildings();
-              const currentBld = buildingsRes.data.find((b) => b.id === currentStaff.building_id);
+              const currentBld = buildingsRes.data.find((b: any) => b.id === currentStaff.building_id);
               if (currentBld) {
                 setManagedBuildingName(currentBld.branch_name);
               }

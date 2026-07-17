@@ -1,58 +1,10 @@
 import api from "../lib/api";
-import { getAllStaff } from "./staffService";
-import type { Staff } from "../types";
+import { getAllStaffs } from "./staffService";
+import type { BuildingData, RawBuildingData, BuildingQuery, CreateBuildingRequest, UpdateBuildingRequest, ApiPagination, Staff } from "../types";
+export type { BuildingData, RawBuildingData, BuildingQuery, CreateBuildingRequest, UpdateBuildingRequest };
+import { fetchAllPages } from "./apiHelper";
 
-export interface BuildingData {
-  id: number;
-  name: string;
-  address_old: string;
-  address_new: string;
-  total_floors: number;
-  total_apartments: number;
-  description: string | null;
-  status: string;
-  branch_name: string;
-  thumbnail_url: string | null;
-  created_at: string;
-  _count?: { apartments: number };
-  manager_id?: number | null;
-  manager?: {
-    id: number;
-    username: string;
-    fullName: string;
-    role: string;
-  } | null;
-}
-
-export interface BuildingPagination {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-interface RawBuildingData {
-  id: number;
-  name: string;
-  address_old: string;
-  address_new: string;
-  total_floors: number;
-  total_apartments: number;
-  description: string | null;
-  status: string;
-  branch_name: string;
-  thumbnail_url: string | null;
-  created_at: string;
-  _count?: { apartments: number };
-  assigned_staff?: {
-    id: number;
-    full_name: string;
-    user?: {
-      username: string;
-      role: string;
-    };
-  }[];
-}
+const BUILDING_API = "/buildings";
 
 function mapBuildingWithManager(building: RawBuildingData, staff: Staff | undefined): BuildingData {
   return {
@@ -78,35 +30,17 @@ const getRole = () => {
   }
 };
 
-export async function getAllBuildings(params?: {
-  search?: string;
-  branch_name?: string;
-  page?: number;
-  limit?: number;
-  managerId?: number;
-  status?: string;
-}): Promise<{ data: BuildingData[]; pagination: BuildingPagination }> {
-  interface BuildingsResponse {
-    data: RawBuildingData[];
-    meta?: {
-      pagination?: BuildingPagination;
-    };
-    pagination?: BuildingPagination;
-  }
-
-  // Tải danh sách tòa nhà raw từ API
-  const res = await api.get<BuildingsResponse>("/buildings", { params });
+export async function getAll(params?: BuildingQuery): Promise<{ data: BuildingData[]; pagination: ApiPagination }> {
+  const res = await api.get<{ data: RawBuildingData[]; meta?: { pagination?: ApiPagination }; pagination?: ApiPagination }>(BUILDING_API, { params });
   const rawData = res.data.data || [];
   const pagination = res.data.meta?.pagination || res.data.pagination || { total: rawData.length, page: 1, limit: 10, totalPages: 1 };
 
-  // get quản lý để phân công
   const role = getRole();
   const staffListRes = role === "TENANT"
     ? { data: [] }
-    : await getAllStaff().catch(() => ({ data: [] }));
+    : await getAllStaffs().catch(() => ({ data: [] }));
   const staffList = staffListRes.data || [];
 
-  // ghép dữ liệu nhân viên quản lý vào từng tòa nhà
   const mappedData = rawData.map((b: RawBuildingData) => {
     const staff = staffList.find(
       (s) => s.building_id === b.id && (s.position === "Quản lý" || s.user?.role === "MANAGER")
@@ -117,29 +51,18 @@ export async function getAllBuildings(params?: {
   return { data: mappedData, pagination };
 }
 
-export async function getAllBuildingPages(params?: Omit<Parameters<typeof getAllBuildings>[0], "page" | "limit">): Promise<BuildingData[]> {
-  const first = await getAllBuildings({ ...params, page: 1, limit: 100 });
-  const totalPages = first.pagination?.totalPages ?? 1;
-  if (totalPages <= 1) return first.data;
-
-  const rest = await Promise.all(
-    Array.from({ length: totalPages - 1 }, (_, index) =>
-      getAllBuildings({ ...params, page: index + 2, limit: 100 })
-    )
-  );
-
-  return [first, ...rest].flatMap((page) => page.data);
+export async function getAllPage(params?: Omit<BuildingQuery, "page" | "limit">): Promise<{ data: BuildingData[] }> {
+  return fetchAllPages<BuildingData, BuildingQuery>(getAll, params);
 }
 
-export async function getBuildingById(id: number): Promise<BuildingData> {
-  const res = await api.get<{ data: RawBuildingData }>(`/buildings/${id}`);
+export async function getById(id: number): Promise<BuildingData> {
+  const res = await api.get<{ data: RawBuildingData }>(`${BUILDING_API}/${id}`);
   const b = res.data.data;
 
-  // get quản lý để phân công
   const role = getRole();
   const staffListRes = role === "TENANT"
     ? { data: [] }
-    : await getAllStaff({ building_id: id }).catch(() => ({ data: [] }));
+    : await getAllStaffs({ building_id: id }).catch(() => ({ data: [] }));
   const staff = staffListRes.data.find(
     (s) => s.position === "Quản lý" || s.user?.role === "MANAGER"
   );
@@ -147,25 +70,40 @@ export async function getBuildingById(id: number): Promise<BuildingData> {
   return mapBuildingWithManager(b, staff);
 }
 
-export async function createBuilding(data: FormData | Partial<BuildingData>) {
+export async function create(data: FormData | CreateBuildingRequest): Promise<BuildingData> {
   const headers: Record<string, string> = {};
   if (data instanceof FormData) {
     headers["Content-Type"] = "multipart/form-data";
   }
-  const res = await api.post("/buildings", data, { headers });
-  return res.data;
+  const res = await api.post<{ data: RawBuildingData }>(BUILDING_API, data, { headers });
+  return res.data.data || (res.data as unknown as BuildingData);
 }
 
-export async function updateBuilding(id: number, data: FormData | Partial<BuildingData>) {
+export async function update(id: number, data: FormData | UpdateBuildingRequest): Promise<BuildingData> {
   const headers: Record<string, string> = {};
   if (data instanceof FormData) {
     headers["Content-Type"] = "multipart/form-data";
   }
-  const res = await api.put(`/buildings/${id}`, data, { headers });
-  return res.data;
+  const res = await api.put<{ data: RawBuildingData }>(`${BUILDING_API}/${id}`, data, { headers });
+  return res.data.data || (res.data as unknown as BuildingData);
 }
 
-export async function deleteBuilding(id: number) {
-  const res = await api.delete(`/buildings/${id}`);
-  return res.data;
+export async function deleteBuilding(id: number): Promise<any> {
+  const res = await api.delete(`${BUILDING_API}/${id}`);
+  return res.data.data || res.data;
 }
+
+export const getAllBuildings = getAll;
+export const getAllBuildingsPage = getAllPage;
+export const getBuildingById = getById;
+export const createBuilding = create;
+export const updateBuilding = update;
+
+export const buildingService = {
+  getAll,
+  getAllPage,
+  getById,
+  create,
+  update,
+  delete: deleteBuilding,
+};

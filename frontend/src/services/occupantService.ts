@@ -1,38 +1,37 @@
 import api from "../lib/api";
+import type { Occupant, CreateOccupantPayload } from "../types";
+export type { Occupant, CreateOccupantPayload };
 
-export interface Occupant {
-  id: number;
-  tenant_id: number;
-  full_name: string;
-  phone?: string | null;
-  citizen_id: string;
-  date_of_birth?: string | Date | null;
-  created_at?: string;
-}
 
-export interface CreateOccupantPayload {
-  full_name: string;
-  phone?: string | null;
-  citizen_id: string;
-  date_of_birth?: string | Date | null;
-}
+const OCCUPANT_API = "/occupants";
 
-export async function getOccupants(params?: { tenant_id?: number }): Promise<{ data: Occupant[] }> {
-  const res = await api.get<{ data: Occupant[] }>("/occupants", { params });
+export async function getAll(params?: { tenant_id?: number }): Promise<{ data: Occupant[] }> {
+  const res = await api.get<{ data: Occupant[] }>(OCCUPANT_API, { params });
   return res.data;
 }
 
-export async function createOccupant(payload: CreateOccupantPayload): Promise<{ data: Occupant }> {
-  const res = await api.post<{ data: Occupant }>("/occupants", payload);
+export async function create(payload: CreateOccupantPayload): Promise<{ data: Occupant }> {
+  const res = await api.post<{ data: Occupant }>(OCCUPANT_API, payload);
   return res.data;
 }
 
-export async function updateOccupant(id: number, payload: Partial<CreateOccupantPayload>): Promise<{ data: Occupant }> {
-  const res = await api.put<{ data: Occupant }>(`/occupants/${id}`, payload);
+export async function update(id: number, payload: Partial<CreateOccupantPayload>): Promise<{ data: Occupant }> {
+  const res = await api.put<{ data: Occupant }>(`${OCCUPANT_API}/${id}`, payload);
   return res.data;
 }
 
 export async function deleteOccupant(id: number): Promise<{ success: boolean }> {
-  const res = await api.delete<{ success: boolean }>(`/occupants/${id}`);
+  const res = await api.delete<{ success: boolean }>(`${OCCUPANT_API}/${id}`);
   return res.data;
 }
+
+export const getOccupants = getAll;
+export const createOccupant = create;
+export const updateOccupant = update;
+
+export const occupantService = {
+  getAll,
+  create,
+  update,
+  delete: deleteOccupant,
+};

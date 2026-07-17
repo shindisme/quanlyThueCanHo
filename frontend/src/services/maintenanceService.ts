@@ -1,64 +1,61 @@
 import api from "../lib/api";
-import type { MaintenanceRequest } from "../types";
+import type { MaintenanceRequest, MaintenanceFilters, CreateMaintenanceRequestPayload, ConfirmMaintenanceRequestPayload, UnableMaintenanceRequestPayload, ApiPagination } from "../types";
+export type { MaintenanceFilters, CreateMaintenanceRequestPayload, ConfirmMaintenanceRequestPayload, UnableMaintenanceRequestPayload };
 
-export interface MaintenancePagination {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
 
-export async function getAllMaintenanceRequests(params?: {
-  status?: string;
-  priority?: string;
-  building_id?: number;
-  page?: number;
-  limit?: number;
-}): Promise<{ data: MaintenanceRequest[]; pagination: MaintenancePagination }> {
-  const res = await api.get<{ data: MaintenanceRequest[]; pagination?: MaintenancePagination; meta?: { pagination?: MaintenancePagination } }>("/maintenance", { params });
+const MAINTENANCE_API = "/maintenance";
+
+export async function getAll(params?: MaintenanceFilters): Promise<{ data: MaintenanceRequest[]; pagination: ApiPagination }> {
+  const res = await api.get<{ data: MaintenanceRequest[]; pagination?: ApiPagination; meta?: { pagination?: ApiPagination } }>(MAINTENANCE_API, { params });
   const rawData = res.data.data || [];
   const pagination = res.data.meta?.pagination || res.data.pagination || { total: rawData.length, page: 1, limit: 10, totalPages: 1 };
   return { data: rawData, pagination };
 }
 
-export async function getMaintenanceRequestById(id: number): Promise<MaintenanceRequest> {
-  const res = await api.get<{ data: MaintenanceRequest }>(`/maintenance/${id}`);
+export async function getById(id: number): Promise<MaintenanceRequest> {
+  const res = await api.get<{ data: MaintenanceRequest }>(`${MAINTENANCE_API}/${id}`);
   return res.data.data;
 }
 
-export async function createMaintenanceRequest(data: {
-  apartment_id: number;
-  title: string;
-  description: string;
-  priority: string;
-  image_url?: string;
-}): Promise<MaintenanceRequest> {
-  const res = await api.post<{ data: MaintenanceRequest }>("/maintenance", data);
+export async function create(data: CreateMaintenanceRequestPayload): Promise<MaintenanceRequest> {
+  const res = await api.post<{ data: MaintenanceRequest }>(MAINTENANCE_API, data);
   return res.data.data;
 }
 
-export async function cancelMaintenanceRequest(id: number): Promise<MaintenanceRequest> {
-  const res = await api.put<{ data: MaintenanceRequest }>(`/maintenance/${id}/cancel`);
+export async function cancel(id: number): Promise<MaintenanceRequest> {
+  const res = await api.put<{ data: MaintenanceRequest }>(`${MAINTENANCE_API}/${id}/cancel`);
   return res.data.data;
 }
 
-export async function confirmMaintenanceRequest(
-  id: number,
-  data: { assigned_staff_id: number; scheduled_at: string }
-): Promise<MaintenanceRequest> {
-  const res = await api.put<{ data: MaintenanceRequest }>(`/maintenance/${id}/confirm`, data);
+export async function confirm(id: number, data: ConfirmMaintenanceRequestPayload): Promise<MaintenanceRequest> {
+  const res = await api.put<{ data: MaintenanceRequest }>(`${MAINTENANCE_API}/${id}/confirm`, data);
   return res.data.data;
 }
 
-export async function unableMaintenanceRequest(
-  id: number,
-  data: { reason: string }
-): Promise<MaintenanceRequest> {
-  const res = await api.put<{ data: MaintenanceRequest }>(`/maintenance/${id}/unable`, data);
+export async function unable(id: number, data: UnableMaintenanceRequestPayload): Promise<MaintenanceRequest> {
+  const res = await api.put<{ data: MaintenanceRequest }>(`${MAINTENANCE_API}/${id}/unable`, data);
   return res.data.data;
 }
 
-export async function completeMaintenanceRequest(id: number): Promise<MaintenanceRequest> {
-  const res = await api.put<{ data: MaintenanceRequest }>(`/maintenance/${id}/complete`);
+export async function complete(id: number): Promise<MaintenanceRequest> {
+  const res = await api.put<{ data: MaintenanceRequest }>(`${MAINTENANCE_API}/${id}/complete`);
   return res.data.data;
 }
+
+export const getAllMaintenanceRequests = getAll;
+export const getMaintenanceRequestById = getById;
+export const createMaintenanceRequest = create;
+export const cancelMaintenanceRequest = cancel;
+export const confirmMaintenanceRequest = confirm;
+export const unableMaintenanceRequest = unable;
+export const completeMaintenanceRequest = complete;
+
+export const maintenanceService = {
+  getAll,
+  getById,
+  create,
+  cancel,
+  confirm,
+  unable,
+  complete,
+};

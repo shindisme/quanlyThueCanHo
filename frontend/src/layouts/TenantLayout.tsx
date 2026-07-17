@@ -1,10 +1,16 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, ScrollRestoration } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import Header from "../components/Header";
+import { useAuthStore } from "../stores/auth.store";
+import { useSystemPrefetch } from "../hooks/useSystemPrefetch";
 
 export default function TenantLayout() {
+  const { role } = useAuthStore();
+  useSystemPrefetch(role);
+
   return (
     <div className="flex min-h-screen bg-background">
+      <ScrollRestoration />
       <Sidebar />
       <div className="flex flex-col flex-1">
         <Header />

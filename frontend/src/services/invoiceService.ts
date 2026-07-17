@@ -1,79 +1,46 @@
 import api from "../lib/api";
-import type { Invoice } from "../types";
+import type { Invoice, InvoiceFilters, GenerateMonthlyInvoicesPayload, ApiPagination } from "../types";
+export type { InvoiceFilters, GenerateMonthlyInvoicesPayload };
+import { fetchAllPages } from "./apiHelper";
 
-export interface InvoiceFilters {
-  status?: string;
-  tenant_id?: number;
-  contract_id?: number;
-  apartment_id?: number;
-  building_id?: number;
-  month?: number;
-  year?: number;
-  search?: string;
-  page?: number;
-  limit?: number;
-}
+const INVOICE_API = "/invoices";
 
-export interface InvoicePagination {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export async function getAllInvoices(params?: InvoiceFilters): Promise<{ data: Invoice[]; pagination?: InvoicePagination }> {
-  interface InvoicesResponse {
-    data: Invoice[];
-    meta?: {
-      pagination?: InvoicePagination;
-    };
-    pagination?: InvoicePagination;
-  }
-  const res = await api.get<InvoicesResponse>("/invoices", { params });
+export async function getAll(params?: InvoiceFilters): Promise<{ data: Invoice[]; pagination?: ApiPagination }> {
+  const res = await api.get<{ data: Invoice[]; meta?: { pagination?: ApiPagination }; pagination?: ApiPagination }>(INVOICE_API, { params });
   return {
     data: res.data.data || [],
     pagination: res.data.meta?.pagination || res.data.pagination
   };
 }
 
-export async function getAllInvoicePages(params?: Omit<InvoiceFilters, "page" | "limit">): Promise<Invoice[]> {
-  const first = await getAllInvoices({ ...params, page: 1, limit: 100 });
-  const totalPages = first.pagination?.totalPages ?? 1;
-  if (totalPages <= 1) return first.data;
-
-  const rest = await Promise.all(
-    Array.from({ length: totalPages - 1 }, (_, index) =>
-      getAllInvoices({ ...params, page: index + 2, limit: 100 })
-    )
-  );
-
-  return [first, ...rest].flatMap((page) => page.data);
+export async function getAllPage(params?: Omit<InvoiceFilters, "page" | "limit">): Promise<{ data: Invoice[] }> {
+  return fetchAllPages<Invoice, InvoiceFilters>(getAll, params);
 }
 
-export async function getInvoiceById(id: number): Promise<Invoice> {
-  const res = await api.get<{ data: Invoice }>(`/invoices/${id}`);
+export async function getById(id: number): Promise<Invoice> {
+  const res = await api.get<{ data: Invoice }>(`${INVOICE_API}/${id}`);
   return res.data.data;
-}
-
-export interface GenerateMonthlyInvoicesPayload {
-  month?: number;
-  year?: number;
-  building_id?: number;
-  due_date?: string;
-  management_fee?: number;
-  management_fee_per_m2?: number;
-  electric_unit_price?: number;
-  water_unit_price?: number;
-  internet_fee?: number;
-  notify?: boolean;
 }
 
 export async function generateMonthlyInvoices(payload: GenerateMonthlyInvoicesPayload): Promise<{ success: boolean; message: string; count?: number }> {
-  const res = await api.post<{ success: boolean; message: string; count?: number }>("/invoices/generate-monthly", payload);
+  const res = await api.post<{ success: boolean; message: string; count?: number }>(`${INVOICE_API}/generate-monthly`, payload);
   return res.data;
 }
 
-export async function updateInvoiceStatus(id: number, status: string): Promise<Invoice> {
-  const res = await api.patch<{ data: Invoice }>(`/invoices/${id}/status`, { status });
+export async function updateStatus(id: number, status: string): Promise<Invoice> {
+  const res = await api.patch<{ data: Invoice }>(`${INVOICE_API}/${id}/status`, { status });
   return res.data.data;
 }
+
+export const getAllInvoices = getAll;
+export const getAllInvoicesPage = getAllPage;
+export const getInvoiceById = getById;
+export const updateInvoiceStatus = updateStatus;
+
+export const invoiceService = {
+  getAll,
+  getAllPage,
+  getById,
+  generateMonthlyInvoices,
+  updateStatus,
+};

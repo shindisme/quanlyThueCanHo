@@ -1,34 +1,10 @@
 import api from "../lib/api";
-import type { RentalContract, Tenant, Apartment } from "../types";
+import type { RentalContract, RawContract, ContractQuery, CreateContractRequest, ApiPagination } from "../types";
+export type { RawContract, ContractQuery, CreateContractRequest };
 import type { ContractStatus } from "../constants/enums";
-import type { ApiPagination } from "./tenantService";
+import { fetchAllPages } from "./apiHelper";
 
-interface RawContract {
-  id: number;
-  apartment_id: number;
-  tenant_id: number;
-  start_date: string;
-  end_date: string;
-  deposit_amount: number;
-  monthly_rent: number;
-  status: string;
-  contract_file?: string | null;
-  signed_at?: string | null;
-  created_by?: number | null;
-  created_at: string;
-  tenant?: Tenant;
-  apartment?: Apartment;
-}
-
-type ContractQuery = {
-  buildingId?: number;
-  status?: string;
-  search?: string;
-  tenantId?: number;
-  apartmentId?: number;
-  page?: number;
-  limit?: number;
-};
+const CONTRACT_API = "/contracts";
 
 function mapBackendToFrontend(c: RawContract): RentalContract {
   return {
@@ -49,15 +25,13 @@ function mapBackendToFrontend(c: RawContract): RentalContract {
   };
 }
 
-async function getContractsPage(params?: ContractQuery): Promise<{
-  data: RentalContract[];
-  pagination?: ApiPagination;
-}> {
+export async function getAll(params?: ContractQuery): Promise<{ data: RentalContract[]; pagination?: ApiPagination }> {
   const res = await api.get<{
     success: boolean;
     data: RawContract[];
     meta?: { pagination?: ApiPagination };
-  }>("/contracts", {
+    pagination?: ApiPagination;
+  }>(CONTRACT_API, {
     params: {
       building_id: params?.buildingId,
       status: params?.status,
@@ -70,33 +44,20 @@ async function getContractsPage(params?: ContractQuery): Promise<{
   });
 
   const rawContracts = res.data.data || [];
+  const pagination = res.data.meta?.pagination || res.data.pagination;
   return {
     data: rawContracts.map(mapBackendToFrontend),
-    pagination: res.data.meta?.pagination,
+    pagination,
   };
 }
 
-export async function getAllContracts(params?: ContractQuery): Promise<RentalContract[]> {
-  return (await getContractsPage(params)).data;
+export async function getAllPage(params?: Omit<ContractQuery, "page" | "limit">): Promise<{ data: RentalContract[] }> {
+  return fetchAllPages<RentalContract, ContractQuery>(getAll, params);
 }
 
-export async function getAllContractPages(params?: Omit<ContractQuery, "page" | "limit">): Promise<RentalContract[]> {
-  const first = await getContractsPage({ ...params, page: 1, limit: 100 });
-  const totalPages = first.pagination?.totalPages ?? 1;
-  if (totalPages <= 1) return first.data;
-
-  const rest = await Promise.all(
-    Array.from({ length: totalPages - 1 }, (_, index) =>
-      getContractsPage({ ...params, page: index + 2, limit: 100 })
-    )
-  );
-
-  return [first, ...rest].flatMap((page) => page.data);
-}
-
-export async function getContractById(id: number): Promise<RentalContract | null> {
+export async function getById(id: number): Promise<RentalContract | null> {
   try {
-    const res = await api.get<{ success: boolean; data: RawContract }>(`/contracts/${id}`);
+    const res = await api.get<{ success: boolean; data: RawContract }>(`${CONTRACT_API}/${id}`);
     const data = res.data.data;
     return data ? mapBackendToFrontend(data) : null;
   } catch (error) {
@@ -105,23 +66,23 @@ export async function getContractById(id: number): Promise<RentalContract | null
   }
 }
 
-export async function createContract(data: Partial<RentalContract>): Promise<RentalContract> {
-  const res = await api.post<{ success: boolean; data: RawContract }>("/contracts", {
+export async function create(data: CreateContractRequest | Partial<RentalContract>): Promise<RentalContract> {
+  const res = await api.post<{ success: boolean; data: RawContract }>(CONTRACT_API, {
     apartment_id: Number(data.apartment_id),
     tenant_id: Number(data.tenant_id),
     start_date: data.start_date,
     end_date: data.end_date,
     deposit_amount: Number(data.deposit_amount),
     monthly_rent: Number(data.monthly_rent),
-    signed_at: data.signedAt || data.start_date || new Date().toISOString().split("T")[0],
+    signed_at: ('signedAt' in data ? data.signedAt : undefined) || data.start_date || new Date().toISOString().split("T")[0],
   });
 
   const newContract = res.data.data;
   return mapBackendToFrontend(newContract);
 }
 
-export async function extendContract(id: number, newEndDate: string): Promise<RentalContract> {
-  const res = await api.patch<{ success: boolean; data: RawContract }>(`/contracts/${id}/extend`, {
+export async function extend(id: number, newEndDate: string): Promise<RentalContract> {
+  const res = await api.patch<{ success: boolean; data: RawContract }>(`${CONTRACT_API}/${id}/extend`, {
     new_end_date: newEndDate,
   });
 
@@ -129,11 +90,30 @@ export async function extendContract(id: number, newEndDate: string): Promise<Re
   return mapBackendToFrontend(updatedContract);
 }
 
-export async function terminateContract(id: number, endDate?: string): Promise<RentalContract> {
-  const res = await api.patch<{ success: boolean; data: RawContract }>(`/contracts/${id}/end`, {
+export async function terminate(id: number, endDate?: string): Promise<RentalContract> {
+  const res = await api.patch<{ success: boolean; data: RawContract }>(`${CONTRACT_API}/${id}/end`, {
     end_date: endDate || undefined,
   });
 
   const updatedContract = res.data.data;
   return mapBackendToFrontend(updatedContract);
 }
+
+export async function getAllContracts(params?: ContractQuery): Promise<RentalContract[]> {
+  const res = await getAll(params);
+  return res.data;
+}
+export const getAllContractsPage = getAllPage;
+export const getContractById = getById;
+export const createContract = create;
+export const extendContract = extend;
+export const terminateContract = terminate;
+
+export const contractService = {
+  getAll,
+  getAllPage,
+  getById,
+  create,
+  extend,
+  terminate,
+};

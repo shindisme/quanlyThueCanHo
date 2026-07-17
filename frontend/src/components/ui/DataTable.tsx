@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import React, { useMemo, memo } from "react";
 import { cn } from "../../lib/utils";
 import EmptyState from "./EmptyState";
 import LoadingSpinner from "./LoadingSpinner";
@@ -14,12 +14,15 @@ import {
 } from "./Table";
 
 export interface Column<T> {
-  key: string;
+  accessorKey?: string;
+  key?: string;
   label: string;
   sortable?: boolean;
-  sortValue?: (item: T) => any;
+  sortValue?: (item: T) => unknown;
   className?: string;
   render: (item: T) => React.ReactNode;
+  isAction?: boolean;
+  isTitle?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -27,25 +30,38 @@ interface DataTableProps<T> {
   data: T[];
   isLoading?: boolean;
   emptyMessage?: string;
+  emptyComponent?: React.ReactNode;
+  loadingComponent?: React.ReactNode;
   onRowClick?: (item: T) => void;
   className?: string;
   density?: "normal" | "compact";
+  rowKey?: (item: T) => string | number;
+  rowClassName?: string | ((item: T) => string);
+  cellClassName?: string | ((item: T, column: Column<T>) => string);
+  stickyHeader?: boolean;
 }
 
-export default function DataTable<T extends { id: number | string }>({
+function DataTableInner<T>({
   columns,
   data,
   isLoading = false,
   emptyMessage,
+  emptyComponent,
+  loadingComponent,
   onRowClick,
   className,
   density = "normal",
+  rowKey,
+  rowClassName,
+  cellClassName,
+  stickyHeader = false,
 }: DataTableProps<T>) {
   const customExtractors = useMemo(() => {
-    const extractors: Record<string, (item: T) => any> = {};
+    const extractors: Record<string, (item: T) => unknown> = {};
     columns.forEach((col) => {
-      if (col.sortValue) {
-        extractors[col.key] = col.sortValue;
+      const colKey = col.accessorKey || col.key;
+      if (colKey && col.sortValue) {
+        extractors[colKey] = col.sortValue;
       }
     });
     return extractors;
@@ -57,8 +73,8 @@ export default function DataTable<T extends { id: number | string }>({
     customExtractors
   );
 
-  const getSortIconComponent = (key: string) => {
-    if (!sortConfig || sortConfig.key !== key) {
+  const getSortIconComponent = (colKey: string) => {
+    if (!sortConfig || sortConfig.key !== colKey) {
       return <ChevronsUpDown size={14} className="text-gray-300 shrink-0" />;
     }
     return sortConfig.direction === "asc"
@@ -66,30 +82,44 @@ export default function DataTable<T extends { id: number | string }>({
       : <ChevronDown size={14} className="text-primary-600 shrink-0 font-bold" />;
   };
 
+  const getRowKey = (item: T, index: number): string | number => {
+    if (rowKey) return rowKey(item);
+    return (item as any).id ?? (item as any).key ?? index;
+  };
+
   if (isLoading) {
-    return <LoadingSpinner className="py-20" />;
+    return (
+      <div className="flex justify-center items-center w-full">
+        {loadingComponent ?? <LoadingSpinner className="py-20" />}
+      </div>
+    );
   }
 
   if (data.length === 0) {
-    return <EmptyState description={emptyMessage} />;
+    return (
+      <div className="w-full">
+        {emptyComponent ?? <EmptyState description={emptyMessage} />}
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
       {/* Mobile Card View */}
       <div className="grid grid-cols-1 gap-4 md:hidden">
-        {sortedData.map((item) => {
-          const headerCol = columns[0];
-          const actionsCol = columns.find((col) => col.key === "actions");
+        {sortedData.map((item, index) => {
+          const headerCol = columns.find((col) => col.isTitle) || columns[0];
+          const actionsCol = columns.find((col) => col.isAction || col.accessorKey === "actions" || col.key === "actions");
           const otherCols = columns.filter((col) => col !== headerCol && col !== actionsCol);
 
           return (
             <div
-              key={item.id}
+              key={getRowKey(item, index)}
               onClick={() => onRowClick?.(item)}
               className={cn(
                 "bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3",
-                onRowClick && "cursor-pointer hover:bg-primary-50/10 transition-colors"
+                onRowClick && "cursor-pointer hover:bg-primary-50/10 transition-colors",
+                typeof rowClassName === "function" ? rowClassName(item) : rowClassName
               )}
             >
               {/* Card Header */}
@@ -103,10 +133,13 @@ export default function DataTable<T extends { id: number | string }>({
 
               {/* Card Body */}
               <div className="space-y-2 text-sm text-gray-500">
-                {otherCols.map((col) => (
-                  <div key={col.key} className="flex justify-between items-center gap-4">
+                {otherCols.map((col, cIdx) => (
+                  <div key={col.accessorKey || col.key || cIdx} className="flex justify-between items-center gap-4">
                     <span className="font-semibold text-gray-700">{col.label}:</span>
-                    <div className="text-gray-600 font-sans text-right">
+                    <div className={cn(
+                      "text-gray-600 font-sans text-right",
+                      typeof cellClassName === "function" ? cellClassName(item, col) : cellClassName
+                    )}>
                       {col.render(item)}
                     </div>
                   </div>
@@ -129,20 +162,22 @@ export default function DataTable<T extends { id: number | string }>({
         <Table className={cn(density === "compact" && "[&_td]:p-2 [&_td]:text-xs [&_th]:h-8 [&_th]:px-3")}>
           <TableHeader>
             <TableRow>
-              {columns.map((col) => {
-                const isSortable = col.sortable !== false && col.key !== "actions";
+              {columns.map((col, cIdx) => {
+                const colKey = col.accessorKey || col.key || String(cIdx);
+                const isSortable = col.sortable !== false && col.accessorKey !== "actions" && col.key !== "actions" && !col.isAction;
                 return (
                   <TableHead
-                    key={col.key}
-                    onClick={() => isSortable && requestSort(col.key)}
+                    key={colKey}
+                    onClick={() => isSortable && requestSort(colKey)}
                     className={cn(
                       isSortable && "cursor-pointer select-none hover:bg-gray-100 transition-colors",
+                      stickyHeader && "sticky top-0 bg-gray-200 z-10",
                       col.className
                     )}
                   >
                     <div className="flex items-center gap-1.5">
                       {col.label}
-                      {isSortable && getSortIconComponent(col.key)}
+                      {isSortable && getSortIconComponent(colKey)}
                     </div>
                   </TableHead>
                 );
@@ -150,16 +185,23 @@ export default function DataTable<T extends { id: number | string }>({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedData.map((item) => (
+            {sortedData.map((item, rIdx) => (
               <TableRow
-                key={item.id}
+                key={getRowKey(item, rIdx)}
                 onClick={() => onRowClick?.(item)}
                 className={cn(
-                  onRowClick && "cursor-pointer hover:bg-primary-50/20!"
+                  onRowClick && "cursor-pointer hover:bg-primary-50/20!",
+                  typeof rowClassName === "function" ? rowClassName(item) : rowClassName
                 )}
               >
-                {columns.map((col) => (
-                  <TableCell key={col.key} className={cn(col.className)}>
+                {columns.map((col, cIdx) => (
+                  <TableCell
+                    key={col.accessorKey || col.key || cIdx}
+                    className={cn(
+                      col.className,
+                      typeof cellClassName === "function" ? cellClassName(item, col) : cellClassName
+                    )}
+                  >
                     {col.render(item)}
                   </TableCell>
                 ))}
@@ -172,4 +214,6 @@ export default function DataTable<T extends { id: number | string }>({
   );
 }
 
+const DataTable = memo(DataTableInner) as <T>(props: DataTableProps<T>) => React.ReactNode;
 
+export default DataTable;

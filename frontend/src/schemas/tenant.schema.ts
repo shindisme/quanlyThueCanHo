@@ -32,3 +32,5 @@ export const tenantSchema = z.object({
     .or(z.literal(""))
     .nullable(),
 });
+
+export type TenantFormValues = z.infer<typeof tenantSchema>;

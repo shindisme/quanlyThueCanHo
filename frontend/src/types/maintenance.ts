@@ -26,3 +26,29 @@ export interface MaintenanceRequest {
     building_id?: number | null;
   } | null;
 }
+
+export interface MaintenanceFilters {
+  status?: string;
+  priority?: string;
+  building_id?: number;
+  page?: number;
+  limit?: number;
+}
+
+export interface CreateMaintenanceRequestPayload {
+  apartment_id: number;
+  title: string;
+  description: string;
+  priority: string;
+  image_url?: string;
+}
+
+export interface ConfirmMaintenanceRequestPayload {
+  assigned_staff_id: number;
+  scheduled_at: string;
+}
+
+export interface UnableMaintenanceRequestPayload {
+  reason: string;
+}
+

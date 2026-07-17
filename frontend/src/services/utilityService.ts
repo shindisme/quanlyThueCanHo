@@ -1,45 +1,9 @@
 import api from "../lib/api";
+import type { UtilityReadingData, UtilityReadingQuery, CreateUtilityReadingPayload, ApiPagination } from "../types";
+export type { UtilityReadingData, UtilityReadingQuery, CreateUtilityReadingPayload };
+import { fetchAllPages } from "./apiHelper";
 
-export interface UtilityReadingData {
-  id: number;
-  apartment_id: number;
-  month: number;
-  year: number;
-  electric_old: number;
-  electric_new: number;
-  electric_consumption?: number;
-  water_old: number;
-  water_new: number;
-  water_consumption?: number;
-  created_at: string;
-  recorded_by: number;
-  apartment?: {
-    id: number;
-    building_id: number;
-    floor: number;
-    room_number: string;
-    status?: string;
-    building?: {
-      id: number;
-      branch_name: string;
-      address_new?: string;
-    };
-  };
-  staff?: {
-    id: number;
-    full_name: string;
-    phone: string;
-    position: string;
-    building_id?: number;
-  };
-}
-
-export interface UtilityPagination {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
+const UTILITY_API = "/utility-readings";
 
 const meter = (value: number) => Math.round(Number(value) || 0);
 
@@ -59,59 +23,26 @@ const normalizeUtilityReading = (reading: UtilityReadingData): UtilityReadingDat
     water_consumption: Math.max(0, waterNew - waterOld),
   };
 };
-type UtilityReadingQuery = {
-  apartment_id?: number;
-  building_id?: number;
-  month?: number;
-  year?: number;
-  recorded_by?: number;
-  search?: string;
-  page?: number;
-  limit?: number;
-};
 
-export async function getAllUtilityReadings(params?: UtilityReadingQuery): Promise<{ data: UtilityReadingData[]; pagination: UtilityPagination }> {
-  interface UtilityReadingsResponse {
-    data: UtilityReadingData[];
-    meta?: {
-      pagination?: UtilityPagination;
-    };
-    pagination?: UtilityPagination;
-  }
-  const res = await api.get<UtilityReadingsResponse>("/utility-readings", { params });
+export async function getAll(params?: UtilityReadingQuery): Promise<{ data: UtilityReadingData[]; pagination: ApiPagination }> {
+  const res = await api.get<{ data: UtilityReadingData[]; meta?: { pagination?: ApiPagination }; pagination?: ApiPagination }>(UTILITY_API, { params });
   const rawData = (res.data.data || []).map(normalizeUtilityReading);
   const pagination = res.data.meta?.pagination || res.data.pagination || { total: rawData.length, page: 1, limit: 10, totalPages: 1 };
   return { data: rawData, pagination };
 }
 
-export async function getAllUtilityReadingPages(params?: Omit<UtilityReadingQuery, "page" | "limit">): Promise<UtilityReadingData[]> {
-  const first = await getAllUtilityReadings({ ...params, page: 1, limit: 100 });
-  const totalPages = first.pagination?.totalPages ?? 1;
-  if (totalPages <= 1) return first.data;
-
-  const rest = await Promise.all(
-    Array.from({ length: totalPages - 1 }, (_, index) =>
-      getAllUtilityReadings({ ...params, page: index + 2, limit: 100 })
-    )
-  );
-
-  return [first, ...rest].flatMap((page) => page.data);
+export async function getAllPage(params?: Omit<UtilityReadingQuery, "page" | "limit">): Promise<{ data: UtilityReadingData[] }> {
+  return fetchAllPages<UtilityReadingData, UtilityReadingQuery>(getAll, params);
 }
-export async function getMyUtilityReadings(params?: Omit<UtilityReadingQuery, "apartment_id" | "building_id" | "recorded_by">): Promise<{ data: UtilityReadingData[]; pagination: UtilityPagination }> {
-  interface UtilityReadingsResponse {
-    data: UtilityReadingData[];
-    meta?: {
-      pagination?: UtilityPagination;
-    };
-    pagination?: UtilityPagination;
-  }
-  const res = await api.get<UtilityReadingsResponse>("/utility-readings/my", { params });
+
+export async function getMyUtilityReadings(params?: Omit<UtilityReadingQuery, "apartment_id" | "building_id" | "recorded_by">): Promise<{ data: UtilityReadingData[]; pagination: ApiPagination }> {
+  const res = await api.get<{ data: UtilityReadingData[]; meta?: { pagination?: ApiPagination }; pagination?: ApiPagination }>(`${UTILITY_API}/my`, { params });
   const rawData = (res.data.data || []).map(normalizeUtilityReading);
   const pagination = res.data.meta?.pagination || res.data.pagination || { total: rawData.length, page: 1, limit: 10, totalPages: 1 };
   return { data: rawData, pagination };
 }
 
-export async function getMyUtilityReadingPages(params?: Omit<UtilityReadingQuery, "apartment_id" | "building_id" | "recorded_by" | "page" | "limit">): Promise<UtilityReadingData[]> {
+export async function getMyUtilityReadingsPage(params?: Omit<UtilityReadingQuery, "apartment_id" | "building_id" | "recorded_by" | "page" | "limit">): Promise<UtilityReadingData[]> {
   const first = await getMyUtilityReadings({ ...params, page: 1, limit: 100 });
   const totalPages = first.pagination?.totalPages ?? 1;
   if (totalPages <= 1) return first.data;
@@ -124,31 +55,40 @@ export async function getMyUtilityReadingPages(params?: Omit<UtilityReadingQuery
 
   return [first, ...rest].flatMap((page) => page.data);
 }
-export async function getUtilityReadingById(id: number): Promise<UtilityReadingData> {
-  const res = await api.get<{ data: UtilityReadingData }>(`/utility-readings/${id}`);
+
+export async function getById(id: number): Promise<UtilityReadingData> {
+  const res = await api.get<{ data: UtilityReadingData }>(`${UTILITY_API}/${id}`);
   return normalizeUtilityReading(res.data.data);
 }
 
-export async function createUtilityReading(data: {
-  apartment_id: number;
-  month: number;
-  year: number;
-  electric_old?: number;
-  electric_new: number;
-  water_old?: number;
-  water_new: number;
-  recorded_by?: number;
-}) {
-  const res = await api.post("/utility-readings", data);
+export async function create(data: CreateUtilityReadingPayload): Promise<any> {
+  const res = await api.post(UTILITY_API, data);
   return res.data;
 }
 
-export async function updateUtilityReading(id: number, data: Partial<UtilityReadingData>) {
-  const res = await api.put(`/utility-readings/${id}`, data);
+export async function update(id: number, data: Partial<UtilityReadingData>): Promise<any> {
+  const res = await api.put(`${UTILITY_API}/${id}`, data);
   return res.data;
 }
 
-export async function deleteUtilityReading(id: number) {
-  const res = await api.delete(`/utility-readings/${id}`);
+export async function deleteUtilityReading(id: number): Promise<any> {
+  const res = await api.delete(`${UTILITY_API}/${id}`);
   return res.data;
 }
+
+export const getAllUtilityReadings = getAll;
+export const getAllUtilityReadingsPage = getAllPage;
+export const getUtilityReadingById = getById;
+export const createUtilityReading = create;
+export const updateUtilityReading = update;
+
+export const utilityService = {
+  getAll,
+  getAllPage,
+  getMyUtilityReadings,
+  getMyUtilityReadingsPage,
+  getById,
+  create,
+  update,
+  delete: deleteUtilityReading,
+};

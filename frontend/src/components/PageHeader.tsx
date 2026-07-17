@@ -13,12 +13,11 @@ interface PageHeaderProps {
 }
 
 export default function PageHeader({
-  icon: _Icon,
   title,
   subtitle,
   count,
   actions,
-  iconColor: _iconColor = "linear-gradient(135deg, #7C3AED, #A78BFA)",
+  // iconColor: _iconColor = "linear-gradient(135deg, #7C3AED, #A78BFA)",
 }: PageHeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 md:mb-10">

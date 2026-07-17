@@ -1,30 +1,48 @@
 import api from "../lib/api";
-import type { Staff } from "../types";
+import type { Staff, StaffQuery, CreateStaffRequest, UpdateStaffRequest, ApiPagination } from "../types";
+export type { StaffQuery, CreateStaffRequest, UpdateStaffRequest };
+import { fetchAllPages } from "./apiHelper";
 
-export async function getAllStaff(params?: {
-  building_id?: number;
-  position?: string;
-}): Promise<{ data: Staff[] }> {
-  const res = await api.get<{ success?: boolean; data?: Staff[] }>("/staff", { params });
-  if (res.data.success && Array.isArray(res.data.data)) {
-    return { data: res.data.data };
-  }
-  return { data: Array.isArray(res.data) ? res.data : [] };
+const STAFF_API = "/staff";
+
+export async function getAll(params?: StaffQuery): Promise<{ data: Staff[]; pagination?: ApiPagination }> {
+  const res = await api.get<{ data: Staff[]; meta?: { pagination?: ApiPagination }; pagination?: ApiPagination }>(STAFF_API, { params });
+  const rawData = res.data.data || [];
+  const pagination = res.data.meta?.pagination || res.data.pagination;
+  return { data: rawData, pagination };
 }
 
-export async function createStaff(data: Partial<Staff>): Promise<Staff> {
-  const res = await api.post("/staff", data);
-  return res.data.data || res.data;
+export async function getAllPage(params?: Omit<StaffQuery, "page" | "limit">): Promise<{ data: Staff[] }> {
+  return fetchAllPages<Staff, StaffQuery>(getAll, params);
 }
 
-export async function updateStaff(
+export async function create(data: CreateStaffRequest | Partial<Staff>): Promise<Staff> {
+  const res = await api.post<{ data: Staff }>(STAFF_API, data);
+  return res.data.data || (res.data as unknown as Staff);
+}
+
+export async function update(
   id: number,
-  data: Partial<Pick<Staff, "full_name" | "phone" | "position" | "building_id">>,
+  data: UpdateStaffRequest | Partial<Pick<Staff, "full_name" | "phone" | "position" | "building_id">>,
 ): Promise<Staff> {
-  const res = await api.put(`/staff/${id}`, data);
-  return res.data.data || res.data;
+  const res = await api.put<{ data: Staff }>(`${STAFF_API}/${id}`, data);
+  return res.data.data || (res.data as unknown as Staff);
 }
 
 export async function deleteStaff(id: number): Promise<void> {
-  await api.delete(`/staff/${id}`);
+  await api.delete(`${STAFF_API}/${id}`);
 }
+
+// Backward compatibility mappings
+export const getAllStaffs = getAll;
+export const getAllStaffsPage = getAllPage;
+export const createStaff = create;
+export const updateStaff = update;
+
+export const staffService = {
+  getAll,
+  getAllPage,
+  create,
+  update,
+  delete: deleteStaff,
+};

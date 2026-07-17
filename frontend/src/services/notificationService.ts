@@ -1,80 +1,56 @@
 import api from "../lib/api";
-import type { Notification } from "../types";
+import type { Notification, NotificationFilters, SendBuildingNotificationPayload, SendInvoiceNotificationsPayload, ApiPagination } from "../types";
+export type { NotificationFilters, SendBuildingNotificationPayload, SendInvoiceNotificationsPayload };
+import { fetchAllPages } from "./apiHelper";
 
-export interface NotificationFilters {
-  type?: string;
-  is_read?: boolean;
-  user_id?: number;
-  tenant_id?: number;
-  building_id?: number;
-  search?: string;
-  page?: number;
-  limit?: number;
-}
+const NOTIFICATION_API = "/notifications";
 
-export interface NotificationPagination {
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export async function getAllNotifications(params?: NotificationFilters): Promise<{ data: Notification[]; pagination?: NotificationPagination }> {
-  interface NotificationsResponse {
-    data: Notification[];
-    meta?: {
-      pagination?: NotificationPagination;
-    };
-    pagination?: NotificationPagination;
-  }
-  const res = await api.get<NotificationsResponse>("/notifications", { params });
+export async function getAll(params?: NotificationFilters): Promise<{ data: Notification[]; pagination?: ApiPagination }> {
+  const res = await api.get<{ data: Notification[]; meta?: { pagination?: ApiPagination }; pagination?: ApiPagination }>(NOTIFICATION_API, { params });
   return {
     data: res.data.data || [],
     pagination: res.data.meta?.pagination || res.data.pagination
   };
 }
 
-export interface SendBuildingNotificationPayload {
-  building_id: number;
-  title: string;
-  content: string;
-  type?: string;
-  apartment_ids?: number[];
-  tenant_ids?: number[];
+export async function getAllPage(params?: Omit<NotificationFilters, "page" | "limit">): Promise<{ data: Notification[] }> {
+  return fetchAllPages<Notification, NotificationFilters>(getAll, params);
 }
 
 export async function sendBuildingNotification(payload: SendBuildingNotificationPayload): Promise<{ success: boolean; message: string }> {
-  const res = await api.post<{ success: boolean; message: string }>("/notifications/building", payload);
+  const res = await api.post<{ success: boolean; message: string }>(`${NOTIFICATION_API}/building`, payload);
   return res.data;
 }
 
-export interface SendInvoiceNotificationsPayload {
-  building_id?: number;
-  invoice_ids?: number[];
-  tenant_ids?: number[];
-  month?: number;
-  year?: number;
-  status?: string;
-  title?: string;
-  content?: string;
-}
-
 export async function sendInvoiceNotifications(payload: SendInvoiceNotificationsPayload): Promise<{ success: boolean; message: string }> {
-  const res = await api.post<{ success: boolean; message: string }>("/notifications/invoices", payload);
+  const res = await api.post<{ success: boolean; message: string }>(`${NOTIFICATION_API}/invoices`, payload);
   return res.data;
 }
 
 export async function markNotificationRead(id: number, is_read: boolean = true): Promise<Notification> {
-  const res = await api.patch<{ data: Notification }>(`/notifications/${id}/read`, { is_read });
+  const res = await api.patch<{ data: Notification }>(`${NOTIFICATION_API}/${id}/read`, { is_read });
   return res.data.data;
 }
 
 export async function markAllNotificationsRead(): Promise<{ success: boolean; message: string }> {
-  const res = await api.patch<{ success: boolean; message: string }>("/notifications/read-all");
+  const res = await api.patch<{ success: boolean; message: string }>(`${NOTIFICATION_API}/read-all`);
   return res.data;
 }
 
 export async function deleteNotification(id: number): Promise<{ success: boolean; message: string }> {
-  const res = await api.delete<{ success: boolean; message: string }>(`/notifications/${id}`);
+  const res = await api.delete<{ success: boolean; message: string }>(`${NOTIFICATION_API}/${id}`);
   return res.data;
 }
+
+export const getAllNotifications = getAll;
+export const getAllNotificationsPage = getAllPage;
+
+export const notificationService = {
+  getAll,
+  getAllPage,
+  sendBuildingNotification,
+  sendInvoiceNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteNotification,
+};

@@ -1,46 +1,29 @@
 import api from "../lib/api";
+import type { ReviewData, ReviewMeta, GetReviewsResponse, CreateReviewRequest } from "../types";
+export type { ReviewData, ReviewMeta, GetReviewsResponse, CreateReviewRequest };
 
-export interface ReviewData {
-  id: number;
-  apartment_id: number;
-  tenant_id: number;
-  rating: number;
-  comment: string | null;
-  created_at: string;
-  tenant?: {
-    id: number;
-    full_name: string;
-  };
-}
 
-export interface ReviewMeta {
-  averageRating: number;
-  totalReviews: number;
-  currentPage: number;
-  totalPages: number;
-}
-
-export interface GetReviewsResponse {
-  data: ReviewData[];
-  meta: ReviewMeta;
-}
+const REVIEW_API = "/reviews";
 
 export async function getApartmentReviews(
   apartmentId: number,
   page: number = 1,
   limit: number = 10
 ): Promise<GetReviewsResponse> {
-  const res = await api.get<GetReviewsResponse>(`/reviews/apartment/${apartmentId}`, {
+  const res = await api.get<GetReviewsResponse>(`${REVIEW_API}/apartment/${apartmentId}`, {
     params: { page, limit },
   });
   return res.data;
 }
 
-export async function createReview(data: {
-  apartment_id: number;
-  rating: number;
-  comment?: string;
-}): Promise<unknown> {
-  const res = await api.post("/reviews", data);
+export async function create(data: CreateReviewRequest): Promise<unknown> {
+  const res = await api.post(REVIEW_API, data);
   return res.data;
 }
+
+export const createReview = create;
+
+export const reviewService = {
+  getApartmentReviews,
+  create,
+};
