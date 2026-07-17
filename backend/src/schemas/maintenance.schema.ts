@@ -61,8 +61,24 @@ export const unableMaintenanceRequestSchema = z.object({
     }).strict()
 }).strict();
 
-export const completeMaintenanceRequestSchema =
-    maintenanceIdRequestSchema;
+const completeMaintenanceBodySchema = z.object({
+    charge_tenant: z.boolean().default(false),
+    repair_fee: z.number().positive().optional()
+}).strict().superRefine((body, context) => {
+    if (body.charge_tenant && body.repair_fee === undefined) {
+        context.addIssue({
+            code: "custom",
+            path: ["repair_fee"],
+            message: "Cần nhập phí sửa chữa khi lập hóa đơn cho người thuê"
+        });
+    }
+});
+
+export const completeMaintenanceRequestSchema = z.object({
+    params: idParamsSchema,
+    query: emptyObjectSchema,
+    body: completeMaintenanceBodySchema.default({ charge_tenant: false })
+}).strict();
 
 export type ListMaintenanceRequest = z.infer<
     typeof listMaintenanceRequestSchema
@@ -78,4 +94,7 @@ export type ConfirmMaintenanceRequest = z.infer<
 >;
 export type UnableMaintenanceRequest = z.infer<
     typeof unableMaintenanceRequestSchema
+>;
+export type CompleteMaintenanceRequest = z.infer<
+    typeof completeMaintenanceRequestSchema
 >;

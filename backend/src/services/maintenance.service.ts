@@ -1,5 +1,6 @@
-﻿import {
+import {
     ContractStatus,
+    InvoiceStatus,
     Prisma,
     RequestStatus,
     Role,
@@ -8,6 +9,7 @@
 import { prisma } from "../config/database.js";
 import { AppError } from "../errors/app-error.js";
 import type {
+    CompleteMaintenanceRequest,
     ConfirmMaintenanceRequest,
     CreateMaintenanceRequest,
     ListMaintenanceRequest,
@@ -18,6 +20,7 @@ import {
     getCurrentManagerAssignment,
     getCurrentStaffAssignment
 } from "../utils/manager-scope.js";
+import { isPositiveDecimal12_2Amount } from "../utils/money.js";
 
 const maintenanceInclude = {
     tenant: {
@@ -79,6 +82,12 @@ const invalidTechnician = () => new AppError(
     400,
     "INVALID_TECHNICIAN",
     "Nhân viên được phân công phải là kỹ thuật viên đang hoạt động trong cùng tòa nhà"
+);
+
+const invalidRepairFee = () => new AppError(
+    400,
+    "INVALID_REPAIR_FEE",
+    "Phí sửa chữa phải lớn hơn 0 và không vượt quá giới hạn cho phép"
 );
 
 const formatSchedule = (value: Date) =>
@@ -522,6 +531,7 @@ export const markMaintenanceUnableService = async (
 
 export const completeMaintenanceRequestService = async (
     id: number,
+    input: CompleteMaintenanceRequest["body"],
     actor: Actor
 ) => prisma.$transaction(async (transaction) => {
     const {
@@ -555,6 +565,67 @@ export const completeMaintenanceRequestService = async (
         throw error;
     }
 
+    if (input.charge_tenant) {
+        const repairFee = input.repair_fee;
+        if (
+            repairFee === undefined
+            || !isPositiveDecimal12_2Amount(repairFee)
+        ) {
+            throw invalidRepairFee();
+        }
+
+        const invoiceCode = `MNT-${current.id}`;
+        const contract = await transaction.rentalContract.findFirst({
+            where: {
+                apartment_id: current.apartment.id,
+                tenant_id: current.tenant.id,
+                status: ContractStatus.ACTIVE
+            },
+            select: { id: true }
+        });
+
+        if (!contract) {
+            throw new AppError(
+                409,
+                "ACTIVE_CONTRACT_NOT_FOUND",
+                "Không tìm thấy hợp đồng còn hiệu lực để lập hóa đơn sửa chữa"
+            );
+        }
+
+        await transaction.invoice.create({
+            data: {
+                tenant: { connect: { id: current.tenant.id } },
+                contract: { connect: { id: contract.id } },
+                invoice_code: invoiceCode,
+                due_date: new Date(),
+                total_amount: repairFee,
+                status: InvoiceStatus.UNPAID,
+                items: {
+                    create: [
+                        {
+                            item_name: `Phí sửa chữa: ${current.title}`,
+                            quantity: 1,
+                            unit_price: repairFee,
+                            amount: repairFee
+                        }
+                    ]
+                }
+            }
+        });
+
+        if (current.tenant.user_id !== null) {
+            await transaction.notification.create({
+                data: {
+                    user_id: current.tenant.user_id,
+                    title: "Hóa đơn sửa chữa mới",
+                    content:
+                        `Hóa đơn ${invoiceCode} đã được tạo với tổng tiền ${repairFee}.`,
+                    type: "INVOICE_CREATED"
+                }
+            });
+        }
+    }
+
     await createMaintenanceNotifications(
         transaction,
         current.tenant.user_id === null
@@ -567,5 +638,3 @@ export const completeMaintenanceRequestService = async (
 
     return updated;
 });
-
-

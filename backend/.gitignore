@@ -29,6 +29,7 @@ Thumbs.db
 
 # Worktrees
 .worktrees/
+/tests/
 
 # Vercel
 .vercel/
