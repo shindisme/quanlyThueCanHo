@@ -1,8 +1,14 @@
-import { z } from "zod";
+﻿import { z } from "zod";
+import {
+    emptyObjectSchema,
+    idParamsSchema,
+    optionalEmptyBodySchema,
+    positiveIdSchema
+} from "./common.schema.js";
 
-const emptyObjectSchema = z.object({}).strict();
-const optionalEmptyBodySchema = emptyObjectSchema.default({});
-const positiveIdSchema = z.coerce.number().int().positive();
+const occupantParamsSchema = z.object({
+    occupantId: positiveIdSchema
+}).strict();
 
 const dateOnlySchema = z.string()
     .trim()
@@ -14,7 +20,7 @@ const dateOnlySchema = z.string()
         return date.getUTCFullYear() === year
             && date.getUTCMonth() === month - 1
             && date.getUTCDate() === day;
-    }, "Invalid calendar date")
+    }, "Ngày không hợp lệ")
     .transform((value) => new Date(`${value}T00:00:00.000Z`));
 
 const tenantFields = {
@@ -64,17 +70,13 @@ export const listTenantsRequestSchema = z.object({
 }).strict();
 
 export const tenantIdRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: optionalEmptyBodySchema
 }).strict();
 
 export const updateTenantRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: z.object({
         full_name: tenantFields.full_name.optional(),
@@ -88,7 +90,7 @@ export const updateTenantRequestSchema = z.object({
             tenantFields.onboarding_building_id
     }).strict().refine(
         (body) => Object.keys(body).length > 0,
-        "At least one field must be provided"
+        "Cần cung cấp ít nhất một trường dữ liệu"
     )
 }).strict();
 
@@ -105,17 +107,13 @@ export const createOccupantRequestSchema = z.object({
 }).strict();
 
 export const occupantIdRequestSchema = z.object({
-    params: z.object({
-        occupantId: positiveIdSchema
-    }).strict(),
+    params: occupantParamsSchema,
     query: emptyObjectSchema,
     body: optionalEmptyBodySchema
 }).strict();
 
 export const updateOccupantRequestSchema = z.object({
-    params: z.object({
-        occupantId: positiveIdSchema
-    }).strict(),
+    params: occupantParamsSchema,
     query: emptyObjectSchema,
     body: z.object({
         full_name: occupantFields.full_name.optional(),
@@ -124,7 +122,7 @@ export const updateOccupantRequestSchema = z.object({
         date_of_birth: occupantFields.date_of_birth
     }).strict().refine(
         (body) => Object.keys(body).length > 0,
-        "At least one field must be provided"
+        "Cần cung cấp ít nhất một trường dữ liệu"
     )
 }).strict();
 
@@ -152,3 +150,4 @@ export type OccupantIdRequest = z.infer<
 export type UpdateOccupantRequest = z.infer<
     typeof updateOccupantRequestSchema
 >;
+

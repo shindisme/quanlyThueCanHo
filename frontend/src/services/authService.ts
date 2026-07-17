@@ -1,12 +1,39 @@
 import api from "../lib/api";
-import type { LoginResponse, UserData, CreateUserResponse, CreateUserRequest, UpdateUserRequest } from "../types";
-export type { LoginResponse, UserData, CreateUserResponse, CreateUserRequest, UpdateUserRequest };
 
+export interface LoginResponse {
+  token: string;
+  role: string;
+}
+export interface UserData {
+  id: number;
+  username: string;
+  role: string;
+  status: string;
+  created_at: string;
+  tenant?: Tenant | null;
+  tenant_profile?: Tenant | null;
+  managed_building?: {
+    id: number;
+    branch_name: string;
+    address_new: string;
+  } | null;
+}
 
-const AUTH_API = "/auth";
+export interface CreateUserResponse extends UserData {
+  initial_password?: string;
+}
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
   const res = await api.post<{ data: LoginResponse }>(`${AUTH_API}/login`, { username, password });
+  return res.data.data;
+}
+
+export async function logout(token: string): Promise<LogoutResponse> {
+  const res = await api.post<{ data: LogoutResponse }>(
+    "/auth/logout",
+    {},
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
   return res.data.data;
 }
 

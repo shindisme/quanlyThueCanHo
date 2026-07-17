@@ -1,9 +1,12 @@
 import { BuildingStatus } from "@prisma/client";
 import { z } from "zod";
+import {
+    emptyObjectSchema,
+    idParamsSchema,
+    optionalEmptyBodySchema,
+    positiveIdSchema
+} from "./common.schema.js";
 
-const emptyObjectSchema = z.object({}).strict();
-const optionalEmptyBodySchema = emptyObjectSchema.default({});
-const positiveIdSchema = z.coerce.number().int().positive();
 const paginationSchema = {
     page: z.coerce.number().int().positive().default(1),
     limit: z.coerce.number().int().positive().max(100).default(10)
@@ -31,9 +34,7 @@ export const listBuildingsRequestSchema = z.object({
 }).strict();
 
 export const buildingIdRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: optionalEmptyBodySchema
 }).strict();
@@ -48,9 +49,7 @@ export const createBuildingRequestSchema = z.object({
 }).strict();
 
 export const updateBuildingRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: z.object({
         branch_name: buildingFields.branch_name.optional(),

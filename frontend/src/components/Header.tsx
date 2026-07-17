@@ -308,8 +308,8 @@ export default function Header() {
     });
   }
 
-  function handleLogout() {
-    logout();
+  async function handleLogout() {
+    await logout();
     navigate("/system/login");
   }
 

@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+﻿import { Prisma } from "@prisma/client";
 import type {
     ErrorRequestHandler,
     RequestHandler,
@@ -55,11 +55,50 @@ const sendError = (
     response.status(statusCode).json(body);
 };
 
+const stringifyPrismaMetaValue = (value: unknown) => {
+    if (Array.isArray(value)) {
+        return value.join(" ");
+    }
+
+    return typeof value === "string" ? value : "";
+};
+
+const getPrismaMetaText = (
+    error: Prisma.PrismaClientKnownRequestError
+) => [
+    stringifyPrismaMetaValue(error.meta?.field_name),
+    stringifyPrismaMetaValue(error.meta?.target),
+    stringifyPrismaMetaValue(error.meta?.constraint)
+].join(" ").toLowerCase();
+
+const getRelationConflictMessage = (
+    error: Prisma.PrismaClientKnownRequestError
+) => {
+    const metaText = getPrismaMetaText(error);
+
+    if (metaText.includes("building")) {
+        return "Không thể thực hiện thao tác vì tòa nhà còn căn hộ hoặc dữ liệu liên quan";
+    }
+
+    if (metaText.includes("apartment")) {
+        return "Không thể thực hiện thao tác vì căn hộ còn hợp đồng hoặc dữ liệu liên quan";
+    }
+
+    if (metaText.includes("tenant")) {
+        return "Không thể thực hiện thao tác vì khách thuê còn hợp đồng hoặc dữ liệu liên quan";
+    }
+
+    if (metaText.includes("invoice")) {
+        return "Không thể thực hiện thao tác vì hóa đơn còn thanh toán hoặc dữ liệu liên quan";
+    }
+
+    return "Không thể thực hiện thao tác vì còn dữ liệu liên quan";
+};
 export const notFound: RequestHandler = (request, _response, next) => {
     next(new AppError(
         404,
         "NOT_FOUND",
-        `Route ${request.method} ${request.originalUrl} was not found`
+        `Không tìm thấy route ${request.method} ${request.originalUrl}`
     ));
 };
 
@@ -79,7 +118,7 @@ export const errorHandler: ErrorRequestHandler = (
             response,
             400,
             "MALFORMED_JSON",
-            "Request body contains malformed JSON"
+            "Nội dung JSON của yêu cầu không hợp lệ"
         );
         return;
     }
@@ -89,7 +128,7 @@ export const errorHandler: ErrorRequestHandler = (
             response,
             400,
             "VALIDATION_ERROR",
-            "Request validation failed",
+            "Dữ liệu yêu cầu không hợp lệ",
             error.issues.map((issue) => ({
                 field: issue.path.join("."),
                 message: issue.message
@@ -118,7 +157,7 @@ export const errorHandler: ErrorRequestHandler = (
             response,
             401,
             "INVALID_TOKEN",
-            "Authentication token is invalid or expired"
+            "Phiên đăng nhập không hợp lệ hoặc đã hết hạn"
         );
         return;
     }
@@ -128,7 +167,7 @@ export const errorHandler: ErrorRequestHandler = (
             response,
             400,
             "UPLOAD_ERROR",
-            "File upload failed",
+            "Tải tệp lên thất bại",
             {
                 code: error.code,
                 field: error.field
@@ -143,7 +182,7 @@ export const errorHandler: ErrorRequestHandler = (
                 response,
                 409,
                 "UNIQUE_CONFLICT",
-                "A record with the same unique value already exists"
+                "Dữ liệu đã tồn tại, vui lòng kiểm tra lại thông tin duy nhất"
             );
             return;
         }
@@ -153,7 +192,7 @@ export const errorHandler: ErrorRequestHandler = (
                 response,
                 409,
                 "RELATION_CONFLICT",
-                "The operation conflicts with a related record"
+                getRelationConflictMessage(error)
             );
             return;
         }
@@ -163,17 +202,18 @@ export const errorHandler: ErrorRequestHandler = (
                 response,
                 404,
                 "NOT_FOUND",
-                "The requested record was not found"
+                "Không tìm thấy dữ liệu được yêu cầu"
             );
             return;
         }
     }
 
-    console.error("Unhandled error:", error);
+    console.error("Lỗi chưa xử lý:", error);
     sendError(
         response,
         500,
         "INTERNAL_ERROR",
-        "An unexpected error occurred"
+        "Đã xảy ra lỗi hệ thống"
     );
 };
+

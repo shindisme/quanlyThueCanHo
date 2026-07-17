@@ -1,4 +1,4 @@
-import type {
+﻿import type {
     Request,
     Response
 } from "express";
@@ -18,6 +18,18 @@ import {
     sendSuccess
 } from "../utils/api-response.js";
 
+const getUploadedApartmentFiles = (request: Request) =>
+    (request.files as Express.Multer.File[] | undefined) ?? [];
+
+const withApartmentImageUploads = <T>(
+    files: Express.Multer.File[],
+    operation: (imageUrls: string[]) => Promise<T>
+) => withCompensatedImageUploads(
+    files,
+    "/apartments",
+    async (images) => operation(images.map(({ url }) => url))
+);
+
 export const create = async (
     request: Request,
     response: Response
@@ -29,15 +41,12 @@ export const create = async (
         body.building_id
     );
 
-    const files =
-        (request.files as Express.Multer.File[] | undefined) ?? [];
-    const apartment = await withCompensatedImageUploads(
-        files,
-        "/apartments",
-        async (images) =>
+    const apartment = await withApartmentImageUploads(
+        getUploadedApartmentFiles(request),
+        (imageUrls) =>
             apartmentService.createApartmentWithImagesService(
                 body,
-                images.map(({ url }) => url),
+                imageUrls,
                 request.actor!
             )
     );
@@ -72,7 +81,7 @@ export const getById = async (
         throw new AppError(
             404,
             "NOT_FOUND",
-            "Apartment was not found"
+            "Không tìm thấy căn hộ"
         );
     }
 
@@ -87,8 +96,7 @@ export const update = async (
         params,
         body
     } = getValidated<UpdateApartmentRequest>(request);
-    const files =
-        (request.files as Express.Multer.File[] | undefined) ?? [];
+    const files = getUploadedApartmentFiles(request);
     assertUpdateHasChanges(body, files.length > 0);
 
     if (files.length > 0) {
@@ -98,13 +106,12 @@ export const update = async (
         );
     }
 
-    const apartment = await withCompensatedImageUploads(
+    const apartment = await withApartmentImageUploads(
         files,
-        "/apartments",
-        async (images) => apartmentService.updateApartmentService(
+        (imageUrls) => apartmentService.updateApartmentService(
             params.id,
             body,
-            images.map(({ url }) => url),
+            imageUrls,
             request.actor!
         )
     );
@@ -124,3 +131,4 @@ export const remove = async (
     );
     return sendSuccess(response, { deleted: true });
 };
+

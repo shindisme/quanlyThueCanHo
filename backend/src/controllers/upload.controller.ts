@@ -1,4 +1,4 @@
-import type {
+﻿import type {
     Request,
     Response
 } from "express";
@@ -17,7 +17,7 @@ export const uploadMultipleImages = async (
         throw new AppError(
             400,
             "FILES_REQUIRED",
-            "At least one image is required"
+            "Cần tải lên ít nhất một hình ảnh"
         );
     }
 
@@ -29,3 +29,4 @@ export const uploadMultipleImages = async (
 
     return sendSuccess(response, { urls });
 };
+

@@ -1,4 +1,4 @@
-import {
+﻿import {
     ContractStatus,
     Prisma,
     Role
@@ -83,7 +83,7 @@ const getUtilityAssignment = (actor: Actor) => {
         actor.role !== Role.MANAGER
         && actor.role !== Role.STAFF
     ) {
-        throw forbidden("You do not have access to utility readings");
+        throw forbidden("Bạn không có quyền truy cập chỉ số điện nước");
     }
 
     return actor.role === Role.MANAGER
@@ -136,13 +136,13 @@ const assertValidMeters = (data: {
 }) => {
     if (data.electric_new < data.electric_old) {
         throw validationError(
-            "electric_new must not be less than electric_old"
+            "Chỉ số điện mới không được nhỏ hơn chỉ số điện cũ"
         );
     }
 
     if (data.water_new < data.water_old) {
         throw validationError(
-            "water_new must not be less than water_old"
+            "Chỉ số nước mới không được nhỏ hơn chỉ số nước cũ"
         );
     }
 };
@@ -179,7 +179,7 @@ const resolveOldMeters = async (data: CreateUtilityReadingInput) => {
 
     if (electricOld === undefined || waterOld === undefined) {
         throw validationError(
-            "The first utility reading requires old meter values"
+            "Lần ghi chỉ số đầu tiên cần cung cấp chỉ số cũ"
         );
     }
 
@@ -225,7 +225,7 @@ const getRecordedBy = (
     if (assignment) {
         if (data.recorded_by !== undefined) {
             throw validationError(
-                "recorded_by is derived from the authenticated actor"
+                "recorded_by được xác định từ tài khoản đang đăng nhập"
             );
         }
 
@@ -235,7 +235,7 @@ const getRecordedBy = (
     const recordedBy = data.recorded_by ?? actor.staffId;
     if (recordedBy === undefined) {
         throw validationError(
-            "recorded_by is required when an Admin has no staff profile"
+            "Cần cung cấp recorded_by khi tài khoản Admin không có hồ sơ nhân viên"
         );
     }
 
@@ -402,7 +402,7 @@ export const getMyUtilityReadingsService = async (
     actor: Actor
 ) => {
     if (actor.role !== Role.TENANT || actor.tenantId === undefined) {
-        throw forbidden("A tenant profile is required");
+        throw forbidden("Yêu cầu phải có hồ sơ khách thuê");
     }
 
     const page = filters.page;
@@ -600,3 +600,4 @@ export const deleteUtilityReadingService = async (
         where: { id }
     });
 };
+

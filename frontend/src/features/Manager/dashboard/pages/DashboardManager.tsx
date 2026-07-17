@@ -167,7 +167,10 @@ export default function DashboardManager() {
     (r) => r.status === "PENDING" || r.status === "PROCESSING" || r.status === "NEEDS_RESCHEDULE"
   ).length;
 
-
+  // Processing maintenance requests
+  const processingMaintenanceRequests = maintenanceRequests.filter(
+    (r) => r.status === "PROCESSING"
+  ).length;
 
   // Revenue chart data: Switch between Monthly and Yearly based on timeFrame
   const months = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];

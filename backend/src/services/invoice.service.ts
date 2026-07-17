@@ -1,4 +1,4 @@
-import {
+﻿import {
     InvoiceStatus,
     PaymentStatus,
     Prisma,
@@ -15,7 +15,7 @@ import {
     isNonNegativeDecimal12_2Amount,
     MAX_DECIMAL_12_2
 } from "../utils/money.js";
-import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
+import { getManagerApartmentScope } from "../utils/manager-scope.js";
 import {
     buildFirstRentalInvoiceItems,
     buildRecurringMonthlyInvoiceItems,
@@ -150,7 +150,7 @@ const assertNonNegativeMoney = (
 ) => {
     if (!isNonNegativeDecimal12_2Amount(value)) {
         throw new InvoiceError(
-            `${label} phai la so khong am, nam trong Decimal(12,2) va co toi da hai chu so thap phan.`
+            `${label} phải là số không âm, nằm trong Decimal(12,2) và có tối đa hai chữ số thập phân.`
         );
     }
 };
@@ -305,14 +305,7 @@ const normalizeInvoice = (invoice: InvoiceWithRelations) => {
     };
 };
 
-const getManagerApartmentScope = (actor: InvoiceActor) => {
-    const assignment = getCurrentManagerAssignment(actor);
 
-    return {
-        building_id: assignment.buildingId,
-        building: assignment.assignmentWhere
-    } satisfies Prisma.ApartmentWhereInput;
-};
 
 const requireTenantId = (actor: InvoiceActor) => {
     if (actor.tenantId === undefined) {
@@ -893,7 +886,7 @@ const isFirstDayInVietnam = (date: Date) => {
 
 export const startMonthlyInvoiceScheduler = () => {
     if ((process.env.INVOICE_AUTO_GENERATE ?? "true").toLowerCase() === "false") {
-        console.log("Invoice scheduler is disabled.");
+        console.log("Bộ lập lịch hóa đơn đã bị tắt.");
         return;
     }
 
@@ -920,7 +913,7 @@ export const startMonthlyInvoiceScheduler = () => {
                 `Generated monthly invoices for ${padMonth(period.month)}/${period.year}: ${result.created_count} created, ${result.skipped_count} skipped.`
             );
         } catch (error) {
-            console.error("Failed to generate monthly invoices:", error);
+            console.error("Tạo hóa đơn hàng tháng thất bại:", error);
         } finally {
             running = false;
         }
@@ -929,3 +922,5 @@ export const startMonthlyInvoiceScheduler = () => {
     void checkAndRun();
     setInterval(() => void checkAndRun(), intervalMs);
 };
+
+

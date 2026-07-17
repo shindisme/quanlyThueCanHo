@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { logout as logoutRequest } from "../services/authService";
 
 interface AuthState {
   token: string;
@@ -8,19 +9,22 @@ interface AuthState {
   managedBuildingId: number | null;
   managedBuildingName: string | null;
 
-  // Actions 
   setAuth: (token: string, role: string, email: string, managedBuildingId?: number | null, managedBuildingName?: string | null) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
+
+const emptyAuthState = {
+  token: "",
+  role: null,
+  email: null,
+  managedBuildingId: null,
+  managedBuildingName: null,
+};
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
-      token: "",
-      role: null,
-      email: null,
-      managedBuildingId: null,
-      managedBuildingName: null,
+    (set, get) => ({
+      ...emptyAuthState,
 
       setAuth: (token, role, email, managedBuildingId = null, managedBuildingName = null) =>
         set({
@@ -31,15 +35,18 @@ export const useAuthStore = create<AuthState>()(
           managedBuildingName,
         }),
 
+      logout: async () => {
+        const { token } = get();
 
-      logout: () =>
-        set({
-          token: "",
-          role: null,
-          email: null,
-          managedBuildingId: null,
-          managedBuildingName: null,
-        }),
+        try {
+          if (token) {
+            await logoutRequest(token);
+          }
+        } catch {
+        } finally {
+          set(emptyAuthState);
+        }
+      },
     }),
     {
       name: "auth-storage",

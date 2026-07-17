@@ -1,4 +1,4 @@
-import crypto from "node:crypto";
+﻿import crypto from "node:crypto";
 
 export type VnpayParams = Record<string, string>;
 
@@ -8,7 +8,7 @@ const requireEnv = (name: string) => {
     const value = process.env[name];
 
     if (!value) {
-        throw new Error(`${name} is not configured`);
+        throw new Error(`${name} chưa được cấu hình`);
     }
 
     return value;

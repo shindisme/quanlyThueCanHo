@@ -3,11 +3,13 @@ import {
     RequestStatus
 } from "@prisma/client";
 import { z } from "zod";
+import {
+    emptyObjectSchema,
+    idParamsSchema,
+    optionalEmptyBodySchema,
+    positiveIdSchema
+} from "./common.schema.js";
 import { strictRfc3339DateSchema } from "./strict-date.schema.js";
-
-const emptyObjectSchema = z.object({}).strict();
-const optionalEmptyBodySchema = emptyObjectSchema.default({});
-const positiveIdSchema = z.coerce.number().int().positive();
 
 export const listMaintenanceRequestSchema = z.object({
     params: emptyObjectSchema,
@@ -22,9 +24,7 @@ export const listMaintenanceRequestSchema = z.object({
 }).strict();
 
 export const maintenanceIdRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: optionalEmptyBodySchema
 }).strict();
@@ -45,9 +45,7 @@ export const cancelMaintenanceRequestSchema =
     maintenanceIdRequestSchema;
 
 export const confirmMaintenanceRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: z.object({
         assigned_staff_id: z.number().int().positive(),
@@ -56,9 +54,7 @@ export const confirmMaintenanceRequestSchema = z.object({
 }).strict();
 
 export const unableMaintenanceRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: z.object({
         reason: z.string().trim().min(1).max(2000)

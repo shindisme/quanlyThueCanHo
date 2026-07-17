@@ -231,6 +231,13 @@ const assertCanManageTarget = async (
     }
 };
 
+const deleteUserNotifications = (
+    client: Prisma.TransactionClient,
+    userId: number
+) => client.notification.deleteMany({
+    where: { user_id: userId }
+});
+
 export const createAccountByAdminService = async (
     actor: Actor,
     data: {
@@ -265,19 +272,27 @@ export const deleteUserService = async (actor: Actor, id: number) => {
     await assertCanManageTarget(actor, id, managerBuildingId);
 
     if (managerBuildingId === undefined) {
-        return prisma.user.delete({
-            where: { id }
+        return prisma.$transaction(async (transaction) => {
+            await deleteUserNotifications(transaction, id);
+
+            return transaction.user.delete({
+                where: { id }
+            });
         });
     }
 
-    const deleted = await prisma.user.deleteMany({
-        where: {
-            id,
-            role: {
-                not: Role.ADMIN
-            },
-            ...managerUserScope(actor, managerBuildingId)
-        }
+    const deleted = await prisma.$transaction(async (transaction) => {
+        await deleteUserNotifications(transaction, id);
+
+        return transaction.user.deleteMany({
+            where: {
+                id,
+                role: {
+                    not: Role.ADMIN
+                },
+                ...managerUserScope(actor, managerBuildingId)
+            }
+        });
     });
 
     if (deleted.count === 0) {
@@ -364,6 +379,45 @@ export const loginService = async (username: string, password: string) => {
     return { token, role: user.role };
 };
 
+export const logoutService = async (actor: Actor) => {
+    if (actor.role !== Role.TENANT || actor.tenantId === undefined) {
+        return {
+            logged_out: true,
+            banned: false
+        };
+    }
+
+    const reviewedEndedContract = await prisma.rentalContract.findFirst({
+        where: {
+            tenant_id: actor.tenantId,
+            status: ContractStatus.ENDED,
+            apartment: {
+                reviews: {
+                    some: { tenant_id: actor.tenantId }
+                }
+            }
+        },
+        select: { id: true }
+    });
+
+    if (!reviewedEndedContract) {
+        return {
+            logged_out: true,
+            banned: false
+        };
+    }
+
+    await prisma.user.update({
+        where: { id: actor.userId },
+        data: { status: UserStatus.BANNED },
+        select: { id: true }
+    });
+
+    return {
+        logged_out: true,
+        banned: true
+    };
+};
 export const updateUserService = async (
     actor: Actor,
     id: number,

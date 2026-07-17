@@ -1,9 +1,12 @@
 import { ApartmentStatus } from "@prisma/client";
 import { z } from "zod";
+import {
+    emptyObjectSchema,
+    idParamsSchema,
+    optionalEmptyBodySchema,
+    positiveIdSchema
+} from "./common.schema.js";
 
-const emptyObjectSchema = z.object({}).strict();
-const optionalEmptyBodySchema = emptyObjectSchema.default({});
-const positiveIdSchema = z.coerce.number().int().positive();
 const positiveNumberSchema = z.coerce.number().positive();
 
 const apartmentFields = {
@@ -34,9 +37,7 @@ export const listApartmentsRequestSchema = z.object({
 }).strict();
 
 export const apartmentIdRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: optionalEmptyBodySchema
 }).strict();
@@ -52,9 +53,7 @@ export const createApartmentRequestSchema = z.object({
 }).strict();
 
 export const updateApartmentRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: z.object({
         building_id: apartmentFields.building_id.optional(),

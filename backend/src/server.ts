@@ -1,4 +1,4 @@
-import "dotenv/config";
+﻿import "dotenv/config";
 import app from "./app.js";
 import { startMonthlyInvoiceScheduler } from "./services/invoice.service.js";
 
@@ -11,7 +11,7 @@ const resolvePort = () => {
 
     if (!/^\d+$/.test(configuredPort)) {
         throw new Error(
-            "PORT must be an integer between 0 and 65535"
+            "PORT phải là số nguyên từ 0 đến 65535"
         );
     }
 
@@ -19,7 +19,7 @@ const resolvePort = () => {
 
     if (!Number.isInteger(port) || port > 65_535) {
         throw new Error(
-            "PORT must be an integer between 0 and 65535"
+            "PORT phải là số nguyên từ 0 đến 65535"
         );
     }
 
@@ -32,7 +32,7 @@ export const startServer = (
     const port = resolvePort();
     const server = app.listen(port, () => {
         startScheduler();
-        console.log(`Server is running at http://localhost:${port}`);
+        console.log(`Server đang chạy tại http://localhost:${port}`);
     });
 
     return server;
@@ -41,3 +41,4 @@ export const startServer = (
 if (process.env.NODE_ENV !== "test") {
     startServer();
 }
+

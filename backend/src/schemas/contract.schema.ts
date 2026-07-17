@@ -1,15 +1,17 @@
-import { ContractStatus } from "@prisma/client";
+﻿import { ContractStatus } from "@prisma/client";
 import { z } from "zod";
 import {
     isPositiveDecimal12_2Amount
 } from "../utils/money.js";
-
-const emptyObjectSchema = z.object({}).strict();
-const optionalEmptyBodySchema = emptyObjectSchema.default({});
-const positiveIdSchema = z.coerce.number().int().positive();
+import {
+    emptyObjectSchema,
+    idParamsSchema,
+    optionalEmptyBodySchema,
+    positiveIdSchema
+} from "./common.schema.js";
 const positiveAmountSchema = z.number().finite().refine(
     isPositiveDecimal12_2Amount,
-    "amount must be positive, fit Decimal(12,2), and use at most two decimal places"
+    "Số tiền phải là số dương, nằm trong Decimal(12,2) và có tối đa 2 chữ số thập phân"
 );
 
 const isCalendarDate = (
@@ -75,7 +77,7 @@ const strictDateSchema = z.string().trim().transform(
         if (!date) {
             context.addIssue({
                 code: "custom",
-                message: "Invalid date"
+                message: "Ngày không hợp lệ"
             });
             return z.NEVER;
         }
@@ -99,7 +101,7 @@ const contractBodySchema = z.object({
         context.addIssue({
             code: "custom",
             path: ["end_date"],
-            message: "end_date must be later than start_date"
+            message: "Ngày kết thúc phải sau ngày bắt đầu"
         });
     }
 });
@@ -125,17 +127,13 @@ export const listContractsRequestSchema = z.object({
 }).strict();
 
 export const contractIdRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: optionalEmptyBodySchema
 }).strict();
 
 export const extendContractRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: z.object({
         new_end_date: strictDateSchema
@@ -143,9 +141,7 @@ export const extendContractRequestSchema = z.object({
 }).strict();
 
 export const endContractRequestSchema = z.object({
-    params: z.object({
-        id: positiveIdSchema
-    }).strict(),
+    params: idParamsSchema,
     query: emptyObjectSchema,
     body: z.object({
         end_date: strictDateSchema.optional()
@@ -167,3 +163,4 @@ export type ExtendContractRequest = z.infer<
 export type EndContractRequest = z.infer<
     typeof endContractRequestSchema
 >;
+

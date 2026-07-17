@@ -10,7 +10,6 @@ import {
   Zap,
   Bell,
   UserCog,
-  Settings,
   Briefcase,
   User,
   ClipboardList,

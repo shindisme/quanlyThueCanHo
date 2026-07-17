@@ -149,6 +149,19 @@ const runSerializableTransaction = async <T>(
     throw new Error("Serializable transaction retry exhausted");
 };
 
+const getManagerApartmentWhere = (id: number, actor: Actor) => {
+    const {
+        buildingId,
+        assignmentWhere
+    } = getCurrentManagerAssignment(actor);
+
+    return {
+        id,
+        building_id: buildingId,
+        building: assignmentWhere
+    };
+};
+
 export const assertApartmentCreateAccessService = (
     actor: Actor,
     requestedBuildingId?: number
@@ -175,16 +188,8 @@ export const assertApartmentUpdateAccessService = async (
         return;
     }
 
-    const {
-        buildingId,
-        assignmentWhere
-    } = getCurrentManagerAssignment(actor);
     const apartment = await prisma.apartment.findFirst({
-        where: {
-            id,
-            building_id: buildingId,
-            building: assignmentWhere
-        },
+        where: getManagerApartmentWhere(id, actor),
         select: { id: true }
     });
 
@@ -325,15 +330,7 @@ export const updateApartmentService = async (
     };
 
     if (actor.role === Role.MANAGER) {
-        const {
-            buildingId,
-            assignmentWhere
-        } = getCurrentManagerAssignment(actor);
-        where = {
-            id,
-            building_id: buildingId,
-            building: assignmentWhere
-        };
+        where = getManagerApartmentWhere(id, actor);
         updateData = adminData;
     }
 
@@ -373,16 +370,8 @@ export const deleteApartmentService = async (
     actor: Actor
 ) => {
     if (actor.role === Role.MANAGER) {
-        const {
-            buildingId,
-            assignmentWhere
-        } = getCurrentManagerAssignment(actor);
         const result = await prisma.apartment.deleteMany({
-            where: {
-                id,
-                building_id: buildingId,
-                building: assignmentWhere
-            }
+            where: getManagerApartmentWhere(id, actor)
         });
 
         if (result.count === 0) {

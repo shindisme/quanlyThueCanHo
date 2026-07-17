@@ -17,7 +17,10 @@ import {
     createInitialCredential,
     tenantUsername
 } from "./account.service.js";
-import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
+import {
+    getCurrentManagerAssignment,
+    getManagerTenantScope
+} from "../utils/manager-scope.js";
 
 const tenantSelect = {
     id: true,
@@ -95,6 +98,11 @@ const occupantNotFound = () => new AppError(
     "Nhân khẩu không tồn tại"
 );
 
+const occupantDuplicated = () => new AppError(
+    409,
+    "OCCUPANT_DUPLICATED",
+    "Người ở cùng đã được khai báo"
+);
 const requireTenantId = (actor: Actor) => {
     if (actor.tenantId === undefined) {
         throw new AppError(
@@ -145,34 +153,44 @@ const firstAvailableTenantUsername = (
     return `${base}_${suffix}`;
 };
 
-const getManagerTenantScope = (
-    actor: Actor
+
+
+const getTenantWhere = (id: number, actor: Actor) => actor.role === Role.MANAGER
+    ? {
+        ...getManagerTenantScope(actor),
+        id
+    }
+    : { id };
+
+const getMyOccupantWhere = (id: number, tenantId: number) => ({
+    id,
+    tenant_id: tenantId
+});
+
+const ensureOccupantCitizenIdUnique = async (
+    tenantId: number,
+    citizenId: string | undefined,
+    excludeId?: number
 ) => {
-    const {
-        buildingId,
-        assignmentWhere
-    } = getCurrentManagerAssignment(actor);
+    if (citizenId === undefined) {
+        return;
+    }
 
-    return {
-        OR: [
-            {
-                onboarding_building_id: buildingId,
-                onboarding_building: assignmentWhere
-            },
-            {
-                contracts: {
-                    some: {
-                        apartment: {
-                            building_id: buildingId,
-                            building: assignmentWhere
-                        }
-                    }
-                }
-            }
-        ]
-    } satisfies Prisma.TenantWhereInput;
+    const existing = await prisma.occupant.findFirst({
+        where: {
+            tenant_id: tenantId,
+            citizen_id: citizenId,
+            ...(excludeId === undefined
+                ? {}
+                : { id: { not: excludeId } })
+        },
+        select: { id: true }
+    });
+
+    if (existing) {
+        throw occupantDuplicated();
+    }
 };
-
 export const createTenant = async (
     input: CreateTenantRequest["body"],
     actor: Actor
@@ -428,13 +446,10 @@ export const updateTenant = async (
                     })
         }
         : tenantData;
-    const where: Prisma.TenantWhereUniqueInput =
-        actor.role === Role.MANAGER
-            ? {
-                ...getManagerTenantScope(actor),
-                id
-            }
-            : { id };
+    const where: Prisma.TenantWhereUniqueInput = getTenantWhere(
+        id,
+        actor
+    );
 
     return prisma.tenant.update({
         where,
@@ -458,6 +473,10 @@ export const createMyOccupant = async (
     actor: Actor
 ) => {
     const tenantId = requireTenantId(actor);
+    await ensureOccupantCitizenIdUnique(
+        tenantId,
+        input.citizen_id
+    );
 
     return prisma.occupant.create({
         data: {
@@ -477,11 +496,15 @@ export const updateMyOccupant = async (
     actor: Actor
 ) => {
     const tenantId = requireTenantId(actor);
+    const where = getMyOccupantWhere(id, tenantId);
+    await ensureOccupantCitizenIdUnique(
+        tenantId,
+        input.citizen_id,
+        id
+    );
+
     const result = await prisma.occupant.updateMany({
-        where: {
-            id,
-            tenant_id: tenantId
-        },
+        where,
         data: input
     });
 
@@ -490,10 +513,7 @@ export const updateMyOccupant = async (
     }
 
     const occupant = await prisma.occupant.findFirst({
-        where: {
-            id,
-            tenant_id: tenantId
-        },
+        where,
         select: occupantSelect
     });
 
@@ -510,10 +530,7 @@ export const deleteMyOccupant = async (
 ) => {
     const tenantId = requireTenantId(actor);
     const result = await prisma.occupant.deleteMany({
-        where: {
-            id,
-            tenant_id: tenantId
-        }
+        where: getMyOccupantWhere(id, tenantId)
     });
 
     if (result.count === 0) {
@@ -527,13 +544,10 @@ export const deleteTenant = async (
     id: number,
     actor: Actor
 ) => prisma.$transaction(async (transaction) => {
-    const where: Prisma.TenantWhereUniqueInput =
-        actor.role === Role.MANAGER
-            ? {
-                ...getManagerTenantScope(actor),
-                id
-            }
-            : { id };
+    const where: Prisma.TenantWhereUniqueInput = getTenantWhere(
+        id,
+        actor
+    );
     const tenant = await transaction.tenant.delete({
         where,
         select: { user_id: true }

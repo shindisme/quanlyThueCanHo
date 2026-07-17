@@ -1,4 +1,4 @@
-import {
+﻿import {
     Prisma,
     Role,
     UserStatus
@@ -17,7 +17,7 @@ const getCurrentAssignment = (
         throw new AppError(
             403,
             "MANAGER_BUILDING_REQUIRED",
-            "A current building assignment is required"
+            "Quản lý cần được phân công tòa nhà hiện tại"
         );
     }
 
@@ -50,5 +50,41 @@ const getCurrentAssignment = (
 export const getCurrentManagerAssignment = (actor: Actor) =>
     getCurrentAssignment(actor, Role.MANAGER);
 
+export const getManagerApartmentScope = (actor: Actor) => {
+    const assignment = getCurrentManagerAssignment(actor);
+
+    return {
+        building_id: assignment.buildingId,
+        building: assignment.assignmentWhere
+    } satisfies Prisma.ApartmentWhereInput;
+};
+
+export const getManagerTenantScope = (actor: Actor) => {
+    const {
+        buildingId,
+        assignmentWhere
+    } = getCurrentManagerAssignment(actor);
+
+    return {
+        OR: [
+            {
+                onboarding_building_id: buildingId,
+                onboarding_building: assignmentWhere
+            },
+            {
+                contracts: {
+                    some: {
+                        apartment: {
+                            building_id: buildingId,
+                            building: assignmentWhere
+                        }
+                    }
+                }
+            }
+        ]
+    } satisfies Prisma.TenantWhereInput;
+};
+
 export const getCurrentStaffAssignment = (actor: Actor) =>
     getCurrentAssignment(actor, Role.STAFF);
+

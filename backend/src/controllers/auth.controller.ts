@@ -20,7 +20,7 @@ const getActor = (request: Request): Actor => {
         throw new AppError(
             401,
             "AUTHENTICATION_REQUIRED",
-            "Authentication is required"
+            "Yêu cầu đăng nhập"
         );
     }
 
@@ -45,6 +45,11 @@ export const login = async (request: Request, response: Response) => {
     return sendSuccess(response, result);
 };
 
+export const logout = async (request: Request, response: Response) => {
+    const result = await authService.logoutService(getActor(request));
+
+    return sendSuccess(response, result);
+};
 export const deleteUser = async (request: Request, response: Response) => {
     const { id } = getValidated<UserIdRequest>(request).params;
     await authService.deleteUserService(getActor(request), id);

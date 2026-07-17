@@ -1,8 +1,9 @@
 import { z } from "zod";
-
-const emptyObjectSchema = z.object({}).strict();
-const optionalEmptyBodySchema = emptyObjectSchema.default({});
-const queryIdSchema = z.coerce.number().int().positive();
+import {
+    emptyObjectSchema,
+    optionalEmptyBodySchema,
+    positiveIdSchema as queryIdSchema
+} from "./common.schema.js";
 
 export const listApartmentReviewsRequestSchema = z.object({
     params: z.object({
