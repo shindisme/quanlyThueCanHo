@@ -26,7 +26,7 @@ interface UseContractCreateOptions {
 
 export function useContractCreate({
   isOpen,
-  onClose,
+  onClose: _onClose,
   onSuccess,
   currentUser: _currentUser,
   role,
@@ -177,7 +177,6 @@ export function useContractCreate({
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APARTMENTS });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TENANTS });
       toast.success("Tạo hợp đồng thành công!");
-      onClose();
       onSuccess();
     },
     onError: (error: unknown) => {

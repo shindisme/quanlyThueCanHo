@@ -187,7 +187,6 @@ export function useDashboardAdmin() {
     expiring60DaysCount,
     expiring90DaysCount,
     branchOptions,
-    currentYear,
-    buildings
+    currentYear
   };
 }

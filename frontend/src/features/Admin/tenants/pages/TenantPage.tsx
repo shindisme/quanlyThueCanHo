@@ -349,7 +349,7 @@ export default function TenantPage() {
           if (newTenantId) {
             const basePath = role === "ADMIN" ? "/admin" : "/manager";
             navigate(`${basePath}/contracts`, {
-              state: { openCreateModal: true, tenantId: newTenantId },
+              state: { openCreateModal: true, tenantId: newTenantId, isNewTenant: true },
             });
           }
         }}

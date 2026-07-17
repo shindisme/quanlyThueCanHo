@@ -1,4 +1,4 @@
-﻿import {
+import {
     Prisma,
     Role
 } from "@prisma/client";
@@ -201,7 +201,7 @@ const getNotificationScope = (
         };
     }
 
-    if (actor.role === Role.TENANT) {
+    if (actor.role === Role.TENANT || actor.role === Role.STAFF) {
         return {
             user_id: actor.userId
         };

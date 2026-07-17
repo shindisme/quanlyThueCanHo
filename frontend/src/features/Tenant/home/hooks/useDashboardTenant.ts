@@ -79,13 +79,16 @@ export function useDashboardTenant() {
     select: (res) => res.data,
   });
 
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
   const activeContract = contracts
-    ? contracts.find((c: any) => c.status === "ACTIVE")
+    ? contracts.find((c: any) => c.status === "ACTIVE" || new Date(c.end_date) >= todayStart)
     : null;
 
   const endedContract = contracts
     ? contracts
-      .filter((c: any) => c.status === "ENDED")
+      .filter((c: any) => c.status === "ENDED" && new Date(c.end_date) < todayStart)
       .sort((a: any, b: any) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime())[0]
     : null;
 
@@ -115,13 +118,13 @@ export function useDashboardTenant() {
   const [comment, setComment] = useState("");
 
   useEffect(() => {
-    if (endedContract) {
+    if (endedContract && !activeContract) {
       const alreadyDealtWith = localStorage.getItem("has_ignored_review_contract_" + endedContract.id);
       if (!alreadyDealtWith) {
         setReviewModalOpen(true);
       }
     }
-  }, [endedContract]);
+  }, [endedContract, activeContract]);
 
   const reviewMutation = useMutation({
     mutationFn: (data: { apartment_id: number; rating: number; comment: string }) => createReview(data),

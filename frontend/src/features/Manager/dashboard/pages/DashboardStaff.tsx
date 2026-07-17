@@ -1,11 +1,15 @@
+import { useState } from "react";
 import {
-  Home, Users, Wrench, CalendarDays, Clock, AlertCircle
+  Home, Users, Wrench, CalendarDays, Clock, AlertCircle, CheckCircle, XCircle, Play
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer
 } from "recharts";
 import { useDashboardStaff } from "../hooks/useDashboardStaff";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
+import Modal from "../../../../components/ui/Modal";
+import Button from "../../../../components/ui/Button";
+import { toast } from "sonner";
 
 function StatCard({ icon: Icon, label, value, iconColor, iconBg }: {
   icon: React.ComponentType<{ size?: number; className?: string }>;
@@ -60,8 +64,17 @@ export default function DashboardStaff() {
     contracts,
     schedules,
     maintenanceRequests,
-    isLoading
+    isLoading,
+    currentStaff,
+    role,
+    startMutation,
+    completeMutation,
+    unableMutation,
   } = useDashboardStaff();
+
+  const [statusTab, setStatusTab] = useState<string>("ALL");
+  const [reportRequest, setReportRequest] = useState<any | null>(null);
+  const [reportReason, setReportReason] = useState<string>("");
 
   const today = new Date().toLocaleDateString("vi-VN", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
@@ -105,12 +118,12 @@ export default function DashboardStaff() {
 
   // Pending maintenance requests
   const pendingMaintenanceRequests = maintenanceRequests.filter(
-    (r) => r.status === "PENDING" || r.status === "PROCESSING" || r.status === "NEEDS_RESCHEDULE"
+    (r: any) => r.status === "PENDING" || r.status === "PROCESSING" || r.status === "NEEDS_RESCHEDULE"
   ).length;
 
   // Processing maintenance requests
   const processingMaintenanceRequests = maintenanceRequests.filter(
-    (r) => r.status === "PROCESSING"
+    (r: any) => r.status === "PROCESSING"
   ).length;
 
   const apartmentStatus = [
@@ -130,6 +143,270 @@ export default function DashboardStaff() {
     return (
       <div className="flex items-center justify-center h-64">
         <LoadingSpinner size={32} />
+      </div>
+    );
+  }
+
+  const isTechnician = role === "STAFF" || currentStaff?.position === "Kỹ thuật";
+
+  if (isTechnician) {
+    const myTasks = role === "STAFF"
+      ? maintenanceRequests
+      : maintenanceRequests.filter(
+          (r: any) => r.assigned_staff_id === currentStaff?.id || r.assigned_staff?.id === currentStaff?.id
+        );
+
+    const pendingMyTasks = myTasks.filter((r: any) => r.status === "PENDING").length;
+    const processingMyTasks = myTasks.filter((r: any) => r.status === "PROCESSING").length;
+    const doneMyTasks = myTasks.filter((r: any) => r.status === "DONE").length;
+
+    const filteredMyTasks = myTasks.filter((t: any) => {
+      if (statusTab === "ALL") return t.status !== "CANCELLED";
+      return t.status === statusTab;
+    });
+
+    const getPriorityBadge = (priority: string) => {
+      switch (priority) {
+        case "HIGH":
+          return <span className="text-xs px-2.5 py-0.5 rounded-full bg-red-100 text-red-800 font-semibold border border-red-200">Cao</span>;
+        case "MEDIUM":
+          return <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold border border-amber-200">Trung bình</span>;
+        default:
+          return <span className="text-xs px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-805 font-semibold border border-gray-200">Thấp</span>;
+      }
+    };
+
+    const getStatusBadge = (status: string) => {
+      switch (status) {
+        case "PENDING":
+          return <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold">Chờ xử lý</span>;
+        case "PROCESSING":
+          return <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 font-semibold">Đang xử lý</span>;
+        case "NEEDS_RESCHEDULE":
+          return <span className="text-xs px-2.5 py-0.5 rounded-full bg-red-100 text-red-800 font-semibold border border-red-150">Báo bận / Báo lại</span>;
+        case "DONE":
+          return <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">Hoàn thành</span>;
+        default:
+          return <span className="text-xs px-2.5 py-0.5 rounded-full bg-gray-105 text-gray-700">Đã hủy</span>;
+      }
+    };
+
+    return (
+      <div className="space-y-6 font-sans">
+        <div>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{today}</p>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Xin chào Kỹ thuật viên, <span className="text-primary-600">{displayName}</span>
+          </h1>
+          <p className="text-sm text-gray-500 mt-1">Danh sách phân công sửa chữa & bảo trì sự cố</p>
+        </div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+          <div className="bg-white border border-gray-200 p-5 shadow-lg flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Tổng số công việc</p>
+              <h3 className="text-2xl font-bold text-gray-800 mt-1">{myTasks.length}</h3>
+            </div>
+            <div className="w-12 h-12 bg-purple-50 flex items-center justify-center">
+              <Wrench size={22} className="text-purple-600" />
+            </div>
+          </div>
+          <div className="bg-white border border-gray-200 p-5 shadow-lg flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Chờ xử lý</p>
+              <h3 className="text-2xl font-bold text-amber-600 mt-1">{pendingMyTasks}</h3>
+            </div>
+            <div className="w-12 h-12 bg-amber-50 flex items-center justify-center">
+              <Clock size={22} className="text-amber-600" />
+            </div>
+          </div>
+          <div className="bg-white border border-gray-200 p-5 shadow-lg flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Đang tiến hành</p>
+              <h3 className="text-2xl font-bold text-blue-600 mt-1">{processingMyTasks}</h3>
+            </div>
+            <div className="w-12 h-12 bg-blue-50 flex items-center justify-center">
+              <Play size={22} className="text-blue-600" />
+            </div>
+          </div>
+          <div className="bg-white border border-gray-200 p-5 shadow-lg flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Đã hoàn thành</p>
+              <h3 className="text-2xl font-bold text-emerald-600 mt-1">{doneMyTasks}</h3>
+            </div>
+            <div className="w-12 h-12 bg-emerald-50 flex items-center justify-center">
+              <CheckCircle size={22} className="text-emerald-600" />
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs & List */}
+        <div className="bg-white border border-gray-200 shadow-lg p-6">
+          <div className="flex border-b border-gray-200 gap-4 mb-6 overflow-x-auto">
+            <button
+              onClick={() => setStatusTab("ALL")}
+              className={`pb-3 text-sm font-semibold border-b-2 px-2 transition-all cursor-pointer ${statusTab === "ALL" ? "border-primary-600 text-primary-600 font-bold" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+            >
+              Tất cả ({myTasks.filter((t: any) => t.status !== "CANCELLED").length})
+            </button>
+            <button
+              onClick={() => setStatusTab("PENDING")}
+              className={`pb-3 text-sm font-semibold border-b-2 px-2 transition-all cursor-pointer ${statusTab === "PENDING" ? "border-amber-500 text-amber-500 font-bold" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+            >
+              Chờ xử lý ({pendingMyTasks})
+            </button>
+            <button
+              onClick={() => setStatusTab("PROCESSING")}
+              className={`pb-3 text-sm font-semibold border-b-2 px-2 transition-all cursor-pointer ${statusTab === "PROCESSING" ? "border-blue-500 text-blue-500 font-bold" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+            >
+              Đang sửa ({processingMyTasks})
+            </button>
+            <button
+              onClick={() => setStatusTab("NEEDS_RESCHEDULE")}
+              className={`pb-3 text-sm font-semibold border-b-2 px-2 transition-all cursor-pointer ${statusTab === "NEEDS_RESCHEDULE" ? "border-red-500 text-red-500 font-bold" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+            >
+              Báo bận / Báo lại ({myTasks.filter((t: any) => t.status === "NEEDS_RESCHEDULE").length})
+            </button>
+            <button
+              onClick={() => setStatusTab("DONE")}
+              className={`pb-3 text-sm font-semibold border-b-2 px-2 transition-all cursor-pointer ${statusTab === "DONE" ? "border-emerald-500 text-emerald-500 font-bold" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+            >
+              Hoàn thành ({doneMyTasks})
+            </button>
+          </div>
+
+          {filteredMyTasks.length === 0 ? (
+            <div className="text-center py-16 text-gray-400 text-sm">
+              Không có công việc nào thuộc danh mục này.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredMyTasks.map((task: any) => {
+                const roomStr = task.apartment ? `P.${task.apartment.room_number} (Tầng ${task.apartment.floor})` : `Phòng #${task.apartment_id}`;
+                const buildingName = task.apartment?.building?.branch_name || "Chi nhánh hiện tại";
+                const isMutating = completeMutation.isPending || unableMutation.isPending || startMutation.isPending;
+
+                return (
+                  <div key={task.id} className="border border-gray-150 p-5 hover:border-gray-300 transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-50/20">
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        <span className="font-bold text-gray-800 text-base">{roomStr}</span>
+                        <span className="text-[10px] text-gray-400 bg-gray-100 px-2 py-0.5 font-semibold">{buildingName}</span>
+                        {getPriorityBadge(task.priority)}
+                        {getStatusBadge(task.status)}
+                      </div>
+                      <h4 className="font-bold text-gray-700 text-sm">{task.title}</h4>
+                      <p className="text-xs text-gray-500 leading-relaxed max-w-2xl">{task.description}</p>
+                      {task.scheduled_at && (
+                        <p className="text-[11px] text-gray-500 font-medium">
+                          Thời gian hẹn: <span className="text-primary-600 font-semibold">{new Date(task.scheduled_at).toLocaleString("vi-VN")}</span>
+                        </p>
+                      )}
+                      {task.unable_reason && (
+                        <p className="text-[11px] text-red-600 bg-red-50 p-2 border border-red-150 font-medium">
+                          Báo cáo lý do không sửa được: <span className="font-semibold">{task.unable_reason}</span>
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
+                      {task.status === "PENDING" && (
+                        <Button
+                          size="sm"
+                          isLoading={isMutating}
+                          onClick={() => {
+                            const staffId = currentStaff?.id || task.assigned_staff_id || task.assigned_staff?.id;
+                            if (staffId) {
+                              startMutation.mutate({ id: task.id, staffId });
+                            } else {
+                              toast.error("Không tìm thấy thông tin nhân viên kỹ thuật để bắt đầu!");
+                            }
+                          }}
+                          className="flex items-center gap-1 bg-blue-600 text-white hover:bg-blue-700"
+                        >
+                          <Play size={12} /> Bắt đầu sửa
+                        </Button>
+                      )}
+                      {(task.status === "PROCESSING" || task.status === "NEEDS_RESCHEDULE") && (
+                        <>
+                          <Button
+                            size="sm"
+                            isLoading={isMutating}
+                            onClick={() => {
+                              setReportRequest(task);
+                              setReportReason("");
+                            }}
+                            className="flex items-center gap-1 bg-red-50 text-red-750 border border-red-200 hover:bg-red-200"
+                          >
+                            <XCircle size={12} /> Báo không sửa được
+                          </Button>
+                          <Button
+                            size="sm"
+                            isLoading={isMutating}
+                            onClick={() => completeMutation.mutate(task.id)}
+                            className="flex items-center gap-1 bg-emerald-600 text-white hover:bg-emerald-700"
+                          >
+                            <CheckCircle size={12} /> Hoàn thành
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Modal báo cáo sự cố không sửa được */}
+        <Modal
+          isOpen={reportRequest !== null}
+          onClose={() => setReportRequest(null)}
+          title="Báo cáo lý do sự cố không thể khắc phục"
+          footer={
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setReportRequest(null)}>Hủy bỏ</Button>
+              <Button
+                isLoading={unableMutation.isPending}
+                disabled={!reportReason.trim()}
+                onClick={() => {
+                  if (reportRequest) {
+                    unableMutation.mutate(
+                      { id: reportRequest.id, reason: reportReason.trim() },
+                      {
+                        onSuccess: () => {
+                          setReportRequest(null);
+                        }
+                      }
+                    );
+                  }
+                }}
+              >
+                Gửi báo cáo
+              </Button>
+            </div>
+          }
+        >
+          {reportRequest && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs font-semibold text-gray-450">Căn hộ: P.{reportRequest.apartment?.room_number}</p>
+                <h4 className="font-bold text-gray-800 mt-1">{reportRequest.title}</h4>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-700">Lý do sự cố chưa sửa được *</label>
+                <textarea
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  placeholder="Ví dụ: Cần mua thiết bị cảm biến thay thế; Cần gọi đơn vị ngoài trợ giúp; Khách hàng vắng nhà liên tục..."
+                  className="w-full text-sm border border-gray-200 rounded-none p-3 h-24 focus:outline-none focus:border-primary-500 font-sans"
+                  required
+                />
+              </div>
+            </div>
+          )}
+        </Modal>
       </div>
     );
   }
@@ -182,7 +459,7 @@ export default function DashboardStaff() {
           >
             {(() => {
               const unresolvedRequests = maintenanceRequests
-                .filter(r => r.status === "PENDING" || r.status === "PROCESSING" || r.status === "NEEDS_RESCHEDULE")
+                .filter((r: any) => r.status === "PENDING" || r.status === "PROCESSING" || r.status === "NEEDS_RESCHEDULE")
                 .slice(0, 5);
 
               if (unresolvedRequests.length === 0) {
@@ -205,7 +482,7 @@ export default function DashboardStaff() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-150">
-                      {unresolvedRequests.map((req) => {
+                      {unresolvedRequests.map((req: any) => {
                         const aptLabel = req.apartment ? `P.${req.apartment.room_number}` : `Căn hộ #${req.apartment_id}`;
                         const priorityLabel = req.priority === "HIGH" ? "Cao" : req.priority === "MEDIUM" ? "Trung bình" : "Thấp";
                         const priorityColor = req.priority === "HIGH" ? "text-red-600 bg-red-50 border border-red-200" : req.priority === "MEDIUM" ? "text-amber-600 bg-amber-50 border border-amber-200" : "text-gray-650 bg-gray-50 border border-gray-200";

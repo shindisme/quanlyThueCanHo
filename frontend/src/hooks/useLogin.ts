@@ -66,7 +66,7 @@ export function useLogin() {
       let managedBuildingId: number | null = null
       let managedBuildingName: string | null = null
 
-      if ((result.role === "MANAGER" || result.role === "STAFF") && userId) {
+      if (result.role === "MANAGER" && userId) {
         try {
           const { getAllStaffs } = await import("../services/staffService")
           const { getAllBuildings } = await import("../services/buildingService")

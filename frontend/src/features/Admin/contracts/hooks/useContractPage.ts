@@ -28,6 +28,7 @@ interface LocationState {
   buildingId?: string | number;
   floor?: string | number;
   search?: string;
+  isNewTenant?: boolean;
 }
 
 export function useContractPage() {
@@ -92,13 +93,15 @@ export function useContractPage() {
   const [showConfirmCancelModal, setShowConfirmCancelModal] = useState(false);
 
   useEffect(() => {
-    if (location.state) {
+    if (location.state && Object.keys(location.state).length > 0) {
       const stateObj = location.state as LocationState;
       if (stateObj.openCreateModal) {
         setTimeout(() => {
           if (stateObj.tenantId) {
             setInitialTenantId(Number(stateObj.tenantId));
-            setIsNewTenantFromNavigation(true);
+            if (stateObj.isNewTenant) {
+              setIsNewTenantFromNavigation(true);
+            }
           }
           if (stateObj.apartmentId) {
             setInitialApartmentId(Number(stateObj.apartmentId));

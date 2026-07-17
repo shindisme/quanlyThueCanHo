@@ -75,9 +75,17 @@ function ChartCard({ title, subtitle, children, action }: {
 
 export default function DashboardManager() {
   const { role } = useAuthStore();
+
   if (role === "STAFF") {
     return <DashboardStaff />;
   }
+
+  return <ManagerDashboardView />;
+}
+
+function ManagerDashboardView() {
+  const dashboardData = useDashboardManager();
+  const [timeFrame, setTimeFrame] = useState<"month" | "year">("month");
 
   const {
     displayName,
@@ -89,10 +97,7 @@ export default function DashboardManager() {
     invoices,
     maintenanceRequests,
     isLoading
-  } = useDashboardManager();
-
-
-  const [timeFrame, setTimeFrame] = useState<"month" | "year">("month");
+  } = dashboardData;
 
   function formatCurrency(amount: number) {
     if (amount >= 1000000) return (amount / 1000000).toFixed(0) + " tr";
@@ -118,24 +123,18 @@ export default function DashboardManager() {
   const availableCount = availableApts.length;
   const maintenanceCount = maintenanceApts.length;
 
-
-
-  // Filter active contracts
   const buildingContracts = contracts.filter((c: any) => {
     const isRoomInBuilding = buildingApartments.some((a: any) => a.id === c.apartment_id);
     return c.status === "ACTIVE" && isRoomInBuilding;
   });
 
-  // Unique tenants in building
   const buildingTenantIds = new Set(buildingContracts.map((c: any) => c.tenant_id));
   const activeTenantsCount = managedBuildingId ? buildingTenantIds.size : tenants.length;
 
-  // Filter invoices for building
   const filteredInvoices = managedBuildingId
     ? invoices.filter((inv: any) => inv.contract?.apartment?.building_id === managedBuildingId)
     : invoices;
 
-  // Monthly actual revenue: sum of total_amount of paid invoices in the current month
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
@@ -147,7 +146,6 @@ export default function DashboardManager() {
 
   const monthlyRevenue = currentMonthPaidInvoices.reduce((sum: number, inv: any) => sum + Number(inv.total_amount), 0);
 
-  // Expiring contracts within next 30 days
   const now = new Date();
   const thirtyDaysLater = new Date();
   thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
@@ -156,23 +154,15 @@ export default function DashboardManager() {
     return endDate >= now && endDate <= thirtyDaysLater;
   }).length;
 
-  // Pending schedules in manager's building
   const pendingSchedulesCount = schedules.filter((s: any) => {
     const matchesBuilding = !managedBuildingId || s.apartment?.building_id === managedBuildingId;
     return s.status === "PENDING" && matchesBuilding;
   }).length;
 
-  // Pending maintenance requests
   const pendingMaintenanceRequests = maintenanceRequests.filter(
     (r) => r.status === "PENDING" || r.status === "PROCESSING" || r.status === "NEEDS_RESCHEDULE"
   ).length;
 
-  // Processing maintenance requests
-  const processingMaintenanceRequests = maintenanceRequests.filter(
-    (r) => r.status === "PROCESSING"
-  ).length;
-
-  // Revenue chart data: Switch between Monthly and Yearly based on timeFrame
   const months = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
   const monthlyRevenueData = months.map((m, index) => {
     const monthVal = index + 1;

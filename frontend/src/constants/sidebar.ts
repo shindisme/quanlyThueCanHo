@@ -14,6 +14,7 @@ import {
   User,
   ClipboardList,
   CreditCard,
+  Settings,
 } from "lucide-react";
 import type { Role } from "./enums";
 

@@ -36,7 +36,7 @@ export async function getAll(params?: BuildingQuery): Promise<{ data: BuildingDa
   const pagination = res.data.meta?.pagination || res.data.pagination || { total: rawData.length, page: 1, limit: 10, totalPages: 1 };
 
   const role = getRole();
-  const staffListRes = role === "TENANT"
+  const staffListRes = (role === "TENANT" || role === "STAFF")
     ? { data: [] }
     : await getAllStaffs().catch(() => ({ data: [] }));
   const staffList = staffListRes.data || [];
@@ -60,7 +60,7 @@ export async function getById(id: number): Promise<BuildingData> {
   const b = res.data.data;
 
   const role = getRole();
-  const staffListRes = role === "TENANT"
+  const staffListRes = (role === "TENANT" || role === "STAFF")
     ? { data: [] }
     : await getAllStaffs({ building_id: id }).catch(() => ({ data: [] }));
   const staff = staffListRes.data.find(

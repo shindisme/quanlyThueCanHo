@@ -21,6 +21,7 @@ const router = Router();
 const readRoles = [
     Role.ADMIN,
     Role.MANAGER,
+    Role.STAFF,
     Role.TENANT
 ];
 const manageRoles = [

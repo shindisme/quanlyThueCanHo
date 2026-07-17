@@ -17,7 +17,7 @@ export function useSystemPrefetch(role: string | null) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!role) return;
+    if (!role || role === "STAFF" || role === "TENANT") return;
 
     const prefetchData = async () => {
       try {

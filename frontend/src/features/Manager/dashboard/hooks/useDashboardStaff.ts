@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../../../../stores/auth.store";
 import * as apartmentService from "../../../../services/apartmentService";
 import * as tenantService from "../../../../services/tenantService";
@@ -8,6 +8,7 @@ import * as scheduleService from "../../../../services/scheduleService";
 import * as staffService from "../../../../services/staffService";
 import * as buildingService from "../../../../services/buildingService";
 import * as maintenanceService from "../../../../services/maintenanceService";
+import { toast } from "sonner";
 
 function parseJwt(token: string) {
   try {
@@ -36,24 +37,38 @@ export function useDashboardStaff() {
   const { data: staffRes, isLoading: loadingStaff } = useQuery({
     queryKey: ["staff"],
     queryFn: () => staffService.getAllStaffs(),
-    enabled: !!userId,
+    enabled: !!userId && !!role && role !== "STAFF",
   });
-  const currentStaff = userId && staffRes?.data
-    ? staffRes.data.find((s: any) => s.user_id === userId)
-    : null;
+
+  // Query maintenance
+  const { data: maintenanceData, isLoading: loadingMaintenance } = useQuery({
+    queryKey: ["maintenanceRequests", managedBuildingId],
+    queryFn: () => maintenanceService.getAllMaintenanceRequests({
+      building_id: managedBuildingId || undefined,
+      limit: 100
+    }),
+  });
+
+  const maintenanceRequests = maintenanceData?.data || [];
+
+  const currentStaff = role === "STAFF"
+    ? (maintenanceRequests.length > 0 ? (maintenanceRequests[0] as any).assigned_staff : null)
+    : (userId && staffRes?.data ? staffRes.data.find((s: any) => s.user_id === userId) : null);
 
   const displayName = currentStaff?.full_name || email?.split("@")[0] || "Nhân viên";
+
+  const activeBuildingId = managedBuildingId || currentStaff?.building_id || undefined;
 
   // Query buildings if staff has building_id
   const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
     queryFn: () => buildingService.getAllBuildingsPage(),
-    enabled: !!currentStaff?.building_id && (!managedBuildingId || !managedBuildingName),
+    enabled: !!role && role !== "STAFF" && !!currentStaff?.building_id && (!managedBuildingId || !managedBuildingName),
     select: (res) => res.data,
   });
 
   useEffect(() => {
-    if (currentStaff && currentStaff.building_id && (!managedBuildingId || !managedBuildingName)) {
+    if (role !== "STAFF" && currentStaff && currentStaff.building_id && (!managedBuildingId || !managedBuildingName)) {
       const currentBld = buildings.find((b: any) => b.id === currentStaff.building_id);
       if (currentBld && role && email) {
         setAuth(token, role, email, currentStaff.building_id, currentBld.branch_name);
@@ -61,19 +76,19 @@ export function useDashboardStaff() {
     }
   }, [currentStaff, buildings, managedBuildingId, managedBuildingName, role, email, token, setAuth]);
 
-  const activeBuildingId = managedBuildingId || currentStaff?.building_id || undefined;
-
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments", activeBuildingId],
     queryFn: () => apartmentService.getAllApartmentsPage({
       building_id: activeBuildingId || undefined
     }),
+    enabled: !!role && role !== "STAFF",
     select: (res) => res.data,
   });
 
   const { data: tenants = [], isLoading: loadingTenants } = useQuery({
     queryKey: ["tenants"],
     queryFn: () => tenantService.getAllTenantsPage(),
+    enabled: !!role && role !== "STAFF",
     select: (res) => res.data,
   });
 
@@ -82,25 +97,60 @@ export function useDashboardStaff() {
     queryFn: () => contractService.getAllContractsPage({
       buildingId: activeBuildingId || undefined
     }),
+    enabled: !!role && role !== "STAFF",
     select: (res) => res.data,
   });
 
   const { data: schedules = [], isLoading: loadingSchedules } = useQuery({
     queryKey: ["schedules"],
     queryFn: () => scheduleService.getAllSchedulesPage(),
+    enabled: !!role && role !== "STAFF",
     select: (res) => res.data,
   });
 
-  const { data: maintenanceData, isLoading: loadingMaintenance } = useQuery({
-    queryKey: ["maintenanceRequests", activeBuildingId],
-    queryFn: () => maintenanceService.getAllMaintenanceRequests({
-      building_id: activeBuildingId || undefined,
-      limit: 100
-    }),
-  });
-  const maintenanceRequests = maintenanceData?.data || [];
+  const isLoading = role === "STAFF"
+    ? loadingMaintenance
+    : (loadingStaff || loadingApartments || loadingTenants || loadingContracts || loadingSchedules || loadingMaintenance);
 
-  const isLoading = loadingStaff || loadingApartments || loadingTenants || loadingContracts || loadingSchedules || loadingMaintenance;
+  const queryClient = useQueryClient();
+
+  const startMutation = useMutation({
+    mutationFn: ({ id, staffId }: { id: number; staffId: number }) =>
+      maintenanceService.confirmMaintenanceRequest(id, {
+        assigned_staff_id: staffId,
+        scheduled_at: new Date().toISOString(),
+      }),
+    onSuccess: () => {
+      toast.success("Đã bắt đầu xử lý sự cố");
+      queryClient.invalidateQueries({ queryKey: ["maintenanceRequests"] });
+    },
+    onError: () => {
+      toast.error("Không thể cập nhật trạng thái");
+    },
+  });
+
+  const completeMutation = useMutation({
+    mutationFn: (id: number) => maintenanceService.completeMaintenanceRequest(id),
+    onSuccess: () => {
+      toast.success("Đã hoàn thành sửa chữa sự cố");
+      queryClient.invalidateQueries({ queryKey: ["maintenanceRequests"] });
+    },
+    onError: () => {
+      toast.error("Không thể cập nhật trạng thái");
+    },
+  });
+
+  const unableMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+      maintenanceService.unableMaintenanceRequest(id, { reason }),
+    onSuccess: () => {
+      toast.success("Đã báo cáo không thể sửa chữa thành công");
+      queryClient.invalidateQueries({ queryKey: ["maintenanceRequests"] });
+    },
+    onError: () => {
+      toast.error("Không thể gửi báo cáo");
+    },
+  });
 
   return {
     displayName,
@@ -111,5 +161,10 @@ export function useDashboardStaff() {
     schedules,
     maintenanceRequests,
     isLoading,
+    currentStaff,
+    role,
+    startMutation,
+    completeMutation,
+    unableMutation,
   };
 }

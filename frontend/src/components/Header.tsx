@@ -92,11 +92,11 @@ export default function Header() {
   const notifRef = useRef<HTMLDivElement | null>(null);
   const notifBtnRef = useRef<HTMLButtonElement | null>(null);
 
-  // Load 5 latest notifications for header popover
   const { data: notifData } = useQuery({
     queryKey: ["header-notifications"],
     queryFn: () => notificationService.getAllNotifications({ limit: 5 }),
     refetchInterval: 30000, // Poll every 30s
+    enabled: !!token && (role === "ADMIN" || role === "MANAGER" || role === "STAFF" || role === "TENANT"),
   });
 
   const headerNotifications = notifData?.data || [];
@@ -143,7 +143,7 @@ export default function Header() {
 
     async function loadUserProfile() {
       try {
-        if (role === "MANAGER" || role === "STAFF") {
+        if (role === "MANAGER") {
           const { getAllStaffs } = await import("../services/staffService");
           const staffRes = await getAllStaffs();
           const currentStaff = staffRes.data.find((s: any) => s.user_id === userId);
@@ -153,13 +153,30 @@ export default function Header() {
               setAccountUsername(currentStaff.user.username);
             }
           }
+        } else if (role === "STAFF") {
+          const storedFullName = email ? localStorage.getItem(`profile-fullname-${email}`) : null;
+          if (storedFullName) {
+            setUserFullName(storedFullName);
+          } else {
+            setUserFullName("Nhân viên Kỹ thuật");
+          }
         } else if (role === "TENANT") {
-          const { getAllContracts } = await import("../services/contractService");
-          const contracts = await getAllContracts();
-          if (contracts && contracts.length > 0) {
-            const currentTenant = contracts[0].tenant;
-            if (currentTenant) {
-              setUserFullName(currentTenant.full_name);
+          try {
+            const { getAllContracts } = await import("../services/contractService");
+            const contracts = await getAllContracts();
+            if (contracts && contracts.length > 0) {
+              const currentTenant = contracts[0].tenant;
+              if (currentTenant) {
+                setUserFullName(currentTenant.full_name);
+              }
+            } else {
+              const storedFullName = email ? localStorage.getItem(`profile-fullname-${email}`) : null;
+              if (storedFullName) setUserFullName(storedFullName);
+            }
+          } catch {
+            const storedFullName = email ? localStorage.getItem(`profile-fullname-${email}`) : null;
+            if (storedFullName) {
+              setUserFullName(storedFullName);
             }
           }
         } else if (role === "ADMIN") {
@@ -186,7 +203,7 @@ export default function Header() {
       return;
     }
     async function fetchManagedBuilding() {
-      if ((role === "MANAGER" || role === "STAFF") && token) {
+      if (role === "MANAGER" && token) {
         try {
           const decoded = parseJwt(token);
           const userId = decoded ? (decoded.userId ? Number(decoded.userId) : (decoded.sub ? Number(decoded.sub) : null)) : null;
