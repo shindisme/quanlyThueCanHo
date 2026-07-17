@@ -33,13 +33,17 @@ export default function Modal({
 }: ModalProps) {
   React.useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = "hidden"
-    } else {
-      document.body.style.overflow = ""
+      const count = Number(document.body.dataset.modalCount || "0") + 1;
+      document.body.dataset.modalCount = String(count);
+      if (count === 1) document.body.style.overflow = "hidden";
     }
     return () => {
-      document.body.style.overflow = ""
-    }
+      if (isOpen) {
+        const count = Math.max(0, Number(document.body.dataset.modalCount || "1") - 1);
+        document.body.dataset.modalCount = String(count);
+        if (count === 0) document.body.style.overflow = "";
+      }
+    };
   }, [isOpen])
 
   React.useEffect(() => {

@@ -76,6 +76,10 @@ export default function DashboardStaff() {
   const [reportRequest, setReportRequest] = useState<any | null>(null);
   const [reportReason, setReportReason] = useState<string>("");
 
+  const [completeRequest, setCompleteRequest] = useState<any | null>(null);
+  const [chargeTenant, setChargeTenant] = useState<boolean>(false);
+  const [repairFee, setRepairFee] = useState<string>("");
+
   const today = new Date().toLocaleDateString("vi-VN", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
@@ -344,7 +348,11 @@ export default function DashboardStaff() {
                           <Button
                             size="sm"
                             isLoading={isMutating}
-                            onClick={() => completeMutation.mutate(task.id)}
+                            onClick={() => {
+                              setCompleteRequest(task);
+                              setChargeTenant(false);
+                              setRepairFee("");
+                            }}
                             className="flex items-center gap-1 bg-emerald-600 text-white hover:bg-emerald-700"
                           >
                             <CheckCircle size={12} /> Hoàn thành
@@ -404,6 +412,99 @@ export default function DashboardStaff() {
                   required
                 />
               </div>
+            </div>
+          )}
+        </Modal>
+
+        {/* Modal hoàn thành sửa chữa */}
+        <Modal
+          isOpen={completeRequest !== null}
+          onClose={() => setCompleteRequest(null)}
+          title="Xác nhận hoàn thành sửa chữa"
+          footer={
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCompleteRequest(null)}>Hủy bỏ</Button>
+              <Button
+                isLoading={completeMutation.isPending}
+                disabled={chargeTenant && (!repairFee || Number(repairFee) <= 0)}
+                onClick={() => {
+                  if (completeRequest) {
+                    completeMutation.mutate(
+                      {
+                        id: completeRequest.id,
+                        charge_tenant: chargeTenant,
+                        repair_fee: chargeTenant ? Number(repairFee) : undefined,
+                      },
+                      {
+                        onSuccess: () => {
+                          setCompleteRequest(null);
+                        },
+                      }
+                    );
+                  }
+                }}
+              >
+                Hoàn thành
+              </Button>
+            </div>
+          }
+        >
+          {completeRequest && (
+            <div className="space-y-4 font-sans">
+              <div>
+                <p className="text-xs font-semibold text-gray-450">Căn hộ: P.{completeRequest.apartment?.room_number}</p>
+                <h4 className="font-bold text-gray-800 mt-1">{completeRequest.title}</h4>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-gray-700 block">Hình thức thanh toán chi phí</label>
+                <div className="grid grid-cols-1 gap-2.5">
+                  <label className="flex items-center gap-2.5 p-3 border border-gray-200 hover:bg-gray-50/50 cursor-pointer transition-all">
+                    <input
+                      type="radio"
+                      name="charge_tenant"
+                      checked={!chargeTenant}
+                      onChange={() => setChargeTenant(false)}
+                      className="text-primary-600 focus:ring-primary-500"
+                    />
+                    <div className="text-xs">
+                      <p className="font-semibold text-gray-800">Bảo trì cơ sở vật chất (Không tốn phí)</p>
+                      <p className="text-gray-500 mt-0.5">Chi phí sửa chữa do ban quản lý / chủ nhà chịu trách nhiệm.</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 p-3 border border-gray-200 hover:bg-gray-50/50 cursor-pointer transition-all">
+                    <input
+                      type="radio"
+                      name="charge_tenant"
+                      checked={chargeTenant}
+                      onChange={() => setChargeTenant(true)}
+                      className="text-primary-600 focus:ring-primary-500"
+                    />
+                    <div className="text-xs">
+                      <p className="font-semibold text-gray-800">Do người thuê gây hư hại (Có tính phí)</p>
+                      <p className="text-gray-500 mt-0.5">Khách thuê chịu trách nhiệm làm hư hại thiết bị. Sẽ tạo hóa đơn thanh toán.</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {chargeTenant && (
+                <div className="space-y-2 animate-fadeIn">
+                  <label className="text-xs font-bold text-gray-700 block">Số tiền phí sửa chữa (VNĐ) *</label>
+                  <input
+                    type="number"
+                    min="1000"
+                    step="1000"
+                    value={repairFee}
+                    onChange={(e) => setRepairFee(e.target.value)}
+                    placeholder="Ví dụ: 150000"
+                    className="w-full text-sm border border-gray-200 rounded-none p-3 focus:outline-none focus:border-primary-500"
+                    required
+                  />
+                  <p className="text-[10px] text-gray-400">Nhập số tiền chính xác cần lập hóa đơn thu tiền của khách thuê.</p>
+                </div>
+              )}
             </div>
           )}
         </Modal>

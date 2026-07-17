@@ -43,11 +43,10 @@ function DropdownMenu({ children, open: externalOpen, onOpenChange }: DropdownMe
     [isControlled, onOpenChange]
   )
 
-  // Close on click outside
   useEffect(() => {
+    if (!open) return;
     function handleClickOutside(event: MouseEvent) {
       if (
-        open &&
         triggerRef.current &&
         !triggerRef.current.contains(event.target as Node) &&
         contentRef.current &&

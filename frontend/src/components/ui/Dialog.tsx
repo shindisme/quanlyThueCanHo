@@ -42,13 +42,17 @@ function Dialog({ children, open: externalOpen, onOpenChange }: DialogProps) {
 
   useEffect(() => {
     if (open) {
-      document.body.style.overflow = "hidden"
-    } else {
-      document.body.style.overflow = ""
+      const count = Number(document.body.dataset.modalCount || "0") + 1;
+      document.body.dataset.modalCount = String(count);
+      if (count === 1) document.body.style.overflow = "hidden";
     }
     return () => {
-      document.body.style.overflow = ""
-    }
+      if (open) {
+        const count = Math.max(0, Number(document.body.dataset.modalCount || "1") - 1);
+        document.body.dataset.modalCount = String(count);
+        if (count === 0) document.body.style.overflow = "";
+      }
+    };
   }, [open])
 
   return (

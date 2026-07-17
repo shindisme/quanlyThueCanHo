@@ -37,8 +37,8 @@ export async function unable(id: number, data: UnableMaintenanceRequestPayload):
   return res.data.data;
 }
 
-export async function complete(id: number): Promise<MaintenanceRequest> {
-  const res = await api.put<{ data: MaintenanceRequest }>(`${MAINTENANCE_API}/${id}/complete`);
+export async function complete(id: number, data?: { charge_tenant: boolean; repair_fee?: number }): Promise<MaintenanceRequest> {
+  const res = await api.put<{ data: MaintenanceRequest }>(`${MAINTENANCE_API}/${id}/complete`, data);
   return res.data.data;
 }
 

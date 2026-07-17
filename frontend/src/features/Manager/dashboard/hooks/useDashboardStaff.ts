@@ -130,7 +130,8 @@ export function useDashboardStaff() {
   });
 
   const completeMutation = useMutation({
-    mutationFn: (id: number) => maintenanceService.completeMaintenanceRequest(id),
+    mutationFn: ({ id, charge_tenant, repair_fee }: { id: number; charge_tenant: boolean; repair_fee?: number }) =>
+      maintenanceService.completeMaintenanceRequest(id, { charge_tenant, repair_fee }),
     onSuccess: () => {
       toast.success("Đã hoàn thành sửa chữa sự cố");
       queryClient.invalidateQueries({ queryKey: ["maintenanceRequests"] });
