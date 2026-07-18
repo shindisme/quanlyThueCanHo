@@ -169,7 +169,7 @@ export default function UtilityList({
                 >
                   <Pencil size={16} />
                 </button>
-                {r && role !== "STAFF" && (
+                {r && (
                   <button
                     type="button"
                     onClick={() => handleOpenDeleteModal(r)}

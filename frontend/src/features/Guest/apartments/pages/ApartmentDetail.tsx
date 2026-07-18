@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, MapPin, Maximize2, Phone, User, Star, Mail, X, ChevronLeft, ChevronRight, ImageOff } from "lucide-react";
+import { ArrowLeft, MapPin, Maximize2, Phone, User, Star, Mail, X, ChevronLeft, ChevronRight, ImageOff, Layers, BedDouble, Bath, DollarSign } from "lucide-react";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import Card from "../../../../components/ui/Card";
 import Button from "../../../../components/ui/Button";
@@ -255,23 +255,26 @@ export default function GuestApartmentDetail() {
             {/* Thong so */}
             <Card>
               <h3 className="font-semibold text-gray-800 mb-4 font-sans">Thông tin căn hộ</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-3 bg-gray-50 rounded-md">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
                   <Maximize2 size={18} className="text-primary-600 mx-auto mb-1" />
                   <p className="text-sm font-semibold text-gray-800">{apartment.area} m²</p>
                   <p className="text-xs text-gray-400">Diện tích</p>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded-md">
-                  <p className="text-sm font-semibold text-gray-800">Tòa {building?.name.replace(/yuki\s*house\s*|yuki\s*/gi, "")}</p>
-                  <p className="text-xs text-gray-400">Tòa nhà</p>
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                  <Layers size={18} className="text-info-600 mx-auto mb-1" />
+                  <p className="text-sm font-semibold text-gray-800">Tầng {apartment.floor}</p>
+                  <p className="text-xs text-gray-400">Vị trí</p>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded-md">
-                  <p className="text-sm font-semibold text-gray-800">{building?.total_floors} tầng</p>
-                  <p className="text-xs text-gray-400">Tổng tầng</p>
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                  <BedDouble size={18} className="text-purple-600 mx-auto mb-1" />
+                  <p className="text-sm font-semibold text-gray-800">{apartment.bedrooms}</p>
+                  <p className="text-xs text-gray-400">Phòng ngủ</p>
                 </div>
-                <div className="text-center p-3 bg-gray-50 rounded-md">
-                  <p className="text-sm font-semibold text-gray-800">{apartment.status === "AVAILABLE" ? "Sẵn sàng" : "Đang thuê"}</p>
-                  <p className="text-xs text-gray-400">Trạng thái</p>
+                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                  <Bath size={18} className="text-cyan-600 mx-auto mb-1" />
+                  <p className="text-sm font-semibold text-gray-800">{apartment.bathrooms}</p>
+                  <p className="text-xs text-gray-400">Phòng tắm</p>
                 </div>
               </div>
             </Card>

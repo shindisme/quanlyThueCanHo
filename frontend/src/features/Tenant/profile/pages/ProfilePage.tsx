@@ -48,7 +48,8 @@ export default function ProfilePage() {
   const displayName = fullName || email?.split("@")[0] || "User";
   const roleLabel =
     role === "ADMIN" ? "Quản trị viên" :
-      role === "MANAGER" ? "Quản lý" : "Người thuê";
+      role === "MANAGER" ? "Quản lý" :
+        role === "STAFF" ? "Nhân viên" : "Người thuê";
 
   return (
     <div className="space-y-6 max-w-2xl">

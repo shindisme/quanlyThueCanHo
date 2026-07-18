@@ -188,69 +188,77 @@ export default function SchedulePage() {
         }
       />
 
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center font-sans">
-        <Combobox
-          options={[
-            { value: "PENDING", label: "Chờ xác nhận" },
-            { value: "CONFIRMED", label: "Đã xác nhận" },
-            { value: "CANCELLED", label: "Đã hủy" }
-          ]}
-          value={statusFilter}
-          onChange={(val) => {
-            setStatusFilter(val);
-            setCurrentPage(1);
-          }}
-          placeholder="Tất cả trạng thái"
-          searchable={false}
-          className="w-full sm:w-48"
-          triggerClassName="h-10 rounded-xl border-gray-300"
-          clearable={true}
-        />
+      <div className="grid grid-cols-12 gap-3 w-full font-sans">
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
+          <Combobox
+            options={[
+              { value: "PENDING", label: "Chờ xác nhận" },
+              { value: "CONFIRMED", label: "Đã xác nhận" },
+              { value: "CANCELLED", label: "Đã hủy" }
+            ]}
+            value={statusFilter}
+            onChange={(val) => {
+              setStatusFilter(val);
+              setCurrentPage(1);
+            }}
+            placeholder="Tất cả trạng thái"
+            searchable={false}
+            className="w-full"
+            triggerClassName="h-10 rounded-xl border-gray-300"
+            clearable={true}
+          />
+        </div>
 
-        <Combobox
-          options={Array.from({ length: 31 }, (_, i) => ({ value: String(i + 1), label: `Ngày ${i + 1}` }))}
-          value={filterDay}
-          onChange={(val) => {
-            setFilterDay(val);
-            setCurrentPage(1);
-          }}
-          placeholder="Chọn ngày"
-          searchable={true}
-          className="w-full sm:w-36"
-          triggerClassName="h-10 rounded-xl border-gray-300"
-          clearable={true}
-        />
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
+          <Combobox
+            options={Array.from({ length: 31 }, (_, i) => ({ value: String(i + 1), label: `Ngày ${i + 1}` }))}
+            value={filterDay}
+            onChange={(val) => {
+              setFilterDay(val);
+              setCurrentPage(1);
+            }}
+            placeholder="Chọn ngày"
+            searchable={true}
+            className="w-full"
+            triggerClassName="h-10 rounded-xl border-gray-300"
+            clearable={true}
+          />
+        </div>
 
-        <Combobox
-          options={Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: `Tháng ${i + 1}` }))}
-          value={filterMonth}
-          onChange={(val) => {
-            setFilterMonth(val);
-            setCurrentPage(1);
-          }}
-          placeholder="Chọn tháng"
-          searchable={false}
-          className="w-full sm:w-36"
-          triggerClassName="h-10 rounded-xl border-gray-300"
-          clearable={true}
-        />
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
+          <Combobox
+            options={Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: `Tháng ${i + 1}` }))}
+            value={filterMonth}
+            onChange={(val) => {
+              setFilterMonth(val);
+              setCurrentPage(1);
+            }}
+            placeholder="Chọn tháng"
+            searchable={false}
+            className="w-full"
+            triggerClassName="h-10 rounded-xl border-gray-300"
+            clearable={true}
+          />
+        </div>
 
-        <Combobox
-          options={(() => {
-            const cy = new Date().getFullYear();
-            return Array.from({ length: 5 }, (_, i) => ({ value: String(cy - 1 + i), label: `Năm ${cy - 1 + i}` }));
-          })()}
-          value={filterYear}
-          onChange={(val) => {
-            setFilterYear(val);
-            setCurrentPage(1);
-          }}
-          placeholder="Chọn năm"
-          searchable={false}
-          className="w-full sm:w-36"
-          triggerClassName="h-10 rounded-xl border-gray-300"
-          clearable={true}
-        />
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
+          <Combobox
+            options={(() => {
+              const cy = new Date().getFullYear();
+              return Array.from({ length: 5 }, (_, i) => ({ value: String(cy - 1 + i), label: `Năm ${cy - 1 + i}` }));
+            })()}
+            value={filterYear}
+            onChange={(val) => {
+              setFilterYear(val);
+              setCurrentPage(1);
+            }}
+            placeholder="Chọn năm"
+            searchable={false}
+            className="w-full"
+            triggerClassName="h-10 rounded-xl border-gray-300"
+            clearable={true}
+          />
+        </div>
       </div>
 
       <DataTable
