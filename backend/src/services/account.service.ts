@@ -1,7 +1,9 @@
 import bcrypt from "bcrypt";
 
+export const INITIAL_PASSWORD = "123123";
+
 export const createInitialCredential = async () => {
-    const initial_password = "123123";
+    const initial_password = INITIAL_PASSWORD;
     const password_hash = await bcrypt.hash(initial_password, 10);
     return {
         initial_password,

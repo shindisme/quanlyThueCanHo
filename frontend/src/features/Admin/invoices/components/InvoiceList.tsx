@@ -3,6 +3,7 @@ import Badge from "../../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import { INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS, type InvoiceStatus } from "../../../../constants/enums";
 import { formatApartmentDisplay } from "../../../../utils/string";
+import { getInvoicePeriod, getInvoicePeriodSortValue } from "../../../../utils/invoicePeriod";
 import type { Invoice } from "../../../../types";
 
 interface InvoiceListProps {
@@ -83,11 +84,8 @@ export default function InvoiceList({
     {
       key: "period",
       label: "Kỳ thanh toán",
-      sortValue: (inv) => new Date(inv.created_at).getTime(),
-      render: (inv) => {
-        const billingDate = new Date(inv.created_at);
-        return <span className="text-gray-600">{`${billingDate.getMonth() + 1}/${billingDate.getFullYear()}`}</span>;
-      }
+      sortValue: (inv) => getInvoicePeriodSortValue(inv),
+      render: (inv) => <span className="text-gray-600">{getInvoicePeriod(inv).label}</span>
     },
     {
       key: "total_amount",

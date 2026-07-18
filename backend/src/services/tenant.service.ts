@@ -229,7 +229,7 @@ export const createTenant = async (
                         username,
                         password_hash: credential.password_hash,
                         role: Role.TENANT,
-                        status: UserStatus.ACTIVE
+                        status: UserStatus.INACTIVE
                     },
                     select: {
                         id: true,

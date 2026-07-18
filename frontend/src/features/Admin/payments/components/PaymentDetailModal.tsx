@@ -2,6 +2,7 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import { formatDate } from "../../../../utils/date";
+import { getInvoicePeriod } from "../../../../utils/invoicePeriod";
 import type { Payment } from "../../../../types";
 import type { PaymentMethod, PaymentStatus } from "../../../../constants/enums";
 
@@ -107,7 +108,7 @@ export default function PaymentDetailModal({ isOpen, onClose, payment }: Payment
                 <span className="font-semibold text-gray-600">Mã hóa đơn:</span> {invoice.invoice_code}
               </p>
               <p>
-                <span className="font-semibold text-gray-600">Kỳ hóa đơn:</span> {new Date(invoice.created_at).getMonth() + 1}/{new Date(invoice.created_at).getFullYear()}
+                <span className="font-semibold text-gray-600">Kỳ hóa đơn:</span> {getInvoicePeriod(invoice).label}
               </p>
               <p>
                 <span className="font-semibold text-gray-600">Hạn thanh toán:</span> {formatDate(invoice.due_date)}

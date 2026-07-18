@@ -8,6 +8,7 @@ import Input from "../../../../components/ui/Input";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import { useTenantPayments } from "../hooks/useTenantPayments";
 import { formatDate } from "../../../../utils/date";
+import { getInvoicePeriod } from "../../../../utils/invoicePeriod";
 
 export default function MyPayments() {
   const {
@@ -108,8 +109,7 @@ export default function MyPayments() {
                   {unpaidInvoices.map((inv) => {
                     const roomNum = inv.contract?.apartment?.room_number ? `P.${inv.contract.apartment.room_number}` : "Chưa rõ";
                     const branchName = inv.contract?.apartment?.building?.branch_name || "";
-                    const billingDate = new Date(inv.created_at);
-                    const monthYear = `${billingDate.getMonth() + 1}/${billingDate.getFullYear()}`;
+                    const monthYear = getInvoicePeriod(inv).label;
 
                     return (
                       <div

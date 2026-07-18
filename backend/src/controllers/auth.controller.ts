@@ -5,6 +5,7 @@ import type {
 import { AppError } from "../errors/app-error.js";
 import { getValidated } from "../middleware/validate.middleware.js";
 import type {
+    ActivateAccountRequest,
     ChangePasswordRequest,
     CreateUserRequest,
     LoginRequest,
@@ -45,6 +46,31 @@ export const login = async (request: Request, response: Response) => {
     return sendSuccess(response, result);
 };
 
+export const activateAccount = async (
+    request: Request,
+    response: Response
+) => {
+    const { token } =
+        getValidated<ActivateAccountRequest>(request).query;
+
+    await authService.activateTenantAccountService(token);
+
+    return response
+        .type("html")
+        .send(`
+            <!doctype html>
+            <html lang="vi">
+            <head>
+                <meta charset="utf-8">
+                <title>Kích hoạt tài khoản</title>
+            </head>
+            <body style="font-family: Arial, sans-serif; padding: 32px;">
+                <h1>Kích hoạt tài khoản thành công</h1>
+                <p>Tài khoản của bạn đã được kích hoạt. Bạn có thể quay lại hệ thống để đăng nhập.</p>
+            </body>
+            </html>
+        `);
+};
 export const logout = async (request: Request, response: Response) => {
     const result = await authService.logoutService(getActor(request));
 

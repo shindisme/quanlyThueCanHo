@@ -162,3 +162,51 @@ export const sendViewingScheduleConfirmationEmail = async (data: ViewingSchedule
         `
     });
 };
+
+type TenantActivationEmailData = {
+    to: string;
+    tenantName: string;
+    username: string;
+    initialPassword: string;
+    activationUrl: string;
+};
+
+export const sendTenantActivationEmail = async (
+    data: TenantActivationEmailData
+) => {
+    const tenantName = escapeHtml(data.tenantName);
+    const username = escapeHtml(data.username);
+    const initialPassword = escapeHtml(data.initialPassword);
+    const activationUrl = escapeHtml(data.activationUrl);
+
+    await getTransporter().sendMail({
+        from: getRequiredEnv("SMTP_FROM"),
+        to: data.to,
+        subject: "Kích hoạt tài khoản thuê căn hộ",
+        text: [
+            `Xin chào ${data.tenantName},`,
+            "",
+            "Hợp đồng thuê căn hộ của bạn đã được lập thành công.",
+            `Tên đăng nhập: ${data.username}`,
+            `Mật khẩu tạm thời: ${data.initialPassword}`,
+            `Link kích hoạt: ${data.activationUrl}`,
+            "",
+            "Vui lòng bấm link kích hoạt trước khi đăng nhập."
+        ].join("\n"),
+        html: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+                <h2 style="margin: 0 0 16px;">Kích hoạt tài khoản thuê căn hộ</h2>
+                <p>Xin chào <strong>${tenantName}</strong>,</p>
+                <p>Hợp đồng thuê căn hộ của bạn đã được lập thành công.</p>
+                <p><strong>Tên đăng nhập:</strong> ${username}</p>
+                <p><strong>Mật khẩu tạm thời:</strong> ${initialPassword}</p>
+                <p>
+                    <a href="${activationUrl}" style="display:inline-block;padding:10px 16px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;">
+                        Kích hoạt tài khoản
+                    </a>
+                </p>
+                <p>Vui lòng kích hoạt tài khoản trước khi đăng nhập.</p>
+            </div>
+        `
+    });
+};

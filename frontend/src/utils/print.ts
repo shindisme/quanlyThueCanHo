@@ -1,5 +1,6 @@
 import type { Invoice } from "../types";
 import { formatDate } from "./date";
+import { getInvoicePeriod } from "./invoicePeriod";
 
 export function printInvoiceHelper(invoice: Invoice) {
   const printWindow = window.open("", "_blank");
@@ -11,8 +12,7 @@ export function printInvoiceHelper(invoice: Invoice) {
   const roomNum = invoice.contract?.apartment?.room_number ? `P.${invoice.contract.apartment.room_number}` : "Chưa rõ";
   const branchName = invoice.contract?.apartment?.building?.branch_name || "Chưa rõ";
   const address = invoice.contract?.apartment?.building?.address_new || "";
-  const billingDate = new Date(invoice.created_at);
-  const billingMonthYear = `${billingDate.getMonth() + 1}/${billingDate.getFullYear()}`;
+  const billingMonthYear = getInvoicePeriod(invoice).label;
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
   const formatNumber = (value: number) =>
