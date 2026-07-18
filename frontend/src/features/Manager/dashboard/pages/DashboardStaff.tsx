@@ -159,8 +159,8 @@ export default function DashboardStaff() {
     const myTasks = role === "STAFF"
       ? maintenanceRequests
       : maintenanceRequests.filter(
-          (r) => r.assigned_staff_id === currentStaff?.id || r.assigned_staff?.id === currentStaff?.id
-        );
+        (r) => r.assigned_staff_id === currentStaff?.id || r.assigned_staff?.id === currentStaff?.id
+      );
 
     const pendingMyTasks = myTasks.filter((r) => r.status === "PENDING").length;
     const processingMyTasks = myTasks.filter((r) => r.status === "PROCESSING").length;
@@ -174,26 +174,26 @@ export default function DashboardStaff() {
     const getPriorityBadge = (priority: string) => {
       switch (priority) {
         case "HIGH":
-          return <span className="text-xs px-2.5 py-0.5 rounded-full bg-red-100 text-red-800 font-semibold border border-red-200">Cao</span>;
+          return <span className="text-xs px-2.5 py-0.5 bg-red-100 text-red-800 font-semibold border border-red-200">Cao</span>;
         case "MEDIUM":
-          return <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold border border-amber-200">Trung bình</span>;
+          return <span className="text-xs px-2.5 py-0.5 bg-amber-100 text-amber-800 font-semibold border border-amber-200">Trung bình</span>;
         default:
-          return <span className="text-xs px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-805 font-semibold border border-gray-200">Thấp</span>;
+          return <span className="text-xs px-2.5 py-0.5 bg-gray-100 text-gray-805 font-semibold border border-gray-200">Thấp</span>;
       }
     };
 
     const getStatusBadge = (status: string) => {
       switch (status) {
         case "PENDING":
-          return <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-semibold">Chờ xử lý</span>;
+          return <span className="text-xs px-2.5 py-0.5 bg-amber-100 text-amber-800 font-semibold">Chờ xử lý</span>;
         case "PROCESSING":
-          return <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 font-semibold">Đang xử lý</span>;
+          return <span className="text-xs px-2.5 py-0.5 bg-blue-100 text-blue-800 font-semibold">Đang xử lý</span>;
         case "NEEDS_RESCHEDULE":
-          return <span className="text-xs px-2.5 py-0.5 rounded-full bg-red-100 text-red-800 font-semibold border border-red-150">Báo bận / Báo lại</span>;
+          return <span className="text-xs px-2.5 py-0.5 bg-red-100 text-red-800 font-semibold border border-red-150">Báo bận / Báo lại</span>;
         case "DONE":
-          return <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">Hoàn thành</span>;
+          return <span className="text-xs px-2.5 py-0.5 bg-emerald-100 text-emerald-800 font-semibold">Hoàn thành</span>;
         default:
-          return <span className="text-xs px-2.5 py-0.5 rounded-full bg-gray-105 text-gray-700">Đã hủy</span>;
+          return <span className="text-xs px-2.5 py-0.5 bg-gray-105 text-gray-700">Đã hủy</span>;
       }
     };
 
@@ -589,10 +589,10 @@ export default function DashboardStaff() {
                         const aptLabel = req.apartment ? `P.${req.apartment.room_number}` : `Căn hộ #${req.apartment_id}`;
                         const priorityLabel = req.priority === "HIGH" ? "Cao" : req.priority === "MEDIUM" ? "Trung bình" : "Thấp";
                         const priorityColor = req.priority === "HIGH" ? "text-red-600 bg-red-50 border border-red-200" : req.priority === "MEDIUM" ? "text-amber-600 bg-amber-50 border border-amber-200" : "text-gray-650 bg-gray-50 border border-gray-200";
-                        
+
                         const statusLabel = req.status === "PENDING" ? "Mới tạo" : req.status === "PROCESSING" ? "Đang xử lý" : "Hẹn lại lịch";
                         const statusBg = req.status === "PENDING" ? "bg-amber-100 text-amber-800" : req.status === "PROCESSING" ? "bg-blue-100 text-blue-800" : "bg-red-100 text-red-800";
-                        
+
                         return (
                           <tr key={req.id} className="hover:bg-gray-50/50">
                             <td className="py-3 font-semibold text-gray-800">{aptLabel}</td>
@@ -601,12 +601,12 @@ export default function DashboardStaff() {
                               <div className="text-xs text-gray-500 truncate max-w-[250px]" title={req.description}>{req.description}</div>
                             </td>
                             <td className="py-3">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${priorityColor}`}>
+                              <span className={`px-2 py-0.5 text-[10px] font-bold ${priorityColor}`}>
                                 {priorityLabel}
                               </span>
                             </td>
                             <td className="py-3">
-                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold ${statusBg}`}>
+                              <span className={`px-2.5 py-0.5 text-[10px] font-extrabold ${statusBg}`}>
                                 {statusLabel}
                               </span>
                             </td>

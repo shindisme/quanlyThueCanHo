@@ -161,9 +161,14 @@ export default function Header() {
             const { getAllContracts } = await import("../services/contractService");
             const contracts = await getAllContracts();
             if (contracts && contracts.length > 0) {
-              const currentTenant = contracts[0].tenant;
+              const contract = contracts[0];
+              const currentTenant = contract.tenant;
               if (currentTenant) {
                 setUserFullName(currentTenant.full_name);
+              }
+              const branchName = contract.apartment?.building?.branch_name;
+              if (branchName) {
+                setManagedBuildingName(branchName);
               }
             } else {
               const storedFullName = email ? localStorage.getItem(`profile-fullname-${email}`) : null;

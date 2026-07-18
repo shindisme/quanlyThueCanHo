@@ -6,10 +6,7 @@ import { fetchAllPages } from "./apiHelper";
 const SCHEDULE_API = "/schedules";
 
 export async function bookViewing(data: BookViewingPayload): Promise<unknown> {
-  const res = await api.post(`${SCHEDULE_API}/book`, {
-    ...data,
-    schedule_time: `${data.schedule_time}+07:00`,
-  });
+  const res = await api.post(`${SCHEDULE_API}/book`, data);
   return res.data;
 }
 

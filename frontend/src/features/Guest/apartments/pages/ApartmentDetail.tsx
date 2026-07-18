@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, MapPin, Maximize2, Phone, User, Star, Mail, X, ChevronLeft, ChevronRight, ImageOff, Layers, BedDouble, Bath, DollarSign } from "lucide-react";
+import { ArrowLeft, MapPin, Maximize2, Phone, User, Star, Mail, X, ChevronLeft, ChevronRight, ImageOff, Layers, BedDouble, Bath } from "lucide-react";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import Card from "../../../../components/ui/Card";
 import Button from "../../../../components/ui/Button";
@@ -255,7 +255,7 @@ export default function GuestApartmentDetail() {
             {/* Thong so */}
             <Card>
               <h3 className="font-semibold text-gray-800 mb-4 font-sans">Thông tin căn hộ</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="bg-gray-50 rounded-xl p-3 text-center">
                   <Maximize2 size={18} className="text-primary-600 mx-auto mb-1" />
                   <p className="text-sm font-semibold text-gray-800">{apartment.area} m²</p>

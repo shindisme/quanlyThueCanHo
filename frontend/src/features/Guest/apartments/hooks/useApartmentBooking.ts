@@ -125,16 +125,16 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
       return;
     }
 
-    const combinedTime = `${selectedDate}T${selectedTimeSlot.replace("h", ":")}:00`;
+    const combinedTime = `${selectedDate}T${selectedTimeSlot.replace("h", ":")}:00+07:00`;
+
     handleSubmitSchedule.mutate({
       apartment_id: apartment.id,
       guest_name: bookingForm.note
-        ? `${bookingForm.guest_name}`
+        ? `${bookingForm.guest_name} (Ghi chú: ${bookingForm.note})`
         : bookingForm.guest_name,
       guest_phone: bookingForm.guest_phone,
       guest_email: bookingForm.guest_email,
       schedule_time: combinedTime,
-      note: bookingForm.note,
     });
   };
 
