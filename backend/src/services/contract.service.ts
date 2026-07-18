@@ -24,6 +24,9 @@ import {
     buildFirstRentalInvoiceItems,
     sumBillingItems
 } from "../utils/invoice-billing.js";
+import { INITIAL_PASSWORD } from "./account.service.js";
+import { buildTenantActivationUrl } from "./auth.service.js";
+import { sendTenantActivationEmail } from "./mail.service.js";
 
 const contractInclude = {
     tenant: {
@@ -415,7 +418,7 @@ export const createContractService = async (
     ensureNewEndDate(input.end_date);
 
     try {
-        return await runSerializableTransaction(async (transaction) => {
+        const result = await runSerializableTransaction(async (transaction) => {
             const apartmentScope: Prisma.ApartmentWhereInput = {
                 id: input.apartment_id,
                 ...(managerAssignment
@@ -445,8 +448,17 @@ export const createContractService = async (
                     where: tenantScope,
                     select: {
                         id: true,
+                        full_name: true,
+                        email: true,
                         onboarding_building_id: true,
-                        user_id: true
+                        user_id: true,
+                        user: {
+                            select: {
+                                id: true,
+                                username: true,
+                                status: true
+                            }
+                        }
                     }
                 })
             ]);
@@ -593,8 +605,32 @@ export const createContractService = async (
                 });
             }
 
-            return normalizeCreatedContract(contract);
+            const activationEmailData =
+                tenant.user?.status === UserStatus.INACTIVE && tenant.email
+                    ? {
+                        to: tenant.email,
+                        tenantName: tenant.full_name,
+                        username: tenant.user.username,
+                        initialPassword: INITIAL_PASSWORD,
+                        activationUrl: buildTenantActivationUrl(tenant.user.id)
+                    }
+                    : null;
+
+            return {
+                contract: normalizeCreatedContract(contract),
+                activationEmailData
+            };
         });
+
+        if (result.activationEmailData) {
+            try {
+                await sendTenantActivationEmail(result.activationEmailData);
+            } catch {
+                // Email lỗi không được làm rollback hợp đồng đã tạo thành công.
+            }
+        }
+
+        return result.contract;
     } catch (error) {
         if (isActiveContractUniqueConflict(error)) {
             throw activeContractConflict();

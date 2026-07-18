@@ -7,6 +7,7 @@ import {
 } from "../middleware/auth.middleware.js";
 import { validate } from "../middleware/validate.middleware.js";
 import {
+    activateAccountRequestSchema,
     changePasswordRequestSchema,
     createUserRequestSchema,
     emptyAuthRequestSchema,
@@ -22,6 +23,11 @@ router.post(
     "/login",
     validate(loginRequestSchema),
     authController.login
+);
+router.get(
+    "/activate",
+    validate(activateAccountRequestSchema),
+    authController.activateAccount
 );
 router.post(
     "/logout",

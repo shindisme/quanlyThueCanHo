@@ -1,4 +1,4 @@
-﻿import {
+import {
     Role,
     UserStatus
 } from "@prisma/client";
@@ -22,6 +22,14 @@ export const loginRequestSchema = z.object({
         username: z.string().trim().min(1).max(100),
         password: z.string().min(1).max(200)
     }).strict()
+}).strict();
+
+export const activateAccountRequestSchema = z.object({
+    params: emptyObjectSchema,
+    query: z.object({
+        token: z.string().trim().min(1)
+    }).strict(),
+    body: optionalEmptyBodySchema
 }).strict();
 
 export const changePasswordRequestSchema = z.object({
@@ -67,6 +75,9 @@ export const updateUserRequestSchema = z.object({
 }).strict();
 
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
+export type ActivateAccountRequest = z.infer<
+    typeof activateAccountRequestSchema
+>;
 export type ChangePasswordRequest = z.infer<
     typeof changePasswordRequestSchema
 >;

@@ -3,6 +3,7 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import { formatDate } from "../../../../utils/date";
+import { getInvoicePeriod } from "../../../../utils/invoicePeriod";
 import type { Invoice } from "../../../../types";
 
 interface InvoiceDetailModalProps {
@@ -38,8 +39,7 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
   const roomNum = invoice.contract?.apartment?.room_number ? `P.${invoice.contract.apartment.room_number}` : "Chưa rõ";
   const branchName = invoice.contract?.apartment?.building?.branch_name || "Chưa rõ";
   const address = invoice.contract?.apartment?.building?.address_new || "";
-  const billingDate = new Date(invoice.created_at);
-  const billingMonthYear = `${billingDate.getMonth() + 1}/${billingDate.getFullYear()}`;
+  const billingMonthYear = getInvoicePeriod(invoice).label;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Chi Tiết Hóa Đơn" size="lg">

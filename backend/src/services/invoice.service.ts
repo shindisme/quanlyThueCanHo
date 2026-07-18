@@ -1,4 +1,4 @@
-﻿import {
+import {
     InvoiceStatus,
     PaymentStatus,
     Prisma,
@@ -259,6 +259,27 @@ const isFirstRentalMonth = (
 ) => startDate.getUTCFullYear() === year
     && startDate.getUTCMonth() + 1 === month;
 
+const isFirstChargeableRentalMonth = async (
+    contract: ContractForBilling,
+    month: number,
+    year: number
+) => {
+    if (!isFirstRentalMonth(contract.start_date, month, year)) {
+        return false;
+    }
+
+    const previousContract = await prisma.rentalContract.findFirst({
+        where: {
+            id: { not: contract.id },
+            tenant_id: contract.tenant_id,
+            apartment_id: contract.apartment_id,
+            end_date: { lte: contract.start_date }
+        },
+        select: { id: true }
+    });
+
+    return previousContract === null;
+};
 const isElectricInvoiceItem = (itemName: string) => {
     const normalized = itemName.normalize("NFC").toLocaleLowerCase("vi-VN");
 
@@ -585,8 +606,8 @@ export const generateMonthlyInvoicesService = async (
 
     for (const contract of contracts) {
         const invoiceCode = buildMonthlyInvoiceCode(contract.id, month, year);
-        const firstRentalMonth = isFirstRentalMonth(
-            contract.start_date,
+        const firstRentalMonth = await isFirstChargeableRentalMonth(
+            contract,
             month,
             year
         );

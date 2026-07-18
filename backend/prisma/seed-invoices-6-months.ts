@@ -38,6 +38,29 @@ const isFirstRentalMonth = (
 ) => startDate.getUTCFullYear() === year
     && startDate.getUTCMonth() + 1 === month;
 
+const isFirstChargeableRentalMonth = async (contract: {
+    id: number;
+    tenant_id: number;
+    apartment_id: number;
+    start_date: Date;
+}, month: number, year: number) => {
+    if (!isFirstRentalMonth(contract.start_date, month, year)) {
+        return false;
+    }
+
+    const previousContract = await prisma.rentalContract.findFirst({
+        where: {
+            id: { not: contract.id },
+            tenant_id: contract.tenant_id,
+            apartment_id: contract.apartment_id,
+            end_date: { lte: contract.start_date }
+        },
+        select: { id: true }
+    });
+
+    return previousContract === null;
+};
+
 const getTargetMonths = (): TargetMonth[] =>
     selectedMonthNumbers.map((month) => ({
         month,
@@ -92,14 +115,24 @@ async function buildMonthPlan(target: TargetMonth): Promise<MonthPlan> {
     const existingInvoiceCodes = new Set(existingInvoices.map((invoice) =>
         invoice.invoice_code
     ));
-    const contractsNeedingUtility = contracts.filter((contract) =>
-        !existingInvoiceCodes.has(buildInvoiceCode(
+    const contractsNeedingUtility: typeof contracts = [];
+    for (const contract of contracts) {
+        if (existingInvoiceCodes.has(buildInvoiceCode(
             contract.id,
             target.month,
             target.year
-        ))
-        && !isFirstRentalMonth(contract.start_date, target.month, target.year)
-    );
+        ))) {
+            continue;
+        }
+
+        if (!await isFirstChargeableRentalMonth(
+            contract,
+            target.month,
+            target.year
+        )) {
+            contractsNeedingUtility.push(contract);
+        }
+    }
     const utilityRows = contractsNeedingUtility.length === 0
         ? []
         : await prisma.utilityReading.findMany({

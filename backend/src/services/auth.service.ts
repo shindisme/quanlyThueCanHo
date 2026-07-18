@@ -31,6 +31,51 @@ const userNotFoundError = () => new AppError(
     "NOT_FOUND",
     "Tài khoản không tồn tại"
 );
+const TENANT_ACCOUNT_ACTIVATION_PURPOSE = "tenant_account_activation";
+
+const getJwtSecret = () => {
+    const secret = process.env.JWT_SECRET;
+
+    if (!secret) {
+        throw new AppError(
+            500,
+            "JWT_NOT_CONFIGURED",
+            "Cấu hình xác thực JWT chưa được thiết lập"
+        );
+    }
+
+    return secret;
+};
+
+const getTenantActivationJwtSecret = () => (
+    process.env.TENANT_ACTIVATION_JWT_SECRET
+    ?? `${getJwtSecret()}:tenant-account-activation`
+);
+
+const getBackendBaseUrl = () => (
+    process.env.BACKEND_URL
+    ?? `http://localhost:${process.env.PORT ?? 3000}`
+).replace(/\/$/, "");
+
+const invalidActivationToken = () => new AppError(
+    400,
+    "INVALID_ACTIVATION_TOKEN",
+    "Link kích hoạt tài khoản không hợp lệ hoặc đã hết hạn"
+);
+
+export const buildTenantActivationUrl = (userId: number) => {
+    const token = jwt.sign(
+        { purpose: TENANT_ACCOUNT_ACTIVATION_PURPOSE },
+        getTenantActivationJwtSecret(),
+        {
+            algorithm: "HS256",
+            expiresIn: "7d",
+            subject: String(userId)
+        }
+    );
+
+    return `${getBackendBaseUrl()}/auth/activate?token=${encodeURIComponent(token)}`;
+};
 
 const userSummarySelect = {
     id: true,
@@ -417,6 +462,68 @@ export const logoutService = async (actor: Actor) => {
         logged_out: true,
         banned: true
     };
+};
+export const activateTenantAccountService = async (token: string) => {
+    let payload: { sub?: unknown; purpose?: unknown };
+
+    try {
+        const verified = jwt.verify(
+            token,
+            getTenantActivationJwtSecret(),
+            { algorithms: ["HS256"] }
+        );
+
+        if (typeof verified === "string") {
+            throw invalidActivationToken();
+        }
+
+        payload = verified;
+    } catch (error) {
+        if (error instanceof AppError) {
+            throw error;
+        }
+
+        throw invalidActivationToken();
+    }
+
+    if (payload.purpose !== TENANT_ACCOUNT_ACTIVATION_PURPOSE) {
+        throw invalidActivationToken();
+    }
+
+    const userId = Number(payload.sub);
+    if (!Number.isInteger(userId) || userId <= 0) {
+        throw invalidActivationToken();
+    }
+
+    const updated = await prisma.user.updateMany({
+        where: {
+            id: userId,
+            role: Role.TENANT,
+            status: UserStatus.INACTIVE
+        },
+        data: { status: UserStatus.ACTIVE }
+    });
+
+    if (updated.count > 0) {
+        return { activated: true };
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            role: true,
+            status: true
+        }
+    });
+
+    if (
+        user?.role === Role.TENANT
+        && user.status === UserStatus.ACTIVE
+    ) {
+        return { activated: true };
+    }
+
+    throw invalidActivationToken();
 };
 export const updateUserService = async (
     actor: Actor,
