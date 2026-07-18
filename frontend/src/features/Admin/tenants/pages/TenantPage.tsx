@@ -194,52 +194,58 @@ export default function TenantPage() {
       />
 
       {/* Bộ lọc */}
-      <div className="flex flex-col sm:flex-row gap-3 w-full font-sans">
+      <div className="grid grid-cols-12 gap-3 w-full font-sans">
         {role === "ADMIN" && (
+          <div className="col-span-12 sm:col-span-6 md:col-span-3">
+            <Combobox
+              options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
+              value={selectedBuilding}
+              onChange={(val) => {
+                setSelectedBuilding(val);
+                setSelectedFloor("");
+                setCurrentPage(1);
+              }}
+              placeholder="Tất cả tòa nhà"
+              className="w-full"
+              triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
+              clearable={true}
+            />
+          </div>
+        )}
+
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Combobox
-            options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
-            value={selectedBuilding}
+            options={availableFloors.map((fl) => ({ value: String(fl), label: `Tầng ${fl}` }))}
+            value={selectedFloor}
             onChange={(val) => {
-              setSelectedBuilding(val);
-              setSelectedFloor("");
+              setSelectedFloor(val);
               setCurrentPage(1);
             }}
-            placeholder="Tất cả tòa nhà"
-            className="flex-1 min-w-0 w-full"
+            placeholder="Tất cả tầng"
+            className="w-full"
             triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
             clearable={true}
           />
-        )}
+        </div>
 
-        <Combobox
-          options={availableFloors.map((fl) => ({ value: String(fl), label: `Tầng ${fl}` }))}
-          value={selectedFloor}
-          onChange={(val) => {
-            setSelectedFloor(val);
-            setCurrentPage(1);
-          }}
-          placeholder="Tất cả tầng"
-          className="flex-1 min-w-0 w-full"
-          triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
-          clearable={true}
-        />
-
-        <Combobox
-          options={[
-            { value: "ACTIVE", label: "Đang thuê" },
-            { value: "INACTIVE", label: "Ngừng thuê" },
-          ]}
-          value={selectedStatus}
-          onChange={(val) => {
-            setSelectedStatus(val);
-            setCurrentPage(1);
-          }}
-          placeholder="Trạng thái"
-          searchable={false}
-          className="flex-1 min-w-0 w-full"
-          triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
-          clearable={true}
-        />
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
+          <Combobox
+            options={[
+              { value: "ACTIVE", label: "Đang thuê" },
+              { value: "INACTIVE", label: "Ngừng thuê" },
+            ]}
+            value={selectedStatus}
+            onChange={(val) => {
+              setSelectedStatus(val);
+              setCurrentPage(1);
+            }}
+            placeholder="Trạng thái"
+            searchable={false}
+            className="w-full"
+            triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
+            clearable={true}
+          />
+        </div>
       </div>
 
       {filtered.length === 0 ? (

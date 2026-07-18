@@ -102,8 +102,8 @@ export default function InvoicePage() {
         }
       />
 
-      <div className="flex flex-col gap-3 w-full">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-12 gap-3 w-full">
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Combobox
             options={[
               { value: "PAID", label: "Đã thanh toán" },
@@ -114,41 +114,51 @@ export default function InvoicePage() {
             onChange={setStatusFilter}
             placeholder="Trạng thái"
             searchable={false}
+            className="w-full"
             triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
             clearable={true}
           />
+        </div>
 
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Combobox
             options={monthOptions}
             value={monthFilter ? String(monthFilter) : ""}
             onChange={handleMonthChange}
             placeholder="Tháng"
             searchable={false}
+            className="w-full"
             triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
             clearable={true}
           />
+        </div>
 
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Combobox
             options={yearOptions}
             value={yearFilter ? String(yearFilter) : ""}
             onChange={handleYearChange}
             placeholder="Năm"
             searchable={false}
+            className="w-full"
             triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
             clearable={true}
           />
+        </div>
 
-          {role === "ADMIN" && (
+        {role === "ADMIN" && (
+          <div className="col-span-12 sm:col-span-6 md:col-span-3">
             <Combobox
               options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
               value={buildingFilter ? String(buildingFilter) : ""}
               onChange={(val) => setBuildingFilter(val ? Number(val) : undefined)}
               placeholder="Tất cả chi nhánh"
+              className="w-full"
               triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
               clearable={true}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {isLoading ? (

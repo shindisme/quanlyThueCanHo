@@ -34,6 +34,12 @@ export default function MyUtilities() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const columns: Column<any>[] = [
     {
+      key: "index",
+      label: "STT",
+      className: "w-4",
+      render: (_, index: number) => <span className="font-semibold text-gray-800">{index + 1}</span>,
+    },
+    {
       key: "period",
       label: "Kỳ thanh toán",
       render: (r) => <span className="font-semibold text-gray-900">Tháng {r.month}/{r.year}</span>

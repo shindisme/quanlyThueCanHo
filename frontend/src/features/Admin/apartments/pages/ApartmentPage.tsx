@@ -77,55 +77,61 @@ export default function ApartmentPage() {
         }
       />
       {/* Search + Filter */}
-      <div className="flex flex-col sm:flex-row gap-3 w-full">
+      <div className="grid grid-cols-12 gap-3 w-full">
         {role !== "MANAGER" && (
-          <Combobox
-            options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
-            value={filterBuilding ? String(filterBuilding) : ""}
-            onChange={(val) => {
-              setFilterBuilding(val ? Number(val) : undefined);
-              setCurrentPage(1);
-            }}
-            placeholder="Tất cả chi nhánh"
-            className="flex-1 min-w-0 w-full"
-            triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
-            clearable={true}
-          />
+          <div className="col-span-12 sm:col-span-6 md:col-span-3">
+            <Combobox
+              options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
+              value={filterBuilding ? String(filterBuilding) : ""}
+              onChange={(val) => {
+                setFilterBuilding(val ? Number(val) : undefined);
+                setCurrentPage(1);
+              }}
+              placeholder="Tất cả chi nhánh"
+              className="w-full"
+              triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
+              clearable={true}
+            />
+          </div>
         )}
-        <Combobox
-          options={[
-            { value: "AVAILABLE", label: "Còn trống" },
-            { value: "RENTED", label: "Đang thuê" },
-            { value: "MAINTENANCE", label: "Bảo trì" }
-          ]}
-          value={filterStatus}
-          onChange={(val) => {
-            setFilterStatus(val);
-            setCurrentPage(1);
-          }}
-          placeholder="Tất cả trạng thái"
-          searchable={false}
-          className="flex-1 min-w-0 w-full"
-          triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
-          clearable={true}
-        />
-        {role === "ADMIN" && (
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Combobox
             options={[
-              { value: "featured", label: "Nổi bật" },
-              { value: "non-featured", label: "Không nổi bật" }
+              { value: "AVAILABLE", label: "Còn trống" },
+              { value: "RENTED", label: "Đang thuê" },
+              { value: "MAINTENANCE", label: "Bảo trì" }
             ]}
-            value={filterFeatured}
+            value={filterStatus}
             onChange={(val) => {
-              setFilterFeatured(val);
+              setFilterStatus(val);
               setCurrentPage(1);
             }}
-            placeholder="Tất cả nổi bật"
+            placeholder="Tất cả trạng thái"
             searchable={false}
-            className="flex-1 min-w-0 w-full"
+            className="w-full"
             triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
             clearable={true}
           />
+        </div>
+        {role === "ADMIN" && (
+          <div className="col-span-12 sm:col-span-6 md:col-span-3">
+            <Combobox
+              options={[
+                { value: "featured", label: "Nổi bật" },
+                { value: "non-featured", label: "Không nổi bật" }
+              ]}
+              value={filterFeatured}
+              onChange={(val) => {
+                setFilterFeatured(val);
+                setCurrentPage(1);
+              }}
+              placeholder="Tất cả nổi bật"
+              searchable={false}
+              className="w-full"
+              triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
+              clearable={true}
+            />
+          </div>
         )}
       </div>
 

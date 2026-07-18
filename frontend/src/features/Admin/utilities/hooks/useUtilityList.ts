@@ -11,11 +11,34 @@ import type { UtilityReadingData } from "../../../../services/utilityService";
 import * as buildingService from "../../../../services/buildingService";
 import * as apartmentService from "../../../../services/apartmentService";
 import type { ApartmentData } from "../../../../services/apartmentService";
+import * as maintenanceService from "../../../../services/maintenanceService";
 
 export function useUtilityList() {
   const queryClient = useQueryClient();
-  const { role, managedBuildingId } = useAuthStore();
+  const { role, managedBuildingId, email, token, setAuth } = useAuthStore();
   const isWritable = role === "ADMIN" || role === "MANAGER" || role === "STAFF";
+
+  // Fallback fetching building assignment via maintenance requests if building ID not saved in local storage yet
+  const { data: maintenanceData } = useQuery({
+    queryKey: ["maintenanceRequestsFallback"],
+    queryFn: () => maintenanceService.getAllMaintenanceRequests({ limit: 50 }),
+    enabled: (role === "MANAGER" || role === "STAFF") && !managedBuildingId,
+  });
+
+  useEffect(() => {
+    if ((role === "MANAGER" || role === "STAFF") && !managedBuildingId && email && token && maintenanceData?.data) {
+      const firstWithBuilding = maintenanceData.data.find(
+        (r) => r.apartment?.building_id || r.assigned_staff?.building_id
+      );
+      if (firstWithBuilding) {
+        const bId = firstWithBuilding.apartment?.building_id || firstWithBuilding.assigned_staff?.building_id;
+        const bName = firstWithBuilding.apartment?.building?.branch_name || "";
+        if (bId) {
+          setAuth(token, role, email, bId, bName);
+        }
+      }
+    }
+  }, [role, managedBuildingId, maintenanceData, email, token, setAuth]);
 
   // Filters
   const [search, setSearch] = useState("");

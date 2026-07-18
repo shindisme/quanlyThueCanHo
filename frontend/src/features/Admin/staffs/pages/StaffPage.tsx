@@ -168,35 +168,39 @@ export default function StaffPage() {
         }
       />
 
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center font-sans">
-        <Combobox
-          options={uniquePositions.map((pos) => ({ value: pos, label: pos }))}
-          value={positionFilter}
-          onChange={(val) => {
-            setPositionFilter(val);
-            setCurrentPage(1);
-          }}
-          placeholder="Tất cả chức vụ"
-          searchable={false}
-          className="w-full sm:w-44"
-          triggerClassName="h-10 rounded-xl border-gray-300"
-          clearable={true}
-        />
-
-        {role !== "MANAGER" && (
+      <div className="grid grid-cols-12 gap-3 w-full font-sans">
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Combobox
-            options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
-            value={buildingFilter ? String(buildingFilter) : ""}
+            options={uniquePositions.map((pos) => ({ value: pos, label: pos }))}
+            value={positionFilter}
             onChange={(val) => {
-              setBuildingFilter(val ? Number(val) : "");
+              setPositionFilter(val);
               setCurrentPage(1);
             }}
-            placeholder="Tất cả tòa nhà"
-            searchPlaceholder="Tìm tòa nhà..."
-            className="w-full sm:w-48"
+            placeholder="Tất cả chức vụ"
+            searchable={false}
+            className="w-full"
             triggerClassName="h-10 rounded-xl border-gray-300"
             clearable={true}
           />
+        </div>
+
+        {role !== "MANAGER" && (
+          <div className="col-span-12 sm:col-span-6 md:col-span-3">
+            <Combobox
+              options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
+              value={buildingFilter ? String(buildingFilter) : ""}
+              onChange={(val) => {
+                setBuildingFilter(val ? Number(val) : "");
+                setCurrentPage(1);
+              }}
+              placeholder="Tất cả tòa nhà"
+              searchPlaceholder="Tìm tòa nhà..."
+              className="w-full"
+              triggerClassName="h-10 rounded-xl border-gray-300"
+              clearable={true}
+            />
+          </div>
         )}
       </div>
 

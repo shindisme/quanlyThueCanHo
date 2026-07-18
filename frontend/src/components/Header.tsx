@@ -143,7 +143,7 @@ export default function Header() {
 
     async function loadUserProfile() {
       try {
-        if (role === "MANAGER") {
+        if (role === "MANAGER" || role === "STAFF") {
           const { getAllStaffs } = await import("../services/staffService");
           const staffRes = await getAllStaffs();
           const currentStaff = staffRes.data.find((s) => s.user_id === userId);
@@ -152,13 +152,9 @@ export default function Header() {
             if (currentStaff.user?.username) {
               setAccountUsername(currentStaff.user.username);
             }
-          }
-        } else if (role === "STAFF") {
-          const storedFullName = email ? localStorage.getItem(`profile-fullname-${email}`) : null;
-          if (storedFullName) {
-            setUserFullName(storedFullName);
-          } else {
-            setUserFullName("Nhân viên Kỹ thuật");
+            if (currentStaff.building?.branch_name) {
+              setManagedBuildingName(currentStaff.building.branch_name);
+            }
           }
         } else if (role === "TENANT") {
           try {

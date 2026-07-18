@@ -57,8 +57,8 @@ export default function PaymentPage() {
         }
       />
 
-      <div className="flex flex-col gap-3 w-full">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-12 gap-3 w-full">
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Combobox
             options={[
               { value: "SUCCESS", label: "Thành công" },
@@ -69,10 +69,13 @@ export default function PaymentPage() {
             onChange={setStatusFilter}
             placeholder="Trạng thái"
             searchable={false}
+            className="w-full"
             triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
             clearable={true}
           />
+        </div>
 
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Combobox
             options={[
               { value: "BANK_TRANSFER", label: "Chuyển khoản" },
@@ -82,11 +85,14 @@ export default function PaymentPage() {
             onChange={setMethodFilter}
             placeholder="Phương thức"
             searchable={false}
+            className="w-full"
             triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
             clearable={true}
           />
+        </div>
 
-          {role === "ADMIN" && (
+        {role === "ADMIN" && (
+          <div className="col-span-12 sm:col-span-6 md:col-span-3">
             <Combobox
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               options={(buildings as any[]).map((b) => ({ value: String(b.id), label: b.branch_name }))}
@@ -96,23 +102,29 @@ export default function PaymentPage() {
                 setSelectedFloor("");
               }}
               placeholder="Tất cả tòa nhà"
+              className="w-full"
               triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
               clearable={true}
             />
-          )}
+          </div>
+        )}
 
-          {role === "ADMIN" && (
+        {role === "ADMIN" && (
+          <div className="col-span-12 sm:col-span-6 md:col-span-3">
             <Combobox
               options={availableFloors.map((fl) => ({ value: String(fl), label: `Tầng ${fl}` }))}
               value={selectedFloor}
               onChange={setSelectedFloor}
               placeholder="Tất cả tầng"
+              className="w-full"
               triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
               clearable={true}
             />
-          )}
+          </div>
+        )}
 
-          {role === "MANAGER" && (
+        {role === "MANAGER" && (
+          <div className="col-span-12 sm:col-span-6 md:col-span-3">
             <Combobox
               options={[
                 { value: "1", label: "Tháng 1" },
@@ -131,11 +143,12 @@ export default function PaymentPage() {
               value={selectedMonth}
               onChange={setSelectedMonth}
               placeholder="Tất cả tháng"
+              className="w-full"
               triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
               clearable={true}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {isLoading ? (

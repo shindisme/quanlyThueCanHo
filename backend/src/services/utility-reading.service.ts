@@ -1,4 +1,4 @@
-﻿import {
+import {
     ContractStatus,
     Prisma,
     Role
@@ -101,9 +101,6 @@ const getReadingScope = (
     assignment: Assignment
 ) => ({
     apartment: getApartmentScope(assignment),
-    ...(actor.role === Role.STAFF
-        ? { recorded_by: actor.staffId }
-        : {})
 }) satisfies Prisma.UtilityReadingWhereInput;
 
 const toNumber = (value: Prisma.Decimal | number) => Number(value);
