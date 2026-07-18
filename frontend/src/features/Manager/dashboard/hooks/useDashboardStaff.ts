@@ -52,8 +52,9 @@ export function useDashboardStaff() {
   const maintenanceRequests = maintenanceData?.data || [];
 
   const currentStaff = role === "STAFF"
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ? (maintenanceRequests.length > 0 ? (maintenanceRequests[0] as any).assigned_staff : null)
-    : (userId && staffRes?.data ? staffRes.data.find((s: any) => s.user_id === userId) : null);
+    : (userId && staffRes?.data ? staffRes.data.find((s) => s.user_id === userId) : null);
 
   const displayName = currentStaff?.full_name || email?.split("@")[0] || "Nhân viên";
 
@@ -69,7 +70,7 @@ export function useDashboardStaff() {
 
   useEffect(() => {
     if (role !== "STAFF" && currentStaff && currentStaff.building_id && (!managedBuildingId || !managedBuildingName)) {
-      const currentBld = buildings.find((b: any) => b.id === currentStaff.building_id);
+      const currentBld = buildings.find((b) => b.id === currentStaff.building_id);
       if (currentBld && role && email) {
         setAuth(token, role, email, currentStaff.building_id, currentBld.branch_name);
       }

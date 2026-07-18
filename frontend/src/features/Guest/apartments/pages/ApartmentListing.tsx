@@ -78,7 +78,7 @@ export default function GuestApartmentListing() {
           />
 
           <Combobox
-            options={buildings.map((b: any) => ({ value: String(b.id), label: b.branch_name }))}
+            options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
             value={buildingFilter}
             onChange={(val) => {
               setBuildingFilter(val);
@@ -148,7 +148,7 @@ export default function GuestApartmentListing() {
                   return String(a.room_number).localeCompare(String(b.room_number), undefined, { numeric: true });
                 })
                 .map((apt) => {
-                  const building = buildings.find((b: any) => b.id === apt.building_id);
+                  const building = buildings.find((b) => b.id === apt.building_id);
                   return (
                     <Link
                       key={apt.id}

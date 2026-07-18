@@ -77,9 +77,9 @@ export function useUserPage() {
     loadingApartments ||
     loadingBuildings;
 
-  function getTenantForUser(u: User): any {
+  function getTenantForUser(u: User) {
     const matched = tenants.find(
-      (t: any) =>
+      (t) =>
         t.user_id === u.id ||
         (t.user && t.user.id === u.id) ||
         (t.email && u.username && t.email.toLowerCase() === u.username.toLowerCase())
@@ -94,14 +94,17 @@ export function useUserPage() {
       if (match) return match.full_name;
     } else if (u.role === "MANAGER" || u.role === "STAFF") {
       const match = staff.find(
-        (s: any) =>
+        (s) =>
           s.user_id === u.id ||
           (s.user && s.user.id === u.id) ||
           (s.user && s.user.username === u.username)
       );
       if (match) return match.full_name;
     }
-    if (u.role === "ADMIN") return "Quản trị viên";
+    if (u.role === "ADMIN") {
+      const storedName = u.username ? localStorage.getItem(`profile-fullname-${u.username}`) : null;
+      return storedName || "Quản trị viên";
+    }
     return "-";
   }
 
@@ -111,29 +114,29 @@ export function useUserPage() {
       if (matchTenant) {
         const tenantContracts = matchTenant.contracts?.length
           ? matchTenant.contracts
-          : contracts.filter((c: any) => c.tenant_id === matchTenant.id);
-        const activeContract = tenantContracts.find((c: any) => c.status === "ACTIVE");
+          : contracts.filter((c) => c.tenant_id === matchTenant.id);
+        const activeContract = tenantContracts.find((c) => c.status === "ACTIVE");
         if (activeContract) {
           const apt =
             activeContract.apartment ??
-            apartments.find((a: any) => a.id === activeContract.apartment_id);
+            apartments.find((a) => a.id === activeContract.apartment_id);
           const bld =
             apt?.building ??
-            (apt ? buildings.find((b: any) => b.id === apt.building_id) : null);
+            (apt ? buildings.find((b) => b.id === apt.building_id) : null);
           if (apt) {
-            return `${bld?.branch_name || "Chi nhánh khác"} - Phòng ${apt.room_number}`;
+            return `${bld?.branch_name || "Chi nhánh khác"} - P.${apt.floor}${apt.room_number}`;
           }
         }
       }
     } else if (u.role === "MANAGER" || u.role === "STAFF") {
       const matchStaff = staff.find(
-        (s: any) =>
+        (s) =>
           s.user_id === u.id ||
           (s.user && s.user.id === u.id) ||
           (s.user && s.user.username === u.username)
       );
       if (matchStaff && matchStaff.building_id) {
-        const bld = buildings.find((b: any) => b.id === matchStaff.building_id);
+        const bld = buildings.find((b) => b.id === matchStaff.building_id);
         if (bld) return bld.branch_name;
       }
     }
@@ -146,18 +149,18 @@ export function useUserPage() {
       if (matchTenant) {
         const tenantContracts = matchTenant.contracts?.length
           ? matchTenant.contracts
-          : contracts.filter((c: any) => c.tenant_id === matchTenant.id);
-        const activeContract = tenantContracts.find((c: any) => c.status === "ACTIVE");
+          : contracts.filter((c) => c.tenant_id === matchTenant.id);
+        const activeContract = tenantContracts.find((c) => c.status === "ACTIVE");
         if (activeContract) {
           const apt =
             activeContract.apartment ??
-            apartments.find((a: any) => a.id === activeContract.apartment_id);
+            apartments.find((a) => a.id === activeContract.apartment_id);
           return apt?.building_id || null;
         }
       }
     } else if (u.role === "MANAGER" || u.role === "STAFF") {
       const matchStaff = staff.find(
-        (s: any) =>
+        (s) =>
           s.user_id === u.id ||
           (s.user && s.user.id === u.id) ||
           (s.user && s.user.username === u.username)
@@ -167,7 +170,8 @@ export function useUserPage() {
     return null;
   }
 
-  const filtered = (users as any[]).filter((u: any) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const filtered = (users as any[]).filter((u) => {
     if (roleFilter && u.role !== roleFilter) return false;
     if (statusFilter && u.status !== statusFilter) return false;
     if (buildingFilter) {
@@ -196,7 +200,7 @@ export function useUserPage() {
     TENANT: 4,
   };
 
-  const defaultSortedFiltered = [...filtered].sort((a: any, b: any) => {
+  const defaultSortedFiltered = [...filtered].sort((a, b) => {
     const priorityA = rolePriority[a.role] || 99;
     const priorityB = rolePriority[b.role] || 99;
     return priorityA - priorityB;
@@ -206,7 +210,7 @@ export function useUserPage() {
     defaultSortedFiltered,
     null,
     {
-      branch: (u: any) => getUserBranch(u),
+      branch: (u) => getUserBranch(u),
     }
   );
 

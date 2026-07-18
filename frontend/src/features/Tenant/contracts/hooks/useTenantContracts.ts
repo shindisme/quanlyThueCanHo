@@ -30,11 +30,11 @@ export function useTenantContracts() {
     select: (res) => res.data,
   });
 
-  const { data: contractsData, isLoading: loadingContracts } = useQuery({
+  const { data: contracts = [], isLoading: loadingContracts } = useQuery({
     queryKey: ["contracts"],
-    queryFn: () => contractService.getAllContracts(),
+    queryFn: () => contractService.getAllContractsPage(),
+    select: (res) => res.data,
   });
-  const contracts = contractsData || [];
 
   const myContracts = contracts;
 

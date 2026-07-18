@@ -140,7 +140,7 @@ export default function InvoicePage() {
 
           {role === "ADMIN" && (
             <Combobox
-              options={buildings.map((b: any) => ({ value: String(b.id), label: b.branch_name }))}
+              options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
               value={buildingFilter ? String(buildingFilter) : ""}
               onChange={(val) => setBuildingFilter(val ? Number(val) : undefined)}
               placeholder="Tất cả chi nhánh"

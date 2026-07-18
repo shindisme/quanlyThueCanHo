@@ -142,7 +142,7 @@ export default function DashboardAdmin() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#9CA3AF" />
                 <YAxis tick={{ fontSize: 11 }} stroke="#9CA3AF" tickFormatter={(v) => `${(v / 1000000).toFixed(0)}tr`} />
-                <Tooltip formatter={(value: any) => [formatCurrency(Number(value) || 0), ""]}
+                <Tooltip formatter={(value) => [formatCurrency(Number(value) || 0), ""]}
                   contentStyle={{ borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "13px" }} />
                 {timeFrame === "month" && (
                   <Area type="monotone" dataKey="Năm trước" stroke="#E5E7EB" strokeWidth={1.5} fill="transparent" name="Năm trước" />

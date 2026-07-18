@@ -24,6 +24,7 @@ export default function UserDetailModal({
       TENANT: { label: "Người thuê", variant: "info" },
     };
     const r = map[role] || { label: role, variant: "gray" };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <Badge variant={r.variant as any}>{r.label}</Badge>;
   }
 

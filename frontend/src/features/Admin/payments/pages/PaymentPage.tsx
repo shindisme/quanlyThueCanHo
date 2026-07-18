@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { CreditCard, ClipboardList } from "lucide-react";
 import PageHeader from "../../../../components/PageHeader";
 import SearchInput from "../../../../components/ui/SearchInput";
@@ -5,9 +6,12 @@ import Combobox from "../../../../components/ui/Combobox";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import DefaultPagination from "../../../../components/ui/Pagination";
 import PaymentList from "../components/PaymentList";
+import PaymentDetailModal from "../components/PaymentDetailModal";
 import { usePaymentList } from "../hooks/usePaymentList";
+import type { Payment } from "../../../../types";
 
 export default function PaymentPage() {
+  const [viewItem, setViewItem] = useState<Payment | null>(null);
   const {
     role,
     payments,
@@ -84,7 +88,8 @@ export default function PaymentPage() {
 
           {role === "ADMIN" && (
             <Combobox
-              options={(buildings as any[]).map((b: any) => ({ value: String(b.id), label: b.branch_name }))}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              options={(buildings as any[]).map((b) => ({ value: String(b.id), label: b.branch_name }))}
               value={buildingFilter ? String(buildingFilter) : ""}
               onChange={(val) => {
                 setBuildingFilter(val ? Number(val) : undefined);
@@ -145,12 +150,25 @@ export default function PaymentPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          <PaymentList payments={payments} role={role} isUpdating={isUpdating} handleApprove={handleApprove} handleReject={handleReject} />
+          <PaymentList
+            payments={payments}
+            role={role}
+            isUpdating={isUpdating}
+            handleApprove={handleApprove}
+            handleReject={handleReject}
+            onViewDetail={(pmt) => setViewItem(pmt)}
+          />
           <div className="pt-2">
             <DefaultPagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
           </div>
         </div>
       )}
+
+      <PaymentDetailModal
+        isOpen={!!viewItem}
+        onClose={() => setViewItem(null)}
+        payment={viewItem}
+      />
     </div>
   );
 }

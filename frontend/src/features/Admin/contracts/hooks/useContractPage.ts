@@ -178,8 +178,8 @@ export function useContractPage() {
     return contracts;
   })();
 
-  const filteredContracts = displayContracts.filter((c: any) => {
-    const apt = c.apartment ?? apartments.find((a: any) => a.id === c.apartment_id);
+  const filteredContracts = displayContracts.filter((c) => {
+    const apt = c.apartment ?? apartments.find((a) => a.id === c.apartment_id);
     
     // Building filter
     if (filterBuilding && apt?.building_id !== filterBuilding) {
@@ -209,7 +209,7 @@ export function useContractPage() {
 
     const term = removeVietnameseTones(search);
     const code = `HD-${String(c.id).padStart(5, "0")}`;
-    const tenant = c.tenant ?? tenants.find((t: any) => t.id === c.tenant_id);
+    const tenant = c.tenant ?? tenants.find((t) => t.id === c.tenant_id);
     const tenantName = tenant ? removeVietnameseTones(tenant.full_name) : "";
     const room = apt ? removeVietnameseTones(apt.room_number) : "";
 

@@ -7,6 +7,7 @@ import {
 
 export function useApartmentForm(defaultValues?: Partial<ApartmentFormValues>) {
   return useForm<ApartmentFormValues>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(apartmentSchema) as any,
     defaultValues: {
       room_number: "",

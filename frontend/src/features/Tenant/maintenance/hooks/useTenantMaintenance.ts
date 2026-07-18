@@ -21,8 +21,9 @@ export function useTenantMaintenance() {
   // Fetch contracts
   const { data: contractsData, isLoading: loadingContracts } = useQuery({
     queryKey: ["contracts"],
-    queryFn: () => contractService.getAllContracts(),
+    queryFn: () => contractService.getAllContractsPage(),
     enabled: role === "TENANT" && !!token,
+    select: (res) => res.data,
   });
   const contracts = contractsData || [];
 

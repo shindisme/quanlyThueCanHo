@@ -35,10 +35,17 @@ export default function ApartmentList({
   function getStatusBadge(status: ApartmentStatus) {
     const label = APARTMENT_STATUS_LABELS[status] || status;
     const variant = APARTMENT_STATUS_COLORS[status] || "gray";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <Badge variant={variant as any}>{label}</Badge>;
   }
 
   const columns: Column<Apartment>[] = [
+    {
+      key: "index",
+      label: "STT",
+      className: "w-4",
+      render: (_, index: number) => <span className="font-semibold text-gray-800">{index + 1}</span>,
+    },
     {
       key: "room_number",
       label: "Căn hộ",
@@ -48,14 +55,15 @@ export default function ApartmentList({
         const branch = buildings.find((b) => b.id === apt.building_id)?.branch_name;
         return (
           <div
-            className="font-semibold text-primary-600 cursor-pointer hover:underline"
+            className="font-semibold cursor-pointer hover:underline"
             onClick={() => navigate(`/admin/apartments/${apt.id}`)}
           >
             <span>{roomName}</span>
             {branch && (
-              <span className="block text-[10px] font-semibold text-purple-650">
-                {branch}
+              <span className="block text-[10px] font-semibold text-primary-600">
+                {role === "ADMIN" && branch && <span className="text-[10px] font-semibold text-primary-600">{branch}</span>}
               </span>
+
             )}
           </div>
         );
@@ -69,13 +77,13 @@ export default function ApartmentList({
     },
     {
       key: "bedrooms",
-      label: "Phòng ngủ",
+      label: "PN",
       sortValue: (apt) => apt.bedrooms,
       render: (apt) => <span className="text-gray-650">{apt.bedrooms}</span>,
     },
     {
       key: "bathrooms",
-      label: "Phòng vệ sinh",
+      label: "PVS",
       sortValue: (apt) => apt.bathrooms,
       render: (apt) => <span className="text-gray-650">{apt.bathrooms}</span>,
     },
@@ -93,25 +101,24 @@ export default function ApartmentList({
     },
     ...(role === "ADMIN"
       ? [
-          {
-            key: "featured",
-            label: "Nổi bật",
-            sortable: false,
-            render: (apt: Apartment) => (
-              <button
-                onClick={() => toggleFeatured(apt.id)}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                  featuredIds.includes(apt.id)
-                    ? "text-amber-500 hover:text-amber-600"
-                    : "text-gray-300 hover:text-gray-400"
+        {
+          key: "featured",
+          label: "Nổi bật",
+          sortable: false,
+          render: (apt: Apartment) => (
+            <button
+              onClick={() => toggleFeatured(apt.id)}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${featuredIds.includes(apt.id)
+                ? "text-amber-500 hover:text-amber-600"
+                : "text-gray-300 hover:text-gray-400"
                 }`}
-                title={featuredIds.includes(apt.id) ? "Bỏ nổi bật" : "Bật nổi bật"}
-              >
-                <Star size={18} fill={featuredIds.includes(apt.id) ? "currentColor" : "none"} />
-              </button>
-            ),
-          },
-        ]
+              title={featuredIds.includes(apt.id) ? "Bỏ nổi bật" : "Bật nổi bật"}
+            >
+              <Star size={18} fill={featuredIds.includes(apt.id) ? "currentColor" : "none"} />
+            </button>
+          ),
+        },
+      ]
       : []),
     {
       key: "actions",

@@ -61,16 +61,16 @@ export default function TenantPage() {
 
   const columns: Column<Tenant>[] = [
     {
+      key: "index",
+      label: "STT",
+      className: "w-4",
+      render: (_, index: number) => <span className="font-semibold text-gray-800">{index + 1}</span>,
+    },
+    {
       key: "name",
       label: "Họ tên",
       sortValue: (t) => t.full_name,
       render: (t) => <span className="font-medium">{t.full_name}</span>,
-    },
-    {
-      key: "phone",
-      label: "Số điện thoại",
-      sortValue: (t) => t.phone || "",
-      render: (t) => (t.phone ? maskPhone(t.phone) : "-"),
     },
     {
       key: "apartment",
@@ -93,11 +93,17 @@ export default function TenantPage() {
           <div className="flex flex-col">
             <span className="font-semibold text-gray-800">{roomNum}</span>
             {role === "ADMIN" && bld?.branch_name && (
-              <span className="text-[10px] font-semibold text-purple-650">{bld.branch_name}</span>
+              <span className="text-[10px] font-semibold text-primary-600">{bld.branch_name}</span>
             )}
           </div>
         );
       },
+    },
+    {
+      key: "phone",
+      label: "Số điện thoại",
+      sortValue: (t) => t.phone || "",
+      render: (t) => (t.phone ? maskPhone(t.phone) : "-"),
     },
     {
       key: "citizen_id",

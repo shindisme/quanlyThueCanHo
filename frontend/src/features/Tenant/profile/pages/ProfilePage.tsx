@@ -1,4 +1,4 @@
-import { User, Mail, Save, Plus, Pencil, Trash2, FileText, Phone } from "lucide-react";
+import { User, Mail, Plus, Pencil, Trash2, FileText, Phone } from "lucide-react";
 import Button from "../../../../components/ui/Button";
 import PageHeader from "../../../../components/PageHeader";
 import Modal from "../../../../components/ui/Modal";
@@ -63,14 +63,12 @@ export default function ProfilePage() {
       <div className="premium-card p-6 relative">
         <div className="flex justify-between items-start mb-4">
           <h3 className="font-semibold text-gray-800">Thông tin tài khoản</h3>
-          {role !== "ADMIN" && (
-            <button
-              onClick={handleOpenEditProfile}
-              className="text-xs px-2.5 py-1.5 rounded-lg border border-primary-200 text-primary-600 hover:bg-primary-50 cursor-pointer flex items-center gap-1 font-semibold transition-all"
-            >
-              <Pencil size={12} /> Sửa thông tin
-            </button>
-          )}
+          <button
+            onClick={handleOpenEditProfile}
+            className="text-xs px-2.5 py-1.5 rounded-lg border border-primary-200 text-primary-600 hover:bg-primary-50 cursor-pointer flex items-center gap-1 font-semibold transition-all"
+          >
+            <Pencil size={12} /> Sửa thông tin
+          </button>
         </div>
         <div className="flex items-center gap-4 mb-6">
           <div className="w-16 h-16 rounded-full flex items-center justify-center shadow-md text-white text-2xl font-bold" style={{ background: "linear-gradient(135deg, #7C3AED, #A78BFA)" }}>
@@ -112,7 +110,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Đổi mật khẩu - kết nối API thật */}
+      {/* Đổi mật khẩu*/}
       <div className="premium-card p-6">
         <h3 className="font-semibold text-gray-800 mb-4">Đổi mật khẩu</h3>
         <div className="space-y-4">
@@ -138,7 +136,7 @@ export default function ProfilePage() {
             className="rounded-md"
           />
           <Button onClick={handleChangePassword} isLoading={saving}>
-            <Save size={16} /> Đổi mật khẩu
+            Đổi mật khẩu
           </Button>
         </div>
       </div>
@@ -204,67 +202,69 @@ export default function ProfilePage() {
 
       {/* Khai báo người ở cùng */}
       {role === "TENANT" && (
-        <div className="premium-card p-6 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-gray-800">Khai báo người ở cùng</h3>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Khai báo thông tin những người sinh hoạt cùng căn hộ của bạn.
-                Giới hạn tối đa theo hợp đồng: <span className="font-bold text-primary-600">{maxOccupantsLimit} người</span>.
-              </p>
+        <>
+          <div className="premium-card p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-gray-800">Khai báo người ở cùng</h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Khai báo thông tin những người sinh hoạt cùng căn hộ của bạn.
+                  Giới hạn tối đa theo hợp đồng: <span className="font-bold text-primary-600">{maxOccupantsLimit} người</span>.
+                </p>
+              </div>
+              <Button size="sm" onClick={() => handleOpenOccupantForm(null)}>
+                <Plus size={16} /> Khai báo người ở
+              </Button>
             </div>
-            <Button size="sm" onClick={() => handleOpenOccupantForm(null)}>
-              <Plus size={16} /> Khai báo người ở
-            </Button>
-          </div>
 
-          <div className="overflow-x-auto border border-gray-150 overflow-hidden bg-white shadow-sm">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Họ và tên</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Số CCCD</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">Ngày sinh</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-600">SĐT</th>
-                  <th className="px-4 py-3 text-right font-semibold text-gray-600">Chức năng</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 bg-white">
-                {occupants.map((occ: Occupant) => (
-                  <tr key={occ.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-800">{occ.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{occ.cccd}</td>
-                    <td className="px-4 py-3 text-gray-600">{occ.dob ? new Date(occ.dob).toLocaleDateString("vi-VN") : "-"}</td>
-                    <td className="px-4 py-3 text-gray-600">{occ.phone || "-"}</td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => handleOpenOccupantForm(occ)}
-                          className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg cursor-pointer"
-                          title="Chỉnh sửa"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteOccupant(occ.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-650 hover:bg-red-50 rounded-lg cursor-pointer"
-                          title="Xóa"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {occupants.length === 0 && (
+            <div className="overflow-x-auto border border-gray-150 overflow-hidden bg-white shadow-sm">
+              <table className="min-w-full divide-y divide-gray-200 text-sm">
+                <thead className="bg-gray-50">
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                      Chưa khai báo người ở cùng nào.
-                    </td>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Họ và tên</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Số CCCD</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600">Ngày sinh</th>
+                    <th className="px-4 py-3 text-left font-semibold text-gray-600">SĐT</th>
+                    <th className="px-4 py-3 text-right font-semibold text-gray-600">Chức năng</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {occupants.map((occ: Occupant) => (
+                    <tr key={occ.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-800">{occ.name}</td>
+                      <td className="px-4 py-3 text-gray-600">{occ.cccd}</td>
+                      <td className="px-4 py-3 text-gray-600">{occ.dob ? new Date(occ.dob).toLocaleDateString("vi-VN") : "-"}</td>
+                      <td className="px-4 py-3 text-gray-600">{occ.phone || "-"}</td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleOpenOccupantForm(occ)}
+                            className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg cursor-pointer"
+                            title="Chỉnh sửa"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteOccupant(occ.id)}
+                            className="p-1.5 text-gray-400 hover:text-red-650 hover:bg-red-50 rounded-lg cursor-pointer"
+                            title="Xóa"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {occupants.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
+                        Chưa khai báo người ở cùng nào.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Modal*/}
@@ -317,48 +317,48 @@ export default function ProfilePage() {
               />
             </div>
           </Modal>
-
-          {/* Modal Sửa Thông Tin Tài Khoản */}
-          <Modal
-            isOpen={showEditProfileModal}
-            onClose={() => setShowEditProfileModal(false)}
-            title="Chỉnh sửa thông tin tài khoản"
-            footer={
-              <>
-                <Button variant="outline" onClick={() => setShowEditProfileModal(false)}>
-                  Hủy
-                </Button>
-                <Button onClick={handleSaveProfile}>
-                  Lưu thay đổi
-                </Button>
-              </>
-            }
-          >
-            <div className="space-y-4 font-sans text-xs sm:text-sm">
-              <Input
-                label="Tên tài khoản (Email)"
-                value={email || ""}
-                disabled
-                className="bg-gray-50 text-gray-500 rounded-xl"
-              />
-              <Input
-                label="Họ và tên"
-                value={editFullName}
-                onChange={(e) => setEditFullName(e.target.value)}
-                placeholder="Nhập họ và tên..."
-                className="rounded-xl"
-              />
-              <Input
-                label="Số điện thoại"
-                value={editPhone}
-                onChange={(e) => setEditPhone(e.target.value)}
-                placeholder="Nhập số điện thoại..."
-                className="rounded-xl"
-              />
-            </div>
-          </Modal>
-        </div>
+        </>
       )}
+
+      {/* Modal Sửa Thông Tin Tài Khoản */}
+      <Modal
+        isOpen={showEditProfileModal}
+        onClose={() => setShowEditProfileModal(false)}
+        title="Chỉnh sửa thông tin tài khoản"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setShowEditProfileModal(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleSaveProfile}>
+              Lưu thay đổi
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4 font-sans text-xs sm:text-sm">
+          <Input
+            label="Tên tài khoản (Email)"
+            value={email || ""}
+            disabled
+            className="bg-gray-50 text-gray-500 rounded-xl"
+          />
+          <Input
+            label="Họ và tên"
+            value={editFullName}
+            onChange={(e) => setEditFullName(e.target.value)}
+            placeholder="Nhập họ và tên..."
+            className="rounded-xl"
+          />
+          <Input
+            label="Số điện thoại"
+            value={editPhone}
+            onChange={(e) => setEditPhone(e.target.value)}
+            placeholder="Nhập số điện thoại..."
+            className="rounded-xl"
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

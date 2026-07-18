@@ -5,12 +5,14 @@ import Input from "../../../../components/ui/Input";
 import Combobox from "../../../../components/ui/Combobox";
 import { toast } from "sonner";
 
+import type { Building, GenerateMonthlyInvoicesPayload } from "../../../../types";
+
 interface InvoiceGenerateModalProps {
   isOpen: boolean;
   onClose: () => void;
-  buildings: any[];
+  buildings: Building[];
   isGenerating: boolean;
-  onGenerate: (payload: any) => void;
+  onGenerate: (payload: GenerateMonthlyInvoicesPayload) => void;
   role: string | null;
   managedBuildingId: number | null;
 }
@@ -60,7 +62,7 @@ export default function InvoiceGenerateModal({
         const parsed = JSON.parse(saved);
         if (parsed.managementFeePerM2 !== undefined) return String(parsed.managementFeePerM2);
       }
-    } catch { }
+    } catch { /* empty */ }
     return "10000";
   });
 
@@ -71,7 +73,7 @@ export default function InvoiceGenerateModal({
         const parsed = JSON.parse(saved);
         if (parsed.electricityRate !== undefined) return String(parsed.electricityRate);
       }
-    } catch { }
+    } catch { /* empty */ }
     return "3500";
   });
 
@@ -82,7 +84,7 @@ export default function InvoiceGenerateModal({
         const parsed = JSON.parse(saved);
         if (parsed.waterRate !== undefined) return String(parsed.waterRate);
       }
-    } catch { }
+    } catch { /* empty */ }
     return "25000";
   });
 
@@ -93,7 +95,7 @@ export default function InvoiceGenerateModal({
         const parsed = JSON.parse(saved);
         if (parsed.internetRate !== undefined) return String(parsed.internetRate);
       }
-    } catch { }
+    } catch { /* empty */ }
     return "300000";
   });
 

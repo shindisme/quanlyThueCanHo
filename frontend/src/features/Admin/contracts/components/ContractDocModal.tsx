@@ -147,7 +147,7 @@ export default function ContractDocModal({
                     <p>Ông/bà: <span className="font-semibold text-gray-800">BAN QUẢN LÝ CĂN HỘ DỊCH VỤ YUKI HOUSE (Đại diện)</span></p>
                     <p>Số CMND/CCCD/Mã số thuế: 079200000001</p>
                     <p>Địa chỉ: {bld?.address_new || "Hệ thống tòa nhà Yuki House"}</p>
-                    <p>Điện thoại: {(bld as any)?.phone || "0901000001"}</p>
+                    <p>Điện thoại: {(bld as unknown as { phone?: string })?.phone || "0901000001"}</p>
                     <p>
                       Là chủ cho thuê hợp pháp căn hộ chung cư số:{" "}
                       <span className="font-semibold text-gray-800">

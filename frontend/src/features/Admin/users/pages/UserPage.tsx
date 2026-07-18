@@ -7,7 +7,7 @@ import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import Combobox from "../../../../components/ui/Combobox";
 import Pagination from "../../../../components/ui/Pagination";
 import { useUserPage } from "../hooks/useUserPage";
-import type { User } from "../../../../types";
+import type { User, Tenant, Staff } from "../../../../types";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 
 import UserCreateModal from "../components/UserCreateModal";
@@ -45,6 +45,7 @@ export default function UserPage() {
     handleDelete,
     confirmResetPassword,
     fetchUsers,
+    tenants,
     staff,
     getUserFullName,
     getUserBranch,
@@ -53,6 +54,12 @@ export default function UserPage() {
   } = useUserPage();
 
   const columns: Column<User>[] = [
+    {
+      key: "index",
+      label: "STT",
+      className: "w-4",
+      render: (_, index: number) => <span className="font-semibold text-gray-800 w-2">{index + 1}</span>,
+    },
     {
       key: "fullName",
       label: "Họ và tên",
@@ -73,9 +80,9 @@ export default function UserPage() {
     },
     {
       key: "branch",
-      label: "Chi nhánh / Căn hộ",
+      label: "Chi nhánh",
       sortValue: (u) => getUserBranch(u),
-      render: (u) => <span className="font-medium text-gray-650">{getUserBranch(u)}</span>,
+      render: (u) => <span className="font-medium text-primary-600">{getUserBranch(u)}</span>,
     },
     {
       key: "status",
@@ -195,7 +202,6 @@ export default function UserPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 w-full font-sans">
         <Combobox
           options={[
-            { value: "", label: "Tất cả vai trò" },
             { value: "ADMIN", label: "Admin" },
             { value: "MANAGER", label: "Quản lý" },
             { value: "STAFF", label: "Nhân viên" },
@@ -203,34 +209,33 @@ export default function UserPage() {
           ]}
           value={roleFilter}
           onChange={setRoleFilter}
+          placeholder="Tất cả vai trò"
           searchable={false}
           className="w-full"
-          triggerClassName="rounded-md"
+          triggerClassName="rounded-xl"
         />
 
         <Combobox
           options={[
-            { value: "", label: "Tất cả trạng thái" },
             { value: "ACTIVE", label: "Hoạt động" },
             { value: "INACTIVE", label: "Tạm khóa" },
           ]}
           value={statusFilter}
           onChange={setStatusFilter}
+          placeholder="Tất cả trạng thái"
           searchable={false}
           className="w-full"
-          triggerClassName="rounded-md"
+          triggerClassName="rounded-xl"
         />
 
-        {isAdmin && (
-          <Combobox
-            options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
-            value={buildingFilter}
-            onChange={setBuildingFilter}
-            placeholder="Tất cả tòa nhà"
-            triggerClassName="rounded-md"
-            clearable={true}
-          />
-        )}
+        <Combobox
+          options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
+          value={buildingFilter}
+          onChange={setBuildingFilter}
+          placeholder="Tất cả tòa nhà"
+          triggerClassName="rounded-xl"
+          clearable={true}
+        />
       </div>
 
       {/* Bảng */}
@@ -281,6 +286,25 @@ export default function UserPage() {
         onSuccess={fetchUsers}
         user={modifyItem}
         initialFullName={modifyItem ? getUserFullName(modifyItem) : ""}
+        tenantId={
+          modifyItem && modifyItem.role === "TENANT"
+            ? tenants.find(
+              (t: Tenant) =>
+                t.user_id === modifyItem.id ||
+                (t.email && modifyItem.username && t.email.toLowerCase() === modifyItem.username.toLowerCase())
+            )?.id || modifyItem.tenant?.id || modifyItem.tenant_profile?.id || null
+            : null
+        }
+        staffId={
+          modifyItem && (modifyItem.role === "MANAGER" || modifyItem.role === "STAFF")
+            ? staff.find(
+              (s: Staff) =>
+                s.user_id === modifyItem.id ||
+                (s.user && s.user.id === modifyItem.id) ||
+                (s.user && s.user.username === modifyItem.username)
+            )?.id || null
+            : null
+        }
       />
 
       <UserDetailModal

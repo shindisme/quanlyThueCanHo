@@ -122,7 +122,7 @@ export function useTenantPayments() {
 
   // Calculate outstanding balance
   const outstandingBalance = useMemo(() => {
-    return unpaidInvoices.reduce((sum: number, inv: any) => sum + Number(inv.total_amount), 0);
+    return unpaidInvoices.reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
   }, [unpaidInvoices]);
 
   // Mutations
@@ -182,7 +182,7 @@ export function useTenantPayments() {
     e.preventDefault();
     if (!selectedInvoiceId || !transactionCode.trim()) return;
 
-    const targetInvoice = unpaidInvoices.find((inv: any) => inv.id === selectedInvoiceId);
+    const targetInvoice = unpaidInvoices.find((inv) => inv.id === selectedInvoiceId);
     if (!targetInvoice) return;
 
     payManualMutation.mutate({

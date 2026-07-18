@@ -9,9 +9,11 @@ import BuildingModifyModal from "../components/BuildingModifyModal";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import { useBuildingDetail } from "../hooks/useBuildingDetail";
 
-function getApartmentThumbnail(apt: any): string {
+import type { Apartment } from "../../../../types";
+
+function getApartmentThumbnail(apt: Apartment): string {
   if (apt && apt.images && Array.isArray(apt.images) && apt.images.length > 0) {
-    const thumb = apt.images.find((img: any) => img.is_thumbnail);
+    const thumb = apt.images.find((img) => img.is_thumbnail);
     if (thumb) return thumb.image_url;
     return apt.images[0].image_url;
   }
@@ -66,6 +68,7 @@ export default function BuildingDetailPage() {
       MAINTENANCE: { label: "Bảo trì", variant: "warning" },
     };
     const s = map[status] || { label: status, variant: "gray" };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <Badge variant={s.variant as any}>{s.label}</Badge>;
   }
 
@@ -230,6 +233,7 @@ export default function BuildingDetailPage() {
         isOpen={showModifyModal}
         onClose={() => setShowModifyModal(false)}
         onSuccess={fetchData}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         editItem={building as any}
       />
     </div>

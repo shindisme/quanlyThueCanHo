@@ -88,7 +88,7 @@ export async function update(id: number, data: FormData | UpdateBuildingRequest)
   return res.data.data || (res.data as unknown as BuildingData);
 }
 
-export async function deleteBuilding(id: number): Promise<any> {
+export async function deleteBuilding(id: number): Promise<unknown> {
   const res = await api.delete(`${BUILDING_API}/${id}`);
   return res.data.data || res.data;
 }

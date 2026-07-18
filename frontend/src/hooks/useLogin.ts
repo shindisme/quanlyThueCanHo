@@ -72,14 +72,14 @@ export function useLogin() {
           const { getAllBuildings } = await import("../services/buildingService")
 
           const staffRes = await getAllStaffs()
-          const currentStaff = staffRes.data.find((s: any) => s.user_id === userId)
+          const currentStaff = staffRes.data.find((s) => s.user_id === userId)
 
           if (currentStaff && currentStaff.building_id) {
             managedBuildingId = currentStaff.building_id
 
             // Get building name
             const buildingsRes = await getAllBuildings()
-            const currentBld = buildingsRes.data.find((b: any) => b.id === managedBuildingId)
+            const currentBld = buildingsRes.data.find((b) => b.id === managedBuildingId)
             if (currentBld) {
               managedBuildingName = currentBld.branch_name
             }

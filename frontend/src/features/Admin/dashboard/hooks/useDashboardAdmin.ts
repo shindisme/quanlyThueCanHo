@@ -8,7 +8,8 @@ import * as invoiceService from "../../../../services/invoiceService";
 
 export function useDashboardAdmin() {
   const { email } = useAuthStore();
-  const displayName = "Quản trị viên";
+  const storedName = email ? localStorage.getItem(`profile-fullname-${email}`) : null;
+  const displayName = storedName || "Quản trị viên";
 
   const [selectedBranch, setSelectedBranch] = useState("");
   const [timeFrame, setTimeFrame] = useState<"month" | "year">("month");
@@ -48,50 +49,50 @@ export function useDashboardAdmin() {
 
   const branchId = selectedBranch ? Number(selectedBranch) : null;
 
-  const filteredBuildings = branchId ? buildings.filter((b: any) => b.id === branchId) : buildings;
-  const filteredApartments = branchId ? apartments.filter((a: any) => a.building_id === branchId) : apartments;
+  const filteredBuildings = branchId ? buildings.filter((b) => b.id === branchId) : buildings;
+  const filteredApartments = branchId ? apartments.filter((a) => a.building_id === branchId) : apartments;
   const filteredInvoices = branchId
-    ? invoices.filter((inv: any) => inv.contract?.apartment?.building_id === branchId)
+    ? invoices.filter((inv) => inv.contract?.apartment?.building_id === branchId)
     : invoices;
 
   const totalBuildingsCount = filteredBuildings.length;
 
-  const totalApartmentsCount = filteredBuildings.reduce((sum: number, b: any) => sum + (b.total_apartments || b._count?.apartments || 0), 0);
+  const totalApartmentsCount = filteredBuildings.reduce((sum: number, b) => sum + (b.total_apartments || b._count?.apartments || 0), 0);
 
-  const activeContractsForExpiration = contracts.filter((c: any) => {
-    return !branchId || filteredApartments.some((a: any) => a.id === c.apartment_id);
+  const activeContractsForExpiration = contracts.filter((c) => {
+    return !branchId || filteredApartments.some((a) => a.id === c.apartment_id);
   });
 
-  const activeContracts = activeContractsForExpiration.filter((c: any) => c.status === "ACTIVE");
+  const activeContracts = activeContractsForExpiration.filter((c) => c.status === "ACTIVE");
 
-  const buildingTenantIds = new Set(activeContracts.map((c: any) => c.tenant_id));
+  const buildingTenantIds = new Set(activeContracts.map((c) => c.tenant_id));
   const activeTenantsCount = buildingTenantIds.size;
 
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
-  const currentMonthPaidInvoices = filteredInvoices.filter((inv: any) => {
+  const currentMonthPaidInvoices = filteredInvoices.filter((inv) => {
     if (inv.status !== "PAID") return false;
     const date = new Date(inv.paid_at || inv.created_at);
     return date.getMonth() + 1 === currentMonth && date.getFullYear() === currentYear;
   });
 
-  const monthlyRevenue = currentMonthPaidInvoices.reduce((sum: number, inv: any) => sum + Number(inv.total_amount), 0);
+  const monthlyRevenue = currentMonthPaidInvoices.reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
 
   const months = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
   const monthlyRevenueData = months.map((m, index) => {
     const monthVal = index + 1;
-    const revenue = filteredInvoices.filter((inv: any) => {
+    const revenue = filteredInvoices.filter((inv) => {
       if (inv.status !== "PAID") return false;
       const date = new Date(inv.paid_at || inv.created_at);
       return date.getMonth() + 1 === monthVal && date.getFullYear() === currentYear;
-    }).reduce((sum: number, inv: any) => sum + Number(inv.total_amount), 0);
+    }).reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
 
-    const lastYear = filteredInvoices.filter((inv: any) => {
+    const lastYear = filteredInvoices.filter((inv) => {
       if (inv.status !== "PAID") return false;
       const date = new Date(inv.paid_at || inv.created_at);
       return date.getMonth() + 1 === monthVal && date.getFullYear() === currentYear - 1;
-    }).reduce((sum: number, inv: any) => sum + Number(inv.total_amount), 0);
+    }).reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
 
     return {
       name: m,
@@ -101,11 +102,11 @@ export function useDashboardAdmin() {
   });
 
   const yearlyRevenueData = [currentYear - 2, currentYear - 1, currentYear].map(yr => {
-    const revenue = filteredInvoices.filter((inv: any) => {
+    const revenue = filteredInvoices.filter((inv) => {
       if (inv.status !== "PAID") return false;
       const date = new Date(inv.paid_at || inv.created_at);
       return date.getFullYear() === yr;
-    }).reduce((sum: number, inv: any) => sum + Number(inv.total_amount), 0);
+    }).reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
 
     return {
       name: String(yr),
@@ -115,9 +116,9 @@ export function useDashboardAdmin() {
 
   const chartData = timeFrame === "month" ? monthlyRevenueData : yearlyRevenueData;
 
-  const rentedCount = filteredApartments.filter((a: any) => a.status === "RENTED").length;
-  const availableCount = filteredApartments.filter((a: any) => a.status === "AVAILABLE").length;
-  const maintenanceCount = filteredApartments.filter((a: any) => a.status === "MAINTENANCE").length;
+  const rentedCount = filteredApartments.filter((a) => a.status === "RENTED").length;
+  const availableCount = filteredApartments.filter((a) => a.status === "AVAILABLE").length;
+  const maintenanceCount = filteredApartments.filter((a) => a.status === "MAINTENANCE").length;
 
   const roomStatusData = [
     { name: "Đang thuê", value: rentedCount, color: "#10B981" },
@@ -135,24 +136,24 @@ export function useDashboardAdmin() {
   const time60Days = getBoundaryDate(60);
   const time90Days = getBoundaryDate(90);
 
-  const expiredContractsCount = activeContractsForExpiration.filter((c: any) => {
+  const expiredContractsCount = activeContractsForExpiration.filter((c) => {
     if (c.status !== "ACTIVE") return false;
     return new Date(c.end_date) < now;
   }).length;
 
-  const expiring30DaysCount = activeContractsForExpiration.filter((c: any) => {
+  const expiring30DaysCount = activeContractsForExpiration.filter((c) => {
     if (c.status !== "ACTIVE") return false;
     const endDate = new Date(c.end_date);
     return endDate >= now && endDate <= time30Days;
   }).length;
 
-  const expiring60DaysCount = activeContractsForExpiration.filter((c: any) => {
+  const expiring60DaysCount = activeContractsForExpiration.filter((c) => {
     if (c.status !== "ACTIVE") return false;
     const endDate = new Date(c.end_date);
     return endDate > time30Days && endDate <= time60Days;
   }).length;
 
-  const expiring90DaysCount = activeContractsForExpiration.filter((c: any) => {
+  const expiring90DaysCount = activeContractsForExpiration.filter((c) => {
     if (c.status !== "ACTIVE") return false;
     const endDate = new Date(c.end_date);
     return endDate > time60Days && endDate <= time90Days;
@@ -160,7 +161,7 @@ export function useDashboardAdmin() {
 
   const branchOptions = [
     { value: "", label: "Tất cả chi nhánh" },
-    ...buildings.map((b: any) => ({
+    ...buildings.map((b) => ({
       value: String(b.id),
       label: b.branch_name
     }))

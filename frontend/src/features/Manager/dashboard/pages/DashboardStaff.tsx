@@ -73,9 +73,11 @@ export default function DashboardStaff() {
   } = useDashboardStaff();
 
   const [statusTab, setStatusTab] = useState<string>("ALL");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [reportRequest, setReportRequest] = useState<any | null>(null);
   const [reportReason, setReportReason] = useState<string>("");
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [completeRequest, setCompleteRequest] = useState<any | null>(null);
   const [chargeTenant, setChargeTenant] = useState<boolean>(false);
   const [repairFee, setRepairFee] = useState<string>("");
@@ -86,48 +88,48 @@ export default function DashboardStaff() {
 
   // Filter apartments in staff's building
   const buildingApartments = managedBuildingId
-    ? apartments.filter((a: any) => a.building_id === managedBuildingId)
+    ? apartments.filter((a) => a.building_id === managedBuildingId)
     : apartments;
 
   const totalApartmentsCount = buildingApartments.length;
 
-  const rentedCount = buildingApartments.filter((a: any) => a.status === "RENTED").length;
-  const availableCount = buildingApartments.filter((a: any) => a.status === "AVAILABLE").length;
-  const maintenanceCount = buildingApartments.filter((a: any) => a.status === "MAINTENANCE").length;
+  const rentedCount = buildingApartments.filter((a) => a.status === "RENTED").length;
+  const availableCount = buildingApartments.filter((a) => a.status === "AVAILABLE").length;
+  const maintenanceCount = buildingApartments.filter((a) => a.status === "MAINTENANCE").length;
 
   // Filter active contracts
-  const buildingContracts = contracts.filter((c: any) => {
-    const isRoomInBuilding = buildingApartments.some((a: any) => a.id === c.apartment_id);
+  const buildingContracts = contracts.filter((c) => {
+    const isRoomInBuilding = buildingApartments.some((a) => a.id === c.apartment_id);
     return c.status === "ACTIVE" && isRoomInBuilding;
   });
 
   // Unique tenants in building
-  const buildingTenantIds = new Set(buildingContracts.map((c: any) => c.tenant_id));
+  const buildingTenantIds = new Set(buildingContracts.map((c) => c.tenant_id));
   const activeTenantsCount = managedBuildingId ? buildingTenantIds.size : tenants.length;
 
   // Expiring contracts within next 30 days
   const now = new Date();
   const thirtyDaysLater = new Date();
   thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
-  const expiringContractsCount = buildingContracts.filter((c: any) => {
+  const expiringContractsCount = buildingContracts.filter((c) => {
     const endDate = new Date(c.end_date);
     return endDate >= now && endDate <= thirtyDaysLater;
   }).length;
 
   // Pending schedules in staff's building
-  const pendingSchedulesCount = schedules.filter((s: any) => {
+  const pendingSchedulesCount = schedules.filter((s) => {
     const matchesBuilding = !managedBuildingId || s.apartment?.building_id === managedBuildingId;
     return s.status === "PENDING" && matchesBuilding;
   }).length;
 
   // Pending maintenance requests
   const pendingMaintenanceRequests = maintenanceRequests.filter(
-    (r: any) => r.status === "PENDING" || r.status === "PROCESSING" || r.status === "NEEDS_RESCHEDULE"
+    (r) => r.status === "PENDING" || r.status === "PROCESSING" || r.status === "NEEDS_RESCHEDULE"
   ).length;
 
   // Processing maintenance requests
   const processingMaintenanceRequests = maintenanceRequests.filter(
-    (r: any) => r.status === "PROCESSING"
+    (r) => r.status === "PROCESSING"
   ).length;
 
   const apartmentStatus = [
@@ -157,14 +159,14 @@ export default function DashboardStaff() {
     const myTasks = role === "STAFF"
       ? maintenanceRequests
       : maintenanceRequests.filter(
-          (r: any) => r.assigned_staff_id === currentStaff?.id || r.assigned_staff?.id === currentStaff?.id
+          (r) => r.assigned_staff_id === currentStaff?.id || r.assigned_staff?.id === currentStaff?.id
         );
 
-    const pendingMyTasks = myTasks.filter((r: any) => r.status === "PENDING").length;
-    const processingMyTasks = myTasks.filter((r: any) => r.status === "PROCESSING").length;
-    const doneMyTasks = myTasks.filter((r: any) => r.status === "DONE").length;
+    const pendingMyTasks = myTasks.filter((r) => r.status === "PENDING").length;
+    const processingMyTasks = myTasks.filter((r) => r.status === "PROCESSING").length;
+    const doneMyTasks = myTasks.filter((r) => r.status === "DONE").length;
 
-    const filteredMyTasks = myTasks.filter((t: any) => {
+    const filteredMyTasks = myTasks.filter((t) => {
       if (statusTab === "ALL") return t.status !== "CANCELLED";
       return t.status === statusTab;
     });
@@ -252,7 +254,7 @@ export default function DashboardStaff() {
               onClick={() => setStatusTab("ALL")}
               className={`pb-3 text-sm font-semibold border-b-2 px-2 transition-all cursor-pointer ${statusTab === "ALL" ? "border-primary-600 text-primary-600 font-bold" : "border-transparent text-gray-500 hover:text-gray-700"}`}
             >
-              Tất cả ({myTasks.filter((t: any) => t.status !== "CANCELLED").length})
+              Tất cả ({myTasks.filter((t) => t.status !== "CANCELLED").length})
             </button>
             <button
               onClick={() => setStatusTab("PENDING")}
@@ -270,7 +272,7 @@ export default function DashboardStaff() {
               onClick={() => setStatusTab("NEEDS_RESCHEDULE")}
               className={`pb-3 text-sm font-semibold border-b-2 px-2 transition-all cursor-pointer ${statusTab === "NEEDS_RESCHEDULE" ? "border-red-500 text-red-500 font-bold" : "border-transparent text-gray-500 hover:text-gray-700"}`}
             >
-              Báo bận / Báo lại ({myTasks.filter((t: any) => t.status === "NEEDS_RESCHEDULE").length})
+              Báo bận / Báo lại ({myTasks.filter((t) => t.status === "NEEDS_RESCHEDULE").length})
             </button>
             <button
               onClick={() => setStatusTab("DONE")}
@@ -286,7 +288,7 @@ export default function DashboardStaff() {
             </div>
           ) : (
             <div className="space-y-4">
-              {filteredMyTasks.map((task: any) => {
+              {filteredMyTasks.map((task) => {
                 const roomStr = task.apartment ? `P.${task.apartment.room_number} (Tầng ${task.apartment.floor})` : `Phòng #${task.apartment_id}`;
                 const buildingName = task.apartment?.building?.branch_name || "Chi nhánh hiện tại";
                 const isMutating = completeMutation.isPending || unableMutation.isPending || startMutation.isPending;
@@ -560,7 +562,7 @@ export default function DashboardStaff() {
           >
             {(() => {
               const unresolvedRequests = maintenanceRequests
-                .filter((r: any) => r.status === "PENDING" || r.status === "PROCESSING" || r.status === "NEEDS_RESCHEDULE")
+                .filter((r) => r.status === "PENDING" || r.status === "PROCESSING" || r.status === "NEEDS_RESCHEDULE")
                 .slice(0, 5);
 
               if (unresolvedRequests.length === 0) {
@@ -583,7 +585,7 @@ export default function DashboardStaff() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-150">
-                      {unresolvedRequests.map((req: any) => {
+                      {unresolvedRequests.map((req) => {
                         const aptLabel = req.apartment ? `P.${req.apartment.room_number}` : `Căn hộ #${req.apartment_id}`;
                         const priorityLabel = req.priority === "HIGH" ? "Cao" : req.priority === "MEDIUM" ? "Trung bình" : "Thấp";
                         const priorityColor = req.priority === "HIGH" ? "text-red-600 bg-red-50 border border-red-200" : req.priority === "MEDIUM" ? "text-amber-600 bg-amber-50 border border-amber-200" : "text-gray-650 bg-gray-50 border border-gray-200";

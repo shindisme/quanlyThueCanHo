@@ -40,6 +40,7 @@ export default function ContractList({
   function getStatusBadge(status: ContractStatus) {
     const label = CONTRACT_STATUS_LABELS[status] || status;
     const variant = CONTRACT_STATUS_COLORS[status] || "gray";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <Badge variant={variant as any}>{label}</Badge>;
   }
 
@@ -55,6 +56,12 @@ export default function ContractList({
   };
 
   const columns: Column<RentalContract>[] = [
+    {
+      key: "index",
+      label: "STT",
+      className: "w-4",
+      render: (_, index: number) => <span className="font-semibold text-gray-800 w-2">{index + 1}</span>,
+    },
     {
       key: "id",
       label: "Mã HĐ",
@@ -80,7 +87,7 @@ export default function ContractList({
               {apt ? formatApartmentDisplay(apt.room_number, apt.floor) : "-"}
             </span>
             {role === "ADMIN" && bld?.branch_name && (
-              <span className="text-[10px] font-semibold text-purple-600">{bld.branch_name}</span>
+              <span className="text-[10px] font-semibold text-primary-600">{bld.branch_name}</span>
             )}
           </div>
         );

@@ -23,6 +23,7 @@ export default function InvoiceList({
   function getStatusBadge(status: InvoiceStatus) {
     const label = INVOICE_STATUS_LABELS[status] || status;
     const variant = INVOICE_STATUS_COLORS[status] || "gray";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <Badge variant={variant as any}>{label}</Badge>;
   }
 
@@ -41,6 +42,12 @@ export default function InvoiceList({
 
   const columns: Column<Invoice>[] = [
     {
+      key: "index",
+      label: "STT",
+      className: "w-4",
+      render: (_, index: number) => <span className="font-semibold text-gray-800 w-2">{index + 1}</span>,
+    },
+    {
       key: "invoice_code",
       label: "Mã hóa đơn",
       sortValue: (inv) => inv.invoice_code,
@@ -55,7 +62,7 @@ export default function InvoiceList({
         return (
           <div className="flex flex-col">
             <span className="font-semibold text-gray-800">{room}</span>
-            {branch && <span className="text-[10px] font-semibold text-purple-600">{branch}</span>}
+            {role === "ADMIN" && branch && <span className="text-[10px] font-semibold text-primary-600">{branch}</span>}
           </div>
         );
       }

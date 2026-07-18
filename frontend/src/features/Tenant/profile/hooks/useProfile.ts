@@ -76,12 +76,13 @@ export function useProfile() {
 
   const { data: contracts } = useQuery({
     queryKey: ["contracts"],
-    queryFn: () => contractService.getAllContracts(),
+    queryFn: () => contractService.getAllContractsPage(),
     enabled: role === "TENANT" && !!email && !!token,
+    select: (res) => res.data,
   });
 
   const userContract = contracts
-    ? contracts.find((c: any) => c.status === "ACTIVE")
+    ? contracts.find((c) => c.status === "ACTIVE")
     : null;
 
   const { data: apartments = [] } = useQuery({
@@ -92,7 +93,7 @@ export function useProfile() {
   });
 
   const apartmentInfo = userContract
-    ? apartments.find((a: any) => a.id === userContract.apartment_id)
+    ? apartments.find((a) => a.id === userContract.apartment_id)
     : null;
 
   const { data: buildings = [] } = useQuery({
@@ -103,7 +104,7 @@ export function useProfile() {
   });
 
   const buildingInfo = apartmentInfo
-    ? buildings.find((b: any) => b.id === apartmentInfo.building_id)
+    ? buildings.find((b) => b.id === apartmentInfo.building_id)
     : null;
 
   const { data: staffRes } = useQuery({
@@ -112,7 +113,7 @@ export function useProfile() {
     enabled: (role === "MANAGER" || role === "STAFF") && !!userId,
   });
   const currentStaff = userId && staffRes?.data
-    ? staffRes.data.find((s: any) => s.user_id === userId)
+    ? staffRes.data.find((s) => s.user_id === userId)
     : null;
 
   const overrideFullName = email ? localStorage.getItem(`profile-fullname-${email}`) : null;
@@ -140,16 +141,51 @@ export function useProfile() {
     setShowEditProfileModal(true);
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (!editFullName.trim()) {
       toast.error("Họ tên không được để trống");
       return;
     }
-    if (email) {
-      localStorage.setItem(`profile-fullname-${email}`, editFullName);
-      localStorage.setItem(`profile-phone-${email}`, editPhone);
+    try {
+      if (role === "TENANT") {
+        if (userContract?.tenant?.id) {
+          await tenantService.updateTenant(userContract.tenant.id, {
+            full_name: editFullName.trim(),
+            phone: editPhone.trim() || undefined,
+          });
+          queryClient.invalidateQueries({ queryKey: ["contracts"] });
+        } else {
+          if (email) {
+            localStorage.setItem(`profile-fullname-${email}`, editFullName.trim());
+            localStorage.setItem(`profile-phone-${email}`, editPhone.trim());
+          }
+        }
+      } else if (role === "MANAGER" || role === "STAFF") {
+        if (currentStaff?.id) {
+          await staffService.updateStaff(currentStaff.id, {
+            full_name: editFullName.trim(),
+            phone: editPhone.trim() || undefined,
+          });
+          queryClient.invalidateQueries({ queryKey: ["staffProfile"] });
+        } else {
+          if (email) {
+            localStorage.setItem(`profile-fullname-${email}`, editFullName.trim());
+            localStorage.setItem(`profile-phone-${email}`, editPhone.trim());
+          }
+        }
+      } else if (role === "ADMIN") {
+        if (email) {
+          localStorage.setItem(`profile-fullname-${email}`, editFullName.trim());
+          localStorage.setItem(`profile-phone-${email}`, editPhone.trim());
+        }
+      }
+
+      window.dispatchEvent(new Event("profile-update"));
       toast.success("Cập nhật thông tin tài khoản thành công!");
       setShowEditProfileModal(false);
+    } catch (error) {
+      console.error(error);
+      toast.error("Cập nhật thông tin tài khoản thất bại");
     }
   };
   const { data: occupantData = [] } = useQuery({

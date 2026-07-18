@@ -110,51 +110,51 @@ function ManagerDashboardView() {
 
   // Filter apartments in manager's building
   const buildingApartments = managedBuildingId
-    ? apartments.filter((a: any) => a.building_id === managedBuildingId)
+    ? apartments.filter((a) => a.building_id === managedBuildingId)
     : apartments;
 
   const totalApartmentsCount = buildingApartments.length;
 
-  const rentedApts = buildingApartments.filter((a: any) => a.status === "RENTED");
-  const availableApts = buildingApartments.filter((a: any) => a.status === "AVAILABLE");
-  const maintenanceApts = buildingApartments.filter((a: any) => a.status === "MAINTENANCE");
+  const rentedApts = buildingApartments.filter((a) => a.status === "RENTED");
+  const availableApts = buildingApartments.filter((a) => a.status === "AVAILABLE");
+  const maintenanceApts = buildingApartments.filter((a) => a.status === "MAINTENANCE");
 
   const rentedCount = rentedApts.length;
   const availableCount = availableApts.length;
   const maintenanceCount = maintenanceApts.length;
 
-  const buildingContracts = contracts.filter((c: any) => {
-    const isRoomInBuilding = buildingApartments.some((a: any) => a.id === c.apartment_id);
+  const buildingContracts = contracts.filter((c) => {
+    const isRoomInBuilding = buildingApartments.some((a) => a.id === c.apartment_id);
     return c.status === "ACTIVE" && isRoomInBuilding;
   });
 
-  const buildingTenantIds = new Set(buildingContracts.map((c: any) => c.tenant_id));
+  const buildingTenantIds = new Set(buildingContracts.map((c) => c.tenant_id));
   const activeTenantsCount = managedBuildingId ? buildingTenantIds.size : tenants.length;
 
   const filteredInvoices = managedBuildingId
-    ? invoices.filter((inv: any) => inv.contract?.apartment?.building_id === managedBuildingId)
+    ? invoices.filter((inv) => inv.contract?.apartment?.building_id === managedBuildingId)
     : invoices;
 
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
-  const currentMonthPaidInvoices = filteredInvoices.filter((inv: any) => {
+  const currentMonthPaidInvoices = filteredInvoices.filter((inv) => {
     if (inv.status !== "PAID") return false;
     const date = new Date(inv.paid_at || inv.created_at);
     return date.getMonth() + 1 === currentMonth && date.getFullYear() === currentYear;
   });
 
-  const monthlyRevenue = currentMonthPaidInvoices.reduce((sum: number, inv: any) => sum + Number(inv.total_amount), 0);
+  const monthlyRevenue = currentMonthPaidInvoices.reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
 
   const now = new Date();
   const thirtyDaysLater = new Date();
   thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
-  const expiringContractsCount = buildingContracts.filter((c: any) => {
+  const expiringContractsCount = buildingContracts.filter((c) => {
     const endDate = new Date(c.end_date);
     return endDate >= now && endDate <= thirtyDaysLater;
   }).length;
 
-  const pendingSchedulesCount = schedules.filter((s: any) => {
+  const pendingSchedulesCount = schedules.filter((s) => {
     const matchesBuilding = !managedBuildingId || s.apartment?.building_id === managedBuildingId;
     return s.status === "PENDING" && matchesBuilding;
   }).length;
@@ -166,22 +166,22 @@ function ManagerDashboardView() {
   const months = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
   const monthlyRevenueData = months.map((m, index) => {
     const monthVal = index + 1;
-    const revenue = filteredInvoices.filter((inv: any) => {
+    const revenue = filteredInvoices.filter((inv) => {
       if (inv.status !== "PAID") return false;
       const date = new Date(inv.paid_at || inv.created_at);
       return date.getMonth() + 1 === monthVal && date.getFullYear() === currentYear;
-    }).reduce((sum: number, inv: any) => sum + Number(inv.total_amount), 0);
+    }).reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
 
     return { name: m, "Doanh thu": revenue };
   });
 
   const years = [currentYear - 2, currentYear - 1, currentYear];
   const yearlyRevenueData = years.map(yr => {
-    const revenue = filteredInvoices.filter((inv: any) => {
+    const revenue = filteredInvoices.filter((inv) => {
       if (inv.status !== "PAID") return false;
       const date = new Date(inv.paid_at || inv.created_at);
       return date.getFullYear() === yr;
-    }).reduce((sum: number, inv: any) => sum + Number(inv.total_amount), 0);
+    }).reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
 
     return { name: String(yr), "Doanh thu": revenue };
   });
@@ -286,7 +286,7 @@ function ManagerDashboardView() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#9CA3AF" />
                 <YAxis tick={{ fontSize: 11 }} stroke="#9CA3AF" tickFormatter={(v) => `${(v / 1000000).toFixed(0)}tr`} />
-                <Tooltip formatter={(value: any) => [formatCurrency(Number(value) || 0), ""]}
+                <Tooltip formatter={(value) => [formatCurrency(Number(value) || 0), ""]}
                   contentStyle={{ borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "13px" }} />
                 <Area type="monotone" dataKey="Doanh thu" stroke="#10B981" strokeWidth={2.5}
                   fill="url(#gradientRevenueManager)" name="Doanh thu" dot={{ fill: "#10B981", r: 4 }} />

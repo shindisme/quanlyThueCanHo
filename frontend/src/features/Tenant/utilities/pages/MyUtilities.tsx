@@ -31,6 +31,7 @@ export default function MyUtilities() {
     return b.month - a.month;
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const columns: Column<any>[] = [
     {
       key: "period",

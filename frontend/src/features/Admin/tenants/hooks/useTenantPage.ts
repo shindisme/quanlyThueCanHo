@@ -81,11 +81,11 @@ export function useTenantPage() {
         .map((a) => a.id);
       const managerTenantIds = contracts
         .filter(
-          (c: any) =>
+          (c) =>
             c.apartment?.building_id === managedBuildingId ||
             managerApartmentIds.includes(c.apartment_id)
         )
-        .map((c: any) => c.tenant_id);
+        .map((c) => c.tenant_id);
       return tenants.filter((t) => managerTenantIds.includes(t.id));
     }
     return tenants;
@@ -94,8 +94,8 @@ export function useTenantPage() {
   const displayTenantsWithContracts = displayTenants.map((t) => {
     const tenantContracts = t.contracts?.length
       ? t.contracts
-      : contracts.filter((c: any) => c.tenant_id === t.id);
-    const activeContract = tenantContracts.find((c: any) => c.status === "ACTIVE");
+      : contracts.filter((c) => c.tenant_id === t.id);
+    const activeContract = tenantContracts.find((c) => c.status === "ACTIVE");
 
     if (activeContract) {
       const apt =

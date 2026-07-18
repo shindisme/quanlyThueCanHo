@@ -4,6 +4,7 @@ import { QUERY_KEYS } from "../../../../constants/queryKeys";
 
 interface UpdateBuildingParams {
   id: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: Record<string, any>;
   image: File | null;
 }

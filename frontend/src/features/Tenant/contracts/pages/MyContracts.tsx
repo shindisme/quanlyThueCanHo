@@ -38,6 +38,7 @@ export default function MyContracts() {
   } = useTenantContracts();
 
   // Local state for Tenant checkout request
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedRequestContract, setSelectedRequestContract] = useState<any | null>(null);
   const [checkoutDate, setCheckoutDate] = useState("");
   const [checkoutReason, setCheckoutReason] = useState("");
@@ -48,7 +49,7 @@ export default function MyContracts() {
   const filtered = myContracts.filter((c) => {
     const term = removeVietnameseTones(debouncedSearch);
     const code = `HD-${String(c.id).padStart(5, "0")}`;
-    const apt = apartments.find((a: any) => a.id === c.apartment_id);
+    const apt = apartments.find((a) => a.id === c.apartment_id);
     const room = apt ? apt.room_number : "";
     return removeVietnameseTones(code).includes(term) || removeVietnameseTones(room).includes(term);
   });
@@ -56,6 +57,7 @@ export default function MyContracts() {
   function getStatusBadge(status: ContractStatus) {
     const label = CONTRACT_STATUS_LABELS[status] || status;
     const variant = CONTRACT_STATUS_COLORS[status] || "gray";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <Badge variant={variant as any}>{label}</Badge>;
   }
 
@@ -69,8 +71,8 @@ export default function MyContracts() {
       key: "apartment",
       label: "Căn hộ",
       render: (c) => {
-        const apt = apartments.find((a: any) => a.id === c.apartment_id);
-        const bld = apt ? buildings.find((b: any) => b.id === apt.building_id) : null;
+        const apt = apartments.find((a) => a.id === c.apartment_id);
+        const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
         return (
           <div className="flex flex-col">
             <span className="font-medium text-gray-800">
@@ -226,8 +228,8 @@ export default function MyContracts() {
       >
         {viewContractDoc && (() => {
           const tenant = viewContractDoc.tenant;
-          const apt = apartments.find((a: any) => a.id === viewContractDoc.apartment_id);
-          const bld = apt ? buildings.find((b: any) => b.id === apt.building_id) : null;
+          const apt = apartments.find((a) => a.id === viewContractDoc.apartment_id);
+          const bld = apt ? buildings.find((b) => b.id === apt.building_id) : null;
 
           const maxOcc = viewContractDoc.max_occupants || (apt ? Math.max(2, apt.bedrooms * 2) : 2);
           const actOcc = viewContractDoc.actual_occupants || 1;
@@ -297,7 +299,7 @@ export default function MyContracts() {
                       <p>Ông/bà: <span className="font-semibold text-gray-800">BAN QUẢN LÝ CĂN HỘ DỊCH VỤ YUKI HOUSE (Đại diện)</span></p>
                       <p>Số CMND/CCCD/Mã số thuế: 079200000001</p>
                       <p>Địa chỉ: {bld?.address_new || bld?.address_old || "Hệ thống tòa nhà Yuki House"}</p>
-                      <p>Điện thoại: {(bld as any)?.phone || "0901000001"}</p>
+                      <p>Điện thoại: {(bld as unknown as { phone?: string })?.phone || "0901000001"}</p>
                       <p>
                         Là chủ cho thuê hợp pháp căn hộ chung cư số:{" "}
                         <span className="font-semibold text-gray-800">
@@ -638,8 +640,9 @@ export default function MyContracts() {
                   });
                   toast.success("Gửi yêu cầu trả phòng thành công! Ban quản lý sẽ liên hệ làm việc với bạn.");
                   setSelectedRequestContract(null);
-                } catch (err: any) {
-                  toast.error(err.response?.data?.message || err.message || "Không thể gửi yêu cầu.");
+                } catch (err) {
+                  const errorResponse = err as { response?: { data?: { message?: string } }; message?: string };
+                  toast.error(errorResponse.response?.data?.message || errorResponse.message || "Không thể gửi yêu cầu.");
                 } finally {
                   setSubmittingCheckoutRequest(false);
                 }

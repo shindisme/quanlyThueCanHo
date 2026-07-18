@@ -69,6 +69,7 @@ export default function StaffModifyModal({
       reset({
         fullName: editItem.full_name,
         phone: editItem.phone || "",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         position: (editItem.position as any) || "Quản lý",
         buildingId: editItem.building_id || null,
       });
@@ -97,8 +98,8 @@ export default function StaffModifyModal({
 
   // ID các tòa nhà đã có Quản lý
   const managedBuildingIds = staffList
-    .filter((s: any) => s.position === "Quản lý" && s.building_id)
-    .map((s: any) => s.building_id as number);
+    .filter((s) => s.position === "Quản lý" && s.building_id)
+    .map((s) => s.building_id as number);
 
   const onSubmit = (data: StaffFormValues) => {
     if (!editItem) return;

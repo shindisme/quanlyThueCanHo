@@ -83,29 +83,29 @@ export function useDashboardTenant() {
   todayStart.setHours(0, 0, 0, 0);
 
   const activeContract = contracts
-    ? contracts.find((c: any) => c.status === "ACTIVE" || new Date(c.end_date) >= todayStart)
+    ? contracts.find((c) => c.status === "ACTIVE" || new Date(c.end_date) >= todayStart)
     : null;
 
   const endedContract = contracts
     ? contracts
-      .filter((c: any) => c.status === "ENDED" && new Date(c.end_date) < todayStart)
-      .sort((a: any, b: any) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime())[0]
+      .filter((c) => c.status === "ENDED" && new Date(c.end_date) < todayStart)
+      .sort((a, b) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime())[0]
     : null;
 
   const apartment = activeContract
-    ? apartments.find((a: any) => a.id === activeContract.apartment_id)
+    ? apartments.find((a) => a.id === activeContract.apartment_id)
     : null;
 
   const endedApartment = endedContract
-    ? apartments.find((a: any) => a.id === endedContract.apartment_id)
+    ? apartments.find((a) => a.id === endedContract.apartment_id)
     : null;
 
   const building = apartment
-    ? buildings.find((b: any) => b.id === apartment.building_id)
+    ? buildings.find((b) => b.id === apartment.building_id)
     : null;
 
   const endedBuilding = endedApartment
-    ? buildings.find((b: any) => b.id === endedApartment.building_id)
+    ? buildings.find((b) => b.id === endedApartment.building_id)
     : null;
 
   const displayName = currentTenant?.full_name || email?.split("@")[0] || "Người thuê";

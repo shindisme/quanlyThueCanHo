@@ -1,5 +1,5 @@
-import { Wrench, Plus, ClipboardList, X } from "lucide-react";
-import Badge from "../../../../components/ui/Badge";
+import { Wrench, Plus, X } from "lucide-react";
+import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import SearchInput from "../../../../components/ui/SearchInput";
 import PageHeader from "../../../../components/PageHeader";
 import Modal from "../../../../components/ui/Modal";
@@ -11,14 +11,8 @@ import { formatDate } from "../../../../utils/date";
 import { removeVietnameseTones } from "../../../../utils/string";
 import { useTenantMaintenance } from "../hooks/useTenantMaintenance";
 import { REQUEST_STATUS_LABELS, REQUEST_STATUS_COLORS, PRIORITY_LABELS, PRIORITY_COLORS, type RequestStatus, type Priority } from "../../../../constants/enums";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from "../../../../components/ui/Table";
+import DataTable, { type Column } from "../../../../components/ui/DataTable";
+import type { MaintenanceRequest } from "../../../../types";
 
 export default function MyMaintenance() {
   const {
@@ -49,14 +43,82 @@ export default function MyMaintenance() {
   function getStatusBadge(status: RequestStatus) {
     const label = REQUEST_STATUS_LABELS[status] || status;
     const variant = REQUEST_STATUS_COLORS[status] || "gray";
-    return <Badge variant={variant as any}>{label}</Badge>;
+    return <Badge variant={variant as BadgeVariant}>{label}</Badge>;
   }
 
   function getPriorityBadge(priority: Priority) {
     const label = PRIORITY_LABELS[priority] || priority;
     const variant = PRIORITY_COLORS[priority] || "gray";
-    return <Badge variant={variant as any}>{label}</Badge>;
+    return <Badge variant={variant as BadgeVariant}>{label}</Badge>;
   }
+
+  const columns: Column<MaintenanceRequest>[] = [
+    {
+      key: "index",
+      label: "STT",
+      className: "w-4",
+      render: (_, index: number) => <span className="font-semibold text-gray-800 w-2">{index + 1}</span>,
+    },
+    {
+      key: "created_at",
+      label: "Ngày gửi",
+      render: (req: MaintenanceRequest) => <span className="text-gray-600 whitespace-nowrap">{formatDate(req.created_at)}</span>,
+    },
+    {
+      key: "room",
+      label: "Phòng",
+      render: (req: MaintenanceRequest) => {
+        const aptRoom = req.apartment ? `Phòng ${req.apartment.room_number}` : "Chưa xác định";
+        return <span className="font-medium text-gray-805 whitespace-nowrap">{aptRoom}</span>;
+      }
+    },
+    {
+      key: "title",
+      label: "Tiêu đề",
+      isTitle: true,
+      render: (req: MaintenanceRequest) => <span className="font-semibold text-primary-600">{req.title}</span>,
+    },
+    {
+      key: "description",
+      label: "Mô tả chi tiết",
+      render: (req: MaintenanceRequest) => (
+        <span className="text-gray-600 max-w-xs truncate block" title={req.description}>
+          {req.description}
+        </span>
+      )
+    },
+    {
+      key: "priority",
+      label: "Độ ưu tiên",
+      className: "text-center",
+      render: (req: MaintenanceRequest) => getPriorityBadge(req.priority as Priority),
+    },
+    {
+      key: "status",
+      label: "Trạng thái",
+      className: "text-center",
+      render: (req: MaintenanceRequest) => getStatusBadge(req.status as RequestStatus),
+    },
+    {
+      key: "actions",
+      label: "Chức năng",
+      className: "text-right",
+      isAction: true,
+      render: (req: MaintenanceRequest) => (
+        req.status === "PENDING" ? (
+          <button
+            type="button"
+            onClick={() => handleCancelRequest(req.id)}
+            disabled={saving}
+            className="p-2 rounded-lg text-gray-500 hover:text-red-605 hover:bg-red-50 cursor-pointer inline-flex items-center gap-1.5 text-xs font-semibold disabled:opacity-50"
+            title="Hủy yêu cầu"
+          >
+            <X size={14} /> Hủy
+          </button>
+        ) : null
+      )
+    }
+  ];
 
   if (loading) {
     return (
@@ -68,7 +130,7 @@ export default function MyMaintenance() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
       <PageHeader
         icon={Wrench}
         title="Yêu cầu sửa chữa"
@@ -84,117 +146,21 @@ export default function MyMaintenance() {
 
       <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm yêu cầu..." className="max-w-md" />
 
-      {/* Bảng danh sách yêu cầu */}
-      {filteredRequests.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 bg-white  border border-gray-200 shadow-sm">
-          <ClipboardList size={48} className="mx-auto mb-3 text-gray-300" />
-          <p className="font-medium">Không tìm thấy yêu cầu sửa chữa nào</p>
-          {!activeContract && (
-            <p className="text-xs text-red-500 mt-1">Lưu ý: Bạn phải có hợp đồng thuê hoạt động mới có thể tạo yêu cầu.</p>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {/* View Card */}
-          <div className="grid grid-cols-1 gap-4 md:hidden">
-            {filteredRequests.map((req) => {
-              const aptRoom = req.apartment ? `Phòng ${req.apartment.room_number}` : "Chưa xác định";
-              return (
-                <div key={req.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-semibold text-primary-600 text-base">
-                      {req.title}
-                    </span>
-                    {getStatusBadge(req.status)}
-                  </div>
-
-                  <div className="text-sm text-gray-500 space-y-1">
-                    <p>
-                      <span className="font-semibold text-gray-700">Ngày gửi:</span> {formatDate(req.created_at)}
-                    </p>
-                    <p>
-                      <span className="font-semibold text-gray-700">Phòng:</span> {aptRoom}
-                    </p>
-                    <p>
-                      <span className="font-semibold text-gray-700">Độ ưu tiên:</span> {getPriorityBadge(req.priority)}
-                    </p>
-                    <p className="text-xs text-gray-500 italic">
-                      <span className="font-semibold text-gray-700 not-italic">Mô tả:</span> {req.description}
-                    </p>
-                    {req.unable_reason && (
-                      <p className="text-xs text-red-500">
-                        <span className="font-semibold text-red-700">Lý do kỹ thuật:</span> {req.unable_reason}
-                      </p>
-                    )}
-                  </div>
-
-                  {req.status === "PENDING" && (
-                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-                      <button
-                        onClick={() => handleCancelRequest(req.id)}
-                        disabled={saving}
-                        className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1.5 text-xs font-semibold cursor-pointer disabled:opacity-50"
-                      >
-                        <X size={14} /> Hủy yêu cầu
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* View List*/}
-          <div className="hidden md:block border border-gray-200 overflow-hidden bg-white shadow-xl rounded-none">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Ngày gửi</TableHead>
-                  <TableHead>Phòng</TableHead>
-                  <TableHead>Tiêu đề</TableHead>
-                  <TableHead>Mô tả chi tiết</TableHead>
-                  <TableHead className="text-center">Độ ưu tiên</TableHead>
-                  <TableHead className="text-center">Trạng thái</TableHead>
-                  <TableHead className="text-right">Chức năng</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRequests.map((req) => {
-                  const aptRoom = req.apartment ? `Phòng ${req.apartment.room_number}` : "Chưa xác định";
-                  return (
-                    <TableRow key={req.id}>
-                      <TableCell className="text-gray-600 whitespace-nowrap">{formatDate(req.created_at)}</TableCell>
-                      <TableCell className="font-medium text-gray-800 whitespace-nowrap">{aptRoom}</TableCell>
-                      <TableCell className="font-semibold text-primary-600">{req.title}</TableCell>
-                      <TableCell className="text-gray-600 max-w-xs truncate" title={req.description}>
-                        {req.description}
-                      </TableCell>
-                      <TableCell className="text-center">{getPriorityBadge(req.priority)}</TableCell>
-                      <TableCell className="text-center">{getStatusBadge(req.status)}</TableCell>
-                      <TableCell className="text-right">
-                        {req.status === "PENDING" && (
-                          <button
-                            onClick={() => handleCancelRequest(req.id)}
-                            disabled={saving}
-                            className="p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 cursor-pointer inline-flex items-center gap-1.5 text-xs font-semibold disabled:opacity-50"
-                            title="Hủy yêu cầu"
-                          >
-                            <X size={14} /> Hủy
-                          </button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+      {!activeContract && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl font-sans font-semibold">
+          Lưu ý: Bạn phải có hợp đồng thuê hoạt động mới có thể tạo yêu cầu bảo trì, sửa chữa.
         </div>
       )}
 
+      <DataTable
+        columns={columns}
+        data={filteredRequests}
+        emptyMessage="Không tìm thấy yêu cầu sửa chữa nào"
+      />
+
       {/* Modal gửi yêu cầu mới */}
       <Modal isOpen={createModal.isOpen} onClose={createModal.onClose} title="Gửi Yêu Cầu Sửa Chữa Mới">
-        <form onSubmit={handleCreateMaintenanceRequest} className="space-y-4">
+        <form onSubmit={handleCreateMaintenanceRequest} className="space-y-4 font-sans text-left">
           <Input
             label="Tiêu đề yêu cầu"
             value={title}

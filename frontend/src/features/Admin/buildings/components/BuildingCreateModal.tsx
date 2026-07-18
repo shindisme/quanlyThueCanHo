@@ -43,7 +43,7 @@ export default function BuildingCreateModal({
   const staffList = staffRes?.data || [];
 
   // Lọc quản lý chưa có tòa nhà phụ trách
-  const availableManagers = staffList.filter((m: any) => {
+  const availableManagers = staffList.filter((m) => {
     const isManager = m.position === "Quản lý" || m.user?.role === "MANAGER";
     if (!isManager) return false;
     if (m.user?.role === "ADMIN") return false;
@@ -182,7 +182,7 @@ export default function BuildingCreateModal({
                 render={({ field, fieldState: { error } }) => (
                   <Combobox
                     label="Quản lý chi nhánh (Manager)"
-                    options={availableManagers.map((m: any) => ({
+                    options={availableManagers.map((m) => ({
                       value: String(m.id),
                       label: `${m.full_name} (${m.phone || "Không có SĐT"})`,
                     }))}

@@ -88,15 +88,16 @@ export function useApartmentDetailPage() {
     }
   }, [apartment]);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const apartmentContracts = (apartment as unknown as { contracts: any[] })?.contracts || [];
   const activeContract =
-    apartmentContracts.find((contract: any) => contract.status === "ACTIVE") ||
-    contracts.find((contract: any) => contract.apartment_id === Number(id) && contract.status === "ACTIVE");
+    apartmentContracts.find((contract) => contract.status === "ACTIVE") ||
+    contracts.find((contract) => contract.apartment_id === Number(id) && contract.status === "ACTIVE");
   const activeTenant = activeContract
-    ? activeContract.tenant ?? tenants.find((tenant: any) => tenant.id === activeContract.tenant_id)
+    ? activeContract.tenant ?? tenants.find((tenant) => tenant.id === activeContract.tenant_id)
     : null;
   const activeTenantUser = activeTenant
-    ? activeTenant.user ?? users.find((user: any) => user.id === activeTenant.user_id)
+    ? activeTenant.user ?? users.find((user) => user.id === activeTenant.user_id)
     : null;
 
   const { data: activeTenantDetail, isLoading: loadingOccupants } = useQuery({
@@ -129,7 +130,7 @@ export function useApartmentDetailPage() {
 
   const historyContracts = contracts.length > 0 ? contracts : apartmentContracts;
   const tenantContracts = activeTenant
-    ? historyContracts.filter((contract: any) => contract.tenant_id === activeTenant.id)
+    ? historyContracts.filter((contract) => contract.tenant_id === activeTenant.id)
     : [];
 
   const fetchData = async () => {

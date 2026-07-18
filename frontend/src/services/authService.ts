@@ -55,12 +55,12 @@ export async function deleteUser(id: number): Promise<UserData> {
   return res.data.data;
 }
 
-export async function resetPassword(id: number): Promise<any> {
+export async function resetPassword(id: number): Promise<unknown> {
   const res = await api.post(`${AUTH_API}/reset-password/${id}`);
   return res.data.data;
 }
 
-export async function changePassword(oldPass: string, newPass: string): Promise<any> {
+export async function changePassword(oldPass: string, newPass: string): Promise<unknown> {
   const res = await api.post(`${AUTH_API}/change-password`, { oldPass, newPass });
   return res.data.data;
 }

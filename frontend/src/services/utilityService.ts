@@ -61,17 +61,17 @@ export async function getById(id: number): Promise<UtilityReadingData> {
   return normalizeUtilityReading(res.data.data);
 }
 
-export async function create(data: CreateUtilityReadingPayload): Promise<any> {
+export async function create(data: CreateUtilityReadingPayload): Promise<unknown> {
   const res = await api.post(UTILITY_API, data);
   return res.data;
 }
 
-export async function update(id: number, data: Partial<UtilityReadingData>): Promise<any> {
+export async function update(id: number, data: Partial<UtilityReadingData>): Promise<unknown> {
   const res = await api.put(`${UTILITY_API}/${id}`, data);
   return res.data;
 }
 
-export async function deleteUtilityReading(id: number): Promise<any> {
+export async function deleteUtilityReading(id: number): Promise<unknown> {
   const res = await api.delete(`${UTILITY_API}/${id}`);
   return res.data;
 }

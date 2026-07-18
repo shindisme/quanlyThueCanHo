@@ -54,8 +54,9 @@ export function useNotificationCenter() {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["header-notifications"] });
     },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Cập nhật trạng thái thông báo thất bại");
+    onError: (err) => {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || "Cập nhật trạng thái thông báo thất bại");
     },
   });
 
@@ -65,8 +66,9 @@ export function useNotificationCenter() {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       toast.success("Đã đánh dấu đọc tất cả thông báo");
     },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Đánh dấu thất bại");
+    onError: (err) => {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || "Đánh dấu thất bại");
     },
   });
 
@@ -76,8 +78,9 @@ export function useNotificationCenter() {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       toast.success("Đã xóa thông báo");
     },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Xóa thông báo thất bại");
+    onError: (err) => {
+      const error = err as { response?: { data?: { message?: string } } };
+      toast.error(error.response?.data?.message || "Xóa thông báo thất bại");
     },
   });
 

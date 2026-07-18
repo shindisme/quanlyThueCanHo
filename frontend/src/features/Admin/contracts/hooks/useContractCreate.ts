@@ -151,8 +151,8 @@ export function useContractCreate({
           email: data.new_tenant_email || undefined,
           phone: data.new_tenant_phone || undefined,
           permanent_address: data.new_tenant_address || undefined,
-        } as Parameters<typeof tenantService.createTenant>[0]).then((tenantRes: any) => {
-          const tenantId = tenantRes.data?.id || tenantRes.id;
+        } as Parameters<typeof tenantService.createTenant>[0]).then((tenantRes) => {
+          const tenantId = tenantRes.id;
           return contractService.createContract({
             apartment_id: data.apartment_id,
             tenant_id: tenantId,

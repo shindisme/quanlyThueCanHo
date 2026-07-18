@@ -162,9 +162,9 @@ export default function Contract() {
                 <Combobox
                     options={
                         (contracts.length > 0 
-                            ? Array.from(new Set(contracts.map((c: any) => new Date(c.start_date).getFullYear()))).sort((a: any, b: any) => b - a)
+                            ? Array.from(new Set(contracts.map((c) => new Date(c.start_date).getFullYear()))).sort((a, b) => b - a)
                             : [new Date().getFullYear()]
-                        ).map((y: any) => ({ value: String(y), label: `Năm ${y}` }))
+                        ).map((y) => ({ value: String(y), label: `Năm ${y}` }))
                     }
                     value={filterYear ? String(filterYear) : ""}
                     onChange={(val) => {
@@ -278,6 +278,7 @@ export default function Contract() {
             <CheckoutModal
                 isOpen={!!terminateItem}
                 onClose={() => setTerminateItem(null)}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 contract={terminateItem as any}
                 onConfirmCheckout={handleTerminateContract}
                 isLoading={terminating}

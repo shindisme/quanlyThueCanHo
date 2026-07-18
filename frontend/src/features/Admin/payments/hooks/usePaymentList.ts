@@ -41,9 +41,11 @@ export function usePaymentList() {
   const availableFloors = useMemo(() => {
     const targetBuildingId = role === "MANAGER" ? managedBuildingId : buildingFilter;
     const apts = targetBuildingId
-      ? (apartments as any[]).filter((a: any) => a.building_id === targetBuildingId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (apartments as any[]).filter((a) => a.building_id === targetBuildingId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       : (apartments as any[]);
-    const floors = Array.from(new Set(apts.map((a: any) => a.floor))).sort((a: any, b: any) => a - b);
+    const floors = Array.from(new Set(apts.map((a) => a.floor))).sort((a, b) => a - b);
     return floors;
   }, [apartments, buildingFilter, role, managedBuildingId]);
 
@@ -62,7 +64,7 @@ export function usePaymentList() {
   const payments = paymentsRes?.data || [];
 
   const filteredPayments = useMemo(() => {
-    return payments.filter((pmt: any) => {
+    return payments.filter((pmt) => {
       // 1. Lọc theo Tầng
       if (selectedFloor) {
         const apt = pmt.invoice?.contract?.apartment;

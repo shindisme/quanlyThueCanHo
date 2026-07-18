@@ -4,13 +4,15 @@ import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import { REQUEST_STATUS_LABELS, REQUEST_STATUS_COLORS, PRIORITY_LABELS, PRIORITY_COLORS, type RequestStatus, type Priority } from "../../../../constants/enums";
 import { formatDate } from "../../../../utils/date";
 
+import type { MaintenanceRequest } from "../../../../types";
+
 interface MaintenanceListProps {
-  requests: any[];
+  requests: MaintenanceRequest[];
   role: string | null;
   saving: boolean;
-  onOpenDetail: (req: any) => void;
-  onOpenAssign: (req: any) => void;
-  onOpenUnable: (req: any) => void;
+  onOpenDetail: (req: MaintenanceRequest) => void;
+  onOpenAssign: (req: MaintenanceRequest) => void;
+  onOpenUnable: (req: MaintenanceRequest) => void;
   onComplete: (id: number) => void;
 }
 
@@ -26,16 +28,25 @@ export default function MaintenanceList({
   function getStatusBadge(status: RequestStatus) {
     const label = REQUEST_STATUS_LABELS[status] || status;
     const variant = REQUEST_STATUS_COLORS[status] || "gray";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <Badge variant={variant as any}>{label}</Badge>;
   }
 
   function getPriorityBadge(priority: Priority) {
     const label = PRIORITY_LABELS[priority] || priority;
     const variant = PRIORITY_COLORS[priority] || "gray";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <Badge variant={variant as any}>{label}</Badge>;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const columns: Column<any>[] = [
+    {
+      key: "index",
+      label: "STT",
+      className: "w-4",
+      render: (_, index: number) => <span className="font-semibold text-gray-800 w-2">{index + 1}</span>,
+    },
     {
       key: "created_at",
       label: "Ngày gửi",
@@ -48,12 +59,12 @@ export default function MaintenanceList({
       sortValue: (req) => req.apartment?.room_number || "",
       render: (req) => {
         const buildingName = req.apartment?.building?.branch_name || "Chưa rõ";
-        const roomNum = req.apartment?.room_number ? `P.${req.apartment.room_number}` : "Chưa rõ";
+        const roomNum = req.apartment?.room_number ? `P.${req.apartment.floor}${req.apartment.room_number}` : "Chưa rõ";
         return (
           <div className="flex flex-col">
             <span className="font-semibold text-gray-800">{roomNum}</span>
             {role === "ADMIN" && (
-              <span className="text-[10px] text-gray-400 font-normal">{buildingName}</span>
+              <span className="text-[10px] font-semibold text-primary-600">{buildingName}</span>
             )}
           </div>
         );

@@ -9,6 +9,7 @@ interface MaintenanceAssignModalProps {
   onClose: () => void;
   loadingStaff: boolean;
   saving: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   technicians: any[];
   assignedStaffId: string;
   setAssignedStaffId: (val: string) => void;

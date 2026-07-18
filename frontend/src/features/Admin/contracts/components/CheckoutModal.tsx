@@ -96,7 +96,7 @@ export default function CheckoutModal({
             status: "UNPAID",
         });
         const invoices = res.data;
-        const total = invoices.reduce((sum: number, inv: any) => sum + Number(inv.total_amount), 0);
+        const total = invoices.reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
         setUnpaidAmount(total);
     };
 
@@ -125,8 +125,9 @@ export default function CheckoutModal({
             });
             toast.success("Chốt điện nước phòng thành công!");
             setStep(2);
-        } catch (err: any) {
-            toast.error(err.response?.data?.message || err.message || "Không thể lưu chỉ số điện nước.");
+        } catch (err) {
+            const error = err as { response?: { data?: { message?: string } }; message?: string };
+            toast.error(error.response?.data?.message || error.message || "Không thể lưu chỉ số điện nước.");
         } finally {
             setSavingUtility(false);
         }
@@ -154,7 +155,7 @@ export default function CheckoutModal({
             // Re-fetch unpaid invoices to include this new invoice
             await fetchUnpaidInvoices();
             setStep(3);
-        } catch (err: any) {
+        } catch (err) {
             // Fallback if invoice already exists or error
             console.error(err);
             toast.info("Đã có hóa đơn cho tháng này hoặc không thể tạo thêm hóa đơn.");

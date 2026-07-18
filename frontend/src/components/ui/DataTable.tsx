@@ -20,7 +20,7 @@ export interface Column<T> {
   sortable?: boolean;
   sortValue?: (item: T) => unknown;
   className?: string;
-  render: (item: T) => React.ReactNode;
+  render: (item: T, index: number) => React.ReactNode;
   isAction?: boolean;
   isTitle?: boolean;
 }
@@ -84,6 +84,7 @@ function DataTableInner<T>({
 
   const getRowKey = (item: T, index: number): string | number => {
     if (rowKey) return rowKey(item);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (item as any).id ?? (item as any).key ?? index;
   };
 
@@ -126,7 +127,7 @@ function DataTableInner<T>({
               {headerCol && (
                 <div className="flex items-center justify-between pb-2 border-b border-gray-100">
                   <div className="font-semibold text-primary-600 text-base">
-                    {headerCol.render(item)}
+                    {headerCol.render(item, index)}
                   </div>
                 </div>
               )}
@@ -140,7 +141,7 @@ function DataTableInner<T>({
                       "text-gray-600 font-sans text-right",
                       typeof cellClassName === "function" ? cellClassName(item, col) : cellClassName
                     )}>
-                      {col.render(item)}
+                      {col.render(item, index)}
                     </div>
                   </div>
                 ))}
@@ -149,7 +150,7 @@ function DataTableInner<T>({
               {/* Card Footer (Actions) */}
               {actionsCol && (
                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-                  {actionsCol.render(item)}
+                  {actionsCol.render(item, index)}
                 </div>
               )}
             </div>
@@ -202,7 +203,7 @@ function DataTableInner<T>({
                       typeof cellClassName === "function" ? cellClassName(item, col) : cellClassName
                     )}
                   >
-                    {col.render(item)}
+                    {col.render(item, rIdx)}
                   </TableCell>
                 ))}
               </TableRow>

@@ -40,7 +40,7 @@ export function useDashboardManager() {
     enabled: !!userId,
   });
   const currentStaff = userId && staffRes?.data
-    ? staffRes.data.find((s: any) => s.user_id === userId)
+    ? staffRes.data.find((s) => s.user_id === userId)
     : null;
 
   const displayName = currentStaff?.full_name || email?.split("@")[0] || "Quản lý";
@@ -55,7 +55,7 @@ export function useDashboardManager() {
 
   useEffect(() => {
     if (currentStaff && currentStaff.building_id && (!managedBuildingId || !managedBuildingName)) {
-      const currentBld = buildings.find((b: any) => b.id === currentStaff.building_id);
+      const currentBld = buildings.find((b) => b.id === currentStaff.building_id);
       if (currentBld && role && email) {
         setAuth(token, role, email, currentStaff.building_id, currentBld.branch_name);
       }

@@ -23,6 +23,12 @@ export default function BuildingList({
 
   const columns: Column<Building>[] = [
     {
+      key: "index",
+      label: "STT",
+      className: "w-4",
+      render: (_, index: number) => <span className="font-semibold text-gray-800 w-2">{index + 1}</span>,
+    },
+    {
       key: "branch_name",
       label: "Tên chi nhánh",
       sortValue: (b) => b.branch_name,

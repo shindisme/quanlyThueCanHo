@@ -50,15 +50,14 @@ export default function NotificationList({
   }
 
   return (
-    <div className="bg-white border border-gray-100 shadow-sm rounded-2xl overflow-hidden divide-y divide-gray-100/80">
+    <div className="bg-white border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100/80">
       {notifications.map((notif) => (
         <div
           key={notif.id}
-          className={`px-5 py-4 flex gap-4 items-start transition-all duration-200 hover:bg-gray-50/60 ${
-            !notif.is_read
+          className={`px-5 py-4 flex gap-4 items-start transition-all duration-200 hover:bg-gray-50/60 ${!notif.is_read
               ? "bg-indigo-50/20"
               : ""
-          }`}
+            }`}
         >
           {/* Icon box */}
           {getNotificationIcon(notif.type)}
@@ -70,11 +69,10 @@ export default function NotificationList({
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
               <h4
-                className={`text-sm leading-snug ${
-                  !notif.is_read
+                className={`text-sm leading-snug ${!notif.is_read
                     ? "font-bold text-gray-900"
                     : "font-medium text-gray-600"
-                }`}
+                  }`}
               >
                 {notif.title}
               </h4>
@@ -82,9 +80,8 @@ export default function NotificationList({
                 {formatDate(notif.created_at)}
               </span>
             </div>
-            <p className={`text-xs text-gray-500 mt-1.5 whitespace-pre-wrap leading-relaxed ${
-              expandedIds[notif.id] ? "" : "line-clamp-2"
-            }`}>
+            <p className={`text-xs text-gray-500 mt-1.5 whitespace-pre-wrap leading-relaxed ${expandedIds[notif.id] ? "" : "line-clamp-2"
+              }`}>
               {notif.content}
             </p>
             {notif.content.length > 100 && (

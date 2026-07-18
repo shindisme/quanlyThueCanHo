@@ -1,4 +1,4 @@
-import { Check, X } from "lucide-react";
+import { Check, X, Eye } from "lucide-react";
 import Badge from "../../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS, PAYMENT_METHOD_LABELS, type PaymentStatus, type PaymentMethod } from "../../../../constants/enums";
@@ -12,6 +12,7 @@ interface PaymentListProps {
   isUpdating: boolean;
   handleApprove: (id: number) => void;
   handleReject: (id: number) => void;
+  onViewDetail: (pmt: Payment) => void;
 }
 
 export default function PaymentList({
@@ -20,6 +21,7 @@ export default function PaymentList({
   isUpdating,
   handleApprove,
   handleReject,
+  onViewDetail,
 }: PaymentListProps) {
   function formatCurrency(amount: number) {
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
@@ -28,6 +30,7 @@ export default function PaymentList({
   function getPaymentStatusBadge(status: PaymentStatus) {
     const label = PAYMENT_STATUS_LABELS[status] || status;
     const variant = PAYMENT_STATUS_COLORS[status] || "gray";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <Badge variant={variant as any}>{label}</Badge>;
   }
 
@@ -38,7 +41,7 @@ export default function PaymentList({
   function getRoomDisplay(pmt: Payment) {
     const apt = pmt.invoice?.contract?.apartment;
     if (!apt) return { room: "", branch: "" };
-    
+
     const roomNum = formatApartmentDisplay(apt.room_number, apt.floor);
     const branchName = apt.building?.branch_name || "";
     return { room: roomNum, branch: branchName };
@@ -46,26 +49,27 @@ export default function PaymentList({
 
   const columns: Column<Payment>[] = [
     {
+      key: "index",
+      label: "STT",
+      className: "w-4",
+      render: (_, index: number) => <span className="font-semibold text-gray-800 w-2">{index + 1}</span>,
+    },
+    {
       key: "transaction_code",
       label: "Mã giao dịch",
       sortValue: (pmt) => pmt.transaction_code || "",
       render: (pmt) => <span className="font-semibold text-gray-805 font-mono">{pmt.transaction_code || "-"}</span>
     },
     {
-      key: "invoice",
-      label: "Hóa đơn / Phòng",
-      sortValue: (pmt) => pmt.invoice?.invoice_code || "",
+      key: "room",
+      label: "Phòng",
+      sortValue: (pmt) => getRoomDisplay(pmt).room,
       render: (pmt) => {
-        const invoiceCode = pmt.invoice?.invoice_code || `HD-${String(pmt.invoice_id).padStart(5, "0")}`;
         const { room, branch } = getRoomDisplay(pmt);
         return (
           <div className="flex flex-col">
-            <span className="font-semibold text-gray-700">{invoiceCode}</span>
-            {room && (
-              <span className="text-[11px] font-bold text-gray-900">
-                {room} {role === "ADMIN" && branch && <span className="text-xs font-semibold text-purple-600">({branch})</span>}
-              </span>
-            )}
+            <span className="font-semibold text-gray-800">{room}</span>
+            {role === "ADMIN" && branch && <span className="text-[10px] font-semibold text-primary-600">{branch}</span>}
           </div>
         );
       }
@@ -115,6 +119,14 @@ export default function PaymentList({
       className: "text-right",
       render: (pmt) => (
         <div className="flex items-center justify-end gap-1">
+          <button
+            type="button"
+            onClick={() => onViewDetail(pmt)}
+            className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
+            title="Xem chi tiết"
+          >
+            <Eye size={16} />
+          </button>
           {pmt.status === "PENDING" && (role === "ADMIN" || role === "MANAGER") && (
             <>
               <button

@@ -54,7 +54,7 @@ export default function BuildingModifyModal({
   const staffList = staffRes?.data || [];
 
   // Lọc quản lý chưa có tòa nhà phụ trách (hoặc đang quản lý tòa nhà hiện tại)
-  const availableManagers = staffList.filter((m: any) => {
+  const availableManagers = staffList.filter((m) => {
     const isManager = m.position === "Quản lý" || m.user?.role === "MANAGER";
     if (!isManager) return false;
     if (m.user?.role === "ADMIN") return false;
@@ -71,6 +71,7 @@ export default function BuildingModifyModal({
         address_new: editItem.address_new || "",
         total_floors: editItem.total_floors || 0,
         staff_id: editItem.manager_id || null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         status: (editItem.status as any) || "ACTIVE",
         description: editItem.description || "",
       });
@@ -185,7 +186,7 @@ export default function BuildingModifyModal({
                 render={({ field, fieldState: { error } }) => (
                   <Combobox
                     label="Quản lý bởi"
-                    options={availableManagers.map((s: any) => ({
+                    options={availableManagers.map((s) => ({
                       value: String(s.id),
                       label: `${s.full_name} (${s.user?.username || s.position})`,
                     }))}

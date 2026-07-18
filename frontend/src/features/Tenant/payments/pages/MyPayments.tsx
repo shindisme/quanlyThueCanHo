@@ -58,7 +58,7 @@ export default function MyPayments() {
     return methodMap[method] || method;
   }
 
-  const activeCheckoutInvoice = (unpaidInvoices as any[]).find((inv: any) => inv.id === selectedInvoiceId);
+  const activeCheckoutInvoice = unpaidInvoices.find((inv) => inv.id === selectedInvoiceId);
 
   return (
     <div className="space-y-6 font-sans">
@@ -105,7 +105,7 @@ export default function MyPayments() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(unpaidInvoices as any[]).map((inv: any) => {
+                  {unpaidInvoices.map((inv) => {
                     const roomNum = inv.contract?.apartment?.room_number ? `P.${inv.contract.apartment.room_number}` : "Chưa rõ";
                     const branchName = inv.contract?.apartment?.building?.branch_name || "";
                     const billingDate = new Date(inv.created_at);

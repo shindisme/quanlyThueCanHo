@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller } from "react-hook-form";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
@@ -9,6 +9,8 @@ import { useUpdateUser } from "../hooks/useUpdateUser";
 import type { User } from "../../../../types";
 import type { UpdateUserFormValues } from "../../../../schemas/user.schema";
 import { toast } from "sonner";
+import * as tenantService from "../../../../services/tenantService";
+import * as staffService from "../../../../services/staffService";
 
 interface UserModifyModalProps {
   isOpen: boolean;
@@ -16,6 +18,8 @@ interface UserModifyModalProps {
   onSuccess: () => void;
   user: User | null;
   initialFullName: string;
+  tenantId: number | null;
+  staffId: number | null;
 }
 
 export default function UserModifyModal({
@@ -24,6 +28,8 @@ export default function UserModifyModal({
   onSuccess,
   user,
   initialFullName,
+  tenantId,
+  staffId,
 }: UserModifyModalProps) {
   const form = useUpdateUserForm({
     username: "",
@@ -35,6 +41,9 @@ export default function UserModifyModal({
   const updateUserMutation = useUpdateUser();
   const saving = updateUserMutation.isPending;
 
+  const [fullName, setFullName] = useState("");
+  const [updatingProfile, setUpdatingProfile] = useState(false);
+
   useEffect(() => {
     if (isOpen && user) {
       reset({
@@ -42,11 +51,36 @@ export default function UserModifyModal({
         role: user.role || "TENANT",
         status: user.status || "ACTIVE",
       });
+      setFullName(initialFullName || "");
     }
-  }, [isOpen, user, reset]);
+  }, [isOpen, user, reset, initialFullName]);
 
-  const onSubmit = (data: UpdateUserFormValues) => {
+  const onSubmit = async (data: UpdateUserFormValues) => {
     if (!user) return;
+    if (!fullName.trim()) {
+      toast.error("Họ và tên không được để trống!");
+      return;
+    }
+
+    setUpdatingProfile(true);
+    try {
+      if (user.role === "ADMIN") {
+        localStorage.setItem(`profile-fullname-${user.username}`, fullName.trim());
+        window.dispatchEvent(new Event("profile-update"));
+      } else if (user.role === "TENANT" && tenantId) {
+        await tenantService.updateTenant(tenantId, { full_name: fullName.trim() });
+        window.dispatchEvent(new Event("profile-update"));
+      } else if ((user.role === "MANAGER" || user.role === "STAFF") && staffId) {
+        await staffService.updateStaff(staffId, { full_name: fullName.trim() });
+        window.dispatchEvent(new Event("profile-update"));
+      }
+    } catch (err) {
+      console.error("Lỗi khi cập nhật họ tên liên kết:", err);
+      toast.error("Không thể cập nhật họ tên liên kết.");
+      setUpdatingProfile(false);
+      return;
+    }
+
     updateUserMutation.mutate(
       { id: user.id, data },
       {
@@ -59,9 +93,14 @@ export default function UserModifyModal({
           const err = error as { response?: { data?: { error?: string } } };
           toast.error(err.response?.data?.error || "Cập nhật tài khoản thất bại");
         },
+        onSettled: () => {
+          setUpdatingProfile(false);
+        }
       }
     );
   };
+
+  const isSaving = saving || updatingProfile;
 
   return (
     <Modal
@@ -70,8 +109,8 @@ export default function UserModifyModal({
       title="Chỉnh sửa tài khoản"
       footer={
         <>
-          <Button variant="outline" onClick={onClose} disabled={saving}>Hủy</Button>
-          <Button onClick={handleSubmit(onSubmit)} isLoading={saving}>Lưu thay đổi</Button>
+          <Button variant="outline" onClick={onClose} disabled={isSaving}>Hủy</Button>
+          <Button onClick={handleSubmit(onSubmit)} isLoading={isSaving}>Lưu thay đổi</Button>
         </>
       }
     >
@@ -79,11 +118,12 @@ export default function UserModifyModal({
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12">
             <Input
-              label="Họ và tên (Quản lý tại trang hồ sơ liên kết)"
+              label="Họ và tên *"
               type="text"
-              value={initialFullName}
-              disabled={true}
-              className="rounded-md bg-gray-100 text-gray-500 cursor-not-allowed"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="rounded-xl"
+              placeholder="Nhập họ và tên..."
             />
           </div>
           <div className="col-span-12">

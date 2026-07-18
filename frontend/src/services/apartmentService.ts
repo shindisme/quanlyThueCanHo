@@ -39,7 +39,7 @@ export async function update(id: number, data: FormData | UpdateApartmentRequest
   return res.data.data || (res.data as unknown as ApartmentData);
 }
 
-export async function deleteApartment(id: number): Promise<any> {
+export async function deleteApartment(id: number): Promise<unknown> {
   const res = await api.delete(`${APARTMENT_API}/${id}`);
   return res.data.data || res.data;
 }

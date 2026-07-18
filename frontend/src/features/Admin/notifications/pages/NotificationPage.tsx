@@ -31,6 +31,7 @@ export default function NotificationPage() {
     setCurrentPage,
     totalPages,
   } = useNotificationCenter();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedNotif, setSelectedNotif] = useState<any>(null);
   const location = useLocation();
 
@@ -149,7 +150,7 @@ export default function NotificationPage() {
               <label className="text-xs font-semibold text-gray-650 block mb-1">Tòa nhà / Chi nhánh</label>
               {role === "ADMIN" ? (
                 <Combobox
-                  options={buildings.map((b: any) => ({ value: String(b.id), label: b.branch_name }))}
+                  options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
                   value={buildingId ? String(buildingId) : ""}
                   onChange={(val) => setBuildingId(val ? Number(val) : undefined)}
                   placeholder="Chọn tòa nhà"
@@ -158,7 +159,7 @@ export default function NotificationPage() {
                 />
               ) : (
                 <div className="h-[42px] flex items-center px-4 bg-gray-50 border border-gray-200 text-gray-600 rounded-xl font-bold">
-                  {buildings.find((b: any) => b.id === buildingId)?.branch_name || "Tòa nhà quản lý"}
+                  {buildings.find((b) => b.id === buildingId)?.branch_name || "Tòa nhà quản lý"}
                 </div>
               )}
             </div>
@@ -209,7 +210,7 @@ export default function NotificationPage() {
                 <p className="text-xs text-gray-400 italic">Không có căn hộ nào được tìm thấy trong tòa nhà.</p>
               ) : (
                 <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5 max-h-[160px] overflow-y-auto border border-gray-100 p-2.5 bg-gray-50/50 rounded-xl">
-                  {apartments.map((apt: any) => {
+                  {apartments.map((apt) => {
                     const isSelected = selectedApartmentIds.includes(apt.id);
                     return (
                       <button

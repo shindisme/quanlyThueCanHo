@@ -5,7 +5,7 @@ import { fetchAllPages } from "./apiHelper";
 
 const SCHEDULE_API = "/schedules";
 
-export async function bookViewing(data: BookViewingPayload): Promise<any> {
+export async function bookViewing(data: BookViewingPayload): Promise<unknown> {
   const res = await api.post(`${SCHEDULE_API}/book`, {
     ...data,
     schedule_time: `${data.schedule_time}+07:00`,
@@ -32,17 +32,17 @@ export async function getAllPage(params?: Omit<ScheduleFilters, "page" | "limit"
   return fetchAllPages<ScheduleData, ScheduleFilters>(getAll, params);
 }
 
-export async function confirmSchedule(id: number): Promise<any> {
+export async function confirmSchedule(id: number): Promise<unknown> {
   const res = await api.put(`${SCHEDULE_API}/${id}/confirm`, { status: "CONFIRMED" });
   return res.data;
 }
 
-export async function cancelSchedule(id: number): Promise<any> {
+export async function cancelSchedule(id: number): Promise<unknown> {
   const res = await api.put(`${SCHEDULE_API}/${id}/cancel`);
   return res.data;
 }
 
-export async function deleteSchedule(id: number): Promise<any> {
+export async function deleteSchedule(id: number): Promise<unknown> {
   const res = await api.delete(`${SCHEDULE_API}/${id}`);
   return res.data;
 }

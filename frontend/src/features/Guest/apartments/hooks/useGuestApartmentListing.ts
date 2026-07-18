@@ -76,7 +76,7 @@ export function useGuestApartmentListing() {
 
   const floors = (() => {
     if (!buildingFilter) return [];
-    const building = buildings.find((b: any) => b.id === Number(buildingFilter));
+    const building = buildings.find((b) => b.id === Number(buildingFilter));
     if (!building) return [];
     return Array.from({ length: building.total_floors }, (_, i) => i + 1);
   })();
@@ -103,7 +103,7 @@ export function useGuestApartmentListing() {
   });
 
   const exactFiltered = filteredByControls.filter((a) => {
-    const building = buildings.find((b: any) => b.id === a.building_id);
+    const building = buildings.find((b) => b.id === a.building_id);
     const term = removeVietnameseTones(debouncedSearch);
     const roomNorm = removeVietnameseTones(a.room_number);
     const descNorm = removeVietnameseTones(a.description || "");

@@ -49,8 +49,6 @@ export default function UtilitiesPage() {
     handleConfirmDelete,
     filteredRentedApartments,
     paginatedApartments,
-    requestSort,
-    getSortIcon,
     totalPages,
     pageSize,
     isLockedMonth,
@@ -163,14 +161,11 @@ export default function UtilitiesPage() {
         filterYear={filterYear}
         currentPage={currentPage}
         pageSize={pageSize}
-        requestSort={requestSort}
-        getSortIcon={getSortIcon}
         isLockedMonth={isLockedMonth}
         isWritable={isWritable}
         handleOpenCreateModal={handleOpenCreateModal}
         handleOpenModifyModal={handleOpenModifyModal}
         handleOpenDeleteModal={handleOpenDeleteModal}
-        filteredRentedApartmentsLength={filteredRentedApartments.length}
         role={role}
       />
 

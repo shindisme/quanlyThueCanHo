@@ -10,8 +10,6 @@ interface FeeSettings {
   internetRate: number;
   managementFee: number;
   managementFeePerM2: number;
-  motorbikeParkingRate: number;
-  carParkingRate: number;
 }
 
 const DEFAULT_FEES: FeeSettings = {
@@ -20,8 +18,6 @@ const DEFAULT_FEES: FeeSettings = {
   internetRate: 300000,
   managementFee: 0,
   managementFeePerM2: 10000,
-  motorbikeParkingRate: 100000,
-  carParkingRate: 1000000,
 };
 
 export default function SettingsPage() {
@@ -170,44 +166,6 @@ export default function SettingsPage() {
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">đ/m²/tháng</span>
                 </div>
                 <p className="text-[11px] text-gray-400">Phí quản lý tính trên mỗi mét vuông diện tích phòng.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Parking Fees */}
-          <div className="bg-white rounded-2xl border border-gray-150 p-6 shadow-sm space-y-6">
-            <div>
-              <h3 className="font-bold text-gray-800 text-lg">Biểu Phí Trông Giữ Xe</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Đặt mức phí trông giữ phương tiện hàng tháng</p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Motorbike */}
-              <div className="p-4 border border-gray-100 rounded-xl bg-gray-50/30 space-y-3">
-                <span className="font-bold text-sm text-gray-800 block">Phí gửi xe máy</span>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={formatCurrencyInput(fees.motorbikeParkingRate)}
-                    onChange={(e) => handleChange("motorbikeParkingRate", e.target.value)}
-                    className="w-full rounded-xl border border-gray-250 p-3 pr-16 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">đ/tháng</span>
-                </div>
-              </div>
-
-              {/* Car */}
-              <div className="p-4 border border-gray-100 rounded-xl bg-gray-50/30 space-y-3">
-                <span className="font-bold text-sm text-gray-800 block">Phí gửi ô tô</span>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={formatCurrencyInput(fees.carParkingRate)}
-                    onChange={(e) => handleChange("carParkingRate", e.target.value)}
-                    className="w-full rounded-xl border border-gray-250 p-3 pr-16 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">đ/tháng</span>
-                </div>
               </div>
             </div>
           </div>

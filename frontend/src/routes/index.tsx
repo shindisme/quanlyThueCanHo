@@ -22,7 +22,6 @@ import SchedulesPage from "../features/Admin/schedules/pages/SchedulePage";
 import UtilitiesPage from "../features/Admin/utilities/pages/UtilitiesPage";
 import NotificationsPage from "../features/Admin/notifications/pages/NotificationPage";
 import UsersPage from "../features/Admin/users/pages/UserPage";
-// import SettingsPage from "../features/Admin/settings/pages/SettingsPage";
 
 // Trang Manager
 import ManagerDashboard from "../features/Manager/dashboard/pages/DashboardManager";
@@ -42,6 +41,7 @@ import GuestApartmentListing from "../features/Guest/apartments/pages/ApartmentL
 import GuestApartmentDetail from "../features/Guest/apartments/pages/ApartmentDetail";
 import GuestContact from "../features/Guest/contact/pages/Contact";
 import GuestAbout from "../features/Guest/about/pages/About";
+import SettingsPage from "../features/Admin/settings/pages/SettingsPage";
 
 const router = createBrowserRouter([
   // Đăng nhập
@@ -98,7 +98,7 @@ const router = createBrowserRouter([
       { path: "notifications", element: <NotificationsPage /> },
       { path: "users", element: <UsersPage /> },
       // { path: "reports", element: <ReportDashboard /> },
-      // { path: "settings", element: <SettingsPage /> },
+      { path: "settings", element: <SettingsPage /> },
       { path: "profile", element: <ProfilePage /> },
     ],
   },

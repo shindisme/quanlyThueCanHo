@@ -12,6 +12,8 @@ import MaintenanceAssignModal from "../components/MaintenanceAssignModal";
 import MaintenanceUnableModal from "../components/MaintenanceUnableModal";
 import MaintenanceDetailModal from "../components/MaintenanceDetailModal";
 
+import type { MaintenanceRequest } from "../../../../types";
+
 export default function MaintenancePage() {
   const {
     requests,
@@ -50,14 +52,14 @@ export default function MaintenancePage() {
   } = useAdminMaintenance();
 
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [detailRequest, setDetailRequest] = useState<any | null>(null);
+  const [detailRequest, setDetailRequest] = useState<MaintenanceRequest | null>(null);
 
-  const handleOpenDetail = (req: any) => {
+  const handleOpenDetail = (req: MaintenanceRequest) => {
     setDetailRequest(req);
     setShowDetailModal(true);
   };
 
-  const filteredRequests = requests.filter((r: any) => {
+  const filteredRequests = requests.filter((r) => {
     const term = removeVietnameseTones(search.toLowerCase());
     const titleNorm = removeVietnameseTones(r.title.toLowerCase());
     const tenantName = removeVietnameseTones(r.tenant?.full_name?.toLowerCase() || "");
@@ -130,7 +132,7 @@ export default function MaintenancePage() {
 
         {role === "ADMIN" && (
           <Combobox
-            options={buildings.map((b: any) => ({ value: String(b.id), label: b.branch_name }))}
+            options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
             value={buildingFilter}
             onChange={(val) => {
               setBuildingFilter(val);

@@ -94,8 +94,8 @@ export default function StaffCreateModal({
 
   // ID các tòa nhà đã có Quản lý
   const managedBuildingIds = staffList
-    .filter((s: any) => s.position === "Quản lý" && s.building_id)
-    .map((s: any) => s.building_id as number);
+    .filter((s) => s.position === "Quản lý" && s.building_id)
+    .map((s) => s.building_id as number);
 
   const onSubmit = (data: StaffFormValues) => {
     const isActor = data.position === "Quản lý" || data.position === "Kỹ thuật";

@@ -63,6 +63,7 @@ export default function ApartmentDetailPage() {
   function getStatusBadge(status: ApartmentStatus) {
     const label = APARTMENT_STATUS_LABELS[status] || status;
     const variant = APARTMENT_STATUS_COLORS[status] || "gray";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <Badge variant={variant as any}>{label}</Badge>;
   }
 
@@ -338,7 +339,7 @@ export default function ApartmentDetailPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 bg-white">
-                        {occupants.map((occ: any) => (
+                        {occupants.map((occ: { id: string; name: string; cccd: string; phone?: string }) => (
                           <tr key={occ.id}>
                             <td className="px-3 py-2 font-medium text-gray-800">{occ.name}</td>
                             <td className="px-3 py-2 text-gray-600">{maskCCCD(occ.cccd)}</td>
@@ -379,7 +380,7 @@ export default function ApartmentDetailPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 bg-white">
-                        {tenantContracts.map((c: any) => (
+                        {tenantContracts.map((c) => (
                           <tr key={c.id} className="hover:bg-gray-50">
                             <td className="px-3 py-2.5 font-medium text-gray-700">HD-{String(c.id).padStart(5, "0")}</td>
                             <td className="px-3 py-2.5 text-gray-800 font-semibold">{activeTenant.full_name}</td>
@@ -429,7 +430,7 @@ export default function ApartmentDetailPage() {
                 </div>
                 <div className="flex-1 space-y-2 w-full text-xs">
                   {[5, 4, 3, 2, 1].map((stars) => {
-                    const count = reviews.filter((r: any) => r.rating === stars).length;
+                    const count = reviews.filter((r) => r.rating === stars).length;
                     const percent = reviewMeta.totalReviews > 0 ? (count / reviewMeta.totalReviews) * 100 : 0;
                     return (
                       <div key={stars} className="flex items-center gap-3">
@@ -448,7 +449,7 @@ export default function ApartmentDetailPage() {
               <div className="space-y-4">
                 <h4 className="font-semibold text-gray-800 text-sm">Ý kiến của người thuê ({reviews.length})</h4>
                 <div className="divide-y divide-gray-100">
-                  {reviews.map((r: any) => (
+                  {reviews.map((r) => (
                     <div key={r.id} className="py-4 first:pt-0 last:pb-0 space-y-1.5 font-sans">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-gray-800 text-sm">{r.tenant?.full_name || "Người thuê ẩn danh"}</span>

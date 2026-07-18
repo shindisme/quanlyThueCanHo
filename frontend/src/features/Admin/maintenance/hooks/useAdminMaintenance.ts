@@ -66,9 +66,11 @@ export function useAdminMaintenance() {
   const availableFloors = useMemo(() => {
     const targetBuildingId = role === "MANAGER" ? managedBuildingId : (buildingFilter ? Number(buildingFilter) : null);
     const apts = targetBuildingId
-      ? (apartments as any[]).filter((a: any) => a.building_id === targetBuildingId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (apartments as any[]).filter((a) => a.building_id === targetBuildingId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       : (apartments as any[]);
-    const floors = Array.from(new Set(apts.map((a: any) => a.floor))).sort((a: any, b: any) => a - b);
+    const floors = Array.from(new Set(apts.map((a) => a.floor))).sort((a, b) => a - b);
     return floors;
   }, [apartments, buildingFilter, role, managedBuildingId]);
 
@@ -82,7 +84,7 @@ export function useAdminMaintenance() {
     enabled: !!(selectedRequest?.apartment?.building_id || selectedRequest?.apartment?.building?.id || (role === "MANAGER" && managedBuildingId)),
   });
   const technicians = (staffRes?.data || []).filter(
-    (s: any) => s.position !== "Quản lý"
+    (s) => s.position !== "Quản lý"
   );
 
   // Xác nhận và phân công 
@@ -180,7 +182,7 @@ export function useAdminMaintenance() {
   };
 
   const filteredRequestsByFloor = useMemo(() => {
-    return requests.filter((r: any) => {
+    return requests.filter((r) => {
       if (floorFilter && r.apartment?.floor !== Number(floorFilter)) {
         return false;
       }
