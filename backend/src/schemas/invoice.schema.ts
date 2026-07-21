@@ -1,4 +1,4 @@
-﻿import {
+import {
     InvoiceStatus
 } from "@prisma/client";
 import { z } from "zod";
@@ -18,7 +18,14 @@ const moneySchema = z.number().finite().refine(
     isNonNegativeDecimal12_2Amount,
     "Số tiền phải không âm, nằm trong Decimal(12,2) và có tối đa 2 chữ số thập phân"
 );
-
+const electricTierPricesSchema = z.array(moneySchema).length(
+    6,
+    "Cần cung cấp đủ 6 đơn giá điện."
+);
+const waterTierPricesSchema = z.array(moneySchema).length(
+    3,
+    "Cần cung cấp đủ 3 đơn giá nước."
+);
 export const listInvoicesRequestSchema = z.object({
     params: emptyObjectSchema,
     query: z.object({
@@ -64,8 +71,8 @@ export const generateMonthlyInvoicesRequestSchema = z.object({
         due_date: strictRfc3339DateSchema.optional(),
         management_fee: moneySchema.optional(),
         management_fee_per_m2: moneySchema.optional(),
-        electric_unit_price: moneySchema.optional(),
-        water_unit_price: moneySchema.optional(),
+        electric_tier_prices: electricTierPricesSchema.optional(),
+        water_tier_prices: waterTierPricesSchema.optional(),
         internet_fee: moneySchema.optional(),
         notify: z.boolean().optional()
     }).strict().refine(

@@ -56,10 +56,9 @@ export interface GenerateMonthlyInvoicesPayload {
   year?: number;
   building_id?: number;
   due_date?: string;
-  management_fee?: number;
   management_fee_per_m2?: number;
-  electric_unit_price?: number;
-  water_unit_price?: number;
+  electric_tier_prices?: number[];
+  water_tier_prices?: number[];
   internet_fee?: number;
   notify?: boolean;
 }

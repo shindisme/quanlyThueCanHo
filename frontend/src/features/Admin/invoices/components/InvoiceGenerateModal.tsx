@@ -17,6 +17,43 @@ interface InvoiceGenerateModalProps {
   managedBuildingId: number | null;
 }
 
+const DEFAULT_ELECTRIC_TIER_PRICES = [1984, 2050, 2380, 2998, 3350, 3460];
+const DEFAULT_WATER_TIER_PRICES = [6700, 12900, 14400];
+const ELECTRIC_LABELS = ["B1", "B2", "B3", "B4", "B5", "B6"];
+const WATER_LABELS = ["B1", "B2", "B3"];
+
+type SavedFeeSettings = {
+  managementFeePerM2?: number;
+  internetRate?: number;
+  electricityRates?: number[];
+  electricTierPrices?: number[];
+  waterRates?: number[];
+  waterTierPrices?: number[];
+};
+
+const readSavedFees = (): SavedFeeSettings => {
+  try {
+    const saved = localStorage.getItem("system_fee_settings");
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
+};
+
+const readSavedNumber = (key: keyof SavedFeeSettings, fallback: number) => {
+  const value = readSavedFees()[key];
+  return typeof value === "number" && Number.isFinite(value) ? String(value) : String(fallback);
+};
+
+const readSavedRates = (keys: Array<keyof SavedFeeSettings>, fallback: number[]) => {
+  const saved = readSavedFees();
+  const value = keys.map((key) => saved[key]).find(Array.isArray);
+  if (!Array.isArray(value) || value.length !== fallback.length) return fallback.map(String);
+
+  const rates = value.map(Number);
+  return rates.every(Number.isFinite) ? rates.map(String) : fallback.map(String);
+};
+
 export default function InvoiceGenerateModal({
   isOpen,
   onClose,
@@ -29,7 +66,6 @@ export default function InvoiceGenerateModal({
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
-  // Form State
   const [month, setMonth] = useState(String(currentMonth));
   const [year, setYear] = useState(String(currentYear));
   const [buildingId, setBuildingId] = useState(
@@ -38,68 +74,28 @@ export default function InvoiceGenerateModal({
 
   const getDefaultDueDate = () => {
     const d = new Date();
-    d.setDate(d.getDate() + 10); // 10 days từ hiện tại
+    d.setDate(d.getDate() + 10);
     return d.toISOString().split("T")[0];
   };
   const [dueDate, setDueDate] = useState(getDefaultDueDate());
 
-  // Pricing config defaults
-  const [managementFee, setManagementFee] = useState(() => {
-    try {
-      const saved = localStorage.getItem("system_fee_settings");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.managementFee !== undefined) return String(parsed.managementFee);
-      }
-    } catch { /* empty */ }
-    return "0";
-  });
-
-  const [managementFeePerM2, setManagementFeePerM2] = useState(() => {
-    try {
-      const saved = localStorage.getItem("system_fee_settings");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.managementFeePerM2 !== undefined) return String(parsed.managementFeePerM2);
-      }
-    } catch { /* empty */ }
-    return "10000";
-  });
-
-  const [electricUnitPrice, setElectricUnitPrice] = useState(() => {
-    try {
-      const saved = localStorage.getItem("system_fee_settings");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.electricityRate !== undefined) return String(parsed.electricityRate);
-      }
-    } catch { /* empty */ }
-    return "3500";
-  });
-
-  const [waterUnitPrice, setWaterUnitPrice] = useState(() => {
-    try {
-      const saved = localStorage.getItem("system_fee_settings");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.waterRate !== undefined) return String(parsed.waterRate);
-      }
-    } catch { /* empty */ }
-    return "25000";
-  });
-
-  const [internetFee, setInternetFee] = useState(() => {
-    try {
-      const saved = localStorage.getItem("system_fee_settings");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.internetRate !== undefined) return String(parsed.internetRate);
-      }
-    } catch { /* empty */ }
-    return "300000";
-  });
-
+  const [managementFeePerM2, setManagementFeePerM2] = useState(() => readSavedNumber("managementFeePerM2", 10000));
+  const [electricTierPrices, setElectricTierPrices] = useState(() =>
+    readSavedRates(["electricityRates", "electricTierPrices"], DEFAULT_ELECTRIC_TIER_PRICES)
+  );
+  const [waterTierPrices, setWaterTierPrices] = useState(() =>
+    readSavedRates(["waterRates", "waterTierPrices"], DEFAULT_WATER_TIER_PRICES)
+  );
+  const [internetFee, setInternetFee] = useState(() => readSavedNumber("internetRate", 300000));
   const [notify, setNotify] = useState(true);
+
+  const handleTierChange = (
+    setter: React.Dispatch<React.SetStateAction<string[]>>,
+    index: number,
+    value: string
+  ) => {
+    setter((prev) => prev.map((rate, rateIndex) => (rateIndex === index ? value : rate)));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,15 +103,15 @@ export default function InvoiceGenerateModal({
       toast.error("Vui lòng chọn tòa nhà!");
       return;
     }
-    const payload = {
+
+    const payload: GenerateMonthlyInvoicesPayload = {
       month: Number(month),
       year: Number(year),
       building_id: Number(buildingId),
       due_date: new Date(dueDate).toISOString(),
-      management_fee: Number(managementFee),
       management_fee_per_m2: Number(managementFeePerM2),
-      electric_unit_price: Number(electricUnitPrice),
-      water_unit_price: Number(waterUnitPrice),
+      electric_tier_prices: electricTierPrices.map(Number),
+      water_tier_prices: waterTierPrices.map(Number),
       internet_fee: Number(internetFee),
       notify,
     };
@@ -195,6 +191,7 @@ export default function InvoiceGenerateModal({
             </label>
           </div>
         </div>
+
         <div className="border-t border-gray-200 pt-3">
           <div className="flex items-center justify-between mb-3">
             <h5 className="font-bold text-gray-800 text-xs uppercase tracking-wider">Cấu hình đơn giá dịch vụ áp dụng</h5>
@@ -202,56 +199,60 @@ export default function InvoiceGenerateModal({
               Có thể chỉnh sửa
             </span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-4">
             <div>
-              <label className="text-xs font-semibold text-gray-650 block mb-1 select-none">Đơn giá Điện (VND / kWh)</label>
-              <Input
-                type="number"
-                value={electricUnitPrice}
-                onChange={(e) => setElectricUnitPrice(e.target.value)}
-                className="rounded-lg h-[42px] font-semibold"
-                required
-              />
+              <label className="text-xs font-semibold text-gray-650 block mb-2 select-none">Biểu giá điện 6 bậc (VND / kWh)</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                {electricTierPrices.map((price, index) => (
+                  <Input
+                    key={ELECTRIC_LABELS[index]}
+                    type="number"
+                    value={price}
+                    onChange={(e) => handleTierChange(setElectricTierPrices, index, e.target.value)}
+                    className="rounded-lg h-[42px] font-semibold"
+                    aria-label={`Đơn giá điện ${ELECTRIC_LABELS[index]}`}
+                    required
+                  />
+                ))}
+              </div>
             </div>
             <div>
-              <label className="text-xs font-semibold text-gray-650 block mb-1 select-none">Đơn giá Nước (VND / m³)</label>
-              <Input
-                type="number"
-                value={waterUnitPrice}
-                onChange={(e) => setWaterUnitPrice(e.target.value)}
-                className="rounded-lg h-[42px] font-semibold"
-                required
-              />
+              <label className="text-xs font-semibold text-gray-650 block mb-2 select-none">Biểu giá nước 3 bậc (VND / m³/người)</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {waterTierPrices.map((price, index) => (
+                  <Input
+                    key={WATER_LABELS[index]}
+                    type="number"
+                    value={price}
+                    onChange={(e) => handleTierChange(setWaterTierPrices, index, e.target.value)}
+                    className="rounded-lg h-[42px] font-semibold"
+                    aria-label={`Đơn giá nước ${WATER_LABELS[index]}`}
+                    required
+                  />
+                ))}
+              </div>
             </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-650 block mb-1 select-none">Phí dịch vụ & Internet (VND)</label>
-              <Input
-                type="number"
-                value={internetFee}
-                onChange={(e) => setInternetFee(e.target.value)}
-                className="rounded-lg h-[42px] font-semibold"
-                required
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-650 block mb-1 select-none">Phí quản lý cố định (VND)</label>
-              <Input
-                type="number"
-                value={managementFee}
-                onChange={(e) => setManagementFee(e.target.value)}
-                className="rounded-lg h-[42px] font-semibold"
-                required
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-gray-650 block mb-1 select-none">Phí quản lý theo m² (VND / m²)</label>
-              <Input
-                type="number"
-                value={managementFeePerM2}
-                onChange={(e) => setManagementFeePerM2(e.target.value)}
-                className="rounded-lg h-[42px] font-semibold"
-                required
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-semibold text-gray-650 block mb-1 select-none">Phí dịch vụ & Internet (VND)</label>
+                <Input
+                  type="number"
+                  value={internetFee}
+                  onChange={(e) => setInternetFee(e.target.value)}
+                  className="rounded-lg h-[42px] font-semibold"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-650 block mb-1 select-none">Phí quản lý theo m² (VND / m²)</label>
+                <Input
+                  type="number"
+                  value={managementFeePerM2}
+                  onChange={(e) => setManagementFeePerM2(e.target.value)}
+                  className="rounded-lg h-[42px] font-semibold"
+                  required
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -27,7 +27,7 @@ export default function GuestHomePage() {
     heroSubtitle,
     buildings,
     loading,
-    featuredApartments,
+    availableApartments,
   } = useHomePage();
 
   return (
@@ -128,14 +128,14 @@ export default function GuestHomePage() {
         </div>
       </section>
 
-      {/* FEATURED APARTMENTS */}
+      {/* AVAILABLE APARTMENTS */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
           <div className="flex items-center justify-between mb-10">
             <div>
               <p className="text-xs font-semibold text-primary-600 uppercase tracking-wider mb-2">Căn hộ</p>
-              <h2 className="text-3xl font-bold text-gray-900">Căn hộ nổi bật</h2>
-              <p className="text-gray-500 mt-1">Các căn hộ đang sẵn sàng cho thuê</p>
+              <h2 className="text-3xl font-bold text-gray-900">Căn hộ còn trống</h2>
+              <p className="text-gray-500 mt-1">Các căn hộ còn trống đang sẵn sàng cho thuê</p>
             </div>
             <Link
               to="/apartments"
@@ -151,7 +151,7 @@ export default function GuestHomePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
-              {featuredApartments.map((apt: ApartmentData) => {
+              {availableApartments.map((apt: ApartmentData) => {
                 const building = buildings.find((b) => b.id === apt.building_id);
                 return (
                   <Link
@@ -165,15 +165,9 @@ export default function GuestHomePage() {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
                         alt="Ảnh căn hộ"
                       />
-                      {["RENTED", "rented"].includes(apt.status) ? (
-                        <span className="absolute top-3 left-3 text-xs px-2.5 py-1 rounded-full bg-blue-500 text-white font-semibold">
-                          Đang thuê
-                        </span>
-                      ) : (
-                        <span className="absolute top-3 left-3 text-xs px-2.5 py-1 rounded-full bg-success-500 text-white font-semibold">
-                          Còn trống
-                        </span>
-                      )}
+                      <span className="absolute top-3 left-3 text-xs px-2.5 py-1 rounded-full bg-success-500 text-white font-semibold">
+                        Còn trống
+                      </span>
                     </div>
                     <div className="p-5">
                       <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors">
