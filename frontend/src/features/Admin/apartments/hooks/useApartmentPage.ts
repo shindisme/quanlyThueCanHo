@@ -43,11 +43,12 @@ export function useApartmentPage() {
   // Lấy danh sách căn hộ
   const { data: apartments = [], isLoading: loading, refetch: fetchApartments } = useQuery({
     queryKey: [QUERY_KEYS.APARTMENTS[0], filterBuilding],
-    queryFn: async () => {
-      const res = await getAllApartmentsPage({
-        building_id: filterBuilding,
-      });
-      return res.data;
+    queryFn: () => getAllApartmentsPage({
+      building_id: filterBuilding,
+    }),
+    select: (res) => {
+      const value = res as unknown;
+      return (Array.isArray(value) ? value : res.data) as unknown as Apartment[];
     },
   });
 
@@ -79,7 +80,7 @@ export function useApartmentPage() {
     localStorage.setItem("featured-apartment-ids", JSON.stringify(updated));
   }
 
-  const filtered: Apartment[] = (apartments as unknown as Apartment[]).filter((apt) => {
+  const filtered: Apartment[] = apartments.filter((apt) => {
     if (debouncedSearch) {
       const s = removeVietnameseTones(debouncedSearch.toLowerCase());
       const roomMatch = removeVietnameseTones(apt.room_number.toLowerCase()).includes(s);
