@@ -1,5 +1,6 @@
 import {
     InvoiceStatus,
+    InvoiceType,
     PaymentStatus,
     Prisma,
     Role
@@ -45,6 +46,43 @@ export class InvoiceError extends AppError {
 }
 
 const invoiceInclude = {
+    tenant: {
+        select: {
+            id: true,
+            full_name: true,
+            phone: true,
+            email: true,
+            user_id: true,
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                    role: true
+                }
+            }
+        }
+    },
+    reservation: {
+        include: {
+            apartment: {
+                select: {
+                    id: true,
+                    building_id: true,
+                    floor: true,
+                    room_number: true,
+                    area: true,
+                    rental_price: true,
+                    building: {
+                        select: {
+                            id: true,
+                            branch_name: true,
+                            address_new: true
+                        }
+                    }
+                }
+            }
+        }
+    },
     contract: {
         include: {
             tenant: {
@@ -128,6 +166,7 @@ type ContractForBilling = Prisma.RentalContractGetPayload<{
 type PlannedMonthlyInvoice = {
     contract: ContractForBilling;
     invoiceCode: string;
+    type: InvoiceType;
     items: BillingInvoiceItem[];
     totalAmount: number;
 };
@@ -340,13 +379,9 @@ const normalizeInvoice = (invoice: InvoiceWithRelations) => {
     const paidAmount = payments
         .filter((payment) => payment.status === PaymentStatus.SUCCESS)
         .reduce((sum, payment) => sum + toNumber(payment.amount), 0);
-
-    return {
-        ...invoiceData,
-        total_amount: totalAmount,
-        paid_amount: roundMoney(paidAmount),
-        remaining_amount: roundMoney(Math.max(totalAmount - paidAmount, 0)),
-        contract: {
+    const contract = invoice.contract === null
+        ? null
+        : {
             ...invoice.contract,
             deposit_amount: toNumber(invoice.contract.deposit_amount),
             monthly_rent: toNumber(invoice.contract.monthly_rent),
@@ -355,7 +390,26 @@ const normalizeInvoice = (invoice: InvoiceWithRelations) => {
                 area: toNumber(invoice.contract.apartment.area),
                 rental_price: toNumber(invoice.contract.apartment.rental_price)
             }
-        },
+        };
+    const reservation = invoice.reservation === null
+        ? null
+        : {
+            ...invoice.reservation,
+            deposit_amount: toNumber(invoice.reservation.deposit_amount),
+            apartment: {
+                ...invoice.reservation.apartment,
+                area: toNumber(invoice.reservation.apartment.area),
+                rental_price: toNumber(invoice.reservation.apartment.rental_price)
+            }
+        };
+
+    return {
+        ...invoiceData,
+        total_amount: totalAmount,
+        paid_amount: roundMoney(paidAmount),
+        remaining_amount: roundMoney(Math.max(totalAmount - paidAmount, 0)),
+        contract,
+        reservation,
         items: invoice.items.map((item) => ({
             ...item,
             quantity: toNumber(item.quantity),
@@ -453,7 +507,7 @@ const createInvoiceNotification = async (
     content: string,
     type: string
 ) => {
-    const userId = invoice.contract.tenant.user_id;
+    const userId = invoice.tenant.user_id;
     if (!userId) {
         return;
     }
@@ -720,6 +774,9 @@ export const generateMonthlyInvoicesService = async (
         plannedInvoices.push({
             contract,
             invoiceCode,
+            type: firstRentalMonth
+                ? InvoiceType.FIRST_RENT
+                : InvoiceType.MONTHLY,
             items,
             totalAmount
         });
@@ -728,6 +785,7 @@ export const generateMonthlyInvoicesService = async (
     for (const {
         contract,
         invoiceCode,
+        type,
         items,
         totalAmount
     } of plannedInvoices) {
@@ -738,6 +796,7 @@ export const generateMonthlyInvoicesService = async (
                     due_date: dueDate,
                     total_amount: totalAmount,
                     status: InvoiceStatus.UNPAID,
+                    type,
                     items: {
                         create: items
                     }

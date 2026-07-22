@@ -1,5 +1,4 @@
-import { Plus, Users, Eye, Pencil, Trash2, FileText } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Plus, Users, Eye, Pencil, Trash2 } from "lucide-react";
 import PageHeader from "../../../../components/PageHeader";
 import Button from "../../../../components/ui/Button";
 import SearchInput from "../../../../components/ui/SearchInput";
@@ -17,7 +16,6 @@ import TenantDeleteModal from "../components/TenantDeleteModal";
 import TenantDetailModal from "../components/TenantDetailModal";
 
 export default function TenantPage() {
-  const navigate = useNavigate();
 
   const {
     search,
@@ -137,18 +135,6 @@ export default function TenantPage() {
               </button>
               {!t.contracts?.[0] && (
                 <>
-                  <button
-                    onClick={() => {
-                      const basePath = role === "ADMIN" ? "/admin" : "/manager";
-                      navigate(`${basePath}/contracts`, {
-                        state: { openCreateModal: true, tenantId: t.id },
-                      });
-                    }}
-                    className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
-                    title="Tạo hợp đồng"
-                  >
-                    <FileText size={16} />
-                  </button>
                   <button
                     onClick={() => setDeleteItem(t)}
                     className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
@@ -315,17 +301,6 @@ export default function TenantPage() {
                         {!t.contracts?.[0] && (
                           <>
                             <button
-                              onClick={() => {
-                                const basePath = role === "ADMIN" ? "/admin" : "/manager";
-                                navigate(`${basePath}/contracts`, {
-                                  state: { openCreateModal: true, tenantId: t.id },
-                                });
-                              }}
-                              className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:text-primary-600 hover:bg-primary-50 flex items-center gap-1 text-xs cursor-pointer"
-                            >
-                              <FileText size={14} /> Ký HĐ
-                            </button>
-                            <button
                               onClick={() => setDeleteItem(t)}
                               className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1 text-xs cursor-pointer"
                             >
@@ -356,14 +331,8 @@ export default function TenantPage() {
       <TenantCreateModal
         isOpen={createModal.isOpen}
         onClose={createModal.onClose}
-        onSuccess={(newTenantId) => {
+        onSuccess={() => {
           loadData();
-          if (newTenantId) {
-            const basePath = role === "ADMIN" ? "/admin" : "/manager";
-            navigate(`${basePath}/contracts`, {
-              state: { openCreateModal: true, tenantId: newTenantId, isNewTenant: true },
-            });
-          }
         }}
       />
 

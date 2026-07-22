@@ -1,11 +1,16 @@
 import {
     ApartmentStatus,
     ContractStatus,
+    InvoiceType,
     Prisma,
+    ReservationStatus,
     Role,
     UserStatus
 } from "@prisma/client";
 import { prisma } from "../config/database.js";
+import { INITIAL_PASSWORD } from "./account.service.js";
+import { buildTenantActivationUrl } from "./auth.service.js";
+import { sendTenantActivationEmail } from "./mail.service.js";
 import { AppError } from "../errors/app-error.js";
 import type {
     CreateContractRequest,
@@ -24,9 +29,6 @@ import {
     buildFirstRentalInvoiceItems,
     sumBillingItems
 } from "../utils/invoice-billing.js";
-import { INITIAL_PASSWORD } from "./account.service.js";
-import { buildTenantActivationUrl } from "./auth.service.js";
-import { sendTenantActivationEmail } from "./mail.service.js";
 
 const contractInclude = {
     tenant: {
@@ -74,6 +76,37 @@ const concurrentModification = () => new AppError(
     "Hợp đồng đã bị thay đổi trong quá trình thực hiện"
 );
 
+const sendActivationEmailAfterContractCreation = async (
+    tenant: {
+        email: string | null;
+        full_name: string;
+        user: {
+            id: number;
+            username: string;
+            status: UserStatus;
+        } | null;
+    }
+) => {
+    if (
+        tenant.email === null
+        || tenant.user === null
+        || tenant.user.status !== UserStatus.INACTIVE
+    ) {
+        return;
+    }
+
+    try {
+        await sendTenantActivationEmail({
+            to: tenant.email,
+            tenantName: tenant.full_name,
+            username: tenant.user.username,
+            initialPassword: INITIAL_PASSWORD,
+            activationUrl: buildTenantActivationUrl(tenant.user.id)
+        });
+    } catch {
+        // Email lỗi không được làm rollback hợp đồng đã tạo.
+    }
+};
 const SERIALIZABLE_RETRY_LIMIT = 3;
 
 const runSerializableTransaction = async <T>(
@@ -471,11 +504,11 @@ export const createContractService = async (
                 );
             }
 
-            if (apartment.status !== ApartmentStatus.AVAILABLE) {
+            if (apartment.status !== ApartmentStatus.RESERVED) {
                 throw new AppError(
                     409,
-                    "APARTMENT_UNAVAILABLE",
-                    "Căn hộ không có sẵn"
+                    "RESERVATION_REQUIRED",
+                    "Chỉ có thể lập hợp đồng từ căn hộ đã được đặt cọc"
                 );
             }
 
@@ -492,10 +525,27 @@ export const createContractService = async (
                 throw activeContractConflict();
             }
 
+            const reservation = await transaction.reservation.findFirst({
+                where: {
+                    apartment_id: apartment.id,
+                    tenant_id: tenant.id,
+                    status: ReservationStatus.ACTIVE
+                },
+                select: { id: true }
+            });
+
+            if (!reservation) {
+                throw new AppError(
+                    409,
+                    "RESERVATION_NOT_FOUND",
+                    "Căn hộ đã được giữ chỗ cho người thuê khác hoặc chưa có đặt cọc"
+                );
+            }
+
             const apartmentConnect:
                 Prisma.ApartmentWhereUniqueInput = {
                 id: apartment.id,
-                status: ApartmentStatus.AVAILABLE,
+                status: apartment.status,
                 contracts: {
                     none: { status: ContractStatus.ACTIVE }
                 },
@@ -506,8 +556,7 @@ export const createContractService = async (
                             managerAssignment.assignmentWhere
                     }
                     : {})
-            };
-            const tenantConnect: Prisma.TenantWhereUniqueInput = {
+            };            const tenantConnect: Prisma.TenantWhereUniqueInput = {
                 ...(managerAssignment
                     ? getManagerTenantScope(actor)
                     : {}),
@@ -530,7 +579,7 @@ export const createContractService = async (
             await transaction.apartment.update({
                 where: {
                     id: apartment.id,
-                    status: ApartmentStatus.AVAILABLE,
+                    status: apartment.status,
                     ...(managerAssignment
                         ? {
                             building_id: managerAssignment.buildingId,
@@ -542,6 +591,18 @@ export const createContractService = async (
                 data: { status: ApartmentStatus.RENTED }
             });
 
+            if (reservation) {
+                await transaction.reservation.updateMany({
+                    where: {
+                        id: reservation.id,
+                        status: ReservationStatus.ACTIVE
+                    },
+                    data: {
+                        status: ReservationStatus.CONVERTED,
+                        contract_id: contract.id
+                    }
+                });
+            }
             const firstInvoiceItems = buildFirstRentalInvoiceItems({
                 depositAmount: input.deposit_amount,
                 monthlyRent: input.monthly_rent,
@@ -561,6 +622,7 @@ export const createContractService = async (
                     invoice_code: firstInvoiceCode,
                     total_amount: firstInvoiceTotal,
                     due_date: new Date(),
+                    type: InvoiceType.FIRST_RENT,
                     status: "UNPAID",
                     items: {
                         create: firstInvoiceItems
@@ -605,30 +667,13 @@ export const createContractService = async (
                 });
             }
 
-            const activationEmailData =
-                tenant.user?.status === UserStatus.INACTIVE && tenant.email
-                    ? {
-                        to: tenant.email,
-                        tenantName: tenant.full_name,
-                        username: tenant.user.username,
-                        initialPassword: INITIAL_PASSWORD,
-                        activationUrl: buildTenantActivationUrl(tenant.user.id)
-                    }
-                    : null;
-
             return {
                 contract: normalizeCreatedContract(contract),
-                activationEmailData
+                tenant
             };
         });
 
-        if (result.activationEmailData) {
-            try {
-                await sendTenantActivationEmail(result.activationEmailData);
-            } catch {
-                // Email lỗi không được làm rollback hợp đồng đã tạo thành công.
-            }
-        }
+        await sendActivationEmailAfterContractCreation(result.tenant);
 
         return result.contract;
     } catch (error) {

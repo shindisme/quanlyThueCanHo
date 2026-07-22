@@ -47,12 +47,10 @@ export default function ContractCreateModal({
     errors,
     saving,
     loadingApartments,
-    isNewTenant,
     tenantIdValue,
     buildingIdValue,
     floorValue,
     apartmentIdValue,
-    newTenantDobValue,
     startDateValue,
     endDateValue,
     formFloors,
@@ -92,108 +90,18 @@ export default function ContractCreateModal({
     >
       <div className="space-y-6 font-sans text-sm">
         <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-12 space-y-3">
-            <label className="block text-sm font-semibold text-gray-800">Thông tin người thuê *</label>
-            <div className="flex items-center gap-6">
-              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                <input
-                  type="radio"
-                  checked={!isNewTenant}
-                  onChange={() => setValue("is_new_tenant", false)}
-                  className="w-4 h-4 text-primary-600 focus:ring-primary-500"
-                />
-                Chọn người thuê có sẵn
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                <input
-                  type="radio"
-                  checked={isNewTenant}
-                  onChange={() => setValue("is_new_tenant", true)}
-                  className="w-4 h-4 text-primary-600 focus:ring-primary-500"
-                />
-                Thêm người thuê mới & Tạo tài khoản
-              </label>
-            </div>
-
-            {!isNewTenant ? (
-              <div>
-                <Combobox
-                  options={tenants.map((t) => ({ value: String(t.id), label: `${t.full_name} (${t.citizen_id})` }))}
-                  value={tenantIdValue ? String(tenantIdValue) : ""}
-                  onChange={(val) => setValue("tenant_id", val ? Number(val) : null)}
-                  placeholder="Chọn người thuê"
-                  searchPlaceholder="Tìm kiếm người thuê..."
-                  triggerClassName="rounded-md"
-                  error={errors.tenant_id?.message}
-                />
-              </div>
-            ) : (
-              <div className="grid grid-cols-12 gap-4 bg-gray-50/50 p-4 rounded-md border border-gray-150">
-                <div className="col-span-12">
-                  <Input
-                    label="Họ tên *"
-                    placeholder="Nhập họ tên"
-                    {...register("new_tenant_name")}
-                    error={errors.new_tenant_name?.message}
-                  />
-                </div>
-                <div className="col-span-12 sm:col-span-6">
-                  <Input
-                    label="Số CCCD *"
-                    placeholder="Nhập số CCCD"
-                    {...register("new_tenant_cccd")}
-                    error={errors.new_tenant_cccd?.message}
-                  />
-                </div>
-                <div className="col-span-12 sm:col-span-6">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày sinh</label>
-                  <DatePicker
-                    value={newTenantDobValue ? new Date(newTenantDobValue) : null}
-                    onChange={(date: Date | null) => {
-                      if (!date) {
-                        setValue("new_tenant_dob", "");
-                        return;
-                      }
-                      const y = date.getFullYear();
-                      const m = String(date.getMonth() + 1).padStart(2, "0");
-                      const d = String(date.getDate()).padStart(2, "0");
-                      setValue("new_tenant_dob", `${y}-${m}-${d}`);
-                    }}
-                    placeholder="Chọn ngày sinh..."
-                  />
-                  {errors.new_tenant_dob?.message && (
-                    <p className="mt-1 text-xs text-danger-500">{errors.new_tenant_dob.message}</p>
-                  )}
-                </div>
-                <div className="col-span-12 sm:col-span-6">
-                  <Input
-                    label="Email"
-                    type="email"
-                    placeholder="Nhập email"
-                    {...register("new_tenant_email")}
-                    error={errors.new_tenant_email?.message}
-                  />
-                </div>
-                <div className="col-span-12 sm:col-span-6">
-                  <Input
-                    label="Số điện thoại"
-                    placeholder="Nhập số điện thoại"
-                    {...register("new_tenant_phone")}
-                    error={errors.new_tenant_phone?.message}
-                  />
-                </div>
-                <div className="col-span-12">
-                  <Input
-                    label="Địa chỉ"
-                    placeholder="Nhập địa chỉ"
-                    {...register("new_tenant_address")}
-                    error={errors.new_tenant_address?.message}
-                  />
-                </div>
-              </div>
-            )}
+          <div className="col-span-12">
+            <Combobox
+              label="Người thuê đã đặt cọc *"
+              options={tenants.map((t) => ({ value: String(t.id), label: `${t.full_name} (${t.citizen_id})` }))}
+              value={tenantIdValue ? String(tenantIdValue) : ""}
+              onChange={(val) => setValue("tenant_id", val ? Number(val) : null)}
+              placeholder="Chọn người thuê"
+              searchPlaceholder="Tìm kiếm người thuê..."
+              triggerClassName="rounded-md"
+              error={errors.tenant_id?.message}
+            />
           </div>
-
           {role !== "MANAGER" && (
             <div className="col-span-12 sm:col-span-6">
               <Combobox

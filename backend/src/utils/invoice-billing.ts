@@ -238,7 +238,6 @@ export const buildFirstRentalInvoiceItems = (input: {
     BillingFeeSettings,
     "managementFee" | "managementFeePerM2" | "serviceFee"
 >): BillingInvoiceItem[] => {
-    const depositAmount = roundMoney(input.depositAmount);
     const rentAmount = roundMoney(input.monthlyRent);
     const area = roundMoney(input.area);
     const managementFee = roundMoney(input.managementFee ?? 0);
@@ -252,12 +251,7 @@ export const buildFirstRentalInvoiceItems = (input: {
     const serviceFee = roundMoney(input.serviceFee ?? SERVICE_FEE);
 
     const items: BillingInvoiceItem[] = [
-        {
-            item_name: "Tiền cọc",
-            quantity: 1,
-            unit_price: depositAmount,
-            amount: depositAmount
-        },
+
         {
             item_name: "Tiền thuê phòng tháng đầu tiên",
             quantity: 1,

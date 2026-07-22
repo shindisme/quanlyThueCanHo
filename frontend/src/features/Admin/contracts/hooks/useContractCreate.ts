@@ -5,7 +5,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as contractService from "../../../../services/contractService";
 import * as apartmentService from "../../../../services/apartmentService";
-import * as tenantService from "../../../../services/tenantService";
 import { contractSchema, type ContractFormValues } from "../../../../schemas/contract.schema";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
 import type { Apartment } from "../../../../types";
@@ -62,12 +61,10 @@ export function useContractCreate({
     },
   });
 
-  const isNewTenant = watch("is_new_tenant");
   const tenantIdValue = watch("tenant_id");
   const buildingIdValue = watch("building_id");
   const floorValue = watch("floor");
   const apartmentIdValue = watch("apartment_id");
-  const newTenantDobValue = watch("new_tenant_dob");
   const startDateValue = watch("start_date");
   const endDateValue = watch("end_date");
   const actualOccupantsValue = watch("actual_occupants");
@@ -95,7 +92,7 @@ export function useContractCreate({
   const formApartments = useMemo(() => {
     const apts = buildingIdValue ? buildingApartments : apartments;
     return apts.filter(
-      (a: Apartment) => a.floor === floorValue && a.status === "AVAILABLE"
+      (a: Apartment) => a.floor === floorValue && a.status === "RESERVED"
     );
   }, [buildingApartments, apartments, buildingIdValue, floorValue]);
 
@@ -141,38 +138,14 @@ export function useContractCreate({
   const [saving, setSaving] = useState(false);
 
   const createMutation = useMutation({
-    mutationFn: (data: Partial<ContractFormValues>) => {
-      if (data.is_new_tenant) {
-        // Create new tenant first, then contract
-        return tenantService.createTenant({
-          full_name: data.new_tenant_name || "",
-          citizen_id: data.new_tenant_cccd || "",
-          date_of_birth: data.new_tenant_dob || undefined,
-          email: data.new_tenant_email || undefined,
-          phone: data.new_tenant_phone || undefined,
-          permanent_address: data.new_tenant_address || undefined,
-        } as Parameters<typeof tenantService.createTenant>[0]).then((tenantRes) => {
-          const tenantId = tenantRes.id;
-          return contractService.createContract({
-            apartment_id: data.apartment_id,
-            tenant_id: tenantId,
-            start_date: data.start_date,
-            end_date: data.end_date,
-            monthly_rent: data.monthly_rent,
-            deposit_amount: data.deposit_amount,
-          });
-        });
-      }
-      return contractService.createContract({
-        apartment_id: data.apartment_id,
-        tenant_id: data.tenant_id!,
-        start_date: data.start_date,
-        end_date: data.end_date,
-        monthly_rent: data.monthly_rent,
-        deposit_amount: data.deposit_amount,
-      });
-    },
-    onSuccess: () => {
+    mutationFn: (data: Partial<ContractFormValues>) => contractService.createContract({
+      apartment_id: data.apartment_id,
+      tenant_id: data.tenant_id!,
+      start_date: data.start_date,
+      end_date: data.end_date,
+      monthly_rent: data.monthly_rent,
+      deposit_amount: data.deposit_amount,
+    }),    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CONTRACTS });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APARTMENTS });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TENANTS });
@@ -202,12 +175,10 @@ export function useContractCreate({
     errors,
     saving,
     loadingApartments,
-    isNewTenant,
     tenantIdValue,
     buildingIdValue,
     floorValue,
     apartmentIdValue,
-    newTenantDobValue,
     startDateValue,
     endDateValue,
     formFloors,

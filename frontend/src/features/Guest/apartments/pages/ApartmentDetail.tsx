@@ -134,7 +134,7 @@ export default function GuestApartmentDetail() {
           console.error("Error loading reviews:", e);
         }
 
-        if (searchParams.get("book") === "true" && apt.status !== "RENTED") {
+        if (searchParams.get("book") === "true" && apt.status === "AVAILABLE") {
           setShowScheduleForm(true);
         }
       } catch (error) {
@@ -366,7 +366,7 @@ export default function GuestApartmentDetail() {
           </div>
 
           {/*Right - Dat lich xem phong */}
-          {apartment.status !== "RENTED" && (
+          {apartment.status === "AVAILABLE" && (
             <div className="lg:col-span-1">
               <Card className="sticky top-24">
                 <h3 className="font-semibold text-gray-800 mb-4">Đặt lịch xem phòng</h3>

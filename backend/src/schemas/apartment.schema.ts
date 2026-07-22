@@ -1,4 +1,4 @@
-import { ApartmentStatus } from "@prisma/client";
+﻿import { ApartmentStatus } from "@prisma/client";
 import { z } from "zod";
 import {
     emptyObjectSchema,
@@ -30,7 +30,7 @@ export const listApartmentsRequestSchema = z.object({
         limit: z.coerce.number().int().positive().max(100).default(10),
         status: z.union([
             z.nativeEnum(ApartmentStatus),
-            z.array(z.nativeEnum(ApartmentStatus)).min(1).max(3)
+            z.array(z.nativeEnum(ApartmentStatus)).min(1).max(4)
         ]).optional()
     }).strict(),
     body: optionalEmptyBodySchema

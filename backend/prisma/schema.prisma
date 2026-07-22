@@ -28,6 +28,7 @@ enum BuildingStatus {
 
 enum ApartmentStatus {
   AVAILABLE
+  RESERVED
   RENTED
   MAINTENANCE
 }
@@ -42,10 +43,24 @@ enum InvoiceStatus {
   UNPAID
 }
 
+enum InvoiceType {
+  DEPOSIT
+  FIRST_RENT
+  MONTHLY
+  MAINTENANCE
+}
+
 enum PaymentStatus {
   SUCCESS
   PENDING
   FAILED
+}
+
+enum ReservationStatus {
+  ACTIVE
+  CONVERTED
+  FORFEITED
+  CANCELLED
 }
 
 enum Priority {
@@ -79,7 +94,6 @@ model User {
   tenant        Tenant?
   staff         Staff?
   notifications Notification[]
-  chat_sessions ChatConversation[]
 
   @@map("users")
 }
@@ -102,6 +116,7 @@ model Tenant {
   occupants           Occupant[]
   contracts           RentalContract[]
   invoices            Invoice[]
+  reservations        Reservation[]
   maintenance         MaintenanceRequest[]
   reviews             Review[]
 
@@ -179,6 +194,7 @@ model Apartment {
   building    Building             @relation(fields: [building_id], references: [id])
   images      ApartmentImage[]
   contracts   RentalContract[]
+  reservations Reservation[]
   maintenance MaintenanceRequest[]
   viewings    ViewingSchedule[]
   utilities   UtilityReading[]
@@ -224,6 +240,7 @@ model RentalContract {
   apartment Apartment @relation(fields: [apartment_id], references: [id])
   tenant    Tenant    @relation(fields: [tenant_id], references: [id])
   invoices  Invoice[]
+  reservation Reservation?
 
   @@index([apartment_id, status])
   @@index([tenant_id, status])
@@ -232,26 +249,53 @@ model RentalContract {
 }
 
 model Invoice {
-  id           Int           @id @default(autoincrement())
-  contract_id  Int
-  tenant_id    Int
-  invoice_code String        @unique
-  due_date     DateTime
-  total_amount Decimal       @db.Decimal(12, 2)
-  status       InvoiceStatus @default(UNPAID)
-  created_at   DateTime      @default(now())
-  paid_at      DateTime?
+  id             Int           @id @default(autoincrement())
+  contract_id    Int?
+  tenant_id      Int
+  reservation_id Int?
+  type           InvoiceType   @default(MONTHLY)
+  invoice_code   String        @unique
+  due_date       DateTime
+  total_amount   Decimal       @db.Decimal(12, 2)
+  status         InvoiceStatus @default(UNPAID)
+  created_at     DateTime      @default(now())
+  paid_at        DateTime?
 
-  contract RentalContract @relation(fields: [contract_id], references: [id])
-  tenant   Tenant         @relation(fields: [tenant_id], references: [id])
-  items    InvoiceItem[]
-  payments Payment[]
+  contract    RentalContract? @relation(fields: [contract_id], references: [id])
+  tenant      Tenant          @relation(fields: [tenant_id], references: [id])
+  reservation Reservation?    @relation(fields: [reservation_id], references: [id])
+  items       InvoiceItem[]
+  payments    Payment[]
 
   @@index([contract_id])
+  @@index([reservation_id])
+  @@index([type])
   @@index([tenant_id, status])
   @@index([status, due_date])
   @@index([created_at])
   @@map("invoices")
+}
+
+model Reservation {
+  id             Int               @id @default(autoincrement())
+  apartment_id   Int
+  tenant_id      Int
+  contract_id    Int?              @unique
+  deposit_amount Decimal           @db.Decimal(12, 2)
+  reserved_at    DateTime          @default(now())
+  expires_at     DateTime
+  status         ReservationStatus @default(ACTIVE)
+  created_at     DateTime          @default(now())
+
+  apartment Apartment       @relation(fields: [apartment_id], references: [id])
+  tenant    Tenant          @relation(fields: [tenant_id], references: [id])
+  contract  RentalContract? @relation(fields: [contract_id], references: [id])
+  invoices  Invoice[]
+
+  @@index([apartment_id, status])
+  @@index([tenant_id, status])
+  @@index([expires_at, status])
+  @@map("reservations")
 }
 
 model InvoiceItem {
@@ -369,29 +413,7 @@ model Notification {
   @@map("notifications")
 }
 
-model ChatConversation {
-  id         Int      @id @default(autoincrement())
-  user_id    Int
-  created_at DateTime @default(now())
 
-  user     User             @relation(fields: [user_id], references: [id])
-  messages ChatbotMessage[]
-
-  @@index([user_id, created_at])
-  @@map("chat_conversations")
-}
-
-model ChatbotMessage {
-  id              Int              @id @default(autoincrement())
-  conversation_id Int
-  message         String           @db.Text
-  sender_type     String
-  created_at      DateTime         @default(now())
-  conversation    ChatConversation @relation(fields: [conversation_id], references: [id])
-
-  @@index([conversation_id, created_at])
-  @@map("chatbot_messages")
-}
 
 model Review {
   id           Int      @id @default(autoincrement())

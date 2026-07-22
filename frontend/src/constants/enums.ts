@@ -5,7 +5,7 @@ export type UserStatus = "ACTIVE" | "INACTIVE" | "BANNED";
 
 export type BuildingStatus = "ACTIVE" | "INACTIVE";
 
-export type ApartmentStatus = "AVAILABLE" | "RENTED" | "MAINTENANCE";
+export type ApartmentStatus = "AVAILABLE" | "RESERVED" | "RENTED" | "MAINTENANCE";
 
 export type ContractStatus = "ACTIVE" | "ENDED";
 
@@ -34,6 +34,7 @@ export const USER_STATUS_LABELS: Record<UserStatus, string> = {
 
 export const APARTMENT_STATUS_LABELS: Record<ApartmentStatus, string> = {
   AVAILABLE: "Còn trống",
+  RESERVED: "Đã cọc",
   RENTED: "Đang thuê",
   MAINTENANCE: "Bảo trì",
 };
@@ -92,6 +93,7 @@ import type { BadgeVariant } from "../components/ui/Badge";
 // Map trang thai Badge
 export const APARTMENT_STATUS_COLORS: Record<ApartmentStatus, BadgeVariant> = {
   AVAILABLE: "success",
+  RESERVED: "warning",
   RENTED: "info",
   MAINTENANCE: "warning",
 };

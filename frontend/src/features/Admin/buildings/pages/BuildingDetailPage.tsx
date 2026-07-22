@@ -64,6 +64,7 @@ export default function BuildingDetailPage() {
   function getStatusBadge(status: string) {
     const map: Record<string, { label: string; variant: string }> = {
       AVAILABLE: { label: "Còn trống", variant: "success" },
+      RESERVED: { label: "Đã cọc", variant: "warning" },
       RENTED: { label: "Đang thuê", variant: "info" },
       MAINTENANCE: { label: "Bảo trì", variant: "warning" },
     };
