@@ -295,7 +295,8 @@ export default function Header() {
     role === "ADMIN" ? "Quản trị viên"
       : role === "MANAGER" ? (managedBuildingName ? `Quản lý: ${managedBuildingName}` : "Quản lý")
         : role === "STAFF" ? (managedBuildingName ? `Nhân viên: ${managedBuildingName}` : "Nhân viên")
-          : "Người thuê";
+          : role === "TENANT" ? (managedBuildingName ? `Người thuê: ${managedBuildingName}` : "Người thuê")
+            : "Người thuê";
 
   function getBreadcrumb() {
     const parts = location.pathname.split("/").filter(Boolean);

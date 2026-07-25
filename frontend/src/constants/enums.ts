@@ -73,7 +73,7 @@ export const PRIORITY_LABELS: Record<Priority, string> = {
 };
 
 export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
-  PENDING: "Mới tạo",
+  PENDING: "Mới gửi",
   PROCESSING: "Đang xử lý",
   DONE: "Hoàn thành",
   CANCELLED: "Đã huỷ",

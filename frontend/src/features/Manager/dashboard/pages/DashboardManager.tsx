@@ -100,6 +100,7 @@ function ManagerDashboardView() {
   } = dashboardData;
 
   function formatCurrency(amount: number) {
+    if (amount >= 1000000000) return (amount / 1000000000).toFixed(1) + " tỷ";
     if (amount >= 1000000) return (amount / 1000000).toFixed(0) + " tr";
     return new Intl.NumberFormat("vi-VN").format(amount) + " đ";
   }
