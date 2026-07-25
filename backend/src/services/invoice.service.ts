@@ -1,5 +1,6 @@
 import {
     InvoiceStatus,
+    InvoiceType,
     PaymentStatus,
     Prisma,
     Role
@@ -19,7 +20,7 @@ import { getManagerApartmentScope } from "../utils/manager-scope.js";
 import {
     buildFirstRentalInvoiceItems,
     buildRecurringMonthlyInvoiceItems,
-    calculateElectricTierDetails,
+    type BillingFeeSettings,
     type BillingInvoiceItem
 } from "../utils/invoice-billing.js";
 
@@ -45,6 +46,43 @@ export class InvoiceError extends AppError {
 }
 
 const invoiceInclude = {
+    tenant: {
+        select: {
+            id: true,
+            full_name: true,
+            phone: true,
+            email: true,
+            user_id: true,
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                    role: true
+                }
+            }
+        }
+    },
+    reservation: {
+        include: {
+            apartment: {
+                select: {
+                    id: true,
+                    building_id: true,
+                    floor: true,
+                    room_number: true,
+                    area: true,
+                    rental_price: true,
+                    building: {
+                        select: {
+                            id: true,
+                            branch_name: true,
+                            address_new: true
+                        }
+                    }
+                }
+            }
+        }
+    },
     contract: {
         include: {
             tenant: {
@@ -101,6 +139,11 @@ type ContractForBilling = Prisma.RentalContractGetPayload<{
                 id: true;
                 full_name: true;
                 user_id: true;
+                _count: {
+                    select: {
+                        occupants: true;
+                    };
+                };
             };
         };
         apartment: {
@@ -123,6 +166,7 @@ type ContractForBilling = Prisma.RentalContractGetPayload<{
 type PlannedMonthlyInvoice = {
     contract: ContractForBilling;
     invoiceCode: string;
+    type: InvoiceType;
     items: BillingInvoiceItem[];
     totalAmount: number;
 };
@@ -155,6 +199,55 @@ const assertNonNegativeMoney = (
     }
 };
 
+const resolveBillingFeeSettings = (
+    input: MonthlyInvoiceInput
+): BillingFeeSettings => {
+    if (input.management_fee !== undefined) {
+        assertNonNegativeMoney(input.management_fee, "Phí quản lý cố định");
+    }
+
+    if (input.management_fee_per_m2 !== undefined) {
+        assertNonNegativeMoney(input.management_fee_per_m2, "Phí quản lý theo m²");
+    }
+
+
+    if (input.water_tier_prices !== undefined) {
+        if (input.water_tier_prices.length !== 3) {
+            throw new InvoiceError("Cần cung cấp đủ 3 đơn giá nước.");
+        }
+
+        input.water_tier_prices.forEach((unitPrice, index) => {
+            assertNonNegativeMoney(
+                unitPrice,
+                `Đơn giá nước bậc ${index + 1}`
+            );
+        });
+    }
+    if (input.internet_fee !== undefined) {
+        assertNonNegativeMoney(input.internet_fee, "Phí dịch vụ & Internet");
+    }
+
+    if (input.electric_tier_prices !== undefined) {
+        if (input.electric_tier_prices.length !== 6) {
+            throw new InvoiceError("Cần cung cấp đủ 6 đơn giá điện.");
+        }
+
+        input.electric_tier_prices.forEach((unitPrice, index) => {
+            assertNonNegativeMoney(
+                unitPrice,
+                `Đơn giá điện bậc ${index + 1}`
+            );
+        });
+    }
+
+    return {
+        managementFee: input.management_fee,
+        managementFeePerM2: input.management_fee_per_m2,
+        electricTierPrices: input.electric_tier_prices,
+        waterTierPrices: input.water_tier_prices,
+        serviceFee: input.internet_fee
+    };
+};
 const assertNonNegativeDecimalMoney = (
     value: Prisma.Decimal,
     label: string
@@ -280,24 +373,15 @@ const isFirstChargeableRentalMonth = async (
 
     return previousContract === null;
 };
-const isElectricInvoiceItem = (itemName: string) => {
-    const normalized = itemName.normalize("NFC").toLocaleLowerCase("vi-VN");
-
-    return normalized.includes("tiền điện") || normalized.includes("tien dien");
-};
 const normalizeInvoice = (invoice: InvoiceWithRelations) => {
     const { payments, ...invoiceData } = invoice;
     const totalAmount = toNumber(invoice.total_amount);
     const paidAmount = payments
         .filter((payment) => payment.status === PaymentStatus.SUCCESS)
         .reduce((sum, payment) => sum + toNumber(payment.amount), 0);
-
-    return {
-        ...invoiceData,
-        total_amount: totalAmount,
-        paid_amount: roundMoney(paidAmount),
-        remaining_amount: roundMoney(Math.max(totalAmount - paidAmount, 0)),
-        contract: {
+    const contract = invoice.contract === null
+        ? null
+        : {
             ...invoice.contract,
             deposit_amount: toNumber(invoice.contract.deposit_amount),
             monthly_rent: toNumber(invoice.contract.monthly_rent),
@@ -306,23 +390,32 @@ const normalizeInvoice = (invoice: InvoiceWithRelations) => {
                 area: toNumber(invoice.contract.apartment.area),
                 rental_price: toNumber(invoice.contract.apartment.rental_price)
             }
-        },
-        items: invoice.items.map((item) => {
-            const quantity = toNumber(item.quantity);
-            const electricTierDetails = isElectricInvoiceItem(item.item_name)
-                ? calculateElectricTierDetails(quantity)
-                : [];
+        };
+    const reservation = invoice.reservation === null
+        ? null
+        : {
+            ...invoice.reservation,
+            deposit_amount: toNumber(invoice.reservation.deposit_amount),
+            apartment: {
+                ...invoice.reservation.apartment,
+                area: toNumber(invoice.reservation.apartment.area),
+                rental_price: toNumber(invoice.reservation.apartment.rental_price)
+            }
+        };
 
-            return {
-                ...item,
-                quantity,
-                unit_price: toNumber(item.unit_price),
-                amount: toNumber(item.amount),
-                ...(electricTierDetails.length > 0
-                    ? { electric_tier_details: electricTierDetails }
-                    : {})
-            };
-        })
+    return {
+        ...invoiceData,
+        total_amount: totalAmount,
+        paid_amount: roundMoney(paidAmount),
+        remaining_amount: roundMoney(Math.max(totalAmount - paidAmount, 0)),
+        contract,
+        reservation,
+        items: invoice.items.map((item) => ({
+            ...item,
+            quantity: toNumber(item.quantity),
+            unit_price: toNumber(item.unit_price),
+            amount: toNumber(item.amount)
+        }))
     };
 };
 
@@ -414,7 +507,7 @@ const createInvoiceNotification = async (
     content: string,
     type: string
 ) => {
-    const userId = invoice.contract.tenant.user_id;
+    const userId = invoice.tenant.user_id;
     if (!userId) {
         return;
     }
@@ -545,6 +638,7 @@ export const generateMonthlyInvoicesService = async (
     const { month, year } = resolveBillingPeriod(input);
     const dueDate = resolveDueDate(input, month, year);
     const notify = input.notify !== false;
+    const feeSettings = resolveBillingFeeSettings(input);
 
     const managerApartmentScope =
         actor?.role === Role.MANAGER
@@ -579,7 +673,12 @@ export const generateMonthlyInvoicesService = async (
                 select: {
                     id: true,
                     full_name: true,
-                    user_id: true
+                    user_id: true,
+                    _count: {
+                        select: {
+                            occupants: true
+                        }
+                    }
                 }
             },
             apartment: {
@@ -628,13 +727,17 @@ export const generateMonthlyInvoicesService = async (
             ? buildFirstRentalInvoiceItems({
                 depositAmount: contract.deposit_amount,
                 monthlyRent: contract.monthly_rent,
-                area: contract.apartment.area
+                area: contract.apartment.area,
+                managementFee: feeSettings.managementFee,
+                managementFeePerM2: feeSettings.managementFeePerM2,
+                serviceFee: feeSettings.serviceFee
             })
             : await buildRecurringItemsForContract(
                 contract,
                 month,
                 year,
-                missingUtilityReadings
+                missingUtilityReadings,
+                feeSettings
             );
         const totalAmountDecimal = roundDecimalMoney(
             items.reduce(
@@ -671,6 +774,9 @@ export const generateMonthlyInvoicesService = async (
         plannedInvoices.push({
             contract,
             invoiceCode,
+            type: firstRentalMonth
+                ? InvoiceType.FIRST_RENT
+                : InvoiceType.MONTHLY,
             items,
             totalAmount
         });
@@ -679,6 +785,7 @@ export const generateMonthlyInvoicesService = async (
     for (const {
         contract,
         invoiceCode,
+        type,
         items,
         totalAmount
     } of plannedInvoices) {
@@ -689,6 +796,7 @@ export const generateMonthlyInvoicesService = async (
                     due_date: dueDate,
                     total_amount: totalAmount,
                     status: InvoiceStatus.UNPAID,
+                    type,
                     items: {
                         create: items
                     }
@@ -773,7 +881,8 @@ const buildRecurringItemsForContract = async (
         apartment_id: number;
         room_number: string;
         contract_id: number;
-    }>
+    }>,
+    feeSettings: BillingFeeSettings
 ): Promise<BillingInvoiceItem[]> => {
     const reading = await prisma.utilityReading.findFirst({
         where: {
@@ -800,6 +909,8 @@ const buildRecurringItemsForContract = async (
         waterConsumption: reading
             ? nonNegativeDecimalDifference(reading.water_new, reading.water_old)
             : new Prisma.Decimal(0),
+        occupantCount: 1 + contract.tenant._count.occupants,
+        ...feeSettings,
         periodLabel: padMonth(month) + "/" + year
     });
 };

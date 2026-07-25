@@ -39,6 +39,34 @@ const notificationInclude = {
 } satisfies Prisma.NotificationInclude;
 
 const invoiceNotificationInclude = {
+    tenant: {
+        select: {
+            id: true,
+            full_name: true,
+            phone: true,
+            email: true,
+            user_id: true
+        }
+    },
+    reservation: {
+        include: {
+            apartment: {
+                select: {
+                    id: true,
+                    building_id: true,
+                    floor: true,
+                    room_number: true,
+                    building: {
+                        select: {
+                            id: true,
+                            branch_name: true,
+                            address_new: true
+                        }
+                    }
+                }
+            }
+        }
+    },
     contract: {
         include: {
             tenant: {
@@ -496,15 +524,18 @@ const buildInvoiceNotificationContent = (
     invoice: InvoiceForNotification,
     customContent?: string
 ) => {
-    const roomLabel =
-        `${invoice.contract.apartment.building.branch_name}`
-        + ` - phong ${invoice.contract.apartment.room_number}`;
+    const apartment = invoice.contract?.apartment
+        ?? invoice.reservation?.apartment
+        ?? null;
+    const roomLabel = apartment
+        ? `${apartment.building.branch_name} - phong ${apartment.room_number}`
+        : "Chua co can ho";
 
     return [
         customContent,
         `Ma hoa don: ${invoice.invoice_code}`,
         `Can ho: ${roomLabel}`,
-        `Nguoi thue: ${invoice.contract.tenant.full_name}`,
+        `Nguoi thue: ${invoice.tenant.full_name}`,
         `Tong tien: ${formatMoney(invoice.total_amount)}`,
         `Han thanh toan: ${formatDate(invoice.due_date)}`,
         `Trang thai: ${invoice.status}`
@@ -520,21 +551,34 @@ export const sendInvoiceNotificationsService = async (
 
     if (actor.role === Role.MANAGER) {
         const assignment = getCurrentManagerAssignment(actor);
+        const apartmentScope = getApartmentBuildingScope(
+            assignment.buildingId,
+            assignment
+        );
         andFilters.push({
-            contract: {
-                apartment: getApartmentBuildingScope(
-                    assignment.buildingId,
-                    assignment
-                )
-            }
+            OR: [
+                { contract: { apartment: apartmentScope } },
+                { reservation: { apartment: apartmentScope } }
+            ]
         });
     } else if (input.building_id !== undefined) {
         andFilters.push({
-            contract: {
-                apartment: {
-                    building_id: input.building_id
+            OR: [
+                {
+                    contract: {
+                        apartment: {
+                            building_id: input.building_id
+                        }
+                    }
+                },
+                {
+                    reservation: {
+                        apartment: {
+                            building_id: input.building_id
+                        }
+                    }
                 }
-            }
+            ]
         });
     }
 
@@ -585,7 +629,7 @@ export const sendInvoiceNotificationsService = async (
         let sentCount = 0;
 
         for (const invoice of invoices) {
-            const userId = invoice.contract.tenant.user_id;
+            const userId = invoice.tenant.user_id;
             if (!userId) {
                 skipped.push({
                     invoice_id: invoice.id,
@@ -632,8 +676,8 @@ export const sendInvoiceNotificationsService = async (
                 status: invoice.status,
                 total_amount: toNumber(invoice.total_amount),
                 due_date: invoice.due_date,
-                tenant: invoice.contract.tenant,
-                apartment: invoice.contract.apartment
+                tenant: invoice.tenant,
+                apartment: invoice.contract?.apartment ?? invoice.reservation?.apartment ?? null
             })),
             skipped
         };

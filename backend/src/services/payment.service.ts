@@ -1,8 +1,13 @@
-﻿import {
+import jwt from "jsonwebtoken";
+import {
+    ApartmentStatus,
     InvoiceStatus,
+    InvoiceType,
     PaymentStatus,
+    ReservationStatus,
     Prisma,
-    Role
+    Role,
+    UserStatus
 } from "@prisma/client";
 import { prisma } from "../config/database.js";
 import { AppError } from "../errors/app-error.js";
@@ -24,6 +29,7 @@ import {
     normalizeVnpayCallbackParams,
     verifyVnpaySecureHash
 } from "../utils/vnpay.js";
+import { sendReservationDepositPaidEmail } from "./mail.service.js";
 import {
     generateQrCodeDataUrl,
     generateQrCodeSvg
@@ -44,6 +50,41 @@ type PaymentMethod =
 const invoiceForPaymentInclude = {
     payments: {
         orderBy: { paid_at: "desc" }
+    },
+    tenant: {
+        select: {
+            id: true,
+            full_name: true,
+            phone: true,
+            email: true,
+            user_id: true,
+            user: {
+                select: {
+                    id: true,
+                    username: true,
+                    status: true
+                }
+            }
+        }
+    },
+    reservation: {
+        include: {
+            apartment: {
+                select: {
+                    id: true,
+                    status: true,
+                    floor: true,
+                    room_number: true,
+                    building: {
+                        select: {
+                            id: true,
+                            branch_name: true,
+                            address_new: true
+                        }
+                    }
+                }
+            }
+        }
     },
     contract: {
         include: {
@@ -186,15 +227,9 @@ const normalizeInvoice = (invoice: InvoiceForPayment) => {
     const totalAmountCents = toMoneyCents(totalAmount);
     const paidAmountCents =
         getSuccessfulPaymentTotalCents(invoice);
-
-    return {
-        ...invoice,
-        total_amount: totalAmount,
-        paid_amount: paidAmountCents / 100,
-        remaining_amount:
-            Math.max(totalAmountCents - paidAmountCents, 0)
-            / 100,
-        contract: {
+    const contract = invoice.contract === null
+        ? null
+        : {
             ...invoice.contract,
             deposit_amount:
                 toNumber(invoice.contract.deposit_amount),
@@ -207,7 +242,22 @@ const normalizeInvoice = (invoice: InvoiceForPayment) => {
                     invoice.contract.apartment.rental_price
                 )
             }
-        },
+        };
+
+    return {
+        ...invoice,
+        total_amount: totalAmount,
+        paid_amount: paidAmountCents / 100,
+        remaining_amount:
+            Math.max(totalAmountCents - paidAmountCents, 0)
+            / 100,
+        contract,
+        reservation: invoice.reservation === null
+            ? null
+            : {
+                ...invoice.reservation,
+                deposit_amount: toNumber(invoice.reservation.deposit_amount)
+            },
         payments: invoice.payments.map((payment) => ({
             ...payment,
             amount: toNumber(payment.amount)
@@ -260,6 +310,86 @@ const requireTenantId = (actor: Actor) => {
 
 
 
+const DEPOSIT_PAYMENT_PURPOSE = "reservation_deposit_payment";
+
+const getJwtSecret = () => {
+    const secret = process.env.JWT_SECRET;
+
+    if (!secret) {
+        throw new AppError(
+            500,
+            "JWT_NOT_CONFIGURED",
+            "Cấu hình xác thực JWT chưa được thiết lập"
+        );
+    }
+
+    return secret;
+};
+
+const getDepositPaymentJwtSecret = () => (
+    process.env.DEPOSIT_PAYMENT_JWT_SECRET
+    ?? `${getJwtSecret()}:reservation-deposit-payment`
+);
+
+const getBackendBaseUrl = () => (
+    process.env.BACKEND_URL
+    ?? `http://localhost:${process.env.PORT ?? 3000}`
+).replace(/\/$/, "");
+
+const invalidDepositPaymentToken = () => new AppError(
+    400,
+    "INVALID_DEPOSIT_PAYMENT_TOKEN",
+    "Link thanh toán tiền cọc không hợp lệ hoặc đã hết hạn"
+);
+
+export const buildDepositPaymentUrl = (invoiceId: number) => {
+    const token = jwt.sign(
+        { purpose: DEPOSIT_PAYMENT_PURPOSE },
+        getDepositPaymentJwtSecret(),
+        {
+            algorithm: "HS256",
+            expiresIn: "15d",
+            subject: String(invoiceId)
+        }
+    );
+
+    return `${getBackendBaseUrl()}/payments/deposit/${encodeURIComponent(token)}`;
+};
+
+const verifyDepositPaymentToken = (token: string) => {
+    let payload: { sub?: unknown; purpose?: unknown };
+
+    try {
+        const verified = jwt.verify(
+            token,
+            getDepositPaymentJwtSecret(),
+            { algorithms: ["HS256"] }
+        );
+
+        if (typeof verified === "string") {
+            throw invalidDepositPaymentToken();
+        }
+
+        payload = verified;
+    } catch (error) {
+        if (error instanceof AppError) {
+            throw error;
+        }
+
+        throw invalidDepositPaymentToken();
+    }
+
+    if (payload.purpose !== DEPOSIT_PAYMENT_PURPOSE) {
+        throw invalidDepositPaymentToken();
+    }
+
+    const invoiceId = Number(payload.sub);
+    if (!Number.isInteger(invoiceId) || invoiceId <= 0) {
+        throw invalidDepositPaymentToken();
+    }
+
+    return invoiceId;
+};
 const getInvoiceScopeWhere = (
     actor: Actor
 ): Prisma.InvoiceWhereInput => {
@@ -311,12 +441,22 @@ const getScopedInvoiceWhere = (
     }
 
     if (actor.role === Role.MANAGER) {
+        const apartmentScope = getManagerApartmentScope(actor);
         return {
             id,
-            contract: {
-                apartment: getManagerApartmentScope(actor)
-            }
-        } satisfies Prisma.InvoiceWhereUniqueInput;
+            OR: [
+                {
+                    contract: {
+                        apartment: apartmentScope
+                    }
+                },
+                {
+                    reservation: {
+                        apartment: apartmentScope
+                    }
+                }
+            ]
+        } satisfies Prisma.InvoiceWhereInput;
     }
 
     return {
@@ -412,7 +552,7 @@ const createPaidNotification = async (
     transaction: Prisma.TransactionClient,
     invoice: InvoiceForPayment
 ) => {
-    const userId = invoice.contract.tenant.user_id;
+    const userId = invoice.tenant.user_id;
 
     if (userId === null) {
         return;
@@ -428,6 +568,67 @@ const createPaidNotification = async (
             type: "INVOICE_PAID"
         }
     });
+};
+
+const formatReservedApartmentLabel = (
+    apartment: {
+        room_number: string;
+        floor: number;
+    }
+) => `P.${apartment.room_number} - Tầng ${apartment.floor}`;
+
+const sendDepositPaidEmailAfterDepositPayment = async (
+    invoice: InvoiceForPayment
+) => {
+    if (
+        invoice.type !== InvoiceType.DEPOSIT
+        || invoice.tenant.email === null
+        || invoice.reservation === null
+    ) {
+        return;
+    }
+
+    const { reservation } = invoice;
+
+    try {
+        await sendReservationDepositPaidEmail({
+            to: invoice.tenant.email,
+            tenantName: invoice.tenant.full_name,
+            invoiceCode: invoice.invoice_code,
+            depositAmount: toNumber(invoice.total_amount),
+            apartmentLabel: formatReservedApartmentLabel(
+                reservation.apartment
+            ),
+            buildingAddress:
+                reservation.apartment.building.address_new,
+            moveInDeadline: reservation.expires_at
+        });
+    } catch {
+        // Email lỗi không được làm rollback thanh toán đã ghi nhận.
+    }
+};
+const applyPaidInvoiceSideEffects = async (
+    transaction: Prisma.TransactionClient,
+    invoice: InvoiceForPayment
+) => {
+    await createPaidNotification(transaction, invoice);
+
+    if (
+        invoice.type !== InvoiceType.DEPOSIT
+        || invoice.reservation === null
+        || invoice.reservation.status !== ReservationStatus.ACTIVE
+    ) {
+        return;
+    }
+
+    await transaction.apartment.updateMany({
+        where: {
+            id: invoice.reservation.apartment_id,
+            status: ApartmentStatus.AVAILABLE
+        },
+        data: { status: ApartmentStatus.RESERVED }
+    });
+    await sendDepositPaidEmailAfterDepositPayment(invoice);
 };
 
 const syncInvoicePaymentStatusByInvoiceId = async (
@@ -499,7 +700,7 @@ const syncInvoicePaymentStatusByInvoiceId = async (
     }
 
     if (desiredStatus === InvoiceStatus.PAID) {
-        await createPaidNotification(transaction, updated);
+        await applyPaidInvoiceSideEffects(transaction, updated);
     }
 
     return updated;
@@ -940,6 +1141,70 @@ export const createVnpayPaymentUrlService = async (
     };
 };
 
+export const createVnpayPaymentUrlFromDepositTokenService = async (
+    token: string,
+    ipAddress: string
+) => {
+    const invoiceId = verifyDepositPaymentToken(token);
+    const invoice = await prisma.invoice.findUnique({
+        where: { id: invoiceId },
+        select: {
+            id: true,
+            tenant_id: true,
+            type: true,
+            status: true,
+            tenant: {
+                select: {
+                    user_id: true
+                }
+            },
+            reservation: {
+                select: {
+                    status: true,
+                    expires_at: true
+                }
+            }
+        }
+    });
+
+    if (
+        !invoice
+        || invoice.type !== InvoiceType.DEPOSIT
+        || invoice.reservation === null
+    ) {
+        throw invalidDepositPaymentToken();
+    }
+
+    if (invoice.status === InvoiceStatus.PAID) {
+        throw new AppError(
+            409,
+            "INVOICE_ALREADY_PAID",
+            "Hóa đơn đã được thanh toán"
+        );
+    }
+
+    if (
+        invoice.reservation.status !== ReservationStatus.ACTIVE
+        || invoice.reservation.expires_at < new Date()
+    ) {
+        throw new AppError(
+            409,
+            "RESERVATION_EXPIRED",
+            "Đặt cọc đã hết hạn hoặc không còn hiệu lực"
+        );
+    }
+
+    return createVnpayPaymentUrlService(
+        { invoice_id: invoice.id },
+        {
+            userId: invoice.tenant.user_id ?? 0,
+            role: Role.TENANT,
+            status: UserStatus.INACTIVE,
+            tenantId: invoice.tenant_id
+        },
+        ipAddress
+    );
+};
 export const updatePaymentStatusService = async (
     id: number,
     status: PaymentStatus,

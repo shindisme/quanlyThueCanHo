@@ -11,6 +11,7 @@ import invoiceRouter from "./routes/invoice.routes.js";
 import maintenanceRouter from "./routes/maintenance.routes.js";
 import notificationRouter from "./routes/notification.routes.js";
 import paymentRouter from "./routes/payment.routes.js";
+import reservationRouter from "./routes/reservation.routes.js";
 import reviewRouter from "./routes/review.routes.js";
 import scheduleRouter from "./routes/schedule.route.js";
 import staffRouter from "./routes/staff.routes.js";
@@ -42,6 +43,7 @@ export const ROUTE_MOUNTS = [
     ["/invoices", invoiceRouter],
     ["/maintenance", maintenanceRouter],
     ["/payments", paymentRouter],
+    ["/reservations", reservationRouter],
     ["/notifications", notificationRouter],
     ["/uploads", uploadRouter]
 ] as const;

@@ -495,31 +495,47 @@ export const activateTenantAccountService = async (token: string) => {
         throw invalidActivationToken();
     }
 
-    const updated = await prisma.user.updateMany({
-        where: {
-            id: userId,
-            role: Role.TENANT,
-            status: UserStatus.INACTIVE
-        },
-        data: { status: UserStatus.ACTIVE }
-    });
+    const activated = await prisma.$transaction(async (tx) => {
+        const updated = await tx.user.updateMany({
+            where: {
+                id: userId,
+                role: Role.TENANT,
+                status: UserStatus.INACTIVE
+            },
+            data: { status: UserStatus.ACTIVE }
+        });
 
-    if (updated.count > 0) {
-        return { activated: true };
-    }
-
-    const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-            role: true,
-            status: true
+        if (updated.count > 0) {
+            await tx.tenant.updateMany({
+                where: { user_id: userId },
+                data: { is_verified: true }
+            });
+            return true;
         }
+
+        const user = await tx.user.findUnique({
+            where: { id: userId },
+            select: {
+                role: true,
+                status: true
+            }
+        });
+
+        if (
+            user?.role === Role.TENANT
+            && user.status === UserStatus.ACTIVE
+        ) {
+            await tx.tenant.updateMany({
+                where: { user_id: userId },
+                data: { is_verified: true }
+            });
+            return true;
+        }
+
+        return false;
     });
 
-    if (
-        user?.role === Role.TENANT
-        && user.status === UserStatus.ACTIVE
-    ) {
+    if (activated) {
         return { activated: true };
     }
 

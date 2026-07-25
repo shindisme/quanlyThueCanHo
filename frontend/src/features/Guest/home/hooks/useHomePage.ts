@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as buildingService from "../../../../services/buildingService";
 import * as apartmentService from "../../../../services/apartmentService";
+import { selectAvailableApartmentsByBuilding } from "./homeApartmentSelection";
 
 export function useHomePage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -28,18 +29,6 @@ export function useHomePage() {
     return "YuKi House cung cấp các căn hộ cho thuê chất lượng cao tại TP. Hồ Chí Minh với đầy đủ tiện nghi, an ninh 24/7 và dịch vụ chuyên nghiệp.";
   });
 
-  const [featuredIds] = useState<number[]>(() => {
-    const storedIds = localStorage.getItem("featured-apartment-ids");
-    if (storedIds) {
-      try {
-        return JSON.parse(storedIds) || [];
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  });
-
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: ["buildings"],
     queryFn: () => buildingService.getAllBuildingsPage(),
@@ -47,24 +36,14 @@ export function useHomePage() {
   });
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
-    queryKey: ["apartments-landing"],
-    queryFn: () => apartmentService.getAllApartmentsPage(),
+    queryKey: ["apartments-landing", "AVAILABLE"],
+    queryFn: () => apartmentService.getAllApartmentsPage({ status: "AVAILABLE" }),
     select: (res) => res.data,
   });
 
   const loading = loadingBuildings || loadingApartments;
 
-  const featuredApartments = (() => {
-    const validStatuses = ["available", "vacant", "AVAILABLE", "rented", "RENTED", "maintenance", "MAINTENANCE"];
-    const apts = apartments as any[];
-    if (featuredIds.length > 0) {
-      const filtered = apts.filter(
-        (a) => featuredIds.includes(a.id) && validStatuses.includes(a.status)
-      );
-      if (filtered.length > 0) return filtered.slice(0, 6);
-    }
-    return apts.filter((a) => validStatuses.includes(a.status)).slice(0, 6);
-  })();
+  const availableApartments = selectAvailableApartmentsByBuilding(apartments);
 
   return {
     searchQuery,
@@ -73,6 +52,6 @@ export function useHomePage() {
     heroSubtitle,
     buildings,
     loading,
-    featuredApartments,
+    availableApartments,
   };
 }

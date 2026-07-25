@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useAuthStore } from "../../../../stores/auth.store";
 import * as maintenanceService from "../../../../services/maintenanceService";
 import * as contractService from "../../../../services/contractService";
+import * as uploadService from "../../../../services/uploadService";
 import { createMaintenanceSchema } from "../../../../schemas/maintenance.schema";
 import { useOnOff } from "../../../../hooks/useOnOff";
 
@@ -17,6 +18,8 @@ export function useTenantMaintenance() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<"LOW" | "MEDIUM" | "HIGH">("MEDIUM");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState("");
 
   // Fetch contracts
   const { data: contractsData, isLoading: loadingContracts } = useQuery({
@@ -47,17 +50,30 @@ export function useTenantMaintenance() {
   const myRequests = requests;
 
   const createMutation = useMutation({
-    mutationFn: (data: {
+    mutationFn: async (data: {
       apartment_id: number;
       title: string;
       description: string;
       priority: string;
-    }) => maintenanceService.createMaintenanceRequest(data),
+      imageFile?: File | null;
+    }) => {
+      const { imageFile: selectedImage, ...payload } = data;
+      const imageUrls = selectedImage
+        ? await uploadService.uploadImages([selectedImage])
+        : [];
+
+      return maintenanceService.createMaintenanceRequest({
+        ...payload,
+        ...(imageUrls[0] ? { image_url: imageUrls[0] } : {}),
+      });
+    },
     onSuccess: () => {
       toast.success("Gửi yêu cầu sửa chữa thành công!");
       setTitle("");
       setDescription("");
       setPriority("MEDIUM");
+      setImageFile(null);
+      setImagePreviewUrl("");
       createModal.onClose();
       queryClient.invalidateQueries({ queryKey: ["maintenanceRequests"] });
     },
@@ -66,7 +82,6 @@ export function useTenantMaintenance() {
       toast.error(err.response?.data?.message || "Không thể gửi yêu cầu");
     },
   });
-
   const cancelMutation = useMutation({
     mutationFn: (id: number) => maintenanceService.cancelMaintenanceRequest(id),
     onSuccess: () => {
@@ -81,6 +96,28 @@ export function useTenantMaintenance() {
 
   const loading = loadingContracts || loadingRequests;
 
+  const handleImageChange = (file: File | null) => {
+    if (!file) {
+      setImageFile(null);
+      setImagePreviewUrl("");
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Vui lòng chọn đúng định dạng hình ảnh");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Ảnh không được vượt quá 5MB");
+      return;
+    }
+
+    setImageFile(file);
+    setImagePreviewUrl(URL.createObjectURL(file));
+  };
+
+  const clearImage = () => handleImageChange(null);
   const handleCreateMaintenanceRequest = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentTenant || !activeContract) {
@@ -93,6 +130,7 @@ export function useTenantMaintenance() {
       title: title.trim(),
       description: description.trim(),
       priority,
+      imageFile,
     };
 
     const validation = createMaintenanceSchema.safeParse(payload);
@@ -120,6 +158,10 @@ export function useTenantMaintenance() {
     setDescription,
     priority,
     setPriority,
+    imageFile,
+    imagePreviewUrl,
+    handleImageChange,
+    clearImage,
     loading,
     handleCreateMaintenanceRequest,
     handleCancelRequest,

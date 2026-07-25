@@ -210,3 +210,126 @@ export const sendTenantActivationEmail = async (
         `
     });
 };
+type ReservationDepositPaymentEmailData = {
+    to: string;
+    tenantName: string;
+    invoiceCode: string;
+    depositAmount: number;
+    apartmentLabel: string;
+    buildingAddress: string;
+    paymentUrl: string;
+    moveInDeadline: Date;
+};
+
+type ReservationDepositPaidEmailData = Omit<
+    ReservationDepositPaymentEmailData,
+    "paymentUrl"
+>;
+
+const formatDate = (date: Date) =>
+    new Intl.DateTimeFormat("vi-VN", {
+        dateStyle: "full",
+        timeZone: "Asia/Ho_Chi_Minh"
+    }).format(date);
+
+const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("vi-VN", {
+        style: "currency",
+        currency: "VND",
+        maximumFractionDigits: 0
+    }).format(amount);
+
+export const sendReservationDepositPaymentEmail = async (
+    data: ReservationDepositPaymentEmailData
+) => {
+    const tenantName = escapeHtml(data.tenantName);
+    const invoiceCode = escapeHtml(data.invoiceCode);
+    const depositAmount = formatCurrency(data.depositAmount);
+    const apartmentLabel = escapeHtml(data.apartmentLabel);
+    const buildingAddress = escapeHtml(data.buildingAddress);
+    const paymentUrl = escapeHtml(data.paymentUrl);
+    const moveInDeadline = formatDate(data.moveInDeadline);
+
+    await getTransporter().sendMail({
+        from: getRequiredEnv("SMTP_FROM"),
+        to: data.to,
+        subject: `Thông tin thanh toán tiền cọc phòng ${data.invoiceCode}`,
+        text: [
+            `Xin chào ${data.tenantName},`,
+            "",
+            "Hệ thống đã tạo hóa đơn đặt cọc phòng cho bạn.",
+            `Mã hóa đơn: ${data.invoiceCode}`,
+            `Căn hộ: ${data.apartmentLabel}`,
+            `Địa chỉ: ${data.buildingAddress}`,
+            `Số tiền cọc: ${depositAmount}`,
+            `Hạn nhận phòng/ký hợp đồng: ${moveInDeadline}`,
+            `Link thanh toán: ${data.paymentUrl}`,
+            "",
+            "Vui lòng thanh toán tiền cọc để giữ phòng."
+        ].join("\n"),
+        html: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+                <h2 style="margin: 0 0 16px;">Thông tin thanh toán tiền cọc</h2>
+                <p>Xin chào <strong>${tenantName}</strong>,</p>
+                <p>Hệ thống đã tạo hóa đơn đặt cọc phòng cho bạn.</p>
+                <p><strong>Mã hóa đơn:</strong> ${invoiceCode}</p>
+                <p><strong>Căn hộ:</strong> ${apartmentLabel}</p>
+                <p><strong>Địa chỉ:</strong> ${buildingAddress}</p>
+                <p><strong>Số tiền cọc:</strong> ${escapeHtml(depositAmount)}</p>
+                <p><strong>Hạn nhận phòng/ký hợp đồng:</strong> ${escapeHtml(moveInDeadline)}</p>
+                <p>
+                    <a href="${paymentUrl}" style="display:inline-block;padding:10px 16px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;">
+                        Thanh toán tiền cọc
+                    </a>
+                </p>
+                <p>Vui lòng thanh toán tiền cọc để giữ phòng.</p>
+            </div>
+        `
+    });
+};
+
+export const sendReservationDepositPaidEmail = async (
+    data: ReservationDepositPaidEmailData
+) => {
+    const tenantName = escapeHtml(data.tenantName);
+    const invoiceCode = escapeHtml(data.invoiceCode);
+    const depositAmount = formatCurrency(data.depositAmount);
+    const apartmentLabel = escapeHtml(data.apartmentLabel);
+    const buildingAddress = escapeHtml(data.buildingAddress);
+    const moveInDeadline = formatDate(data.moveInDeadline);
+
+    await getTransporter().sendMail({
+        from: getRequiredEnv("SMTP_FROM"),
+        to: data.to,
+        subject: `Đã thanh toán tiền cọc phòng ${data.invoiceCode}`,
+        text: [
+            `Xin chào ${data.tenantName},`,
+            "",
+            "Hệ thống đã ghi nhận bạn thanh toán tiền cọc thành công.",
+            `Mã hóa đơn: ${data.invoiceCode}`,
+            `Căn hộ: ${data.apartmentLabel}`,
+            `Địa chỉ: ${data.buildingAddress}`,
+            `Số tiền cọc: ${depositAmount}`,
+            `Ngày nhận phòng/ký hợp đồng chậm nhất: ${moveInDeadline}`,
+            "",
+            "Quy định giữ phòng:",
+            `Bạn cần đến nhận phòng và ký hợp đồng chậm nhất vào ${moveInDeadline}.`,
+            "Nếu sau ngày này bạn không đến nhận phòng và ký hợp đồng, hệ thống xem như bạn bỏ cọc và không thuê căn hộ. Tiền cọc đã thanh toán sẽ không được hoàn lại."
+        ].join("\n"),
+        html: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+                <h2 style="margin: 0 0 16px;">Đã thanh toán tiền cọc</h2>
+                <p>Xin chào <strong>${tenantName}</strong>,</p>
+                <p>Hệ thống đã ghi nhận bạn thanh toán tiền cọc thành công.</p>
+                <p><strong>Mã hóa đơn:</strong> ${invoiceCode}</p>
+                <p><strong>Căn hộ:</strong> ${apartmentLabel}</p>
+                <p><strong>Địa chỉ:</strong> ${buildingAddress}</p>
+                <p><strong>Số tiền cọc:</strong> ${escapeHtml(depositAmount)}</p>
+                <p><strong>Ngày nhận phòng/ký hợp đồng chậm nhất:</strong> ${escapeHtml(moveInDeadline)}</p>
+                <h3 style="margin: 18px 0 8px;">Quy định giữ phòng</h3>
+                <p>Bạn cần đến nhận phòng và ký hợp đồng chậm nhất vào <strong>${escapeHtml(moveInDeadline)}</strong>.</p>
+                <p>Nếu sau ngày này bạn không đến nhận phòng và ký hợp đồng, hệ thống xem như bạn bỏ cọc và không thuê căn hộ. Tiền cọc đã thanh toán sẽ không được hoàn lại.</p>
+            </div>
+        `
+    });
+};

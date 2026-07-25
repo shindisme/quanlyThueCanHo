@@ -1,15 +1,21 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Home, Trash2, Plus, Star } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Home, Trash2, Plus, Star, Receipt } from "lucide-react";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import Card from "../../../../components/ui/Card";
 import Badge from "../../../../components/ui/Badge";
 import Button from "../../../../components/ui/Button";
+import Modal from "../../../../components/ui/Modal";
+import Input from "../../../../components/ui/Input";
 import ApartmentModifyModal from "../components/ApartmentModifyModal";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay, maskCCCD } from "../../../../utils/string";
 import { useApartmentDetailPage } from "../hooks/useApartmentDetailPage";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS, type ApartmentStatus } from "../../../../constants/enums";
+import * as reservationService from "../../../../services/reservationService";
 
 export default function ApartmentDetailPage() {
   const { role } = useUserRole();
@@ -29,12 +35,73 @@ export default function ApartmentDetailPage() {
     activeContract,
     activeTenant,
     activeTenantUser,
+    activeReservation,
     tenantContracts,
     fetchData,
     handleImageUpload,
     handleSetThumbnail,
     handleDeleteImage,
   } = useApartmentDetailPage();
+  const [showReservationModal, setShowReservationModal] = useState(false);
+  const [reservationForm, setReservationForm] = useState({
+    full_name: "",
+    phone: "",
+    email: "",
+    citizen_id: "",
+    date_of_birth: "",
+    address: "",
+    deposit_amount: 0,
+  });
+
+  const reservationMutation = useMutation({
+    mutationFn: () => reservationService.createReservationDeposit({
+      apartment_id: apartment!.id,
+      deposit_amount: Number(reservationForm.deposit_amount),
+      tenant: {
+        full_name: reservationForm.full_name.trim(),
+        phone: reservationForm.phone.trim() || null,
+        email: reservationForm.email.trim() || null,
+        citizen_id: reservationForm.citizen_id.trim(),
+        date_of_birth: reservationForm.date_of_birth || null,
+        address: reservationForm.address.trim() || null,
+      },
+    }),
+    onSuccess: () => {
+      toast.success("Đã lập hóa đơn cọc phòng");
+      setShowReservationModal(false);
+      fetchData();
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string; error?: string } } };
+      toast.error(err.response?.data?.message || err.response?.data?.error || "Không thể lập hóa đơn cọc");
+    },
+  });
+
+  const openReservationModal = () => {
+    setReservationForm({
+      full_name: "",
+      phone: "",
+      email: "",
+      citizen_id: "",
+      date_of_birth: "",
+      address: "",
+      deposit_amount: apartment?.rental_price || 0,
+    });
+    setShowReservationModal(true);
+  };
+
+  const handleReservationSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!reservationForm.full_name.trim() || !reservationForm.citizen_id.trim()) {
+      toast.error("Vui lòng nhập họ tên và CCCD người thuê");
+      return;
+    }
+    if (!Number.isFinite(Number(reservationForm.deposit_amount)) || Number(reservationForm.deposit_amount) <= 0) {
+      toast.error("Số tiền cọc phải lớn hơn 0");
+      return;
+    }
+    reservationMutation.mutate();
+  };
 
   if (loading) {
     return (
@@ -308,19 +375,27 @@ export default function ApartmentDetailPage() {
                 ) : (
                   <div className="text-center py-6">
                     <p className="text-sm text-gray-400 mb-4 font-sans">Căn hộ hiện đang trống</p>
-                    {role !== "TENANT" && apartment.status === "AVAILABLE" && (
-                      <Link
-                        to={role === "ADMIN" ? "/admin/contracts" : "/manager/contracts"}
-                        state={{
-                          openCreateModal: true,
-                          apartmentId: apartment.id,
-                          buildingId: apartment.building_id,
-                          floor: apartment.floor
-                        }}
-                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
-                      >
-                        <Plus size={14} /> Tạo hợp đồng thuê mới
-                      </Link>
+                    {role !== "TENANT" && (apartment.status === "AVAILABLE" || apartment.status === "RESERVED") && (
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {apartment.status === "AVAILABLE" && (
+                          <Button type="button" size="sm" variant="outline" onClick={openReservationModal}>
+                            <Receipt size={14} /> Lập hóa đơn cọc
+                          </Button>
+                        )}
+                        <Link
+                          to={role === "ADMIN" ? "/admin/contracts" : "/manager/contracts"}
+                          state={{
+                            openCreateModal: true,
+                            apartmentId: apartment.id,
+                            buildingId: apartment.building_id,
+                            floor: apartment.floor,
+                            tenantId: apartment.status === "RESERVED" ? activeReservation?.tenant_id : undefined
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
+                        >
+                          <Plus size={14} /> {apartment.status === "RESERVED" ? "Tạo hợp đồng từ đặt cọc" : "Tạo hợp đồng thuê mới"}
+                        </Link>
+                      </div>
                     )}
                   </div>
                 )}
@@ -477,6 +552,74 @@ export default function ApartmentDetailPage() {
         </div>
       </Card>
 
+      <Modal
+        isOpen={showReservationModal}
+        onClose={() => setShowReservationModal(false)}
+        title="Lập hóa đơn cọc phòng"
+      >
+        <form onSubmit={handleReservationSubmit} className="space-y-4 text-left">
+          <Input
+            label="Họ tên người thuê"
+            value={reservationForm.full_name}
+            onChange={(e) => setReservationForm((prev) => ({ ...prev, full_name: e.target.value }))}
+            required
+            disabled={reservationMutation.isPending}
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="Số điện thoại"
+              value={reservationForm.phone}
+              onChange={(e) => setReservationForm((prev) => ({ ...prev, phone: e.target.value }))}
+              disabled={reservationMutation.isPending}
+            />
+            <Input
+              label="Email"
+              type="email"
+              value={reservationForm.email}
+              onChange={(e) => setReservationForm((prev) => ({ ...prev, email: e.target.value }))}
+              disabled={reservationMutation.isPending}
+            />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="CCCD"
+              value={reservationForm.citizen_id}
+              onChange={(e) => setReservationForm((prev) => ({ ...prev, citizen_id: e.target.value }))}
+              required
+              disabled={reservationMutation.isPending}
+            />
+            <Input
+              label="Ngày sinh"
+              type="date"
+              value={reservationForm.date_of_birth}
+              onChange={(e) => setReservationForm((prev) => ({ ...prev, date_of_birth: e.target.value }))}
+              disabled={reservationMutation.isPending}
+            />
+          </div>
+          <Input
+            label="Địa chỉ"
+            value={reservationForm.address}
+            onChange={(e) => setReservationForm((prev) => ({ ...prev, address: e.target.value }))}
+            disabled={reservationMutation.isPending}
+          />
+          <Input
+            label="Số tiền cọc"
+            type="number"
+            value={reservationForm.deposit_amount}
+            onChange={(e) => setReservationForm((prev) => ({ ...prev, deposit_amount: Number(e.target.value) }))}
+            required
+            disabled={reservationMutation.isPending}
+          />
+          <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+            <Button type="button" variant="outline" onClick={() => setShowReservationModal(false)} disabled={reservationMutation.isPending}>
+              Hủy bỏ
+            </Button>
+            <Button type="submit" disabled={reservationMutation.isPending}>
+              Lập hóa đơn cọc
+            </Button>
+          </div>
+        </form>
+      </Modal>
       <ApartmentModifyModal
         isOpen={showModifyModal}
         onClose={() => setShowModifyModal(false)}

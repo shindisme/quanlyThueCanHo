@@ -24,6 +24,11 @@ router.get(
     paymentController.vnpayIpn
 );
 
+router.get(
+    "/deposit/:token",
+    paymentController.redirectDepositPayment
+);
+
 router.use(authenticate);
 
 const paymentRoles = [

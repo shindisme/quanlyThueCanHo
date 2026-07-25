@@ -1,4 +1,4 @@
-import { Wrench, Plus, X } from "lucide-react";
+import { Camera, Wrench, Plus, X } from "lucide-react";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import SearchInput from "../../../../components/ui/SearchInput";
 import PageHeader from "../../../../components/PageHeader";
@@ -26,6 +26,10 @@ export default function MyMaintenance() {
     setDescription,
     priority,
     setPriority,
+    imageFile,
+    imagePreviewUrl,
+    handleImageChange,
+    clearImage,
     loading,
     handleCreateMaintenanceRequest,
     handleCancelRequest,
@@ -196,6 +200,49 @@ export default function MyMaintenance() {
             />
           </div>
 
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-gray-600">Ảnh chỗ hư hại</label>
+            <div className="flex flex-col gap-3 rounded-xl border border-dashed border-gray-300 p-3">
+              {imagePreviewUrl ? (
+                <img
+                  src={imagePreviewUrl}
+                  alt="Ảnh chỗ hư hại"
+                  className="h-40 w-full rounded-lg object-cover"
+                />
+              ) : (
+                <div className="flex h-28 items-center justify-center rounded-lg bg-gray-50 text-gray-400">
+                  <Camera size={28} />
+                </div>
+              )}
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                  <Camera size={16} />
+                  Chụp hoặc tải ảnh
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    disabled={saving}
+                    onChange={(e) => {
+                      handleImageChange(e.target.files?.[0] ?? null);
+                      e.currentTarget.value = "";
+                    }}
+                  />
+                </label>
+                {imageFile && (
+                  <button
+                    type="button"
+                    onClick={clearImage}
+                    disabled={saving}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    <X size={16} /> Xóa ảnh
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
           <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
             <Button variant="outline" type="button" onClick={createModal.onClose} disabled={saving}>
               Hủy bỏ

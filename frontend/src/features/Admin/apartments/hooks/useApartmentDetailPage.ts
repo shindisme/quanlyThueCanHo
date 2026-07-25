@@ -6,6 +6,7 @@ import * as buildingService from "../../../../services/buildingService";
 import * as contractService from "../../../../services/contractService";
 import * as tenantService from "../../../../services/tenantService";
 import * as authService from "../../../../services/authService";
+import * as reservationService from "../../../../services/reservationService";
 import { getApartmentReviews } from "../../../../services/reviewService";
 import type { Apartment } from "../../../../types";
 import type { Building } from "../../../../types";
@@ -52,6 +53,18 @@ export function useApartmentDetailPage() {
     select: (res) => res.data,
   });
 
+  const { data: activeReservation = null, isLoading: loadingReservation } = useQuery({
+    queryKey: ["reservations", "apartment", id, "ACTIVE"],
+    queryFn: () =>
+      reservationService.getReservations({
+        apartment_id: Number(id),
+        status: "ACTIVE",
+        page: 1,
+        limit: 1,
+      }).catch(() => ({ data: [] })),
+    select: (res) => res.data[0] || null,
+    enabled: !!id && apartment?.status === "RESERVED",
+  });
   const { data: tenantsRes, isLoading: loadingTenants } = useQuery({
     queryKey: QUERY_KEYS.TENANTS,
     queryFn: () => tenantService.getAllTenantsPage().catch(() => ({ data: [] })),
@@ -123,6 +136,7 @@ export function useApartmentDetailPage() {
   const loading =
     loadingApartment ||
     loadingContracts ||
+    loadingReservation ||
     loadingTenants ||
     loadingUsers ||
     loadingReviews ||
@@ -184,6 +198,7 @@ export function useApartmentDetailPage() {
     activeContract,
     activeTenant,
     activeTenantUser,
+    activeReservation,
     tenantContracts,
     fetchData,
     handleImageUpload,

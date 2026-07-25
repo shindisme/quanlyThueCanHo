@@ -119,6 +119,19 @@ export const createVnpayPayment = async (
 
     return sendSuccess(response, result, 201);
 };
+export const redirectDepositPayment = async (
+    request: Request,
+    response: Response
+) => {
+    const token = String(request.params.token ?? "");
+    const result =
+        await paymentService.createVnpayPaymentUrlFromDepositTokenService(
+            token,
+            getClientIp(request)
+        );
+
+    return response.redirect(result.payment_url);
+};
 export const vnpayReturn = async (
     request: Request,
     response: Response

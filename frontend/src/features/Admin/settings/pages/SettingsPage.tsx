@@ -1,24 +1,64 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Settings, Save, Zap, Droplet, Wifi, Landmark } from "lucide-react";
 import PageHeader from "../../../../components/PageHeader";
 import Button from "../../../../components/ui/Button";
 import { toast } from "sonner";
 
 interface FeeSettings {
-  electricityRate: number;
-  waterRate: number;
+  electricityRates: number[];
+  waterRates: number[];
   internetRate: number;
-  managementFee: number;
   managementFeePerM2: number;
 }
 
+type SavedFeeSettings = Partial<FeeSettings> & {
+  electricityRate?: number;
+  electricTierPrices?: number[];
+  waterRate?: number;
+  waterTierPrices?: number[];
+};
+
+const ELECTRIC_LABELS = [
+  "Bậc 1 (0-50 kWh)",
+  "Bậc 2 (51-100 kWh)",
+  "Bậc 3 (101-200 kWh)",
+  "Bậc 4 (201-300 kWh)",
+  "Bậc 5 (301-400 kWh)",
+  "Bậc 6 (Trên 400 kWh)",
+];
+const WATER_LABELS = [
+  "Bậc 1 (0-4 m³/người)",
+  "Bậc 2 (4-6 m³/người)",
+  "Bậc 3 (trên 6 m³/người)",
+];
+
 const DEFAULT_FEES: FeeSettings = {
-  electricityRate: 3500,
-  waterRate: 25000,
+  electricityRates: [1984, 2050, 2380, 2998, 3350, 3460],
+  waterRates: [6700, 12900, 14400],
   internetRate: 300000,
-  managementFee: 0,
   managementFeePerM2: 10000,
 };
+
+const parseMoneyInput = (value: string) => Number(value.replace(/[^0-9]/g, ""));
+
+const normalizeRates = (value: unknown, fallback: number[]) => {
+  if (!Array.isArray(value) || value.length !== fallback.length) return fallback;
+  const rates = value.map(Number);
+  return rates.every(Number.isFinite) ? rates : fallback;
+};
+
+const normalizeFees = (saved: SavedFeeSettings): FeeSettings => ({
+  electricityRates: normalizeRates(
+    saved.electricityRates ?? saved.electricTierPrices,
+    DEFAULT_FEES.electricityRates
+  ),
+  waterRates: normalizeRates(
+    saved.waterRates ?? saved.waterTierPrices,
+    DEFAULT_FEES.waterRates
+  ),
+  internetRate: saved.internetRate ?? DEFAULT_FEES.internetRate,
+  managementFeePerM2: saved.managementFeePerM2 ?? DEFAULT_FEES.managementFeePerM2,
+});
 
 export default function SettingsPage() {
   const [fees, setFees] = useState<FeeSettings>(DEFAULT_FEES);
@@ -26,20 +66,28 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const saved = localStorage.getItem("system_fee_settings");
-    if (saved) {
-      try {
-        setFees({ ...DEFAULT_FEES, ...JSON.parse(saved) });
-      } catch {
-        setFees(DEFAULT_FEES);
-      }
+    if (!saved) return;
+
+    try {
+      setFees(normalizeFees(JSON.parse(saved)));
+    } catch {
+      setFees(DEFAULT_FEES);
     }
   }, []);
 
-  const handleChange = (key: keyof FeeSettings, value: string) => {
-    const num = Number(value.replace(/[^0-9]/g, ""));
+  const handleChange = (key: "internetRate" | "managementFeePerM2", value: string) => {
+    const num = parseMoneyInput(value);
     setFees((prev) => ({
       ...prev,
       [key]: num,
+    }));
+  };
+
+  const handleTierChange = (key: "electricityRates" | "waterRates", index: number, value: string) => {
+    const num = parseMoneyInput(value);
+    setFees((prev) => ({
+      ...prev,
+      [key]: prev[key].map((rate, rateIndex) => (rateIndex === index ? num : rate)),
     }));
   };
 
@@ -66,9 +114,8 @@ export default function SettingsPage() {
         iconColor="linear-gradient(135deg, #4B5563, #9CA3AF)"
       />
 
-      <div className="grid grid-cols-1  gap-6">
-        {/* Left Form Column */}
-        <form onSubmit={handleSave} className=" space-y-6">
+      <div className="grid grid-cols-1 gap-6">
+        <form onSubmit={handleSave} className="space-y-6">
           <div className="bg-white rounded-2xl border border-gray-150 p-6 shadow-sm space-y-6">
             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
               <div>
@@ -78,43 +125,52 @@ export default function SettingsPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Electricity */}
-              <div className="p-4 border border-gray-100 rounded-xl bg-gray-50/30 space-y-3">
+              <div className="p-4 border border-gray-100 rounded-xl bg-gray-50/30 space-y-3 sm:col-span-2">
                 <div className="flex items-center gap-2 text-primary-600">
                   <Zap size={20} className="fill-primary-50 text-primary-600" />
-                  <span className="font-bold text-sm text-gray-800">Đơn giá điện</span>
+                  <span className="font-bold text-sm text-gray-800">Biểu giá điện 6 bậc</span>
                 </div>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={formatCurrencyInput(fees.electricityRate)}
-                    onChange={(e) => handleChange("electricityRate", e.target.value)}
-                    className="w-full rounded-xl border border-gray-250 p-3 pr-12 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">đ/kWh</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {fees.electricityRates.map((rate, index) => (
+                    <label key={ELECTRIC_LABELS[index]} className="block space-y-1">
+                      <span className="text-[11px] font-semibold text-gray-500">{ELECTRIC_LABELS[index]}</span>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={formatCurrencyInput(rate)}
+                          onChange={(e) => handleTierChange("electricityRates", index, e.target.value)}
+                          className="w-full rounded-xl border border-gray-250 p-3 pr-12 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">đ/kWh</span>
+                      </div>
+                    </label>
+                  ))}
                 </div>
-                <p className="text-[11px] text-gray-400">Đơn giá thu trên mỗi số điện tiêu dùng thực tế.</p>
               </div>
 
-              {/* Water */}
-              <div className="p-4 border border-gray-100 rounded-xl bg-gray-50/30 space-y-3">
+              <div className="p-4 border border-gray-100 rounded-xl bg-gray-50/30 space-y-3 sm:col-span-2">
                 <div className="flex items-center gap-2 text-blue-600">
                   <Droplet size={20} className="fill-blue-50 text-blue-600" />
-                  <span className="font-bold text-sm text-gray-800">Đơn giá nước</span>
+                  <span className="font-bold text-sm text-gray-800">Biểu giá nước sạch sinh hoạt</span>
                 </div>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={formatCurrencyInput(fees.waterRate)}
-                    onChange={(e) => handleChange("waterRate", e.target.value)}
-                    className="w-full rounded-xl border border-gray-250 p-3 pr-12 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">đ/m³</span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {fees.waterRates.map((rate, index) => (
+                    <label key={WATER_LABELS[index]} className="block space-y-1">
+                      <span className="text-[11px] font-semibold text-gray-500">{WATER_LABELS[index]}</span>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={formatCurrencyInput(rate)}
+                          onChange={(e) => handleTierChange("waterRates", index, e.target.value)}
+                          className="w-full rounded-xl border border-gray-250 p-3 pr-12 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">đ/m³</span>
+                      </div>
+                    </label>
+                  ))}
                 </div>
-                <p className="text-[11px] text-gray-400">Đơn giá tính trên mỗi khối nước tiêu thụ.</p>
               </div>
 
-              {/* Internet */}
               <div className="p-4 border border-gray-100 rounded-xl bg-gray-50/30 space-y-3">
                 <div className="flex items-center gap-2 text-emerald-600">
                   <Wifi size={20} className="fill-emerald-50 text-emerald-600" />
@@ -132,25 +188,7 @@ export default function SettingsPage() {
                 <p className="text-[11px] text-gray-400">Chi phí gói dịch vụ mạng mặc định cố định theo phòng.</p>
               </div>
 
-              {/* Management Fee */}
-              <div className="p-4 border border-gray-100 rounded-xl bg-gray-50/30 space-y-3">
-                <div className="flex items-center gap-2 text-warning-600">
-                  <Landmark size={20} className="fill-warning-50 text-warning-600" />
-                  <span className="font-bold text-sm text-gray-800">Phí quản lý cố định</span>
-                </div>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={formatCurrencyInput(fees.managementFee)}
-                    onChange={(e) => handleChange("managementFee", e.target.value)}
-                    className="w-full rounded-xl border border-gray-250 p-3 pr-16 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">đ/tháng</span>
-                </div>
-                <p className="text-[11px] text-gray-400">Phí quản lý chung cố định hàng tháng cho mỗi căn hộ.</p>
-              </div>
 
-              {/* Management Fee Per M2 */}
               <div className="p-4 border border-gray-100 rounded-xl bg-gray-50/30 space-y-3">
                 <div className="flex items-center gap-2 text-indigo-600">
                   <Landmark size={20} className="fill-indigo-50 text-indigo-650" />
@@ -170,7 +208,6 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Action button */}
           <div className="flex justify-end">
             <Button
               type="submit"

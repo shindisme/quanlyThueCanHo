@@ -263,6 +263,7 @@ export default function ApartmentCreateModal({
                   label="Trạng thái *"
                   options={[
                     { value: "AVAILABLE", label: "Còn trống" },
+                    { value: "RESERVED", label: "Đã cọc" },
                     { value: "RENTED", label: "Đang thuê" },
                     { value: "MAINTENANCE", label: "Bảo trì" }
                   ]}
