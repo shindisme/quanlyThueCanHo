@@ -12,8 +12,7 @@ export function useCreateBuildingForm() {
     resolver: zodResolver(buildingSchema),
     defaultValues: {
       branch_name: "",
-      address_old: "",
-      address_new: "",
+      address: "",
       total_floors: 0,
       staff_id: null,
       description: "",

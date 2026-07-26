@@ -394,7 +394,7 @@ export default function Header() {
           >
             <Bell size={20} />
             {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-danger-500 text-white text-[10px] font-bold rounded-full px-1 animate-pulse-dot">
+              <span className="absolute top-1.5 right-1.5 min-w-4.5 h-4.5 flex items-center justify-center bg-danger-500 text-white text-[10px] font-bold rounded-full px-1 animate-pulse-dot">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
@@ -404,7 +404,7 @@ export default function Header() {
           {notifOpen && (
             <div
               ref={notifRef}
-              className="absolute right-0 mt-2 w-[380px] bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-scale-in"
+              className="absolute right-0 mt-2 w-95 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-scale-in"
             >
               {/* Header */}
               <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -425,7 +425,7 @@ export default function Header() {
               </div>
 
               {/* Body */}
-              <div className="max-h-[360px] overflow-y-auto divide-y divide-gray-50">
+              <div className="max-h-90 overflow-y-auto divide-y divide-gray-50">
                 {headerNotifications.length === 0 ? (
                   <div className="py-12 text-center">
                     <Bell size={32} className="mx-auto mb-2 text-gray-200" />

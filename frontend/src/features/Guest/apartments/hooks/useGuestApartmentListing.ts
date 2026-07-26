@@ -109,16 +109,14 @@ export function useGuestApartmentListing() {
     const descNorm = removeVietnameseTones(a.description || "");
     const buildingNameNorm = removeVietnameseTones(building?.name || "");
     const branchNameNorm = removeVietnameseTones(building?.branch_name || "");
-    const addressNewNorm = removeVietnameseTones(building?.address_new || "");
-    const addressOldNorm = removeVietnameseTones(building?.address_old || "");
+    const addressNorm = removeVietnameseTones(building?.address || "");
 
     return (
       roomNorm.includes(term) ||
       descNorm.includes(term) ||
       buildingNameNorm.includes(term) ||
       branchNameNorm.includes(term) ||
-      addressNewNorm.includes(term) ||
-      addressOldNorm.includes(term)
+      addressNorm.includes(term)
     );
   });
 

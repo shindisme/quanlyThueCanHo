@@ -60,7 +60,7 @@ const invoiceNotificationInclude = {
                         select: {
                             id: true,
                             branch_name: true,
-                            address_new: true
+                            address: true
                         }
                     }
                 }
@@ -88,7 +88,7 @@ const invoiceNotificationInclude = {
                         select: {
                             id: true,
                             branch_name: true,
-                            address_new: true
+                            address: true
                         }
                     }
                 }

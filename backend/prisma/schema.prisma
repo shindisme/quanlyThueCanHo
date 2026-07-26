@@ -8,6 +8,330 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+model User {
+  id            Int            @id @default(autoincrement())
+  username      String         @unique
+  password_hash String
+  role          Role           @default(TENANT)
+  status        UserStatus     @default(ACTIVE)
+  created_at    DateTime       @default(now())
+  notifications Notification[]
+  staff         Staff?
+  tenant        Tenant?
+
+  @@map("users")
+}
+
+model Tenant {
+  id                     Int                  @id @default(autoincrement())
+  user_id                Int?                 @unique
+  full_name              String
+  phone                  String?              @unique
+  email                  String?              @unique
+  date_of_birth          DateTime?
+  citizen_id             String               @unique
+  address                String?
+  is_verified            Boolean              @default(false)
+  created_at             DateTime             @default(now())
+  onboarding_building_id Int?
+  invoices               Invoice[]
+  maintenance            MaintenanceRequest[]
+  occupants              Occupant[]
+  contracts              RentalContract[]
+  reservations           Reservation[]
+  reviews                Review[]
+  onboarding_building    Building?            @relation("TenantOnboardingBuilding", fields: [onboarding_building_id], references: [id])
+  user                   User?                @relation(fields: [user_id], references: [id])
+
+  @@index([created_at])
+  @@index([onboarding_building_id])
+  @@map("tenants")
+}
+
+model Occupant {
+  id            Int       @id @default(autoincrement())
+  tenant_id     Int
+  full_name     String
+  phone         String?
+  citizen_id    String
+  date_of_birth DateTime?
+  created_at    DateTime  @default(now())
+  tenant        Tenant    @relation(fields: [tenant_id], references: [id])
+
+  @@index([tenant_id])
+  @@map("occupants")
+}
+
+model Building {
+  id                 Int            @id @default(autoincrement())
+  branch_name        String
+  description        String?
+  status             BuildingStatus @default(ACTIVE)
+  total_floors       Int
+  total_apartments   Int            @default(0)
+  thumbnail_url      String?
+  created_at         DateTime       @default(now())
+  address            String
+  apartments         Apartment[]
+  assigned_staff     Staff[]        @relation("BuildingStaff")
+  onboarding_tenants Tenant[]       @relation("TenantOnboardingBuilding")
+
+  @@index([status])
+  @@index([created_at])
+  @@map("buildings")
+}
+
+model Staff {
+  id                   Int                  @id @default(autoincrement())
+  user_id              Int?                 @unique
+  building_id          Int?
+  full_name            String
+  phone                String?              @unique
+  position             String
+  created_at           DateTime             @default(now())
+  maintenance_requests MaintenanceRequest[] @relation("MaintenanceTechnician")
+  building             Building?            @relation("BuildingStaff", fields: [building_id], references: [id])
+  user                 User?                @relation(fields: [user_id], references: [id])
+  UtilityReading       UtilityReading[]
+
+  @@index([building_id])
+  @@map("staffs")
+}
+
+model Apartment {
+  id           Int                  @id @default(autoincrement())
+  building_id  Int
+  description  String?
+  area         Decimal              @db.Decimal(10, 2)
+  bedrooms     Int
+  bathrooms    Int
+  rental_price Decimal              @db.Decimal(12, 2)
+  status       ApartmentStatus      @default(AVAILABLE)
+  floor        Int
+  room_number  String
+  images       ApartmentImage[]
+  building     Building             @relation(fields: [building_id], references: [id])
+  maintenance  MaintenanceRequest[]
+  contracts    RentalContract[]
+  reservations Reservation[]
+  reviews      Review[]
+  utilities    UtilityReading[]
+  viewings     ViewingSchedule[]
+
+  @@unique([building_id, floor, room_number])
+  @@index([building_id])
+  @@index([status])
+  @@index([building_id, status])
+  @@index([building_id, floor])
+  @@map("apartments")
+}
+
+model ApartmentImage {
+  id           Int       @id @default(autoincrement())
+  apartment_id Int
+  image_url    String
+  is_thumbnail Boolean   @default(false)
+  apartment    Apartment @relation(fields: [apartment_id], references: [id], onDelete: Cascade)
+
+  @@index([apartment_id])
+  @@index([apartment_id, is_thumbnail])
+  @@map("apartment_images")
+}
+
+model RentalContract {
+  id             Int            @id @default(autoincrement())
+  apartment_id   Int
+  tenant_id      Int
+  start_date     DateTime
+  end_date       DateTime
+  deposit_amount Decimal        @db.Decimal(12, 2)
+  monthly_rent   Decimal        @db.Decimal(12, 2)
+  status         ContractStatus @default(ACTIVE)
+  contract_file  String?
+  signed_at      DateTime
+  created_at     DateTime       @default(now())
+  extended_at    DateTime?
+  invoices       Invoice[]
+  apartment      Apartment      @relation(fields: [apartment_id], references: [id])
+  tenant         Tenant         @relation(fields: [tenant_id], references: [id])
+  reservation    Reservation?
+
+  @@index([apartment_id, status])
+  @@index([tenant_id, status])
+  @@index([status, end_date])
+  @@map("rental_contracts")
+}
+
+model Invoice {
+  id             Int             @id @default(autoincrement())
+  contract_id    Int?
+  tenant_id      Int
+  invoice_code   String          @unique
+  due_date       DateTime
+  total_amount   Decimal         @db.Decimal(12, 2)
+  status         InvoiceStatus   @default(UNPAID)
+  created_at     DateTime        @default(now())
+  paid_at        DateTime?
+  reservation_id Int?
+  type           InvoiceType     @default(MONTHLY)
+  items          InvoiceItem[]
+  contract       RentalContract? @relation(fields: [contract_id], references: [id])
+  reservation    Reservation?    @relation(fields: [reservation_id], references: [id])
+  tenant         Tenant          @relation(fields: [tenant_id], references: [id])
+  payments       Payment[]
+
+  @@index([contract_id])
+  @@index([reservation_id])
+  @@index([type])
+  @@index([tenant_id, status])
+  @@index([status, due_date])
+  @@index([created_at])
+  @@map("invoices")
+}
+
+model Reservation {
+  id             Int               @id @default(autoincrement())
+  apartment_id   Int
+  tenant_id      Int
+  contract_id    Int?              @unique
+  deposit_amount Decimal           @db.Decimal(12, 2)
+  reserved_at    DateTime          @default(now())
+  expires_at     DateTime
+  status         ReservationStatus @default(ACTIVE)
+  created_at     DateTime          @default(now())
+  invoices       Invoice[]
+  apartment      Apartment         @relation(fields: [apartment_id], references: [id])
+  contract       RentalContract?   @relation(fields: [contract_id], references: [id])
+  tenant         Tenant            @relation(fields: [tenant_id], references: [id])
+
+  @@index([apartment_id, status])
+  @@index([tenant_id, status])
+  @@index([expires_at, status])
+  @@map("reservations")
+}
+
+model InvoiceItem {
+  id         Int     @id @default(autoincrement())
+  invoice_id Int
+  item_name  String
+  quantity   Decimal @db.Decimal(10, 2)
+  unit_price Decimal @db.Decimal(12, 2)
+  amount     Decimal @db.Decimal(12, 2)
+  invoice    Invoice @relation(fields: [invoice_id], references: [id])
+
+  @@index([invoice_id])
+  @@map("invoice_items")
+}
+
+model Payment {
+  id               Int           @id @default(autoincrement())
+  invoice_id       Int
+  payment_method   String
+  transaction_code String?       @unique
+  amount           Decimal       @db.Decimal(12, 2)
+  status           PaymentStatus @default(PENDING)
+  paid_at          DateTime      @default(now())
+  invoice          Invoice       @relation(fields: [invoice_id], references: [id])
+
+  @@index([invoice_id, status])
+  @@index([paid_at])
+  @@map("payments")
+}
+
+model MaintenanceRequest {
+  id                Int           @id @default(autoincrement())
+  tenant_id         Int
+  apartment_id      Int
+  title             String
+  description       String
+  image_url         String?
+  priority          Priority      @default(MEDIUM)
+  status            RequestStatus @default(PENDING)
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
+  assigned_staff_id Int?
+  scheduled_at      DateTime?
+  unable_reason     String?
+  apartment         Apartment     @relation(fields: [apartment_id], references: [id])
+  assigned_staff    Staff?        @relation("MaintenanceTechnician", fields: [assigned_staff_id], references: [id])
+  tenant            Tenant        @relation(fields: [tenant_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([apartment_id])
+  @@index([status, created_at])
+  @@index([assigned_staff_id, status])
+  @@map("maintenance_requests")
+}
+
+model ViewingSchedule {
+  id                Int            @id @default(autoincrement())
+  apartment_id      Int
+  guest_name        String
+  guest_phone       String
+  guest_email       String?
+  schedule_time     DateTime
+  status            ScheduleStatus @default(PENDING)
+  created_at        DateTime       @default(now())
+  temp_locked_until DateTime?
+  apartment         Apartment      @relation(fields: [apartment_id], references: [id])
+
+  @@index([apartment_id])
+  @@index([status, schedule_time])
+  @@index([temp_locked_until])
+  @@map("viewing_schedules")
+}
+
+model UtilityReading {
+  id           Int       @id @default(autoincrement())
+  apartment_id Int
+  month        Int
+  year         Int
+  electric_old Decimal   @db.Decimal(10, 2)
+  electric_new Decimal   @db.Decimal(10, 2)
+  water_old    Decimal   @db.Decimal(10, 2)
+  water_new    Decimal   @db.Decimal(10, 2)
+  created_at   DateTime  @default(now())
+  recorded_by  Int
+  apartment    Apartment @relation(fields: [apartment_id], references: [id])
+  staff        Staff     @relation(fields: [recorded_by], references: [id])
+
+  @@unique([apartment_id, month, year])
+  @@index([apartment_id, month, year])
+  @@index([recorded_by])
+  @@map("utility_readings")
+}
+
+model Notification {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  title      String
+  content    String
+  type       String
+  is_read    Boolean  @default(false)
+  created_at DateTime @default(now())
+  user       User     @relation(fields: [user_id], references: [id])
+
+  @@index([user_id, is_read, created_at])
+  @@index([type])
+  @@map("notifications")
+}
+
+model Review {
+  id           Int       @id @default(autoincrement())
+  apartment_id Int
+  tenant_id    Int
+  rating       Int
+  comment      String?
+  created_at   DateTime  @default(now())
+  apartment    Apartment @relation(fields: [apartment_id], references: [id], onDelete: Cascade)
+  tenant       Tenant    @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@unique([apartment_id, tenant_id])
+  @@index([apartment_id])
+  @@index([tenant_id])
+  @@map("reviews")
+}
+
 enum Role {
   ADMIN
   MANAGER
@@ -28,9 +352,9 @@ enum BuildingStatus {
 
 enum ApartmentStatus {
   AVAILABLE
-  RESERVED
   RENTED
   MAINTENANCE
+  RESERVED
 }
 
 enum ContractStatus {
@@ -72,8 +396,8 @@ enum Priority {
 enum RequestStatus {
   PENDING
   PROCESSING
-  NEEDS_RESCHEDULE
   DONE
+  NEEDS_RESCHEDULE
   CANCELLED
 }
 
@@ -81,353 +405,4 @@ enum ScheduleStatus {
   PENDING
   CONFIRMED
   CANCELLED
-}
-
-model User {
-  id            Int        @id @default(autoincrement())
-  username      String     @unique
-  password_hash String
-  role          Role       @default(TENANT)
-  status        UserStatus @default(ACTIVE)
-  created_at    DateTime   @default(now())
-
-  tenant        Tenant?
-  staff         Staff?
-  notifications Notification[]
-
-  @@map("users")
-}
-
-model Tenant {
-  id                     Int       @id @default(autoincrement())
-  user_id                Int?      @unique
-  onboarding_building_id Int?
-  full_name              String
-  phone                  String?   @unique
-  email                  String?   @unique
-  date_of_birth          DateTime?
-  citizen_id             String    @unique
-  address                String?
-  is_verified            Boolean   @default(false)
-  created_at             DateTime  @default(now())
-
-  user                User?      @relation(fields: [user_id], references: [id])
-  onboarding_building Building?  @relation("TenantOnboardingBuilding", fields: [onboarding_building_id], references: [id], onDelete: SetNull)
-  occupants           Occupant[]
-  contracts           RentalContract[]
-  invoices            Invoice[]
-  reservations        Reservation[]
-  maintenance         MaintenanceRequest[]
-  reviews             Review[]
-
-  @@index([created_at])
-  @@index([onboarding_building_id])
-  @@map("tenants")
-}
-
-model Occupant {
-  id            Int       @id @default(autoincrement())
-  tenant_id     Int
-  full_name     String
-  phone         String?
-  citizen_id    String
-  date_of_birth DateTime?
-  created_at    DateTime  @default(now())
-
-  tenant Tenant @relation(fields: [tenant_id], references: [id])
-
-  @@index([tenant_id])
-  @@map("occupants")
-}
-
-model Building {
-  id               Int            @id @default(autoincrement())
-  branch_name      String
-  address_old      String
-  address_new      String
-  description      String?        @db.Text
-  status           BuildingStatus @default(ACTIVE)
-  total_floors     Int
-  total_apartments Int            @default(0)
-  thumbnail_url    String?
-  created_at       DateTime       @default(now())
-
-  apartments          Apartment[]
-  assigned_staff      Staff[]  @relation("BuildingStaff")
-  onboarding_tenants Tenant[] @relation("TenantOnboardingBuilding")
-
-  @@index([status])
-  @@index([created_at])
-  @@map("buildings")
-}
-
-model Staff {
-  id          Int      @id @default(autoincrement())
-  user_id     Int?     @unique
-  building_id Int?
-  full_name   String
-  phone       String?  @unique
-  position    String
-  created_at  DateTime @default(now())
-
-  user           User?            @relation(fields: [user_id], references: [id])
-  building       Building?        @relation("BuildingStaff", fields: [building_id], references: [id])
-  UtilityReading UtilityReading[]
-  maintenance_requests MaintenanceRequest[] @relation("MaintenanceTechnician")
-
-  @@index([building_id])
-  @@map("staffs")
-}
-
-model Apartment {
-  id           Int             @id @default(autoincrement())
-  building_id  Int
-  description  String?         @db.Text
-  area         Decimal         @db.Decimal(10, 2)
-  bedrooms     Int
-  bathrooms    Int
-  rental_price Decimal         @db.Decimal(12, 2)
-  status       ApartmentStatus @default(AVAILABLE)
-  floor        Int
-  room_number  String
-
-  building    Building             @relation(fields: [building_id], references: [id])
-  images      ApartmentImage[]
-  contracts   RentalContract[]
-  reservations Reservation[]
-  maintenance MaintenanceRequest[]
-  viewings    ViewingSchedule[]
-  utilities   UtilityReading[]
-  reviews     Review[]
-
-  @@index([building_id])
-  @@index([status])
-  @@index([building_id, status])
-  @@index([building_id, floor])
-  @@unique([building_id, floor, room_number])
-  @@map("apartments")
-}
-
-model ApartmentImage {
-  id           Int       @id @default(autoincrement())
-  apartment_id Int
-  image_url    String
-  is_thumbnail Boolean   @default(false)
-  apartment    Apartment @relation(fields: [apartment_id], references: [id], onDelete: Cascade)
-
-  @@index([apartment_id])
-  @@index([apartment_id, is_thumbnail])
-  @@map("apartment_images")
-}
-
-// PostgreSQL enforces at most one ACTIVE row per apartment through the
-// rental_contracts_one_active_per_apartment_key partial unique index in the
-// hardening migration. Prisma schema syntax cannot represent partial indexes.
-model RentalContract {
-  id             Int            @id @default(autoincrement())
-  apartment_id   Int
-  tenant_id      Int
-  start_date     DateTime
-  end_date       DateTime
-  deposit_amount Decimal        @db.Decimal(12, 2)
-  monthly_rent   Decimal        @db.Decimal(12, 2)
-  status         ContractStatus @default(ACTIVE)
-  contract_file  String?
-  signed_at      DateTime
-  created_at     DateTime       @default(now())
-  extended_at    DateTime?
-
-  apartment Apartment @relation(fields: [apartment_id], references: [id])
-  tenant    Tenant    @relation(fields: [tenant_id], references: [id])
-  invoices  Invoice[]
-  reservation Reservation?
-
-  @@index([apartment_id, status])
-  @@index([tenant_id, status])
-  @@index([status, end_date])
-  @@map("rental_contracts")
-}
-
-model Invoice {
-  id             Int           @id @default(autoincrement())
-  contract_id    Int?
-  tenant_id      Int
-  reservation_id Int?
-  type           InvoiceType   @default(MONTHLY)
-  invoice_code   String        @unique
-  due_date       DateTime
-  total_amount   Decimal       @db.Decimal(12, 2)
-  status         InvoiceStatus @default(UNPAID)
-  created_at     DateTime      @default(now())
-  paid_at        DateTime?
-
-  contract    RentalContract? @relation(fields: [contract_id], references: [id])
-  tenant      Tenant          @relation(fields: [tenant_id], references: [id])
-  reservation Reservation?    @relation(fields: [reservation_id], references: [id])
-  items       InvoiceItem[]
-  payments    Payment[]
-
-  @@index([contract_id])
-  @@index([reservation_id])
-  @@index([type])
-  @@index([tenant_id, status])
-  @@index([status, due_date])
-  @@index([created_at])
-  @@map("invoices")
-}
-
-model Reservation {
-  id             Int               @id @default(autoincrement())
-  apartment_id   Int
-  tenant_id      Int
-  contract_id    Int?              @unique
-  deposit_amount Decimal           @db.Decimal(12, 2)
-  reserved_at    DateTime          @default(now())
-  expires_at     DateTime
-  status         ReservationStatus @default(ACTIVE)
-  created_at     DateTime          @default(now())
-
-  apartment Apartment       @relation(fields: [apartment_id], references: [id])
-  tenant    Tenant          @relation(fields: [tenant_id], references: [id])
-  contract  RentalContract? @relation(fields: [contract_id], references: [id])
-  invoices  Invoice[]
-
-  @@index([apartment_id, status])
-  @@index([tenant_id, status])
-  @@index([expires_at, status])
-  @@map("reservations")
-}
-
-model InvoiceItem {
-  id         Int     @id @default(autoincrement())
-  invoice_id Int
-  item_name  String
-  quantity   Decimal @db.Decimal(10, 2)
-  unit_price Decimal @db.Decimal(12, 2)
-  amount     Decimal @db.Decimal(12, 2)
-  invoice    Invoice @relation(fields: [invoice_id], references: [id])
-
-  @@index([invoice_id])
-  @@map("invoice_items")
-}
-
-model Payment {
-  id               Int           @id @default(autoincrement())
-  invoice_id       Int
-  payment_method   String
-  transaction_code String?       @unique
-  amount           Decimal       @db.Decimal(12, 2)
-  status           PaymentStatus @default(PENDING)
-  paid_at          DateTime      @default(now())
-
-  invoice Invoice @relation(fields: [invoice_id], references: [id])
-
-  @@index([invoice_id, status])
-  @@index([paid_at])
-  @@map("payments")
-}
-
-model MaintenanceRequest {
-  id                Int           @id @default(autoincrement())
-  tenant_id         Int
-  apartment_id      Int
-  assigned_staff_id Int?
-  title             String
-  description       String        @db.Text
-  image_url         String?
-  priority          Priority      @default(MEDIUM)
-  status            RequestStatus @default(PENDING)
-  scheduled_at      DateTime?
-  unable_reason     String?       @db.Text
-  created_at        DateTime      @default(now())
-  updated_at        DateTime      @updatedAt
-
-  tenant         Tenant    @relation(fields: [tenant_id], references: [id])
-  apartment      Apartment @relation(fields: [apartment_id], references: [id])
-  assigned_staff Staff?    @relation("MaintenanceTechnician", fields: [assigned_staff_id], references: [id], onDelete: SetNull)
-
-  @@index([tenant_id])
-  @@index([apartment_id])
-  @@index([status, created_at])
-  @@index([assigned_staff_id, status])
-  @@map("maintenance_requests")
-}
-
-model ViewingSchedule {
-  id            Int            @id @default(autoincrement())
-  apartment_id  Int
-  guest_name    String
-  guest_phone   String
-  guest_email   String?
-  schedule_time DateTime
-  status        ScheduleStatus @default(PENDING)
-  created_at    DateTime       @default(now())
-
-  apartment         Apartment @relation(fields: [apartment_id], references: [id])
-  temp_locked_until DateTime?
-
-  @@index([apartment_id])
-  @@index([status, schedule_time])
-  // Migration-only partial unique index
-  // `viewing_schedules_one_active_slot_key` covers apartment_id and
-  // schedule_time while status is PENDING or CONFIRMED. Prisma cannot model
-  // partial unique indexes, so this is intentionally not an @@unique.
-  @@index([temp_locked_until])
-  @@map("viewing_schedules")
-}
-
-model UtilityReading {
-  id           Int      @id @default(autoincrement())
-  apartment_id Int
-  month        Int
-  year         Int
-  electric_old Decimal  @db.Decimal(10, 2)
-  electric_new Decimal  @db.Decimal(10, 2)
-  water_old    Decimal  @db.Decimal(10, 2)
-  water_new    Decimal  @db.Decimal(10, 2)
-  created_at   DateTime @default(now())
-  recorded_by  Int
-
-  apartment Apartment @relation(fields: [apartment_id], references: [id])
-  staff     Staff     @relation(fields: [recorded_by], references: [id])
-
-  @@index([apartment_id, month, year])
-  @@index([recorded_by])
-  @@unique([apartment_id, month, year])
-  @@map("utility_readings")
-}
-
-model Notification {
-  id         Int      @id @default(autoincrement())
-  user_id    Int
-  title      String
-  content    String   @db.Text
-  type       String
-  is_read    Boolean  @default(false)
-  created_at DateTime @default(now())
-
-  user User @relation(fields: [user_id], references: [id])
-
-  @@index([user_id, is_read, created_at])
-  @@index([type])
-  @@map("notifications")
-}
-
-
-
-model Review {
-  id           Int      @id @default(autoincrement())
-  apartment_id Int
-  tenant_id    Int
-  rating       Int
-  comment      String?  @db.Text
-  created_at   DateTime @default(now())
-
-  apartment Apartment @relation(fields: [apartment_id], references: [id], onDelete: Cascade)
-  tenant    Tenant    @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
-
-  @@index([apartment_id])
-  @@index([tenant_id])
-  @@unique([apartment_id, tenant_id])
-  @@map("reviews")
 }

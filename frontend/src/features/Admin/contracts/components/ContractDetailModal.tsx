@@ -9,7 +9,7 @@ import type { User as UserType } from "../../../../types/user";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay } from "../../../../utils/string";
-import { User, Home, CreditCard, Users, Calendar } from "lucide-react";
+import { Users } from "lucide-react";
 
 interface ContractDetailModalProps {
   isOpen: boolean;
@@ -66,9 +66,8 @@ export default function ContractDetailModal({
         return (
           <div className="space-y-6 font-sans text-sm">
             {/* Header info bar */}
-            <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-primary-50/50 rounded-2xl border border-primary-100/50">
+            <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-primary-50/50 border border-primary-100/50">
               <div className="space-y-1">
-                <p className="text-xs text-primary-600 font-semibold uppercase tracking-wider">Hợp đồng thuê căn hộ</p>
                 <h3 className="text-xl font-bold text-gray-800">
                   Mã HĐ: HD-{String(contract.id).padStart(5, "0")}
                 </h3>
@@ -84,9 +83,8 @@ export default function ContractDetailModal({
             {/* Grid details */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Khách thuê */}
-              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+              <div className="bg-white p-5 border border-gray-100 shadow-xl space-y-4">
                 <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
-                  <User size={18} className="text-primary-500" />
                   <h4 className="font-bold text-gray-800">Thông tin khách thuê</h4>
                 </div>
                 <div className="space-y-3 text-xs sm:text-sm">
@@ -124,9 +122,8 @@ export default function ContractDetailModal({
               </div>
 
               {/* Căn hộ */}
-              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+              <div className="bg-white p-5 border border-gray-100 shadow-xl space-y-4">
                 <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
-                  <Home size={18} className="text-primary-500" />
                   <h4 className="font-bold text-gray-800">Thông tin căn hộ</h4>
                 </div>
                 <div className="space-y-3 text-xs sm:text-sm">
@@ -164,15 +161,14 @@ export default function ContractDetailModal({
                   </div>
                   <div>
                     <span className="text-gray-400 block text-xs">Địa chỉ tòa nhà</span>
-                    <span className="font-medium text-gray-800">{bld?.address_new || "Chưa cập nhật"}</span>
+                    <span className="font-medium text-gray-800">{bld?.address || "Chưa cập nhật"}</span>
                   </div>
                 </div>
               </div>
 
               {/* Thời hạn & người lập */}
-              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+              <div className="bg-white p-5 border border-gray-100 shadow-xl space-y-4">
                 <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
-                  <Calendar size={18} className="text-primary-500" />
                   <h4 className="font-bold text-gray-800">Thời hạn & Pháp lý</h4>
                 </div>
                 <div className="space-y-3 text-xs sm:text-sm">
@@ -202,10 +198,9 @@ export default function ContractDetailModal({
               </div>
 
               {/* Tài chính & Số người */}
-              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+              <div className="bg-white p-5 border border-gray-100 shadow-xl space-y-4">
                 <div className="flex items-center gap-2 pb-3 border-b border-gray-100">
-                  <CreditCard size={18} className="text-primary-500" />
-                  <h4 className="font-bold text-gray-800">Tài chính & Quy mô ở</h4>
+                  <h4 className="font-bold text-gray-800">Tài chính & Quy mô</h4>
                 </div>
                 <div className="space-y-3 text-xs sm:text-sm">
                   <div className="grid grid-cols-2 gap-4">

@@ -101,20 +101,21 @@ export default function NotificationPage() {
         }
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
-        <Combobox
-          options={[
-            { value: "", label: "Tất cả thông báo" },
-            { value: "false", label: "Chưa đọc" },
-            { value: "true", label: "Đã đọc" },
-          ]}
-          value={isReadFilter}
-          onChange={setIsReadFilter}
-          placeholder="Lọc trạng thái"
-          searchable={false}
-          triggerClassName="h-[42px] rounded-xl border-gray-200 px-3"
-          clearable={false}
-        />
+      <div className="grid grid-cols-12 gap-4 font-sans">
+        <div className="col-span-12 sm:col-span-3">
+          <Combobox
+            options={[
+              { value: "false", label: "Chưa đọc" },
+              { value: "true", label: "Đã đọc" },
+            ]}
+            value={isReadFilter}
+            onChange={setIsReadFilter}
+            placeholder="Tất cả trạng thái"
+            searchable={false}
+            triggerClassName="h-[42px] rounded-xl border-gray-200"
+            clearable={true}
+          />
+        </div>
       </div>
 
       {unreadCount > 0 && (
@@ -143,7 +144,7 @@ export default function NotificationPage() {
         </div>
       )}
 
-      <Modal isOpen={broadcastModal.isOpen} onClose={broadcastModal.onClose} title="Phát Thông Báo Ban Quản Trị">
+      <Modal isOpen={broadcastModal.isOpen} onClose={broadcastModal.onClose} title="Phát Thông Báo">
         <form onSubmit={handleSendNotificationSubmit} className="space-y-4 text-sm font-sans">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

@@ -79,7 +79,7 @@ const invoiceForPaymentInclude = {
                         select: {
                             id: true,
                             branch_name: true,
-                            address_new: true
+                            address: true
                         }
                     }
                 }
@@ -109,7 +109,7 @@ const invoiceForPaymentInclude = {
                         select: {
                             id: true,
                             branch_name: true,
-                            address_new: true
+                            address: true
                         }
                     }
                 }
@@ -600,7 +600,7 @@ const sendDepositPaidEmailAfterDepositPayment = async (
                 reservation.apartment
             ),
             buildingAddress:
-                reservation.apartment.building.address_new,
+                reservation.apartment.building.address,
             moveInDeadline: reservation.expires_at
         });
     } catch {

@@ -1,4 +1,4 @@
-﻿import {
+import {
     Prisma,
     Role,
     UserStatus
@@ -40,7 +40,7 @@ const staffSelect = {
         select: {
             id: true,
             branch_name: true,
-            address_new: true
+            address: true
         }
     }
 } satisfies Prisma.StaffSelect;

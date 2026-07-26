@@ -33,6 +33,7 @@ import MyInvoices from "../features/Tenant/invoices/pages/MyInvoices";
 import MyPayments from "../features/Tenant/payments/pages/MyPayments";
 import MyMaintenance from "../features/Tenant/maintenance/pages/MyMaintenance";
 import MyUtilities from "../features/Tenant/utilities/pages/MyUtilities";
+import MyOccupants from "../features/Tenant/occupants/pages/MyOccupants";
 import ProfilePage from "../features/Tenant/profile/pages/ProfilePage";
 
 // Trang Guest
@@ -148,6 +149,7 @@ const router = createBrowserRouter([
       { path: "payments", element: <MyPayments /> },
       { path: "utilities", element: <MyUtilities /> },
       { path: "maintenance", element: <MyMaintenance /> },
+      { path: "occupants", element: <MyOccupants /> },
       { path: "notifications", element: <NotificationsPage /> },
       { path: "profile", element: <ProfilePage /> },
     ],

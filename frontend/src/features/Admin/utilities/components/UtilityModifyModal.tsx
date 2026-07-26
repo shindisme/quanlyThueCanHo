@@ -1,23 +1,19 @@
-import { Zap, Calendar } from "lucide-react";
+import { Zap, Droplet } from "lucide-react";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
-import Combobox from "../../../../components/ui/Combobox";
 import Input from "../../../../components/ui/Input";
+import { formatApartmentDisplay } from "../../../../utils/string";
 import { useUtilityModify } from "../hooks/useUtilityModify";
+import type { UtilityReadingData } from "../../../../services/utilityService";
 import type { BuildingData } from "../../../../services/buildingService";
 import type { ApartmentData } from "../../../../services/apartmentService";
-import type { UtilityReadingData } from "../../../../services/utilityService";
-
-const meter = (value: string | number) => Math.round(Number(value) || 0);
-const meterUsage = (oldValue: string | number, newValue: string | number) =>
-  Math.max(0, meter(newValue) - meter(oldValue));
 
 interface UtilityModifyModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
   editItem: UtilityReadingData | null;
-  isViewOnly: boolean;
+  isViewOnly?: boolean;
   buildings: BuildingData[];
   apartments: ApartmentData[];
 }
@@ -27,34 +23,21 @@ export default function UtilityModifyModal({
   onClose,
   onSuccess,
   editItem,
-  isViewOnly,
+  isViewOnly = false,
   buildings,
   apartments,
 }: UtilityModifyModalProps) {
   const {
     saving,
-    buildingId,
-    setBuildingId,
-    floor,
-    setFloor,
-    apartmentId,
-    setApartmentId,
-    month,
-    setMonth,
-    year,
-    setYear,
     electricOld,
+    setElectricOld,
     electricNew,
     setElectricNew,
     waterOld,
+    setWaterOld,
     waterNew,
     setWaterNew,
     handleUpdateUtilityReading,
-    getMonthOptions,
-    getYearOptions,
-    buildingOptions,
-    floorOptions,
-    modalApartmentOptions,
   } = useUtilityModify({
     isOpen,
     onClose,
@@ -64,6 +47,11 @@ export default function UtilityModifyModal({
     buildings,
     apartments,
   });
+
+  const currentApartment = apartments.find((a) => a.id === editItem?.apartment_id);
+  const currentBuilding = currentApartment
+    ? buildings.find((b) => b.id === currentApartment.building_id)
+    : null;
 
   return (
     <Modal
@@ -83,96 +71,31 @@ export default function UtilityModifyModal({
         </>
       }
     >
-      <div className="space-y-5">
-        {/* Building selection */}
+      <div className="space-y-5 font-sans">
+        {/* Streamlined Room & Period Header */}
         <div>
-          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
-            Chi nhánh / Tòa nhà *
-          </label>
-          <Combobox
-            options={buildingOptions}
-            value={buildingId}
-            onChange={(val) => {
-              setBuildingId(val);
-              setFloor("");
-              setApartmentId("");
-            }}
-            disabled={true}
-            placeholder="Chọn chi nhánh"
-            searchPlaceholder="Tìm kiếm chi nhánh..."
-            triggerClassName="h-10 border-gray-300"
-            clearable={false}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          {/* Floor selection */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1.5">Tầng *</label>
-            <Combobox
-              options={floorOptions}
-              value={floor}
-              onChange={(val) => {
-                setFloor(val);
-                setApartmentId("");
-              }}
-              disabled={true}
-              placeholder="Chọn tầng"
-              searchable={false}
-              triggerClassName="h-10 border-gray-300"
-              clearable={false}
-            />
-          </div>
-
-          {/* Room selection */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1.5">
-              Căn hộ / Phòng *
-            </label>
-            <Combobox
-              options={modalApartmentOptions}
-              value={apartmentId}
-              onChange={(val) => setApartmentId(val)}
-              disabled={true}
-              placeholder="Chọn phòng"
-              searchPlaceholder="Tìm phòng..."
-              triggerClassName="h-10 border-gray-300"
-              clearable={false}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1.5">Tháng ghi *</label>
-            <Combobox
-              options={getMonthOptions()}
-              value={String(month)}
-              onChange={(val) => setMonth(Number(val))}
-              disabled={true}
-              placeholder="Chọn tháng"
-              searchable={false}
-              triggerClassName="h-10 border-gray-300"
-              clearable={false}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1.5">Năm ghi *</label>
-            <Combobox
-              options={getYearOptions()}
-              value={String(year)}
-              onChange={(val) => setYear(Number(val))}
-              disabled={true}
-              placeholder="Chọn năm"
-              searchable={false}
-              triggerClassName="h-10 border-gray-300"
-              clearable={false}
-            />
+          <label className="block text-sm font-semibold text-gray-800 mb-1.5">Phòng</label>
+          <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-sm font-semibold text-gray-800 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-gray-900">
+                {currentApartment
+                  ? formatApartmentDisplay(currentApartment.room_number, currentApartment.floor)
+                  : `Phòng ID #${editItem?.apartment_id}`}
+              </span>
+              {currentBuilding?.branch_name && (
+                <span className="text-xs font-semibold text-primary-600 bg-primary-50 px-2.5 py-1">
+                  {currentBuilding.branch_name}
+                </span>
+              )}
+            </div>
+            <span className="text-xs font-semibold text-gray-500">
+              Tháng {editItem?.month}/{editItem?.year}
+            </span>
           </div>
         </div>
 
         {/* Electric readings */}
-        <div className="bg-emerald-50/25 p-4 border border-emerald-100 rounded-lg space-y-4">
+        <div className="bg-emerald-50/25 p-4 border border-emerald-100  space-y-4 shadow-sm">
           <h4 className="font-bold text-emerald-800 text-sm flex items-center gap-1.5">
             <Zap size={16} /> Chỉ số Điện (kWh)
           </h4>
@@ -181,8 +104,8 @@ export default function UtilityModifyModal({
               label="Chỉ số điện cũ"
               type="number"
               value={electricOld}
-              disabled={true}
-              placeholder="0"
+              onChange={(e) => setElectricOld(e.target.value)}
+              disabled={isViewOnly}
             />
             <Input
               label="Chỉ số điện mới *"
@@ -190,27 +113,22 @@ export default function UtilityModifyModal({
               value={electricNew}
               onChange={(e) => setElectricNew(e.target.value)}
               disabled={isViewOnly}
-              placeholder="Nhập số điện mới"
             />
           </div>
-          <p className="text-xs text-emerald-700 font-semibold text-right">
-            Điện năng sử dụng:{" "}
-            {meterUsage(electricOld, electricNew)} kWh
-          </p>
         </div>
 
         {/* Water readings */}
-        <div className="bg-blue-50/25 p-4 border border-blue-100 rounded-lg space-y-4">
+        <div className="bg-blue-50/25 p-4 border border-blue-100 rounded-xl space-y-4 shadow-sm">
           <h4 className="font-bold text-blue-800 text-sm flex items-center gap-1.5">
-            <Calendar size={16} /> Chỉ số Nước (m³)
+            <Droplet size={16} /> Chỉ số Nước (m³)
           </h4>
           <div className="grid grid-cols-2 gap-4">
             <Input
               label="Chỉ số nước cũ"
               type="number"
               value={waterOld}
-              disabled={true}
-              placeholder="0"
+              onChange={(e) => setWaterOld(e.target.value)}
+              disabled={isViewOnly}
             />
             <Input
               label="Chỉ số nước mới *"
@@ -218,13 +136,8 @@ export default function UtilityModifyModal({
               value={waterNew}
               onChange={(e) => setWaterNew(e.target.value)}
               disabled={isViewOnly}
-              placeholder="Nhập số nước mới"
             />
           </div>
-          <p className="text-xs text-blue-700 font-semibold text-right">
-            Lượng nước sử dụng:{" "}
-            {Math.max(0, (Number(waterNew) || 0) - (Number(waterOld) || 0))} m³
-          </p>
         </div>
       </div>
     </Modal>

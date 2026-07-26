@@ -239,7 +239,7 @@ export default function GuestApartmentDetail() {
                   </h1>
                   <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
                     <MapPin size={14} />
-                    <span>{building?.name} - {building?.address_new || building?.address_old}</span>
+                    <span>{building?.name} - {building?.address}</span>
                   </div>
                 </div>
                 <Badge variant={APARTMENT_STATUS_COLORS[apartment.status as keyof typeof APARTMENT_STATUS_COLORS] as "success" | "info" | "warning"}>

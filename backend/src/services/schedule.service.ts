@@ -1,4 +1,4 @@
-﻿import {
+import {
     Prisma,
     Role,
     ScheduleStatus
@@ -152,9 +152,9 @@ const getApartmentLabel = (
 
 const getBuildingAddress = (
     apartment: ScheduleWithApartment["apartment"]
-) => apartment.building?.address_new
-    || apartment.building?.address_old
-    || "Chua cap nhat";
+) => (apartment.building as { address?: string; address_new?: string })?.address
+|| (apartment.building as { address?: string; address_new?: string })?.address_new
+    || "Chưa cập nhật";
 
 const findBlockingSchedule = (
     database: Pick<

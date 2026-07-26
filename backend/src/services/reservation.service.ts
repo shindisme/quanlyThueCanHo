@@ -152,7 +152,7 @@ const sendDepositPaymentEmail = async (
             room_number: string;
             floor: number;
             building: {
-                address_new: string;
+                address: string;
             };
         };
     }
@@ -168,7 +168,7 @@ const sendDepositPaymentEmail = async (
             invoiceCode: data.invoice.invoice_code,
             depositAmount: Number(data.invoice.total_amount),
             apartmentLabel: formatApartmentLabel(data.apartment),
-            buildingAddress: data.apartment.building.address_new,
+            buildingAddress: data.apartment.building.address,
             paymentUrl: buildDepositPaymentUrl(data.invoice.id),
             moveInDeadline: data.reservation.expires_at
         });
@@ -257,7 +257,7 @@ export const createReservationDepositService = async (
                         building: {
                             select: {
                                 branch_name: true,
-                                address_new: true
+                                address: true
                             }
                         }
                     }

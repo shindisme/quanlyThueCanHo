@@ -28,7 +28,6 @@ export default function MaintenanceList({
   function getStatusBadge(status: RequestStatus) {
     const label = REQUEST_STATUS_LABELS[status] || status;
     const variant = REQUEST_STATUS_COLORS[status] || "gray";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return <Badge variant={variant as any}>{label}</Badge>;
   }
 
@@ -48,10 +47,17 @@ export default function MaintenanceList({
       render: (_, index: number) => <span className="font-semibold text-gray-800 w-2">{index + 1}</span>,
     },
     {
-      key: "created_at",
-      label: "Ngày gửi",
-      sortValue: (req) => new Date(req.created_at).getTime(),
-      render: (req) => <span className="text-gray-605 text-xs whitespace-nowrap">{formatDate(req.created_at)}</span>
+      key: "title",
+      label: "Sự cố",
+      sortValue: (req) => req.title,
+      render: (req) => (
+        <div className="flex flex-col max-w-xs">
+          <span className="font-semibold text-primary-600">{req.title}</span>
+          <span className="text-xs text-gray-400 truncate" title={req.description}>
+            {req.description}
+          </span>
+        </div>
+      )
     },
     {
       key: "apartment",
@@ -71,19 +77,6 @@ export default function MaintenanceList({
       }
     },
     {
-      key: "title",
-      label: "Sự cố",
-      sortValue: (req) => req.title,
-      render: (req) => (
-        <div className="flex flex-col max-w-xs">
-          <span className="font-semibold text-primary-600">{req.title}</span>
-          <span className="text-xs text-gray-400 truncate" title={req.description}>
-            {req.description}
-          </span>
-        </div>
-      )
-    },
-    {
       key: "assigned_staff",
       label: "Nhân viên kỹ thuật",
       sortValue: (req) => req.assigned_staff?.full_name || "",
@@ -95,6 +88,12 @@ export default function MaintenanceList({
       ) : (
         <span className="text-xs text-gray-400 italic">Chưa phân công</span>
       )
+    },
+    {
+      key: "created_at",
+      label: "Ngày gửi",
+      sortValue: (req) => new Date(req.created_at).getTime(),
+      render: (req) => <span className="text-gray-605 text-xs whitespace-nowrap">{formatDate(req.created_at)}</span>
     },
     {
       key: "scheduled_at",
@@ -116,7 +115,7 @@ export default function MaintenanceList({
         <div className="flex flex-col items-center gap-0.5 text-center">
           {getStatusBadge(req.status as RequestStatus)}
           {req.status === "NEEDS_RESCHEDULE" && req.unable_reason && (
-            <span className="text-[10px] text-red-500 font-medium max-w-[120px] truncate" title={req.unable_reason}>
+            <span className="text-[10px] text-red-500 font-medium max-w-30 truncate" title={req.unable_reason}>
               Lý do: {req.unable_reason}
             </span>
           )}

@@ -114,6 +114,7 @@ const tenantMenu: SidebarGroup[] = [
     title: "Cá nhân",
     items: [
       { label: "Hợp đồng của tôi", path: "/tenant/contracts", icon: ClipboardList },
+      { label: "Người ở cùng", path: "/tenant/occupants", icon: Users },
       { label: "Hoá đơn", path: "/tenant/invoices", icon: Receipt },
       { label: "Thanh toán", path: "/tenant/payments", icon: CreditCard },
       { label: "Điện nước", path: "/tenant/utilities", icon: Zap },

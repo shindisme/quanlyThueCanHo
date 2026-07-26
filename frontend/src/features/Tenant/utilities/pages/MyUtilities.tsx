@@ -109,7 +109,7 @@ export default function MyUtilities() {
             {apartment ? formatApartmentDisplay(apartment.room_number, apartment.floor, "TENANT", apartment.building?.branch_name) : "Chưa nhận căn hộ"}
           </h3>
           <p className="text-sm text-gray-500 mt-1">
-            {apartment?.building?.address_new || "Hệ thống chung cư Yuki House"}
+            {apartment?.building?.address}
           </p>
         </div>
         <div className="flex items-center gap-3">

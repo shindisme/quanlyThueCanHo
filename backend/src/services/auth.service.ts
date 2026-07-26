@@ -89,7 +89,7 @@ const userSummarySelect = {
                 select: {
                     id: true,
                     branch_name: true,
-                    address_new: true
+                    address: true
                 }
             }
         }
@@ -374,7 +374,7 @@ export const getAllUsersService = async (actor: Actor) => {
             ? {
                 id: user.staff.building.id,
                 branch_name: user.staff.building.branch_name,
-                address_new: user.staff.building.address_new
+                address: user.staff.building.address
             }
             : null
     }));

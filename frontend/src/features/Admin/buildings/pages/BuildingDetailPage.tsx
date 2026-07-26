@@ -35,7 +35,7 @@ export default function BuildingDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <div className="flex flex-col items-center justify-center min-h-100">
         <LoadingSpinner size={36} />
         <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải chi tiết tòa nhà...</span>
       </div>
@@ -114,11 +114,7 @@ export default function BuildingDetailPage() {
           <div className="space-y-2 text-sm text-gray-600 mb-4">
             <div className="flex items-start gap-2">
               <MapPin size={16} className="text-gray-400 shrink-0 mt-0.5" />
-              <span>Địa chỉ mới: <strong>{building.address_new}</strong></span>
-            </div>
-            <div className="flex items-start gap-2">
-              <MapPin size={16} className="text-gray-400 shrink-0 mt-0.5" />
-              <span>Địa chỉ cũ: <strong>{building.address_old}</strong></span>
+              <span>Địa chỉ: <strong>{building.address}</strong></span>
             </div>
             <div className="flex items-center gap-2">
               <Layers size={16} className="text-gray-400 shrink-0" />
@@ -178,7 +174,7 @@ export default function BuildingDetailPage() {
                   key={floor}
                   type="button"
                   onClick={() => setSelectedFloor(floor)}
-                  className={`min-w-[125px] text-center px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${isSelected
+                  className={`min-w-31.25 text-center px-4 py-2 rounded-xl text-sm font-semibold transition-all cursor-pointer ${isSelected
                     ? "bg-primary-600 text-white shadow-sm"
                     : "bg-gray-50 text-gray-650 hover:bg-gray-100 border border-gray-200"
                     }`}

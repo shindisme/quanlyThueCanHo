@@ -30,8 +30,7 @@ export default function BuildingModifyModal({
 }: BuildingModifyModalProps) {
   const form = useUpdateBuildingForm({
     branch_name: "",
-    address_old: "",
-    address_new: "",
+    address: "",
     total_floors: 0,
     staff_id: null,
     status: "ACTIVE",
@@ -67,8 +66,7 @@ export default function BuildingModifyModal({
     if (editItem && isOpen) {
       reset({
         branch_name: editItem.branch_name || "",
-        address_old: editItem.address_old || "",
-        address_new: editItem.address_new || "",
+        address: editItem.address || "",
         total_floors: editItem.total_floors || 0,
         staff_id: editItem.manager_id || null,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -149,23 +147,13 @@ export default function BuildingModifyModal({
               />
             </div>
 
-            <div className="col-span-12 sm:col-span-6">
+            <div className="col-span-12">
               <Input
-                label="Địa chỉ cũ *"
-                placeholder="Nhập địa chỉ cũ"
-                error={errors.address_old?.message}
+                label="Địa chỉ tòa nhà *"
+                placeholder="Nhập địa chỉ đầy đủ của tòa nhà"
+                error={errors.address?.message}
                 className="rounded-md"
-                {...register("address_old")}
-              />
-            </div>
-
-            <div className="col-span-12 sm:col-span-6">
-              <Input
-                label="Địa chỉ mới *"
-                placeholder="Nhập địa chỉ mới"
-                error={errors.address_new?.message}
-                className="rounded-md"
-                {...register("address_new")}
+                {...register("address")}
               />
             </div>
 

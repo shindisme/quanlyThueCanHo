@@ -137,7 +137,7 @@ export default function ContractDocModal({
               {/* Phần nội dung */}
               <div className="space-y-4 font-sans text-xs sm:text-sm">
                 <p>
-                  Hôm nay, ngày {signedDate.getDate()} tháng {signedDate.getMonth() + 1} năm {signedDate.getFullYear()}, tại {bld?.address_new || "văn phòng đại diện Yuki House"}, chúng tôi gồm có:
+                  Hôm nay, ngày {signedDate.getDate()} tháng {signedDate.getMonth() + 1} năm {signedDate.getFullYear()}, tại {bld?.address || "văn phòng đại diện Yuki House"}, chúng tôi gồm có:
                 </p>
 
                 {/* Bên A */}
@@ -146,7 +146,7 @@ export default function ContractDocModal({
                   <div className="pl-4 space-y-1 text-xs text-gray-700">
                     <p>Ông/bà: <span className="font-semibold text-gray-800">BAN QUẢN LÝ CĂN HỘ DỊCH VỤ YUKI HOUSE (Đại diện)</span></p>
                     <p>Số CMND/CCCD/Mã số thuế: 079200000001</p>
-                    <p>Địa chỉ: {bld?.address_new || "Hệ thống tòa nhà Yuki House"}</p>
+                    <p>Địa chỉ: {bld?.address || "Hệ thống tòa nhà Yuki House"}</p>
                     <p>Điện thoại: {(bld as unknown as { phone?: string })?.phone || "0901000001"}</p>
                     <p>
                       Là chủ cho thuê hợp pháp căn hộ chung cư số:{" "}
@@ -177,7 +177,7 @@ export default function ContractDocModal({
                   <div className="pl-4 space-y-1 text-xs text-gray-700">
                     <p>1.1. Bên A cho Bên B thuê và Bên B đồng ý thuê căn hộ chung cư có thông tin như sau:</p>
                     <div className="pl-4 space-y-0.5">
-                      <p>- Địa chỉ căn hộ: {bld?.address_new || "Chưa xác định"}</p>
+                      <p>- Địa chỉ căn hộ: {bld?.address || "Chưa xác định"}</p>
                       <p>- Căn hộ số: {apt?.room_number || "..."} - Tầng số: {apt?.floor || "..."}</p>
                       <p>- Tổng diện tích sàn căn hộ là: {apt?.area || "..."} m2.</p>
                       <p>- Đặc điểm: 1 phòng khách, {apt?.bedrooms || 1} phòng ngủ, {apt?.bathrooms || 1} WC.</p>

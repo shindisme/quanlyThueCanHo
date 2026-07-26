@@ -175,7 +175,7 @@ export default function GuestHomePage() {
                       </h3>
                       <div className="flex items-center gap-1.5 mt-1.5 text-xs text-gray-400">
                         <MapPin size={12} />
-                        <span>{building?.address_new || building?.address_old}</span>
+                        <span>{building?.address}</span>
                       </div>
                       <p className="text-sm text-gray-500 mt-2 line-clamp-2">{apt.description}</p>
                       <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100">

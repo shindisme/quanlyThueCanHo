@@ -42,12 +42,12 @@ export default function BuildingList({
       ),
     },
     {
-      key: "address_new",
+      key: "address",
       label: "Địa chỉ",
-      sortValue: (b) => b.address_new,
+      sortValue: (b) => b.address,
       render: (b) => (
-        <span className="block max-w-xs truncate text-gray-600" title={b.address_new}>
-          {b.address_new}
+        <span className="block max-w-xs truncate text-gray-600" title={b.address}>
+          {b.address}
         </span>
       ),
     },

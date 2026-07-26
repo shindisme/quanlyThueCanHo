@@ -46,7 +46,7 @@ export interface UserData {
   managed_building?: {
     id: number;
     branch_name: string;
-    address_new: string;
+    address: string;
   } | null;
 }
 

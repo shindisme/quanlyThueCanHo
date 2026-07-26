@@ -1,15 +1,11 @@
-import { Zap, Calendar } from "lucide-react";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
-import Combobox from "../../../../components/ui/Combobox";
 import Input from "../../../../components/ui/Input";
+import Combobox from "../../../../components/ui/Combobox";
+import { formatApartmentDisplay } from "../../../../utils/string";
 import { useUtilityCreate } from "../hooks/useUtilityCreate";
 import type { BuildingData } from "../../../../services/buildingService";
 import type { ApartmentData } from "../../../../services/apartmentService";
-
-const meter = (value: string | number) => Math.round(Number(value) || 0);
-const meterUsage = (oldValue: string | number, newValue: string | number) =>
-  Math.max(0, meter(newValue) - meter(oldValue));
 
 interface UtilityCreateModalProps {
   isOpen: boolean;
@@ -38,16 +34,12 @@ export default function UtilityCreateModal({
 }: UtilityCreateModalProps) {
   const {
     saving,
-    buildingId,
     setBuildingId,
-    floor,
     setFloor,
     apartmentId,
     setApartmentId,
     month,
-    setMonth,
     year,
-    setYear,
     electricOld,
     electricNew,
     setElectricNew,
@@ -55,11 +47,6 @@ export default function UtilityCreateModal({
     waterNew,
     setWaterNew,
     handleCreateUtilityReading,
-    getMonthOptions,
-    getYearOptions,
-    buildingOptions,
-    floorOptions,
-    modalApartmentOptions,
   } = useUtilityCreate({
     isOpen,
     onClose,
@@ -72,6 +59,22 @@ export default function UtilityCreateModal({
     role,
     managedBuildingId,
   });
+
+  const selectedApt = preselectedApartment || apartments.find((a) => String(a.id) === apartmentId);
+
+  const apartmentOptions = apartments
+    .filter((apt) => {
+      const matchBuilding = role !== "ADMIN" && managedBuildingId ? apt.building_id === managedBuildingId : true;
+      return matchBuilding && apt.status === "RENTED";
+    })
+    .map((apt) => {
+      const room = formatApartmentDisplay(apt.room_number, apt.floor);
+      const bldName = apt.building?.branch_name ? ` (${apt.building.branch_name})` : "";
+      return {
+        value: String(apt.id),
+        label: `${room}${bldName}`,
+      };
+    });
 
   return (
     <Modal
@@ -89,100 +92,61 @@ export default function UtilityCreateModal({
         </>
       }
     >
-      <div className="space-y-5">
-        {/* Building selection */}
-        {role === "ADMIN" && (
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1.5">
-              Chi nhánh / Tòa nhà *
-            </label>
+      <div className="space-y-5 font-sans">
+        {/* Streamlined Room Header */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-800 mb-1.5">
+            Phòng *
+          </label>
+          {preselectedApartment ? (
+            <div className="p-3 bg-gray-50 border border-gray-200 text-sm font-semibold text-gray-800 flex items-center justify-between shadow-sm">
+              <span className="font-bold text-gray-900">
+                {formatApartmentDisplay(preselectedApartment.room_number, preselectedApartment.floor)}
+              </span>
+              <div className="flex items-center gap-2">
+                {preselectedApartment.building?.branch_name && (
+                  <span className="text-xs font-semibold text-primary-600 bg-primary-50 px-2.5 py-1 rounded-lg">
+                    {preselectedApartment.building.branch_name}
+                  </span>
+                )}
+                <span className="text-xs text-gray-500 font-medium">
+                  Tháng {month}/{year}
+                </span>
+              </div>
+            </div>
+          ) : (
             <Combobox
-              options={buildingOptions}
-              value={buildingId}
+              options={apartmentOptions}
+              value={apartmentId}
               onChange={(val) => {
-                setBuildingId(val);
-                setFloor("");
-                setApartmentId("");
+                setApartmentId(val);
+                const chosen = apartments.find((a) => String(a.id) === val);
+                if (chosen) {
+                  setBuildingId(String(chosen.building_id));
+                  setFloor(String(chosen.floor));
+                }
               }}
-              disabled={!!apartmentId}
-              placeholder="Chọn chi nhánh"
-              searchPlaceholder="Tìm kiếm chi nhánh..."
-              triggerClassName="h-10 border-gray-300"
-              clearable={false}
+              placeholder="Chọn phòng cần ghi chỉ số..."
+              searchPlaceholder="Tìm kiếm tên phòng hoặc số phòng..."
+              triggerClassName="h-10 border-gray-300 rounded-xl"
+              clearable={true}
             />
+          )}
+        </div>
+
+        {!preselectedApartment && selectedApt && (
+          <div className="px-3.5 py-2 bg-primary-50/60 border border-primary-100 rounded-xl text-xs flex items-center justify-between text-primary-900 font-medium">
+            <span>
+              Đã chọn: <strong>{formatApartmentDisplay(selectedApt.room_number, selectedApt.floor)}</strong>
+            </span>
+            <span>Tháng {month}/{year}</span>
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4">
-          {/* Floor selection */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1.5">Tầng *</label>
-            <Combobox
-              options={floorOptions}
-              value={floor}
-              onChange={(val) => {
-                setFloor(val);
-                setApartmentId("");
-              }}
-              disabled={!!apartmentId || !buildingId}
-              placeholder={buildingId ? "Chọn tầng" : "Chọn tòa nhà trước"}
-              searchable={false}
-              triggerClassName="h-10 border-gray-300"
-              clearable={false}
-            />
-          </div>
-
-          {/* Room selection */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1.5">
-              Căn hộ / Phòng *
-            </label>
-            <Combobox
-              options={modalApartmentOptions}
-              value={apartmentId}
-              onChange={(val) => setApartmentId(val)}
-              disabled={!!apartmentId || !floor}
-              placeholder={floor ? "Chọn phòng" : "Chọn tầng trước"}
-              searchPlaceholder="Tìm phòng..."
-              triggerClassName="h-10 border-gray-300"
-              clearable={false}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1.5">Tháng ghi *</label>
-            <Combobox
-              options={getMonthOptions()}
-              value={String(month)}
-              onChange={(val) => setMonth(Number(val))}
-              disabled={!!apartmentId}
-              placeholder="Chọn tháng"
-              searchable={false}
-              triggerClassName="h-10 border-gray-300"
-              clearable={false}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-1.5">Năm ghi *</label>
-            <Combobox
-              options={getYearOptions()}
-              value={String(year)}
-              onChange={(val) => setYear(Number(val))}
-              disabled={!!apartmentId}
-              placeholder="Chọn năm"
-              searchable={false}
-              triggerClassName="h-10 border-gray-300"
-              clearable={false}
-            />
-          </div>
-        </div>
-
         {/* Electric readings */}
-        <div className="bg-emerald-50/25 p-4 border border-emerald-100 rounded-lg space-y-4">
-          <h4 className="font-bold text-emerald-800 text-sm flex items-center gap-1.5">
-            <Zap size={16} /> Chỉ số Điện (kWh)
+        <div className="bg-amber-50/25 p-4 border border-amber-100 space-y-4 shadow-sm">
+          <h4 className="font-bold text-amber-800 text-sm flex items-center gap-1.5">
+            Chỉ số Điện (kWh)
           </h4>
           <div className="grid grid-cols-2 gap-4">
             <Input
@@ -200,16 +164,12 @@ export default function UtilityCreateModal({
               placeholder="Nhập số điện mới"
             />
           </div>
-          <p className="text-xs text-emerald-700 font-semibold text-right">
-            Điện năng sử dụng:{" "}
-            {meterUsage(electricOld, electricNew)} kWh
-          </p>
         </div>
 
         {/* Water readings */}
-        <div className="bg-blue-50/25 p-4 border border-blue-100 rounded-lg space-y-4">
+        <div className="bg-blue-50/25 p-4 border border-blue-100 space-y-4 shadow-sm">
           <h4 className="font-bold text-blue-800 text-sm flex items-center gap-1.5">
-            <Calendar size={16} /> Chỉ số Nước (m³)
+            Chỉ số Nước (m³)
           </h4>
           <div className="grid grid-cols-2 gap-4">
             <Input
@@ -227,10 +187,6 @@ export default function UtilityCreateModal({
               placeholder="Nhập số nước mới"
             />
           </div>
-          <p className="text-xs text-blue-700 font-semibold text-right">
-            Lượng nước sử dụng:{" "}
-            {Math.max(0, (Number(waterNew) || 0) - (Number(waterOld) || 0))} m³
-          </p>
         </div>
       </div>
     </Modal>

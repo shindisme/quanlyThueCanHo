@@ -11,7 +11,7 @@ export function printInvoiceHelper(invoice: Invoice) {
 
   const roomNum = invoice.contract?.apartment?.room_number ? `P.${invoice.contract.apartment.room_number}` : "Chưa rõ";
   const branchName = invoice.contract?.apartment?.building?.branch_name || "Chưa rõ";
-  const address = invoice.contract?.apartment?.building?.address_new || "";
+  const address = invoice.contract?.apartment?.building?.address || "";
   const billingMonthYear = getInvoicePeriod(invoice).label;
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);

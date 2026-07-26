@@ -195,9 +195,6 @@ export default function InvoiceGenerateModal({
         <div className="border-t border-gray-200 pt-3">
           <div className="flex items-center justify-between mb-3">
             <h5 className="font-bold text-gray-800 text-xs uppercase tracking-wider">Cấu hình đơn giá dịch vụ áp dụng</h5>
-            <span className="text-[10px] bg-emerald-50 text-emerald-600 font-semibold px-2 py-0.5 rounded-full border border-emerald-250">
-              Có thể chỉnh sửa
-            </span>
           </div>
           <div className="space-y-4">
             <div>
@@ -249,7 +246,7 @@ export default function InvoiceGenerateModal({
                   type="number"
                   value={managementFeePerM2}
                   onChange={(e) => setManagementFeePerM2(e.target.value)}
-                  className="rounded-lg h-[42px] font-semibold"
+                  className="rounded-lg h-10.5 font-semibold"
                   required
                 />
               </div>
@@ -258,10 +255,10 @@ export default function InvoiceGenerateModal({
         </div>
 
         <div className="flex justify-end gap-2 pt-4 border-t border-gray-100">
-          <Button variant="outline" type="button" onClick={onClose} disabled={isGenerating} className="rounded-none">
-            Hủy bỏ
+          <Button variant="outline" type="button" onClick={onClose} disabled={isGenerating} className="rounded-xl">
+            Huỷ bỏ
           </Button>
-          <Button type="submit" disabled={isGenerating} className="rounded-lg">
+          <Button type="submit" disabled={isGenerating} className="rounded-xl">
             {isGenerating ? "Đang tính tiền..." : "Xác nhận & Tạo hóa đơn"}
           </Button>
         </div>

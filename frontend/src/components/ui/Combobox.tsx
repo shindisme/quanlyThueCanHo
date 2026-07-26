@@ -121,12 +121,13 @@ export function Combobox({
             triggerClassName
           )}
         />
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 shrink-0 select-none">
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center shrink-0 select-none">
           {clearable && selectedOption && !disabled ? (
             <button
               type="button"
               onClick={handleClear}
-              className="p-0.5 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              className="p-1 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              title="Xóa lựa chọn"
             >
               <X size={14} />
             </button>

@@ -147,7 +147,7 @@ export default function ApartmentDetailPage() {
       <div className="flex flex-col lg:flex-row gap-6">
         {images.length > 0 ? (
           <div className="w-full lg:w-96 shrink-0 flex flex-col gap-2">
-            <div className="w-full h-64 rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
+            <div className="w-full h-64 rounded-2xl overflow-hidden border border-gray-200 shadow-xl">
               <img
                 src={images.find((img) => img.is_thumbnail)?.image_url || images[0].image_url}
                 className="w-full h-full object-cover"
@@ -201,10 +201,10 @@ export default function ApartmentDetailPage() {
           </div>
 
           <div className="space-y-2 text-sm text-gray-600 mb-4">
-            {apartment.building?.address_new && (
+            {apartment.building?.address && (
               <div className="flex items-center gap-2">
                 <MapPin size={16} className="text-gray-400" />
-                <span>{apartment.building.address_new}</span>
+                <span>{apartment.building.address}</span>
               </div>
             )}
           </div>

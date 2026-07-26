@@ -23,8 +23,7 @@ const apartmentImageSelect = {
 const apartmentBuildingSelect = {
     id: true,
     branch_name: true,
-    address_old: true,
-    address_new: true,
+    address: true,
     total_floors: true
 } satisfies Prisma.BuildingSelect;
 

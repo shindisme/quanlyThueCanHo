@@ -36,7 +36,7 @@ export interface UtilityReadingData {
     building?: {
       id: number;
       branch_name: string;
-      address_new?: string;
+      address?: string;
     };
   };
   staff?: {

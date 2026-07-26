@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Settings, Save, Zap, Droplet, Wifi, Landmark } from "lucide-react";
+import { Settings } from "lucide-react";
 import PageHeader from "../../../../components/PageHeader";
 import Button from "../../../../components/ui/Button";
 import { toast } from "sonner";
@@ -83,14 +83,6 @@ export default function SettingsPage() {
     }));
   };
 
-  const handleTierChange = (key: "electricityRates" | "waterRates", index: number, value: string) => {
-    const num = parseMoneyInput(value);
-    setFees((prev) => ({
-      ...prev,
-      [key]: prev[key].map((rate, rateIndex) => (rateIndex === index ? num : rate)),
-    }));
-  };
-
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -106,7 +98,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-6 font-sans bg-white p-2 min-h-screen">
       <PageHeader
         icon={Settings}
         title="Cấu hình hệ thống"
@@ -114,112 +106,113 @@ export default function SettingsPage() {
         iconColor="linear-gradient(135deg, #4B5563, #9CA3AF)"
       />
 
-      <div className="grid grid-cols-1 gap-6">
-        <form onSubmit={handleSave} className="space-y-6">
-          <div className="bg-white rounded-2xl border border-gray-150 p-6 shadow-sm space-y-6">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-              <div>
-                <h3 className="font-bold text-gray-800 text-lg">Biểu Phí Tiêu Dùng & Sinh Hoạt</h3>
-                <p className="text-xs text-gray-400 mt-0.5">Cấu hình đơn giá dịch vụ điện, nước, internet và phí quản lý</p>
+      <form onSubmit={handleSave} className="space-y-8 max-w-5xl">
+
+        <div className="space-y-6">
+          <div className="flex items-center justify-between border-b border-gray-200 pb-4">
+            <div>
+              <h3 className="font-bold text-gray-900 text-lg">Biểu Phí Tiêu Dùng & Sinh Hoạt</h3>
+              <p className="text-xs text-gray-500 mt-0.5">Cấu hình đơn giá dịch vụ điện, nước, internet và phí quản lý</p>
+            </div>
+            <div className="flex justify-end pt-4">
+              <Button
+                type="submit"
+                disabled={saving}
+                className="px-6 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-bold flex items-center gap-2 shadow-md shrink-0 cursor-pointer"
+              >
+                {saving ? "Đang lưu cấu hình..." : "Lưu cài đặt"}
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {/* Biểu giá điện 6 bậc*/}
+            <div className="space-y-3 sm:col-span-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-amber-500">Biểu giá điện lũy tiến 6 bậc</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {fees.electricityRates.map((rate, index) => (
+                  <label key={ELECTRIC_LABELS[index]} className="block space-y-1">
+                    <span className="text-[11px] font-semibold text-gray-500">{ELECTRIC_LABELS[index]}</span>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        disabled={true}
+                        value={formatCurrencyInput(rate)}
+                        className="w-full rounded-xl border border-gray-200 p-3 pr-14 text-sm font-bold text-gray-600 bg-gray-50/80 cursor-not-allowed"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">đ/kWh</span>
+                    </div>
+                  </label>
+                ))}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-4 border border-gray-100 rounded-xl bg-gray-50/30 space-y-3 sm:col-span-2">
-                <div className="flex items-center gap-2 text-primary-600">
-                  <Zap size={20} className="fill-primary-50 text-primary-600" />
-                  <span className="font-bold text-sm text-gray-800">Biểu giá điện 6 bậc</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {fees.electricityRates.map((rate, index) => (
-                    <label key={ELECTRIC_LABELS[index]} className="block space-y-1">
-                      <span className="text-[11px] font-semibold text-gray-500">{ELECTRIC_LABELS[index]}</span>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={formatCurrencyInput(rate)}
-                          onChange={(e) => handleTierChange("electricityRates", index, e.target.value)}
-                          className="w-full rounded-xl border border-gray-250 p-3 pr-12 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                        />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">đ/kWh</span>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="p-4 border border-gray-100 rounded-xl bg-gray-50/30 space-y-3 sm:col-span-2">
+            {/* Biểu giá nước sinh hoạt */}
+            <div className="space-y-3 sm:col-span-2">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-blue-600">
-                  <Droplet size={20} className="fill-blue-50 text-blue-600" />
-                  <span className="font-bold text-sm text-gray-800">Biểu giá nước sạch sinh hoạt</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {fees.waterRates.map((rate, index) => (
-                    <label key={WATER_LABELS[index]} className="block space-y-1">
-                      <span className="text-[11px] font-semibold text-gray-500">{WATER_LABELS[index]}</span>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={formatCurrencyInput(rate)}
-                          onChange={(e) => handleTierChange("waterRates", index, e.target.value)}
-                          className="w-full rounded-xl border border-gray-250 p-3 pr-12 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                        />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">đ/m³</span>
-                      </div>
-                    </label>
-                  ))}
+                  <span className="font-bold text-sm text-blue-500">Biểu giá nước sạch sinh hoạt 3 bậc</span>
                 </div>
               </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {fees.waterRates.map((rate, index) => (
+                  <label key={WATER_LABELS[index]} className="block space-y-1">
+                    <span className="text-[11px] font-semibold text-gray-500">{WATER_LABELS[index]}</span>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        disabled={true}
+                        value={formatCurrencyInput(rate)}
+                        className="w-full rounded-xl border border-gray-200 p-3 pr-14 text-sm font-bold text-gray-600 bg-gray-50/80 cursor-not-allowed"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">đ/m³</span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
 
-              <div className="p-4 border border-gray-100 rounded-xl bg-gray-50/30 space-y-3">
-                <div className="flex items-center gap-2 text-emerald-600">
-                  <Wifi size={20} className="fill-emerald-50 text-emerald-600" />
-                  <span className="font-bold text-sm text-gray-800">Phí dịch vụ & Internet</span>
-                </div>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={formatCurrencyInput(fees.internetRate)}
-                    onChange={(e) => handleChange("internetRate", e.target.value)}
-                    className="w-full rounded-xl border border-gray-250 p-3 pr-16 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">đ/tháng</span>
-                </div>
-                <p className="text-[11px] text-gray-400">Chi phí gói dịch vụ mạng mặc định cố định theo phòng.</p>
+            {/* Phí Internet */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-emerald-600">
+                <span className="font-bold text-sm  text-emerald-500">Phí dịch vụ & Internet</span>
+                <p className="text-[11px] text-gray-500">Chi phí gói dịch vụ mạng mặc định cố định theo phòng.</p>
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={formatCurrencyInput(fees.internetRate)}
+                  onChange={(e) => handleChange("internetRate", e.target.value)}
+                  className="w-full rounded-xl border border-gray-300 p-3 pr-20 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500">đ/tháng</span>
               </div>
 
+            </div>
 
-              <div className="p-4 border border-gray-100 rounded-xl bg-gray-50/30 space-y-3">
-                <div className="flex items-center gap-2 text-indigo-600">
-                  <Landmark size={20} className="fill-indigo-50 text-indigo-650" />
-                  <span className="font-bold text-sm text-gray-800">Phí quản lý theo m²</span>
-                </div>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={formatCurrencyInput(fees.managementFeePerM2)}
-                    onChange={(e) => handleChange("managementFeePerM2", e.target.value)}
-                    className="w-full rounded-xl border border-gray-250 p-3 pr-16 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">đ/m²/tháng</span>
-                </div>
-                <p className="text-[11px] text-gray-400">Phí quản lý tính trên mỗi mét vuông diện tích phòng.</p>
+            {/* Phí Quản lý */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-indigo-600">
+                <span className="font-bold text-sm text-indigo-500">Phí quản lý theo m²</span>
+                <p className="text-[11px] text-gray-500">Phí quản lý tính trên mỗi mét vuông diện tích phòng.</p>
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={formatCurrencyInput(fees.managementFeePerM2)}
+                  onChange={(e) => handleChange("managementFeePerM2", e.target.value)}
+                  className="w-full rounded-xl border border-gray-300 p-3 pr-24 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-500">đ/m²/tháng</span>
               </div>
             </div>
           </div>
-
-          <div className="flex justify-end">
-            <Button
-              type="submit"
-              disabled={saving}
-              className="px-6 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-bold flex items-center gap-2 shadow-md shrink-0 cursor-pointer"
-            >
-              <Save size={18} />
-              {saving ? "Đang lưu cấu hình..." : "Lưu cài đặt biểu phí"}
-            </Button>
-          </div>
-        </form>
-      </div>
+        </div>
+      </form>
     </div>
   );
 }

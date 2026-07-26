@@ -55,8 +55,7 @@ export default function BuildingCreateModal({
     if (isOpen) {
       reset({
         branch_name: "",
-        address_old: "",
-        address_new: "",
+        address: "",
         total_floors: 0,
         staff_id: null,
         description: "",
@@ -85,8 +84,7 @@ export default function BuildingCreateModal({
   const onSubmit = (data: BuildingFormValues) => {
     const fd = new FormData();
     fd.append("branch_name", data.branch_name);
-    fd.append("address_old", data.address_old);
-    fd.append("address_new", data.address_new);
+    fd.append("address", data.address);
     fd.append("total_floors", String(data.total_floors));
     if (data.staff_id !== null && data.staff_id !== undefined) {
       fd.append("staff_id", String(data.staff_id));
@@ -153,25 +151,14 @@ export default function BuildingCreateModal({
               />
             </div>
 
-            <div className="col-span-12 sm:col-span-6">
+            <div className="col-span-12">
               <Input
-                label="Địa chỉ cũ *"
+                label="Địa chỉ tòa nhà *"
                 type="text"
-                placeholder="Nhập địa chỉ cũ"
-                error={errors.address_old?.message}
+                placeholder="Nhập địa chỉ đầy đủ của tòa nhà"
+                error={errors.address?.message}
                 className="rounded-md"
-                {...register("address_old")}
-              />
-            </div>
-
-            <div className="col-span-12 sm:col-span-6">
-              <Input
-                label="Địa chỉ mới *"
-                type="text"
-                placeholder="Nhập địa chỉ mới"
-                error={errors.address_new?.message}
-                className="rounded-md"
-                {...register("address_new")}
+                {...register("address")}
               />
             </div>
 

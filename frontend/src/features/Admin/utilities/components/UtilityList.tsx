@@ -65,15 +65,9 @@ export default function UtilityList({
       }
     },
     {
-      key: "period",
-      label: "Tháng / Năm",
-      className: "text-center",
-      render: () => <span className="text-gray-600 font-medium">Tháng {filterMonth}/{filterYear}</span>,
-    },
-    {
       key: "electric_usage",
       label: "Điện dùng (kWh)",
-      className: "text-right bg-emerald-50/10 font-bold text-emerald-600 font-mono",
+      className: "text-right bg-amber-50/10 font-bold text-amber-600 font-mono",
       render: (apt: ApartmentData) => {
         const r = readings.find(
           (x) =>
@@ -99,17 +93,10 @@ export default function UtilityList({
       }
     },
     {
-      key: "staff_name",
-      label: "Người ghi",
-      render: (apt: ApartmentData) => {
-        const r = readings.find(
-          (x) =>
-            x.apartment_id === apt.id &&
-            x.month === Number(filterMonth) &&
-            x.year === Number(filterYear)
-        );
-        return <span className="text-gray-600">{r?.staff?.full_name || (r ? "Hệ thống" : "-")}</span>;
-      }
+      key: "period",
+      label: "Tháng / Năm",
+      className: "text-center",
+      render: () => <span className="text-gray-600 font-medium">Tháng {filterMonth}/{filterYear}</span>,
     },
     {
       key: "created_at",
@@ -122,6 +109,19 @@ export default function UtilityList({
             x.year === Number(filterYear)
         );
         return <span className="text-gray-500">{r ? formatDate(r.created_at) : "-"}</span>;
+      }
+    },
+    {
+      key: "staff_name",
+      label: "Người ghi",
+      render: (apt: ApartmentData) => {
+        const r = readings.find(
+          (x) =>
+            x.apartment_id === apt.id &&
+            x.month === Number(filterMonth) &&
+            x.year === Number(filterYear)
+        );
+        return <span className="text-gray-600">{r?.staff?.full_name || (r ? "Hệ thống" : "-")}</span>;
       }
     },
     {
@@ -162,8 +162,8 @@ export default function UtilityList({
                     }
                   }}
                   className={`p-1.5 rounded-lg border cursor-pointer ${r
-                      ? "border-transparent text-gray-400 hover:text-primary-600 hover:bg-primary-50"
-                      : "border-emerald-250 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 font-semibold"
+                    ? "border-transparent text-gray-400 hover:text-primary-600 hover:bg-primary-50"
+                    : "border-emerald-250 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 font-semibold"
                     }`}
                   title={r ? "Sửa chỉ số" : "Ghi chỉ số mới"}
                 >

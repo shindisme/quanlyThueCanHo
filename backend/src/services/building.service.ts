@@ -26,8 +26,7 @@ const staffSummarySelect = {
 const publicBuildingSelect = {
     id: true,
     branch_name: true,
-    address_old: true,
-    address_new: true,
+    address: true,
     description: true,
     status: true,
     total_floors: true,
@@ -105,13 +104,7 @@ export const getAllBuildingsService = async (filters: {
                 }
             },
             {
-                address_old: {
-                    contains: filters.search,
-                    mode: "insensitive"
-                }
-            },
-            {
-                address_new: {
+                address: {
                     contains: filters.search,
                     mode: "insensitive"
                 }

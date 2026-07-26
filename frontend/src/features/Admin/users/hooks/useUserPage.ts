@@ -109,6 +109,7 @@ export function useUserPage() {
   }
 
   function getUserBranch(u: User): string {
+    if (u.role === "ADMIN") return "Không";
     if (u.role === "TENANT") {
       const matchTenant = getTenantForUser(u);
       if (matchTenant) {
@@ -139,8 +140,11 @@ export function useUserPage() {
         const bld = buildings.find((b) => b.id === matchStaff.building_id);
         if (bld) return bld.branch_name;
       }
+      if (u.managed_building?.branch_name) {
+        return u.managed_building.branch_name;
+      }
     }
-    return "-";
+    return "Không";
   }
 
   function getUserBuildingId(u: User): number | null {

@@ -3,8 +3,7 @@ import type { Apartment } from "./apartment";
 export interface Building {
   id: number;
   name: string;
-  address_old: string;
-  address_new: string;
+  address: string;
   description: string | null;
   status: string;
   total_floors: number;
@@ -28,8 +27,7 @@ export type BuildingData = Building;
 export interface RawBuildingData {
   id: number;
   name: string;
-  address_old: string;
-  address_new: string;
+  address: string;
   total_floors: number;
   total_apartments: number;
   description: string | null;
@@ -59,8 +57,7 @@ export interface BuildingQuery {
 
 export interface CreateBuildingRequest {
   name: string;
-  address_old?: string;
-  address_new: string;
+  address: string;
   total_floors: number;
   total_apartments?: number;
   description?: string | null;
@@ -70,4 +67,3 @@ export interface CreateBuildingRequest {
 }
 
 export type UpdateBuildingRequest = Partial<CreateBuildingRequest>;
-

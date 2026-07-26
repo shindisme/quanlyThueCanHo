@@ -68,7 +68,7 @@ export default function ScheduleDetailModal({
             </div>
             <div className="flex flex-col border-b pb-2 border-gray-100 gap-1">
               <span className="text-gray-500 font-medium">Địa chỉ tòa nhà:</span>
-              <span className="font-semibold text-gray-700 text-xs text-right max-w-xs ml-auto leading-normal">{building?.address_new || "-"}</span>
+              <span className="font-semibold text-gray-700 text-xs text-right max-w-xs ml-auto leading-normal">{building?.address || "-"}</span>
             </div>
 
             <div className="flex justify-between border-b pb-2 border-gray-100">

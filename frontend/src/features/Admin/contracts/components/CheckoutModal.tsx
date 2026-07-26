@@ -5,10 +5,11 @@ import Input from "../../../../components/ui/Input";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import type { RentalContract } from "../../../../types";
 import { formatCurrency } from "../../../../utils/currency";
+import { formatApartmentDisplay } from "../../../../utils/string";
 import { createUtilityReading, getAllUtilityReadings } from "../../../../services/utilityService";
 import { generateMonthlyInvoices, getAllInvoicesPage } from "../../../../services/invoiceService";
 import { toast } from "sonner";
-import { Zap, Droplet, Receipt, ShieldCheck, HelpCircle } from "lucide-react";
+import { Receipt, ShieldCheck, HelpCircle } from "lucide-react";
 
 interface CheckoutModalProps {
     isOpen: boolean;
@@ -208,7 +209,7 @@ export default function CheckoutModal({
                                 disabled={savingUtility || loadingData}
                                 className="rounded-xl bg-primary-600 text-white hover:bg-primary-700 font-bold"
                             >
-                                {savingUtility ? "Đang lưu..." : "Chốt điện nước & Tiếp tục"}
+                                {savingUtility ? "Đang lưu..." : "Chốt & Tiếp tục"}
                             </Button>
                         )}
                         {step === 2 && (
@@ -285,19 +286,23 @@ export default function CheckoutModal({
                         <div className="space-y-4">
                             <div className="bg-primary-50/50 p-4 border border-primary-100 rounded-xl space-y-1.5">
                                 <h4 className="font-bold text-primary-850 flex items-center gap-1.5 text-sm">
-                                    <Zap size={16} className="text-primary-600" />
                                     Ghi nhận chỉ số điện nước cuối cùng
                                 </h4>
                                 <p className="text-xs text-primary-750">
-                                    Vui lòng kiểm tra và ghi lại số điện, nước trên công tơ phòng **P.{contract.apartment?.room_number || ""}** để hệ thống tính tiền lần cuối.
+                                    Vui lòng kiểm tra và ghi lại số điện, nước trên công tơ phòng{" "}
+                                    <span className="font-extrabold text-purple-700 bg-purple-100 px-2 py-0.5 border border-purple-200">
+                                        {contract?.apartment
+                                            ? formatApartmentDisplay(contract.apartment.room_number, contract.apartment.floor)
+                                            : "Phòng"}
+                                    </span>{" "}
+                                    để hệ thống tính tiền lần cuối.
                                 </p>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                                 {/* Electricity Section */}
-                                <div className="p-4 border border-gray-150 rounded-xl space-y-4 bg-gray-50/30">
+                                <div className="p-4 border border-amber-200 space-y-4 bg-amber-50/30">
                                     <div className="flex items-center gap-2 font-semibold text-gray-800 text-xs uppercase tracking-wider">
-                                        <Zap size={14} className="text-amber-500" />
                                         Chỉ số Điện (kWh)
                                     </div>
                                     <div>
@@ -319,9 +324,8 @@ export default function CheckoutModal({
                                 </div>
 
                                 {/* Water Section */}
-                                <div className="p-4 border border-gray-150 rounded-xl space-y-4 bg-gray-50/30">
+                                <div className="p-4 border border-blue-200 space-y-4 bg-blue-50/30">
                                     <div className="flex items-center gap-2 font-semibold text-gray-800 text-xs uppercase tracking-wider">
-                                        <Droplet size={14} className="text-blue-500" />
                                         Chỉ số Nước (m³)
                                     </div>
                                     <div>

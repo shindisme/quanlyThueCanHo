@@ -27,7 +27,7 @@ export const processCustomerMessage = async (userMessage: string) => {
         ]);
 
         const buildingData = bldResult.data
-            .map(bld => `Tòa nhà: ${bld.branch_name || "N/A"}, Địa chỉ: ${bld.address_new || "N/A"}`)
+            .map(bld => `Tòa nhà: ${bld.branch_name || "N/A"}, Địa chỉ: ${(bld as { address?: string; address_new?: string }).address || (bld as { address?: string; address_new?: string }).address_new || "N/A"}`)
             .join("\n");
 
         const apartmentData = aptResult.data

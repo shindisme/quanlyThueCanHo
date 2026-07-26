@@ -46,13 +46,13 @@ export default function PaymentDetailModal({ isOpen, onClose, payment }: Payment
 
   const roomNum = apartment ? `P.${apartment.floor}${apartment.room_number}` : "Chưa rõ";
   const branchName = building?.branch_name || "Chưa rõ";
-  const address = building?.address_new || "";
+  const address = building?.address || "";
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Chi Tiết Giao Dịch" size="lg">
       <div className="space-y-6 text-sm font-sans">
         {/* Upper Info */}
-        <div className="flex flex-col md:flex-row justify-between gap-4 pb-4 border-b border-gray-150">
+        <div className="flex flex-col md:flex-row justify-between gap-4 pb-4">
           <div>
             <h4 className="text-base font-bold text-gray-900">
               Mã giao dịch: <span className="font-mono text-primary-600">{payment.transaction_code || "-"}</span>
@@ -123,7 +123,7 @@ export default function PaymentDetailModal({ isOpen, onClose, payment }: Payment
           </div>
         )}
 
-        <div className="flex justify-end pt-4 border-t border-gray-150">
+        <div className="flex justify-end pt-4 ">
           <Button variant="outline" onClick={onClose}>
             Đóng
           </Button>

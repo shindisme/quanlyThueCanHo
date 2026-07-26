@@ -64,7 +64,14 @@ export default function MaintenancePage() {
     const titleNorm = removeVietnameseTones(r.title.toLowerCase());
     const tenantName = removeVietnameseTones(r.tenant?.full_name?.toLowerCase() || "");
     const roomNorm = removeVietnameseTones(r.apartment?.room_number?.toLowerCase() || "");
-    return titleNorm.includes(term) || tenantName.includes(term) || roomNorm.includes(term);
+    const matchSearch = !search || titleNorm.includes(term) || tenantName.includes(term) || roomNorm.includes(term);
+
+    const matchStatus = !statusFilter || r.status === statusFilter;
+    const matchPriority = !priorityFilter || r.priority === priorityFilter;
+    const matchBuilding = !buildingFilter || r.apartment?.building_id === Number(buildingFilter) || r.apartment?.building?.id === Number(buildingFilter);
+    const matchFloor = !floorFilter || r.apartment?.floor === Number(floorFilter);
+
+    return matchSearch && matchStatus && matchPriority && matchBuilding && matchFloor;
   });
 
   const { items: sortedRequests } = useSort(filteredRequests);
@@ -87,62 +94,66 @@ export default function MaintenancePage() {
         }
       />
 
-      <div className="flex flex-col sm:flex-row gap-3 w-full">
-        <Combobox
-          options={[
-            { value: "PENDING", label: "Chờ xử lý" },
-            { value: "PROCESSING", label: "Đang sửa chữa" },
-            { value: "DONE", label: "Hoàn thành" },
-            { value: "NEEDS_RESCHEDULE", label: "Báo không sửa được" },
-            { value: "CANCELLED", label: "Đã hủy" },
-          ]}
-          value={statusFilter}
-          onChange={setStatusFilter}
-          placeholder="Tất cả trạng thái"
-          searchable={false}
-          className="flex-1 min-w-0 w-full font-sans"
-          triggerClassName="h-[42px] border-gray-300 px-4 py-2.5 rounded-xl"
-          clearable={true}
-        />
-
-        <Combobox
-          options={[
-            { value: "LOW", label: "Thấp" },
-            { value: "MEDIUM", label: "Trung bình" },
-            { value: "HIGH", label: "Khẩn cấp" },
-          ]}
-          value={priorityFilter}
-          onChange={setPriorityFilter}
-          placeholder="Tất cả độ ưu tiên"
-          searchable={false}
-          className="flex-1 min-w-0 w-full font-sans"
-          triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
-          clearable={true}
-        />
-
-        <Combobox
-          options={availableFloors.map((fl) => ({ value: String(fl), label: `Tầng ${fl}` }))}
-          value={floorFilter}
-          onChange={setFloorFilter}
-          placeholder="Tất cả tầng"
-          className="flex-1 min-w-0 w-full font-sans"
-          triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
-          clearable={true}
-        />
-
-        {role === "ADMIN" && (
+      <div className="grid grid-cols-12 gap-4 font-sans">
+        <div className="col-span-12 sm:col-span-3">
           <Combobox
-            options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
-            value={buildingFilter}
-            onChange={(val) => {
-              setBuildingFilter(val);
-              setFloorFilter("");
-            }}
-            placeholder="Tất cả tòa nhà"
-            className="flex-1 min-w-0 w-full font-sans"
-            triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
+            options={[
+              { value: "PENDING", label: "Chờ xử lý" },
+              { value: "PROCESSING", label: "Đang sửa chữa" },
+              { value: "DONE", label: "Hoàn thành" },
+              { value: "NEEDS_RESCHEDULE", label: "Báo không sửa được" },
+              { value: "CANCELLED", label: "Đã hủy" },
+            ]}
+            value={statusFilter}
+            onChange={setStatusFilter}
+            placeholder="Tất cả trạng thái"
+            searchable={false}
+            triggerClassName="h-[42px] border-gray-200 rounded-xl"
             clearable={true}
           />
+        </div>
+
+        <div className="col-span-12 sm:col-span-3">
+          <Combobox
+            options={[
+              { value: "LOW", label: "Thấp" },
+              { value: "MEDIUM", label: "Trung bình" },
+              { value: "HIGH", label: "Khẩn cấp" },
+            ]}
+            value={priorityFilter}
+            onChange={setPriorityFilter}
+            placeholder="Tất cả độ ưu tiên"
+            searchable={false}
+            triggerClassName="h-[42px] border-gray-200 rounded-xl"
+            clearable={true}
+          />
+        </div>
+
+        <div className="col-span-12 sm:col-span-3">
+          <Combobox
+            options={availableFloors.map((fl) => ({ value: String(fl), label: `Tầng ${fl}` }))}
+            value={floorFilter}
+            onChange={setFloorFilter}
+            placeholder="Tất cả tầng"
+            triggerClassName="h-[42px] border-gray-200 rounded-xl"
+            clearable={true}
+          />
+        </div>
+
+        {role === "ADMIN" && (
+          <div className="col-span-12 sm:col-span-3">
+            <Combobox
+              options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
+              value={buildingFilter}
+              onChange={(val) => {
+                setBuildingFilter(val);
+                setFloorFilter("");
+              }}
+              placeholder="Tất cả chi nhánh"
+              triggerClassName="h-[42px] border-gray-200 rounded-xl"
+              clearable={true}
+            />
+          </div>
         )}
       </div>
 

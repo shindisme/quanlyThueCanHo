@@ -199,43 +199,51 @@ export default function UserPage() {
       />
 
       {/* Tìm kiếm và Bộ lọc */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 w-full font-sans">
-        <Combobox
-          options={[
-            { value: "ADMIN", label: "Admin" },
-            { value: "MANAGER", label: "Quản lý" },
-            { value: "STAFF", label: "Nhân viên" },
-            { value: "TENANT", label: "Người thuê" },
-          ]}
-          value={roleFilter}
-          onChange={setRoleFilter}
-          placeholder="Tất cả vai trò"
-          searchable={false}
-          className="w-full"
-          triggerClassName="rounded-xl"
-        />
+      <div className="grid grid-cols-12 gap-4 w-full font-sans">
+        <div className="col-span-12 sm:col-span-3">
+          <Combobox
+            options={[
+              { value: "ADMIN", label: "Admin" },
+              { value: "MANAGER", label: "Quản lý" },
+              { value: "STAFF", label: "Nhân viên" },
+              { value: "TENANT", label: "Người thuê" },
+            ]}
+            value={roleFilter}
+            onChange={setRoleFilter}
+            placeholder="Tất cả vai trò"
+            searchable={false}
+            className="w-full"
+            triggerClassName="rounded-xl"
+            clearable={true}
+          />
+        </div>
 
-        <Combobox
-          options={[
-            { value: "ACTIVE", label: "Hoạt động" },
-            { value: "INACTIVE", label: "Tạm khóa" },
-          ]}
-          value={statusFilter}
-          onChange={setStatusFilter}
-          placeholder="Tất cả trạng thái"
-          searchable={false}
-          className="w-full"
-          triggerClassName="rounded-xl"
-        />
+        <div className="col-span-12 sm:col-span-3">
+          <Combobox
+            options={[
+              { value: "ACTIVE", label: "Hoạt động" },
+              { value: "INACTIVE", label: "Tạm khóa" },
+            ]}
+            value={statusFilter}
+            onChange={setStatusFilter}
+            placeholder="Tất cả trạng thái"
+            searchable={false}
+            className="w-full"
+            triggerClassName="rounded-xl"
+            clearable={true}
+          />
+        </div>
 
-        <Combobox
-          options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
-          value={buildingFilter}
-          onChange={setBuildingFilter}
-          placeholder="Tất cả tòa nhà"
-          triggerClassName="rounded-xl"
-          clearable={true}
-        />
+        <div className="col-span-12 sm:col-span-3">
+          <Combobox
+            options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
+            value={buildingFilter}
+            onChange={setBuildingFilter}
+            placeholder="Tất cả chi nhánh"
+            triggerClassName="rounded-xl"
+            clearable={true}
+          />
+        </div>
       </div>
 
       {/* Bảng */}

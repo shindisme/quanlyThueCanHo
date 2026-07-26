@@ -171,7 +171,7 @@ export default function GuestApartmentListing() {
                             {APARTMENT_STATUS_LABELS[apt.status as keyof typeof APARTMENT_STATUS_LABELS]}
                           </Badge>
                         </div>
-                        <p className="text-xs text-gray-400 mt-1">{building?.address_new || building?.address_old}</p>
+                        <p className="text-xs text-gray-400 mt-1">{building?.address}</p>
                         <p className="text-sm text-gray-500 line-clamp-2 mt-2">{apt.description}</p>
                         <div className="flex items-center justify-between pt-3 mt-3 border-t border-gray-100">
                           <span className="text-sm text-gray-500">{apt.area} m²</span>
