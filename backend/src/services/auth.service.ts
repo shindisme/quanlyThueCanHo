@@ -1,4 +1,4 @@
-import {
+﻿import {
     ContractStatus,
     Role,
     UserStatus,
@@ -7,6 +7,11 @@ import {
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { prisma } from "../config/database.js";
+import {
+    getAuthConfig,
+    getBackendBaseUrl as getConfiguredBackendBaseUrl,
+    getTenantActivationConfig
+} from "../config/env.js";
 import { AppError } from "../errors/app-error.js";
 import type { Actor } from "../types/auth.js";
 import { createInitialCredential } from "./account.service.js";
@@ -33,29 +38,13 @@ const userNotFoundError = () => new AppError(
 );
 const TENANT_ACCOUNT_ACTIVATION_PURPOSE = "tenant_account_activation";
 
-const getJwtSecret = () => {
-    const secret = process.env.JWT_SECRET;
+const getJwtSecret = () => getAuthConfig().jwtSecret;
 
-    if (!secret) {
-        throw new AppError(
-            500,
-            "JWT_NOT_CONFIGURED",
-            "Cấu hình xác thực JWT chưa được thiết lập"
-        );
-    }
+const getTenantActivationJwtSecret = () =>
+    getTenantActivationConfig().jwtSecret;
 
-    return secret;
-};
+const getBackendBaseUrl = getConfiguredBackendBaseUrl;
 
-const getTenantActivationJwtSecret = () => (
-    process.env.TENANT_ACTIVATION_JWT_SECRET
-    ?? `${getJwtSecret()}:tenant-account-activation`
-);
-
-const getBackendBaseUrl = () => (
-    process.env.BACKEND_URL
-    ?? `http://localhost:${process.env.PORT ?? 3000}`
-).replace(/\/$/, "");
 
 const invalidActivationToken = () => new AppError(
     400,
@@ -401,22 +390,12 @@ export const loginService = async (username: string, password: string) => {
         );
     }
 
-    const secret = process.env.JWT_SECRET;
-
-    if (!secret) {
-        throw new AppError(
-            500,
-            "JWT_NOT_CONFIGURED",
-            "Cấu hình xác thực JWT chưa được thiết lập"
-        );
-    }
-
     const token = jwt.sign(
         {},
-        secret,
+        getJwtSecret(),
         {
             algorithm: "HS256",
-            expiresIn: "24h",
+            expiresIn: "12h",
             subject: String(user.id)
         }
     );

@@ -24,6 +24,11 @@ type JsonParseError = SyntaxError & {
     body: string;
 };
 
+type PayloadTooLargeError = Error & {
+    status: 413;
+    type: "entity.too.large";
+};
+
 const isJsonParseError = (error: unknown): error is JsonParseError =>
     error instanceof SyntaxError
     && "status" in error
@@ -32,6 +37,15 @@ const isJsonParseError = (error: unknown): error is JsonParseError =>
     && error.type === "entity.parse.failed"
     && "body" in error
     && typeof error.body === "string";
+
+const isPayloadTooLargeError = (
+    error: unknown
+): error is PayloadTooLargeError =>
+    error instanceof Error
+    && "status" in error
+    && error.status === 413
+    && "type" in error
+    && error.type === "entity.too.large";
 
 const sendError = (
     response: Response,
@@ -119,6 +133,16 @@ export const errorHandler: ErrorRequestHandler = (
             400,
             "MALFORMED_JSON",
             "Nội dung JSON của yêu cầu không hợp lệ"
+        );
+        return;
+    }
+
+    if (isPayloadTooLargeError(error)) {
+        sendError(
+            response,
+            413,
+            "PAYLOAD_TOO_LARGE",
+            "Nội dung JSON vượt quá giới hạn cho phép"
         );
         return;
     }

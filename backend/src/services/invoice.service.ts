@@ -1,4 +1,4 @@
-import {
+﻿import {
     InvoiceStatus,
     InvoiceType,
     PaymentStatus,
@@ -19,10 +19,11 @@ import {
 import { getManagerApartmentScope } from "../utils/manager-scope.js";
 import {
     buildFirstRentalInvoiceItems,
-    buildRecurringMonthlyInvoiceItems,
+    buildRecurringMonthlyInvoiceItemsFromReadings,
     attachUtilityTierDetails,
     type BillingFeeSettings,
-    type BillingInvoiceItem
+    type BillingInvoiceItem,
+    type UtilityReadingBillingInput
 } from "../utils/invoice-billing.js";
 
 export type InvoiceActor = Actor;
@@ -353,27 +354,159 @@ const isFirstRentalMonth = (
 ) => startDate.getUTCFullYear() === year
     && startDate.getUTCMonth() + 1 === month;
 
-const isFirstChargeableRentalMonth = async (
-    contract: ContractForBilling,
+type BillingUtilityReading = UtilityReadingBillingInput & {
+    apartment_id: number;
+};
+
+type PreviousContractForBilling = Pick<
+    ContractForBilling,
+    "id" | "tenant_id" | "apartment_id" | "end_date"
+>;
+
+const contractScopeKey = (
+    tenantId: number,
+    apartmentId: number
+) => tenantId + ":" + apartmentId;
+
+const utilityReadingKey = (
+    apartmentId: number,
+    month: number,
+    year: number
+) => apartmentId + ":" + year + "-" + padMonth(month);
+
+const uniqueNumbers = (values: number[]) => [
+    ...new Set(values)
+];
+
+const getExistingInvoiceCodes = async (
+    invoiceCodes: string[]
+) => {
+    if (invoiceCodes.length === 0) {
+        return new Set<string>();
+    }
+
+    const existingInvoices = await prisma.invoice.findMany({
+        where: {
+            invoice_code: {
+                in: invoiceCodes
+            }
+        },
+        select: {
+            invoice_code: true
+        }
+    });
+
+    return new Set(existingInvoices.map(
+        (invoice) => invoice.invoice_code
+    ));
+};
+
+const getUtilityReadingMap = async (
+    contracts: ContractForBilling[],
     month: number,
     year: number
 ) => {
-    if (!isFirstRentalMonth(contract.start_date, month, year)) {
-        return false;
+    const apartmentIds = uniqueNumbers(
+        contracts.map((contract) => contract.apartment_id)
+    );
+    const readingsByKey = new Map<string, BillingUtilityReading>();
+
+    if (apartmentIds.length === 0) {
+        return readingsByKey;
     }
 
-    const previousContract = await prisma.rentalContract.findFirst({
+    const readings = await prisma.utilityReading.findMany({
         where: {
+            apartment_id: {
+                in: apartmentIds
+            },
+            month,
+            year
+        },
+        select: {
+            apartment_id: true,
+            electric_old: true,
+            electric_new: true,
+            water_old: true,
+            water_new: true
+        }
+    });
+
+    for (const reading of readings) {
+        readingsByKey.set(
+            utilityReadingKey(reading.apartment_id, month, year),
+            reading
+        );
+    }
+
+    return readingsByKey;
+};
+
+const getFirstChargeableContractIds = async (
+    contracts: ContractForBilling[],
+    month: number,
+    year: number
+) => {
+    const firstMonthContracts = contracts.filter((contract) =>
+        isFirstRentalMonth(contract.start_date, month, year)
+    );
+
+    if (firstMonthContracts.length === 0) {
+        return new Set<number>();
+    }
+
+    const previousWhere: Prisma.RentalContractWhereInput[] =
+        firstMonthContracts.map((contract) => ({
             id: { not: contract.id },
             tenant_id: contract.tenant_id,
             apartment_id: contract.apartment_id,
             end_date: { lte: contract.start_date }
+        }));
+
+    const previousContracts = await prisma.rentalContract.findMany({
+        where: {
+            OR: previousWhere
         },
-        select: { id: true }
+        select: {
+            id: true,
+            tenant_id: true,
+            apartment_id: true,
+            end_date: true
+        }
     });
 
-    return previousContract === null;
+    const previousByScope = new Map<
+        string,
+        PreviousContractForBilling[]
+    >();
+
+    for (const previousContract of previousContracts) {
+        const key = contractScopeKey(
+            previousContract.tenant_id,
+            previousContract.apartment_id
+        );
+        previousByScope.set(key, [
+            ...(previousByScope.get(key) ?? []),
+            previousContract
+        ]);
+    }
+
+    return new Set(firstMonthContracts
+        .filter((contract) => {
+            const key = contractScopeKey(
+                contract.tenant_id,
+                contract.apartment_id
+            );
+            const previousForContract = previousByScope.get(key) ?? [];
+
+            return !previousForContract.some((previousContract) =>
+                previousContract.id !== contract.id
+                && previousContract.end_date <= contract.start_date
+            );
+        })
+        .map((contract) => contract.id));
 };
+
 const normalizeInvoice = (invoice: InvoiceWithRelations) => {
     const { payments, ...invoiceData } = invoice;
     const totalAmount = toNumber(invoice.total_amount);
@@ -703,25 +836,51 @@ export const generateMonthlyInvoicesService = async (
     const skipped: Array<{ contract_id: number; invoice_code: string; reason: string }> = [];
     const missingUtilityReadings: Array<{ apartment_id: number; room_number: string; contract_id: number }> = [];
     const plannedInvoices: PlannedMonthlyInvoice[] = [];
+    const invoiceCodesByContractId = new Map(contracts.map((contract) => [
+        contract.id,
+        buildMonthlyInvoiceCode(contract.id, month, year)
+    ]));
+    const existingInvoiceCodes = await getExistingInvoiceCodes([
+        ...invoiceCodesByContractId.values()
+    ]);
+    const firstChargeableContractIds = await getFirstChargeableContractIds(
+        contracts,
+        month,
+        year
+    );
+    const recurringContracts = contracts.filter(
+        (contract) => !firstChargeableContractIds.has(contract.id)
+    );
+    const utilityReadingsByKey = await getUtilityReadingMap(
+        recurringContracts,
+        month,
+        year
+    );
 
     for (const contract of contracts) {
-        const invoiceCode = buildMonthlyInvoiceCode(contract.id, month, year);
-        const firstRentalMonth = await isFirstChargeableRentalMonth(
-            contract,
-            month,
-            year
-        );
-        const existing = await prisma.invoice.findUnique({
-            where: { invoice_code: invoiceCode }
-        });
+        const invoiceCode = invoiceCodesByContractId.get(contract.id)
+            ?? buildMonthlyInvoiceCode(contract.id, month, year);
+        const firstRentalMonth = firstChargeableContractIds.has(contract.id);
 
-        if (existing) {
+        if (existingInvoiceCodes.has(invoiceCode)) {
             skipped.push({
                 contract_id: contract.id,
                 invoice_code: invoiceCode,
                 reason: "Hóa đơn tháng này đã tồn tại."
             });
             continue;
+        }
+
+        const utilityReading = utilityReadingsByKey.get(
+            utilityReadingKey(contract.apartment_id, month, year)
+        );
+
+        if (!firstRentalMonth && !utilityReading) {
+            missingUtilityReadings.push({
+                apartment_id: contract.apartment_id,
+                room_number: contract.apartment.room_number,
+                contract_id: contract.id
+            });
         }
 
         const items = firstRentalMonth
@@ -733,13 +892,14 @@ export const generateMonthlyInvoicesService = async (
                 managementFeePerM2: feeSettings.managementFeePerM2,
                 serviceFee: feeSettings.serviceFee
             })
-            : await buildRecurringItemsForContract(
-                contract,
-                month,
-                year,
-                missingUtilityReadings,
-                feeSettings
-            );
+            : buildRecurringMonthlyInvoiceItemsFromReadings({
+                monthlyRent: contract.monthly_rent,
+                area: contract.apartment.area,
+                utilityReading: utilityReading ?? null,
+                occupantCount: 1 + contract.tenant._count.occupants,
+                ...feeSettings,
+                periodLabel: padMonth(month) + "/" + year
+            });
         const totalAmountDecimal = roundDecimalMoney(
             items.reduce(
                 (sum, item) => {
@@ -863,58 +1023,6 @@ export const generateMonthlyInvoicesService = async (
     };
 };
 
-const nonNegativeDecimalDifference = (
-    newer: Prisma.Decimal,
-    older: Prisma.Decimal
-) => {
-    const difference = new Prisma.Decimal(newer).minus(older);
-
-    return difference.isNegative()
-        ? new Prisma.Decimal(0)
-        : difference;
-};
-
-const buildRecurringItemsForContract = async (
-    contract: ContractForBilling,
-    month: number,
-    year: number,
-    missingUtilityReadings: Array<{
-        apartment_id: number;
-        room_number: string;
-        contract_id: number;
-    }>,
-    feeSettings: BillingFeeSettings
-): Promise<BillingInvoiceItem[]> => {
-    const reading = await prisma.utilityReading.findFirst({
-        where: {
-            apartment_id: contract.apartment_id,
-            month,
-            year
-        }
-    });
-
-    if (!reading) {
-        missingUtilityReadings.push({
-            apartment_id: contract.apartment_id,
-            room_number: contract.apartment.room_number,
-            contract_id: contract.id
-        });
-    }
-
-    return buildRecurringMonthlyInvoiceItems({
-        monthlyRent: contract.monthly_rent,
-        area: contract.apartment.area,
-        electricConsumption: reading
-            ? nonNegativeDecimalDifference(reading.electric_new, reading.electric_old)
-            : new Prisma.Decimal(0),
-        waterConsumption: reading
-            ? nonNegativeDecimalDifference(reading.water_new, reading.water_old)
-            : new Prisma.Decimal(0),
-        occupantCount: 1 + contract.tenant._count.occupants,
-        ...feeSettings,
-        periodLabel: padMonth(month) + "/" + year
-    });
-};
 export const updateInvoiceStatusService = async (
     id: number,
     status: InvoiceStatus,
@@ -1017,6 +1125,60 @@ const isFirstDayInVietnam = (date: Date) => {
     return day === "01";
 };
 
+type MonthlyInvoiceGenerationResult = Awaited<
+    ReturnType<typeof generateMonthlyInvoicesService>
+>;
+
+export type MonthlyInvoiceJobResult =
+    | {
+        skipped: true;
+        reason: "NOT_FIRST_DAY" | "ALREADY_RAN";
+        runKey: string | null;
+        result: null;
+    }
+    | {
+        skipped: false;
+        reason: null;
+        runKey: string;
+        result: MonthlyInvoiceGenerationResult;
+    };
+
+export const runMonthlyInvoiceJob = async (options: {
+    now?: Date;
+    lastRunKey?: string;
+    force?: boolean;
+} = {}): Promise<MonthlyInvoiceJobResult> => {
+    const now = options.now ?? new Date();
+
+    if (!options.force && !isFirstDayInVietnam(now)) {
+        return {
+            skipped: true,
+            reason: "NOT_FIRST_DAY",
+            runKey: null,
+            result: null
+        };
+    }
+
+    const period = getPreviousBillingPeriod(now);
+    const runKey = period.year + "-" + padMonth(period.month);
+
+    if (options.lastRunKey === runKey) {
+        return {
+            skipped: true,
+            reason: "ALREADY_RAN",
+            runKey,
+            result: null
+        };
+    }
+
+    return {
+        skipped: false,
+        reason: null,
+        runKey,
+        result: await generateMonthlyInvoicesService(period)
+    };
+};
+
 export const startMonthlyInvoiceScheduler = () => {
     if ((process.env.INVOICE_AUTO_GENERATE ?? "true").toLowerCase() === "false") {
         console.log("Bộ lập lịch hóa đơn đã bị tắt.");
@@ -1028,22 +1190,28 @@ export const startMonthlyInvoiceScheduler = () => {
     let running = false;
 
     const checkAndRun = async () => {
-        if (running || !isFirstDayInVietnam(new Date())) {
-            return;
-        }
-
-        const period = getPreviousBillingPeriod();
-        const runKey = `${period.year}-${padMonth(period.month)}`;
-        if (lastRunKey === runKey) {
+        if (running) {
             return;
         }
 
         running = true;
         try {
-            const result = await generateMonthlyInvoicesService(period);
-            lastRunKey = runKey;
+            const job = await runMonthlyInvoiceJob({ lastRunKey });
+            if (job.skipped) {
+                return;
+            }
+
+            lastRunKey = job.runKey;
             console.log(
-                `Generated monthly invoices for ${padMonth(period.month)}/${period.year}: ${result.created_count} created, ${result.skipped_count} skipped.`
+                "Generated monthly invoices for "
+                + padMonth(job.result.month)
+                + "/"
+                + job.result.year
+                + ": "
+                + job.result.created_count
+                + " created, "
+                + job.result.skipped_count
+                + " skipped."
             );
         } catch (error) {
             console.error("Tạo hóa đơn hàng tháng thất bại:", error);
@@ -1055,5 +1223,3 @@ export const startMonthlyInvoiceScheduler = () => {
     void checkAndRun();
     setInterval(() => void checkAndRun(), intervalMs);
 };
-
-

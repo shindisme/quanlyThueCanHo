@@ -1,7 +1,23 @@
-import ImageKit from "imagekit";
+﻿import ImageKit from "imagekit";
+import { getImageKitConfig } from "./env.js";
 
-export const imagekit = new ImageKit({
-    publicKey: process.env.IMAGEKIT_PUBLIC_KEY!,
-    privateKey: process.env.IMAGEKIT_PRIVATE_KEY!,
-    urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT!
-});
+type ImageKitClient = InstanceType<typeof ImageKit>;
+
+let client: ImageKitClient | null = null;
+
+const getImageKitClient = () => {
+    if (client === null) {
+        client = new ImageKit(getImageKitConfig());
+    }
+
+    return client;
+};
+
+export const imagekit = {
+    upload: (
+        options: Parameters<ImageKitClient["upload"]>[0]
+    ) => getImageKitClient().upload(options),
+    deleteFile: (
+        fileId: Parameters<ImageKitClient["deleteFile"]>[0]
+    ) => getImageKitClient().deleteFile(fileId)
+};

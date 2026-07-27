@@ -1,4 +1,4 @@
-import {
+﻿import {
     ApartmentStatus,
     InvoiceStatus,
     InvoiceType,
@@ -18,6 +18,7 @@ import type { Actor } from "../types/auth.js";
 import { createInitialCredential, tenantUsername } from "./account.service.js";
 import { sendReservationDepositPaymentEmail } from "./mail.service.js";
 import { buildDepositPaymentUrl } from "./payment.service.js";
+import { runSerializableTransaction } from "../utils/prisma-transaction.js";
 
 type CreateReservationInput = CreateReservationRequest["body"];
 type ListReservationsInput = ListReservationsRequest["query"];
@@ -31,6 +32,17 @@ const addDays = (date: Date, days: number) => {
     return next;
 };
 
+const apartmentUnavailable = () => new AppError(
+    409,
+    "APARTMENT_UNAVAILABLE",
+    "Căn hộ không có sẵn để đặt cọc"
+);
+
+const reservationConcurrentModification = () => new AppError(
+    409,
+    "CONCURRENT_MODIFICATION",
+    "Đặt cọc đã bị thay đổi trong quá trình thực hiện"
+);
 const assertCanManageReservations = (actor: Actor) => {
     if (actor.role !== Role.ADMIN && actor.role !== Role.MANAGER) {
         throw new AppError(
@@ -132,7 +144,7 @@ const formatApartmentLabel = (
         room_number: string;
         floor: number;
     }
-) => `P.${apartment.room_number} - Tầng ${apartment.floor}`;
+) => `P.${apartment.room_number} - Táº§ng ${apartment.floor}`;
 
 const sendDepositPaymentEmail = async (
     data: {
@@ -242,7 +254,7 @@ export const createReservationDepositService = async (
         attempt += 1
     ) {
         try {
-            const result = await prisma.$transaction(async (tx) => {
+            const result = await runSerializableTransaction(async (tx) => {
                 const apartment = await tx.apartment.findFirst({
                     where: {
                         id: input.apartment_id,
@@ -264,13 +276,20 @@ export const createReservationDepositService = async (
                 });
 
                 if (!apartment) {
-                    throw new AppError(
-                        409,
-                        "APARTMENT_UNAVAILABLE",
-                        "Căn hộ không có sẵn để đặt cọc"
-                    );
+                    throw apartmentUnavailable();
                 }
 
+                const reservedApartment = await tx.apartment.updateMany({
+                    where: {
+                        id: apartment.id,
+                        status: ApartmentStatus.AVAILABLE
+                    },
+                    data: { status: ApartmentStatus.RESERVED }
+                });
+
+                if (reservedApartment.count === 0) {
+                    throw apartmentUnavailable();
+                }
                 const existingTenant = await tx.tenant.findFirst({
                     where: {
                         citizen_id: input.tenant.citizen_id
@@ -378,7 +397,7 @@ export const createReservationDepositService = async (
                     initial_password: credential.initial_password,
                     apartment
                 };
-            });
+            }, reservationConcurrentModification);
 
             await sendDepositPaymentEmail(result);
             const { apartment: _apartment, ...response } = result;
@@ -403,7 +422,7 @@ export const expireReservationsService = async (actor: Actor) => {
     assertCanManageReservations(actor);
     const now = new Date();
 
-    return prisma.$transaction(async (tx) => {
+    return runSerializableTransaction(async (tx) => {
         const expired = await tx.reservation.findMany({
             where: {
                 status: ReservationStatus.ACTIVE,
@@ -442,5 +461,5 @@ export const expireReservationsService = async (actor: Actor) => {
         }
 
         return { expired_count: expiredCount };
-    });
+    }, reservationConcurrentModification);
 };

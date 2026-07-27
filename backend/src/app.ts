@@ -1,12 +1,17 @@
-import "dotenv/config";
+﻿import "dotenv/config";
 import type {} from "./types/express/index.js";
 import cors from "cors";
 import express from "express";
+import {
+    getAppConfig,
+    isAllowedCorsOrigin
+} from "./config/env.js";
 import apartmentRouter from "./routes/apartment.route.js";
 import authRouter from "./routes/auth.route.js";
 import buildingRouter from "./routes/building.route.js";
 import chatbotRouter from "./routes/chatbot.route.js";
 import contractRouter from "./routes/contract.routes.js";
+import cronRouter from "./routes/cron.routes.js";
 import invoiceRouter from "./routes/invoice.routes.js";
 import maintenanceRouter from "./routes/maintenance.routes.js";
 import notificationRouter from "./routes/notification.routes.js";
@@ -25,9 +30,18 @@ import {
 import { sendSuccess } from "./utils/api-response.js";
 
 const app = express();
+const appConfig = getAppConfig();
 
-app.use(cors());
-app.use(express.json());
+app.set("trust proxy", appConfig.security.trustProxy);
+app.use(cors({
+    credentials: true,
+    origin: (origin, callback) => {
+        callback(null, isAllowedCorsOrigin(origin, appConfig));
+    }
+}));
+app.use(express.json({
+    limit: appConfig.security.jsonBodyLimit
+}));
 
 export const ROUTE_MOUNTS = [
     ["/buildings", buildingRouter],
@@ -45,7 +59,8 @@ export const ROUTE_MOUNTS = [
     ["/payments", paymentRouter],
     ["/reservations", reservationRouter],
     ["/notifications", notificationRouter],
-    ["/uploads", uploadRouter]
+    ["/uploads", uploadRouter],
+    ["/internal/cron", cronRouter]
 ] as const;
 
 for (const [path, router] of ROUTE_MOUNTS) {

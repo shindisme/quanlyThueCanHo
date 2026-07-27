@@ -230,7 +230,7 @@ model Payment {
   transaction_code String?       @unique
   amount           Decimal       @db.Decimal(12, 2)
   status           PaymentStatus @default(PENDING)
-  paid_at          DateTime      @default(now())
+  paid_at          DateTime?
   invoice          Invoice       @relation(fields: [invoice_id], references: [id])
 
   @@index([invoice_id, status])

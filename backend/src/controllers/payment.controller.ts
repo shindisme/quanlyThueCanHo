@@ -150,11 +150,11 @@ export const vnpayReturn = async (
                 "RETURN"
             );
 
-        const status = "status" in result
+        const status = result.kind === "RETURN"
             ? result.status
             : "UNKNOWN";
 
-        const responseCode = "response_code" in result
+        const responseCode = result.kind === "RETURN"
             ? result.response_code
             : undefined;
 
@@ -162,11 +162,11 @@ export const vnpayReturn = async (
             ? "CANCELLED"
             : status;
 
-        const invoiceId = "invoice_id" in result
+        const invoiceId = result.kind === "RETURN"
             ? result.invoice_id
             : null;
 
-        const paymentId = "payment_id" in result
+        const paymentId = result.kind === "RETURN"
             ? result.payment_id
             : null;
 
@@ -232,5 +232,17 @@ export const vnpayIpn = async (
             "IPN"
         );
 
-    return response.status(200).json(result);
+    if (result.kind !== "IPN") {
+        return response.status(200).json({
+            RspCode: "99",
+            Message: "Invalid callback source"
+        });
+    }
+
+    const {
+        kind: _kind,
+        ...body
+    } = result;
+
+    return response.status(200).json(body);
 };

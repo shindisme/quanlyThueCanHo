@@ -1,10 +1,14 @@
 ﻿import {
     Role,
-    UserStatus,
+    UserStatus
 } from "@prisma/client";
-import type { RequestHandler } from "express";
+import type {
+    Request,
+    RequestHandler
+} from "express";
 import jwt from "jsonwebtoken";
 import { prisma } from "../config/database.js";
+import { getAuthConfig } from "../config/env.js";
 import { AppError } from "../errors/app-error.js";
 import type { Actor } from "../types/auth.js";
 
@@ -14,15 +18,17 @@ const invalidTokenError = () => new AppError(
     "Phiên đăng nhập không hợp lệ hoặc đã hết hạn"
 );
 
+const authenticationRequiredError = () => new AppError(
+    401,
+    "AUTHENTICATION_REQUIRED",
+    "Yêu cầu đăng nhập"
+);
+
 const getBearerToken = (authorization: string | undefined) => {
     const match = authorization?.match(/^Bearer ([^\s]+)$/);
 
     if (!match) {
-        throw new AppError(
-            401,
-            "AUTHENTICATION_REQUIRED",
-            "Yêu cầu đăng nhập"
-        );
+        throw authenticationRequiredError();
     }
 
     return match[1];
@@ -46,19 +52,17 @@ const getSubjectUserId = (payload: string | jwt.JwtPayload) => {
     return userId;
 };
 
-export const authenticate: RequestHandler = async (request, _response, next) => {
-    const token = getBearerToken(request.headers.authorization);
-    const secret = process.env.JWT_SECRET;
-
-    if (!secret) {
-        throw new AppError(
-            500,
-            "JWT_NOT_CONFIGURED",
-            "Cấu hình xác thực JWT chưa được thiết lập"
-        );
+const requireAuthenticatedActor = (request: Request) => {
+    if (!request.actor) {
+        throw authenticationRequiredError();
     }
 
-    const payload = jwt.verify(token, secret, {
+    return request.actor;
+};
+
+export const authenticate: RequestHandler = async (request, _response, next) => {
+    const token = getBearerToken(request.headers.authorization);
+    const payload = jwt.verify(token, getAuthConfig().jwtSecret, {
         algorithms: ["HS256"]
     });
     const userId = getSubjectUserId(payload);
@@ -118,15 +122,9 @@ export const authenticate: RequestHandler = async (request, _response, next) => 
 
 export const authorizeRole = (roles: Role[]): RequestHandler => {
     return (request, _response, next) => {
-        if (!request.actor) {
-            throw new AppError(
-                401,
-                "AUTHENTICATION_REQUIRED",
-                "Yêu cầu đăng nhập"
-            );
-        }
+        const actor = requireAuthenticatedActor(request);
 
-        if (!roles.includes(request.actor.role)) {
+        if (!roles.includes(actor.role)) {
             throw new AppError(
                 403,
                 "FORBIDDEN",
@@ -143,19 +141,13 @@ export const requireManagerBuildingAssignment: RequestHandler = (
     _response,
     next
 ) => {
-    if (!request.actor) {
-        throw new AppError(
-            401,
-            "AUTHENTICATION_REQUIRED",
-            "Yêu cầu đăng nhập"
-        );
-    }
+    const actor = requireAuthenticatedActor(request);
 
     if (
-        request.actor.role === Role.MANAGER
+        actor.role === Role.MANAGER
         && (
-            request.actor.staffId === undefined
-            || request.actor.buildingId === undefined
+            actor.staffId === undefined
+            || actor.buildingId === undefined
         )
     ) {
         throw new AppError(
@@ -168,3 +160,20 @@ export const requireManagerBuildingAssignment: RequestHandler = (
     next();
 };
 
+export const requireTenantProfile: RequestHandler = (
+    request,
+    _response,
+    next
+) => {
+    const actor = requireAuthenticatedActor(request);
+
+    if (actor.role === Role.TENANT && actor.tenantId === undefined) {
+        throw new AppError(
+            403,
+            "TENANT_PROFILE_REQUIRED",
+            "Yêu cầu phải có hồ sơ khách thuê"
+        );
+    }
+
+    next();
+};

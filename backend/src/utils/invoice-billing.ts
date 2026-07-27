@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+﻿import { Prisma } from "@prisma/client";
 
 export type BillingInvoiceItem = {
     item_name: string;
@@ -24,6 +24,7 @@ export type ElectricTierDetail = {
     unit_price: number;
     amount: number;
 };
+
 export type UtilityType = "ELECTRIC" | "WATER";
 
 export type UtilityTierInvoiceItem<T extends BillingInvoiceItem> = T & {
@@ -33,8 +34,16 @@ export type UtilityTierInvoiceItem<T extends BillingInvoiceItem> = T & {
     water_tier_details?: ElectricTierDetail[];
 };
 
+export type UtilityReadingBillingInput = {
+    electric_old: MoneyInput;
+    electric_new: MoneyInput;
+    water_old: MoneyInput;
+    water_new: MoneyInput;
+};
+
 const MANAGEMENT_FEE_PER_M2 = 10_000;
 const SERVICE_FEE = 300_000;
+const ZERO = new Prisma.Decimal(0);
 
 const ELECTRIC_TIER_LIMITS = [
     50,
@@ -63,28 +72,30 @@ const DEFAULT_WATER_TIER_PRICES = [
     14_400
 ] as const;
 
-const toDecimal = (value: Prisma.Decimal | number | string) =>
-    new Prisma.Decimal(value);
+const toDecimal = (value: MoneyInput) => new Prisma.Decimal(value);
 
-const roundDecimalMoney = (
-    value: Prisma.Decimal | number | string
-) => toDecimal(value).toDecimalPlaces(
-    2,
-    Prisma.Decimal.ROUND_HALF_UP
-);
+const roundDecimalMoney = (value: MoneyInput) =>
+    toDecimal(value).toDecimalPlaces(
+        2,
+        Prisma.Decimal.ROUND_HALF_UP
+    );
 
-const roundMoney = (
-    value: Prisma.Decimal | number | string
-) => roundDecimalMoney(value).toNumber();
+const moneyNumber = (value: MoneyInput) =>
+    roundDecimalMoney(value).toNumber();
 
-const roundMeterQuantity = (
-    value: Prisma.Decimal | number | string
-) => Math.max(0, Math.round(toDecimal(value).toNumber()));
+const roundMeterQuantity = (value: MoneyInput) =>
+    Prisma.Decimal.max(
+        ZERO,
+        toDecimal(value).toDecimalPlaces(
+            0,
+            Prisma.Decimal.ROUND_HALF_UP
+        )
+    );
 
 const managementFeeAmount = (
-    area: Prisma.Decimal | number | string,
+    area: MoneyInput,
     unitPrice: MoneyInput
-) => roundMoney(toDecimal(area).mul(unitPrice));
+) => moneyNumber(toDecimal(area).mul(toDecimal(unitPrice)));
 
 const positivePersonCount = (value: number | undefined) =>
     Math.max(1, Math.trunc(value ?? 1));
@@ -93,8 +104,10 @@ const resolveElectricTiers = (
     unitPrices?: readonly MoneyInput[]
 ) => ELECTRIC_TIER_LIMITS.map((limit, index) => ({
     limit,
-    unitPrice: roundMoney(
-        unitPrices?.[index] ?? DEFAULT_ELECTRIC_TIER_PRICES[index] ?? 0
+    unitPrice: roundDecimalMoney(
+        unitPrices?.[index]
+        ?? DEFAULT_ELECTRIC_TIER_PRICES[index]
+        ?? 0
     )
 }));
 
@@ -103,8 +116,10 @@ const resolveWaterTiers = (
     unitPrices?: readonly MoneyInput[]
 ) => WATER_TIER_LIMITS_PER_PERSON.map((limit, index) => ({
     limit: limit === null ? null : limit * personCount,
-    unitPrice: roundMoney(
-        unitPrices?.[index] ?? DEFAULT_WATER_TIER_PRICES[index] ?? 0
+    unitPrice: roundDecimalMoney(
+        unitPrices?.[index]
+        ?? DEFAULT_WATER_TIER_PRICES[index]
+        ?? 0
     )
 }));
 
@@ -113,8 +128,8 @@ const buildElectricTierLabel = (
     from: number,
     to: number | null
 ) => to === null
-    ? `Bậc ${tier} (Trên ${from - 1} kWh)`
-    : `Bậc ${tier} (${from}-${to} kWh)`;
+    ? `Báº­c ${tier} (TrÃªn ${from - 1} kWh)`
+    : `Báº­c ${tier} (${from}-${to} kWh)`;
 
 const buildWaterTierLabel = (
     tier: number,
@@ -122,11 +137,11 @@ const buildWaterTierLabel = (
     to: number | null,
     personCount: number
 ) => to === null
-    ? `Bậc ${tier} (${from}+ m³, ${personCount} người)`
-    : `Bậc ${tier} (${from}-${to} m³, ${personCount} người)`;
+    ? `Báº­c ${tier} (${from}+ mÂ³, ${personCount} ngÆ°á»i)`
+    : `Báº­c ${tier} (${from}-${to} mÂ³, ${personCount} ngÆ°á»i)`;
 
 export const calculateElectricTierDetails = (
-    consumption: Prisma.Decimal | number | string,
+    consumption: MoneyInput,
     unitPrices?: readonly MoneyInput[]
 ): ElectricTierDetail[] => {
     let remaining = toDecimal(consumption);
@@ -145,16 +160,16 @@ export const calculateElectricTierDetails = (
         const quantity = tier.limit === null
             ? remaining
             : Prisma.Decimal.min(remaining, tier.limit);
-        const amount = roundMoney(quantity.mul(tier.unitPrice));
+        const amount = roundDecimalMoney(quantity.mul(tier.unitPrice));
         const from = usedLimit === 0 ? 0 : usedLimit + 1;
         const to = tier.limit === null ? null : usedLimit + tier.limit;
 
         details.push({
             tier: index + 1,
             label: buildElectricTierLabel(index + 1, from, to),
-            quantity: roundMoney(quantity),
-            unit_price: tier.unitPrice,
-            amount
+            quantity: quantity.toNumber(),
+            unit_price: moneyNumber(tier.unitPrice),
+            amount: amount.toNumber()
         });
 
         remaining = remaining.minus(quantity);
@@ -167,7 +182,7 @@ export const calculateElectricTierDetails = (
 };
 
 export const calculateWaterTierDetails = (
-    consumption: Prisma.Decimal | number | string,
+    consumption: MoneyInput,
     occupantCount: number | undefined,
     unitPrices?: readonly MoneyInput[]
 ): ElectricTierDetail[] => {
@@ -180,7 +195,10 @@ export const calculateWaterTierDetails = (
     let usedLimit = 0;
     const details: ElectricTierDetail[] = [];
 
-    for (const [index, tier] of resolveWaterTiers(personCount, unitPrices).entries()) {
+    for (const [index, tier] of resolveWaterTiers(
+        personCount,
+        unitPrices
+    ).entries()) {
         if (remaining.lessThanOrEqualTo(0)) {
             break;
         }
@@ -188,16 +206,16 @@ export const calculateWaterTierDetails = (
         const quantity = tier.limit === null
             ? remaining
             : Prisma.Decimal.min(remaining, tier.limit);
-        const amount = roundMoney(quantity.mul(tier.unitPrice));
+        const amount = roundDecimalMoney(quantity.mul(tier.unitPrice));
         const from = usedLimit === 0 ? 0 : usedLimit + 1;
         const to = tier.limit === null ? null : usedLimit + tier.limit;
 
         details.push({
             tier: index + 1,
             label: buildWaterTierLabel(index + 1, from, to, personCount),
-            quantity: roundMoney(quantity),
-            unit_price: tier.unitPrice,
-            amount
+            quantity: quantity.toNumber(),
+            unit_price: moneyNumber(tier.unitPrice),
+            amount: amount.toNumber()
         });
 
         remaining = remaining.minus(quantity);
@@ -210,26 +228,28 @@ export const calculateWaterTierDetails = (
 };
 
 export const calculateElectricAmount = (
-    consumption: Prisma.Decimal | number | string,
+    consumption: MoneyInput,
     unitPrices?: readonly MoneyInput[]
-) => roundMoney(calculateElectricTierDetails(consumption, unitPrices).reduce(
+) => moneyNumber(calculateElectricTierDetails(
+    consumption,
+    unitPrices
+).reduce(
     (sum, detail) => sum.plus(detail.amount),
-    new Prisma.Decimal(0)
+    ZERO
 ));
 
 export const calculateWaterAmount = (
-    consumption: Prisma.Decimal | number | string,
+    consumption: MoneyInput,
     occupantCount?: number,
     unitPrices?: readonly MoneyInput[]
-) => roundMoney(calculateWaterTierDetails(
+) => moneyNumber(calculateWaterTierDetails(
     consumption,
     occupantCount,
     unitPrices
 ).reduce(
     (sum, detail) => sum.plus(detail.amount),
-    new Prisma.Decimal(0)
+    ZERO
 ));
-
 
 type UtilityItemInput = {
     item_name: string;
@@ -239,15 +259,17 @@ type UtilityItemInput = {
 };
 
 const TIER_ITEM_PATTERN =
-    /^(Tiền điện|Tiền nước)(.*?)\s+-\s+(Bậc\s+(\d+)\s+\(.+\))$/u;
-const UTILITY_ITEM_PATTERN = /^(Tiền điện|Tiền nước)\b/u;
+    /^(Tiá»n Ä‘iá»‡n|Tiá»n nÆ°á»›c)(.*?)\s+-\s+(Báº­c\s+(\d+)\s+\(.+\))$/u;
+const UTILITY_ITEM_PATTERN = /^(Tiá»n Ä‘iá»‡n|Tiá»n nÆ°á»›c)\b/u;
 
-const utilityTypeFromName = (name: string): UtilityType | undefined => {
-    if (name.startsWith("Tiền điện")) {
+const utilityTypeFromName = (
+    name: string
+): UtilityType | undefined => {
+    if (name.startsWith("Tiá»n Ä‘iá»‡n")) {
         return "ELECTRIC";
     }
 
-    if (name.startsWith("Tiền nước")) {
+    if (name.startsWith("Tiá»n nÆ°á»›c")) {
         return "WATER";
     }
 
@@ -269,7 +291,7 @@ const withTierDetails = <T extends UtilityItemInput>(
 });
 
 const sameMoney = (left: number, right: number) =>
-    Math.abs(roundMoney(left) - roundMoney(right)) < 0.01;
+    roundDecimalMoney(left).equals(roundDecimalMoney(right));
 
 const legacyTierDetails = (
     item: UtilityItemInput,
@@ -295,7 +317,7 @@ const legacyTierDetails = (
 
     return [{
         tier: 1,
-        label: "Bậc 1 (theo hóa đơn)",
+        label: "Báº­c 1 (theo hÃ³a Ä‘Æ¡n)",
         quantity: item.quantity,
         unit_price: item.unit_price,
         amount: item.amount
@@ -312,7 +334,7 @@ export const attachUtilityTierDetails = <T extends UtilityItemInput>(
         const tierMatch = item.item_name.match(TIER_ITEM_PATTERN);
         if (tierMatch) {
             const [, utilityName, period, label, tierText] = tierMatch;
-            const type = utilityName === "Tiền điện" ? "ELECTRIC" : "WATER";
+            const type = utilityName === "Tiá»n Ä‘iá»‡n" ? "ELECTRIC" : "WATER";
             const key = `${utilityName}${period}`;
             let group = groups.get(key);
 
@@ -339,8 +361,12 @@ export const attachUtilityTierDetails = <T extends UtilityItemInput>(
                 unit_price: item.unit_price,
                 amount: item.amount
             });
-            group.quantity = roundMoney(group.quantity + item.quantity);
-            group.amount = roundMoney(group.amount + item.amount);
+            group.quantity = moneyNumber(
+                toDecimal(group.quantity).plus(item.quantity)
+            );
+            group.amount = moneyNumber(
+                toDecimal(group.amount).plus(item.amount)
+            );
             continue;
         }
 
@@ -357,43 +383,43 @@ export const attachUtilityTierDetails = <T extends UtilityItemInput>(
 
     return result;
 };
+
 export const sumBillingItems = (
     items: BillingInvoiceItem[]
-) => roundMoney(items.reduce(
+) => moneyNumber(items.reduce(
     (sum, item) => sum.plus(item.amount),
-    new Prisma.Decimal(0)
+    ZERO
 ));
 
 export const buildFirstRentalInvoiceItems = (input: {
-    depositAmount: Prisma.Decimal | number | string;
-    monthlyRent: Prisma.Decimal | number | string;
-    area: Prisma.Decimal | number | string;
+    depositAmount: MoneyInput;
+    monthlyRent: MoneyInput;
+    area: MoneyInput;
 } & Pick<
     BillingFeeSettings,
     "managementFee" | "managementFeePerM2" | "serviceFee"
 >): BillingInvoiceItem[] => {
-    const rentAmount = roundMoney(input.monthlyRent);
-    const area = roundMoney(input.area);
-    const managementFee = roundMoney(input.managementFee ?? 0);
-    const managementFeePerM2 = roundMoney(
+    const rentAmount = moneyNumber(input.monthlyRent);
+    const area = moneyNumber(input.area);
+    const managementFee = moneyNumber(input.managementFee ?? 0);
+    const managementFeePerM2 = moneyNumber(
         input.managementFeePerM2 ?? MANAGEMENT_FEE_PER_M2
     );
     const managementAmount = managementFeeAmount(
         input.area,
-        managementFeePerM2
+        input.managementFeePerM2 ?? MANAGEMENT_FEE_PER_M2
     );
-    const serviceFee = roundMoney(input.serviceFee ?? SERVICE_FEE);
+    const serviceFee = moneyNumber(input.serviceFee ?? SERVICE_FEE);
 
     const items: BillingInvoiceItem[] = [
-
         {
-            item_name: "Tiền thuê phòng tháng đầu tiên",
+            item_name: "Tiá»n thuÃª phÃ²ng thÃ¡ng Ä‘áº§u tiÃªn",
             quantity: 1,
             unit_price: rentAmount,
             amount: rentAmount
         },
         {
-            item_name: "Phí quản lý",
+            item_name: "PhÃ­ quáº£n lÃ½",
             quantity: area,
             unit_price: managementFeePerM2,
             amount: managementAmount
@@ -402,7 +428,7 @@ export const buildFirstRentalInvoiceItems = (input: {
 
     if (managementFee > 0) {
         items.push({
-            item_name: "Phí quản lý cố định",
+            item_name: "PhÃ­ quáº£n lÃ½ cá»‘ Ä‘á»‹nh",
             quantity: 1,
             unit_price: managementFee,
             amount: managementFee
@@ -410,7 +436,7 @@ export const buildFirstRentalInvoiceItems = (input: {
     }
 
     items.push({
-        item_name: "Phí dịch vụ",
+        item_name: "PhÃ­ dá»‹ch vá»¥",
         quantity: 1,
         unit_price: serviceFee,
         amount: serviceFee
@@ -419,37 +445,41 @@ export const buildFirstRentalInvoiceItems = (input: {
     return items;
 };
 
-export const buildRecurringMonthlyInvoiceItems = (input: {
-    monthlyRent: Prisma.Decimal | number | string;
-    area: Prisma.Decimal | number | string;
-    electricConsumption: Prisma.Decimal | number | string;
-    waterConsumption: Prisma.Decimal | number | string;
+export type RecurringMonthlyInvoiceInput = {
+    monthlyRent: MoneyInput;
+    area: MoneyInput;
+    electricConsumption: MoneyInput;
+    waterConsumption: MoneyInput;
     occupantCount?: number;
     periodLabel: string;
-} & BillingFeeSettings): BillingInvoiceItem[] => {
-    const rentAmount = roundMoney(input.monthlyRent);
-    const area = roundMoney(input.area);
-    const managementFee = roundMoney(input.managementFee ?? 0);
-    const managementFeePerM2 = roundMoney(
+} & BillingFeeSettings;
+
+export const buildRecurringMonthlyInvoiceItems = (
+    input: RecurringMonthlyInvoiceInput
+): BillingInvoiceItem[] => {
+    const rentAmount = moneyNumber(input.monthlyRent);
+    const area = moneyNumber(input.area);
+    const managementFee = moneyNumber(input.managementFee ?? 0);
+    const managementFeePerM2 = moneyNumber(
         input.managementFeePerM2 ?? MANAGEMENT_FEE_PER_M2
     );
     const managementAmount = managementFeeAmount(
         input.area,
-        managementFeePerM2
+        input.managementFeePerM2 ?? MANAGEMENT_FEE_PER_M2
     );
     const electricQuantity = roundMeterQuantity(input.electricConsumption);
     const waterQuantity = roundMeterQuantity(input.waterConsumption);
-    const serviceFee = roundMoney(input.serviceFee ?? SERVICE_FEE);
+    const serviceFee = moneyNumber(input.serviceFee ?? SERVICE_FEE);
 
     const items: BillingInvoiceItem[] = [
         {
-            item_name: `Phí thuê căn hộ ${input.periodLabel}`,
+            item_name: `PhÃ­ thuÃª cÄƒn há»™ ${input.periodLabel}`,
             quantity: 1,
             unit_price: rentAmount,
             amount: rentAmount
         },
         {
-            item_name: `Phí quản lý ${input.periodLabel}`,
+            item_name: `PhÃ­ quáº£n lÃ½ ${input.periodLabel}`,
             quantity: area,
             unit_price: managementFeePerM2,
             amount: managementAmount
@@ -458,7 +488,7 @@ export const buildRecurringMonthlyInvoiceItems = (input: {
 
     if (managementFee > 0) {
         items.push({
-            item_name: `Phí quản lý cố định ${input.periodLabel}`,
+            item_name: `PhÃ­ quáº£n lÃ½ cá»‘ Ä‘á»‹nh ${input.periodLabel}`,
             quantity: 1,
             unit_price: managementFee,
             amount: managementFee
@@ -471,14 +501,14 @@ export const buildRecurringMonthlyInvoiceItems = (input: {
     );
     items.push(...(electricTierDetails.length > 0
         ? electricTierDetails.map((detail) => ({
-            item_name: `Tiền điện ${input.periodLabel} - ${detail.label}`,
+            item_name: `Tiá»n Ä‘iá»‡n ${input.periodLabel} - ${detail.label}`,
             quantity: detail.quantity,
             unit_price: detail.unit_price,
             amount: detail.amount
         }))
         : [{
-            item_name: `Tiền điện ${input.periodLabel}`,
-            quantity: electricQuantity,
+            item_name: `Tiá»n Ä‘iá»‡n ${input.periodLabel}`,
+            quantity: electricQuantity.toNumber(),
             unit_price: 0,
             amount: 0
         }]));
@@ -490,20 +520,20 @@ export const buildRecurringMonthlyInvoiceItems = (input: {
     );
     items.push(...(waterTierDetails.length > 0
         ? waterTierDetails.map((detail) => ({
-            item_name: `Tiền nước ${input.periodLabel} - ${detail.label}`,
+            item_name: `Tiá»n nÆ°á»›c ${input.periodLabel} - ${detail.label}`,
             quantity: detail.quantity,
             unit_price: detail.unit_price,
             amount: detail.amount
         }))
         : [{
-            item_name: `Tiền nước ${input.periodLabel}`,
-            quantity: waterQuantity,
+            item_name: `Tiá»n nÆ°á»›c ${input.periodLabel}`,
+            quantity: waterQuantity.toNumber(),
             unit_price: 0,
             amount: 0
         }]));
 
     items.push({
-        item_name: `Phí dịch vụ ${input.periodLabel}`,
+        item_name: `PhÃ­ dá»‹ch vá»¥ ${input.periodLabel}`,
         quantity: 1,
         unit_price: serviceFee,
         amount: serviceFee
@@ -511,3 +541,31 @@ export const buildRecurringMonthlyInvoiceItems = (input: {
 
     return items;
 };
+
+export const calculateMeterConsumption = (
+    newer: MoneyInput,
+    older: MoneyInput
+) => Prisma.Decimal.max(ZERO, toDecimal(newer).minus(toDecimal(older)));
+
+export const buildRecurringMonthlyInvoiceItemsFromReadings = (
+    input: Omit<
+        RecurringMonthlyInvoiceInput,
+        "electricConsumption" | "waterConsumption"
+    > & {
+        utilityReading?: UtilityReadingBillingInput | null;
+    }
+) => buildRecurringMonthlyInvoiceItems({
+    ...input,
+    electricConsumption: input.utilityReading
+        ? calculateMeterConsumption(
+            input.utilityReading.electric_new,
+            input.utilityReading.electric_old
+        )
+        : ZERO,
+    waterConsumption: input.utilityReading
+        ? calculateMeterConsumption(
+            input.utilityReading.water_new,
+            input.utilityReading.water_old
+        )
+        : ZERO
+});

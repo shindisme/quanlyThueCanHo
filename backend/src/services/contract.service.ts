@@ -1,4 +1,4 @@
-import {
+﻿import {
     ApartmentStatus,
     ContractStatus,
     InvoiceType,
@@ -29,6 +29,7 @@ import {
     buildFirstRentalInvoiceItems,
     sumBillingItems
 } from "../utils/invoice-billing.js";
+import { runSerializableTransaction } from "../utils/prisma-transaction.js";
 
 const contractInclude = {
     tenant: {
@@ -107,35 +108,6 @@ const sendActivationEmailAfterContractCreation = async (
         // Email lỗi không được làm rollback hợp đồng đã tạo.
     }
 };
-const SERIALIZABLE_RETRY_LIMIT = 3;
-
-const runSerializableTransaction = async <T>(
-    operation: (transaction: Prisma.TransactionClient) => Promise<T>
-) => {
-    for (let attempt = 1; attempt <= SERIALIZABLE_RETRY_LIMIT; attempt++) {
-        try {
-            return await prisma.$transaction(operation, {
-                isolationLevel:
-                    Prisma.TransactionIsolationLevel.Serializable
-            });
-        } catch (error) {
-            const isSerializationConflict =
-                error instanceof Prisma.PrismaClientKnownRequestError
-                && error.code === "P2034";
-
-            if (!isSerializationConflict) {
-                throw error;
-            }
-
-            if (attempt === SERIALIZABLE_RETRY_LIMIT) {
-                throw concurrentModification();
-            }
-        }
-    }
-
-    throw new Error("Serializable transaction retry exhausted");
-};
-
 const isActiveContractUniqueConflict = (error: unknown) => {
     if (
         !(error instanceof Prisma.PrismaClientKnownRequestError)
@@ -592,7 +564,7 @@ export const createContractService = async (
             });
 
             if (reservation) {
-                await transaction.reservation.updateMany({
+                const convertedReservation = await transaction.reservation.updateMany({
                     where: {
                         id: reservation.id,
                         status: ReservationStatus.ACTIVE
@@ -602,6 +574,10 @@ export const createContractService = async (
                         contract_id: contract.id
                     }
                 });
+
+                if (convertedReservation.count === 0) {
+                    throw concurrentModification();
+                }
             }
             const firstInvoiceItems = buildFirstRentalInvoiceItems({
                 depositAmount: input.deposit_amount,
@@ -671,7 +647,7 @@ export const createContractService = async (
                 contract: normalizeCreatedContract(contract),
                 tenant
             };
-        });
+        }, concurrentModification);
 
         await sendActivationEmailAfterContractCreation(result.tenant);
 
@@ -749,7 +725,7 @@ export const extendContractService = async (
         contract,
         old_end_date: existing.end_date
     };
-});
+}, concurrentModification);
 
 export const endContractService = async (
     id: number,
@@ -876,4 +852,4 @@ export const endContractService = async (
         ended_at: endDate,
         apartment_status: apartmentStatus
     };
-});
+}, concurrentModification);
