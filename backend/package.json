@@ -8,12 +8,14 @@
   "main": "api/server.js",
   "scripts": {
     "dev": "dotenv -e .env -- tsx watch ./src/server.ts",
-    "build": "prisma generate && tsc && tsc-alias",
-    "start": "node ./dist/server.js",
+    "clean": "node -e \"require('node:fs').rmSync('api', { recursive: true, force: true })\"",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run clean && prisma generate && tsc && tsc-alias",
+    "start": "node ./api/server.js",
     "prisma:gen": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest"
-  },
+},
   "dependencies": {
     "@getbrevo/brevo": "^5.0.4",
     "@google/genai": "^2.8.0",
