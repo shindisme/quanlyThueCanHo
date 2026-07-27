@@ -11,7 +11,6 @@ import authRouter from "./routes/auth.route.js";
 import buildingRouter from "./routes/building.route.js";
 import chatbotRouter from "./routes/chatbot.route.js";
 import contractRouter from "./routes/contract.routes.js";
-import cronRouter from "./routes/cron.routes.js";
 import invoiceRouter from "./routes/invoice.routes.js";
 import maintenanceRouter from "./routes/maintenance.routes.js";
 import notificationRouter from "./routes/notification.routes.js";
@@ -59,8 +58,7 @@ export const ROUTE_MOUNTS = [
     ["/payments", paymentRouter],
     ["/reservations", reservationRouter],
     ["/notifications", notificationRouter],
-    ["/uploads", uploadRouter],
-    ["/internal/cron", cronRouter]
+    ["/uploads", uploadRouter]
 ] as const;
 
 for (const [path, router] of ROUTE_MOUNTS) {
