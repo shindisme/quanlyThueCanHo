@@ -1,6 +1,7 @@
 import type { Invoice } from "../types";
 import { formatDate } from "./date";
 import { getInvoicePeriod } from "./invoicePeriod";
+import { getDisplayItemAmount, getDisplayTierDetails } from "./feeSettings";
 
 export function printInvoiceHelper(invoice: Invoice) {
   const printWindow = window.open("", "_blank");
@@ -17,32 +18,44 @@ export function printInvoiceHelper(invoice: Invoice) {
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
   const formatNumber = (value: number) =>
     new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 }).format(value);
-  const totalStr = formatCurrency(Number(invoice.total_amount));
-
-  const itemsRows = (invoice.items || [])
+  const occupantCount = invoice.contract?.actual_occupants;
+  const invoiceItems = invoice.items || [];
+  const totalStr = formatCurrency(invoiceItems.length > 0
+    ? invoiceItems.reduce((sum, item) => sum + getDisplayItemAmount(item, occupantCount), 0)
+    : Number(invoice.total_amount));
+  const getTierDetails = (item: NonNullable<Invoice["items"]>[number]) =>
+    getDisplayTierDetails(item, occupantCount);
+  const getUtilityUnit = (item: NonNullable<Invoice["items"]>[number]) => {
+    if (item.utility_type === "WATER" || item.item_name.startsWith("Tiền nước")) return "m³";
+    if (item.utility_type === "ELECTRIC" || item.item_name.startsWith("Tiền điện")) return "kWh";
+    return "";
+  };
+  const itemsRows = invoiceItems
     .map((item) => {
-      const electricTierDetails = item.electric_tier_details ?? [];
-      const unitPriceText = electricTierDetails.length > 0
+      const tierDetails = getTierDetails(item);
+      const utilityUnit = getUtilityUnit(item);
+      const unitPriceText = tierDetails.length > 0
         ? "Theo bậc"
         : formatCurrency(Number(item.unit_price));
-      const detailRows = electricTierDetails
+      const detailRows = tierDetails
         .map(
           (detail) => `
       <tr style="background: #f9fafb; color: #4b5563; font-size: 12px;">
         <td style="padding: 7px 10px 7px 28px; border-bottom: 1px solid #eee;">${detail.label}</td>
-        <td style="padding: 7px 10px; border-bottom: 1px solid #eee; text-align: center;">${formatNumber(Number(detail.quantity))} kWh</td>
+        <td style="padding: 7px 10px; border-bottom: 1px solid #eee; text-align: center;">${formatNumber(Number(detail.quantity))}${utilityUnit ? ` ${utilityUnit}` : ""}</td>
         <td style="padding: 7px 10px; border-bottom: 1px solid #eee; text-align: right;">${formatCurrency(Number(detail.unit_price))}</td>
         <td style="padding: 7px 10px; border-bottom: 1px solid #eee; text-align: right;">${formatCurrency(Number(detail.amount))}</td>
       </tr>`
         )
         .join("");
+      const itemAmount = getDisplayItemAmount(item, occupantCount);
 
       return `
       <tr>
         <td style="padding: 10px; border-bottom: 1px solid #ddd;">${item.item_name}</td>
         <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${formatNumber(Number(item.quantity))}</td>
         <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">${unitPriceText}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right; font-weight: bold;">${formatCurrency(Number(item.amount))}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right; font-weight: bold;">${formatCurrency(itemAmount)}</td>
       </tr>
       ${detailRows}`;
     })

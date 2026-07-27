@@ -83,6 +83,14 @@ export default function SettingsPage() {
     }));
   };
 
+  const handleRateChange = (key: "electricityRates" | "waterRates", index: number, value: string) => {
+    const num = parseMoneyInput(value);
+    setFees((prev) => ({
+      ...prev,
+      [key]: prev[key].map((rate, rateIndex) => (rateIndex === index ? num : rate)),
+    }));
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -140,9 +148,9 @@ export default function SettingsPage() {
                     <div className="relative">
                       <input
                         type="text"
-                        disabled={true}
                         value={formatCurrencyInput(rate)}
-                        className="w-full rounded-xl border border-gray-200 p-3 pr-14 text-sm font-bold text-gray-600 bg-gray-50/80 cursor-not-allowed"
+                        onChange={(e) => handleRateChange("electricityRates", index, e.target.value)}
+                        className="w-full rounded-xl border border-gray-300 p-3 pr-14 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">đ/kWh</span>
                     </div>
@@ -165,9 +173,9 @@ export default function SettingsPage() {
                     <div className="relative">
                       <input
                         type="text"
-                        disabled={true}
                         value={formatCurrencyInput(rate)}
-                        className="w-full rounded-xl border border-gray-200 p-3 pr-14 text-sm font-bold text-gray-600 bg-gray-50/80 cursor-not-allowed"
+                        onChange={(e) => handleRateChange("waterRates", index, e.target.value)}
+                        className="w-full rounded-xl border border-gray-300 p-3 pr-14 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">đ/m³</span>
                     </div>

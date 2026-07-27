@@ -14,7 +14,7 @@ const paginationSchema = {
 
 const buildingFields = {
     branch_name: z.string().trim().min(1).max(200),
-    address: z.string().trim().min(1).max(500).optional(),
+    address: z.string().trim().min(1).max(500),
     address_old: z.string().trim().min(1).max(500).optional(),
     address_new: z.string().trim().min(1).max(500).optional(),
     description: z.string().trim().max(5000).nullable().optional(),
@@ -45,7 +45,6 @@ export const createBuildingRequestSchema = z.object({
     query: emptyObjectSchema,
     body: z.object({
         ...buildingFields,
-        address: z.string().trim().min(1).max(500).optional(),
         status: buildingFields.status.default(BuildingStatus.ACTIVE)
     }).strict()
 }).strict();
@@ -55,7 +54,7 @@ export const updateBuildingRequestSchema = z.object({
     query: emptyObjectSchema,
     body: z.object({
         branch_name: buildingFields.branch_name.optional(),
-        address: z.string().trim().min(1).max(500).optional(),
+        address: buildingFields.address.optional(),
         address_old: buildingFields.address_old.optional(),
         address_new: buildingFields.address_new.optional(),
         description: buildingFields.description,

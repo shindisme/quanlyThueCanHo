@@ -20,6 +20,7 @@ import { getManagerApartmentScope } from "../utils/manager-scope.js";
 import {
     buildFirstRentalInvoiceItems,
     buildRecurringMonthlyInvoiceItems,
+    attachUtilityTierDetails,
     type BillingFeeSettings,
     type BillingInvoiceItem
 } from "../utils/invoice-billing.js";
@@ -410,12 +411,12 @@ const normalizeInvoice = (invoice: InvoiceWithRelations) => {
         remaining_amount: roundMoney(Math.max(totalAmount - paidAmount, 0)),
         contract,
         reservation,
-        items: invoice.items.map((item) => ({
+        items: attachUtilityTierDetails(invoice.items.map((item) => ({
             ...item,
             quantity: toNumber(item.quantity),
             unit_price: toNumber(item.unit_price),
             amount: toNumber(item.amount)
-        }))
+        })))
     };
 };
 

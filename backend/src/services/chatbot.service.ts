@@ -1,3 +1,4 @@
+import { ApartmentStatus } from "@prisma/client";
 import { GoogleGenAI } from "@google/genai";
 import { getAllApartmentsService } from "./apartment.service.js";
 import { getAllBuildingsService } from "./building.service.js";
@@ -22,7 +23,10 @@ QUY TẮC PHẢN HỒI:
 export const processCustomerMessage = async (userMessage: string) => {
     try {
         const [aptResult, bldResult] = await Promise.all([
-            getAllApartmentsService({ limit: 100 }),
+            getAllApartmentsService({
+                limit: 100,
+                status: ApartmentStatus.AVAILABLE
+            }),
             getAllBuildingsService({ limit: 5 }),
         ]);
 
@@ -31,7 +35,7 @@ export const processCustomerMessage = async (userMessage: string) => {
             .join("\n");
 
         const apartmentData = aptResult.data
-            .filter((apt) => ["available", "vacant", "AVAILABLE"].includes(apt.status || ""))
+            .filter((apt) => apt.status === ApartmentStatus.AVAILABLE)
             .map((apt) => {
                 const building = bldResult.data.find((b) => b.id === apt.building_id);
                 return `[Căn ${apt.room_number}] Tầng ${apt.floor}, ${apt.bedrooms}PN, ${apt.area}m², ${Number(apt.rental_price).toLocaleString("vi-VN")} VNĐ. (Thuộc: ${building?.branch_name || "Tòa nhà chính"})`;

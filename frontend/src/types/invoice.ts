@@ -27,7 +27,10 @@ export interface InvoiceItem {
   unit_price: number;
   amount: number;
   description: string | null;
+  utility_type?: "ELECTRIC" | "WATER";
+  tier_details?: InvoiceElectricTierDetail[];
   electric_tier_details?: InvoiceElectricTierDetail[];
+  water_tier_details?: InvoiceElectricTierDetail[];
 }
 
 export interface InvoiceElectricTierDetail {

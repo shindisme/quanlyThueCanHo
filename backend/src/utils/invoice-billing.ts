@@ -24,6 +24,14 @@ export type ElectricTierDetail = {
     unit_price: number;
     amount: number;
 };
+export type UtilityType = "ELECTRIC" | "WATER";
+
+export type UtilityTierInvoiceItem<T extends BillingInvoiceItem> = T & {
+    utility_type?: UtilityType;
+    tier_details?: ElectricTierDetail[];
+    electric_tier_details?: ElectricTierDetail[];
+    water_tier_details?: ElectricTierDetail[];
+};
 
 const MANAGEMENT_FEE_PER_M2 = 10_000;
 const SERVICE_FEE = 300_000;
@@ -223,6 +231,132 @@ export const calculateWaterAmount = (
 ));
 
 
+type UtilityItemInput = {
+    item_name: string;
+    quantity: number;
+    unit_price: number;
+    amount: number;
+};
+
+const TIER_ITEM_PATTERN =
+    /^(Tiền điện|Tiền nước)(.*?)\s+-\s+(Bậc\s+(\d+)\s+\(.+\))$/u;
+const UTILITY_ITEM_PATTERN = /^(Tiền điện|Tiền nước)\b/u;
+
+const utilityTypeFromName = (name: string): UtilityType | undefined => {
+    if (name.startsWith("Tiền điện")) {
+        return "ELECTRIC";
+    }
+
+    if (name.startsWith("Tiền nước")) {
+        return "WATER";
+    }
+
+    return undefined;
+};
+
+const withTierDetails = <T extends UtilityItemInput>(
+    item: T,
+    type: UtilityType,
+    tierDetails: ElectricTierDetail[]
+): UtilityTierInvoiceItem<T> => ({
+    ...item,
+    unit_price: tierDetails.length > 0 ? 0 : item.unit_price,
+    utility_type: type,
+    tier_details: tierDetails,
+    ...(type === "ELECTRIC"
+        ? { electric_tier_details: tierDetails }
+        : { water_tier_details: tierDetails })
+});
+
+const sameMoney = (left: number, right: number) =>
+    Math.abs(roundMoney(left) - roundMoney(right)) < 0.01;
+
+const legacyTierDetails = (
+    item: UtilityItemInput,
+    type: UtilityType
+) => {
+    const calculated = type === "ELECTRIC"
+        ? calculateElectricTierDetails(item.quantity)
+        : calculateWaterTierDetails(item.quantity, undefined);
+    const calculatedTotal = sumBillingItems(calculated.map((detail) => ({
+        item_name: detail.label,
+        quantity: detail.quantity,
+        unit_price: detail.unit_price,
+        amount: detail.amount
+    })));
+
+    if (calculated.length > 0 && sameMoney(calculatedTotal, item.amount)) {
+        return calculated;
+    }
+
+    if (item.quantity <= 0 && item.amount <= 0) {
+        return [];
+    }
+
+    return [{
+        tier: 1,
+        label: "Bậc 1 (theo hóa đơn)",
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        amount: item.amount
+    }];
+};
+
+export const attachUtilityTierDetails = <T extends UtilityItemInput>(
+    items: T[]
+): Array<UtilityTierInvoiceItem<T>> => {
+    const result: Array<UtilityTierInvoiceItem<T>> = [];
+    const groups = new Map<string, UtilityTierInvoiceItem<T>>();
+
+    for (const item of items) {
+        const tierMatch = item.item_name.match(TIER_ITEM_PATTERN);
+        if (tierMatch) {
+            const [, utilityName, period, label, tierText] = tierMatch;
+            const type = utilityName === "Tiền điện" ? "ELECTRIC" : "WATER";
+            const key = `${utilityName}${period}`;
+            let group = groups.get(key);
+
+            if (!group) {
+                group = withTierDetails(
+                    {
+                        ...item,
+                        item_name: key,
+                        quantity: 0,
+                        unit_price: 0,
+                        amount: 0
+                    },
+                    type,
+                    []
+                );
+                groups.set(key, group);
+                result.push(group);
+            }
+
+            group.tier_details!.push({
+                tier: Number(tierText),
+                label,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                amount: item.amount
+            });
+            group.quantity = roundMoney(group.quantity + item.quantity);
+            group.amount = roundMoney(group.amount + item.amount);
+            continue;
+        }
+
+        if (UTILITY_ITEM_PATTERN.test(item.item_name)) {
+            const type = utilityTypeFromName(item.item_name);
+            result.push(type
+                ? withTierDetails(item, type, legacyTierDetails(item, type))
+                : item);
+            continue;
+        }
+
+        result.push(item);
+    }
+
+    return result;
+};
 export const sumBillingItems = (
     items: BillingInvoiceItem[]
 ) => roundMoney(items.reduce(

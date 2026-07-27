@@ -4,6 +4,7 @@ import Button from "../../../../components/ui/Button";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import { formatDate } from "../../../../utils/date";
 import { getInvoicePeriod } from "../../../../utils/invoicePeriod";
+import { getDisplayItemAmount, getDisplayTierDetails } from "../../../../utils/feeSettings";
 import type { Invoice } from "../../../../types";
 
 interface InvoiceDetailModalProps {
@@ -31,8 +32,14 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
     return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 }).format(value);
   }
 
-  function getElectricTierDetails(item: NonNullable<Invoice["items"]>[number]) {
-    return item.electric_tier_details ?? [];
+  function getTierDetails(item: NonNullable<Invoice["items"]>[number], occupantCount?: number) {
+    return getDisplayTierDetails(item, occupantCount);
+  }
+
+  function getUtilityUnit(item: NonNullable<Invoice["items"]>[number]) {
+    if (item.utility_type === "WATER" || item.item_name.startsWith("Tiền nước")) return "m³";
+    if (item.utility_type === "ELECTRIC" || item.item_name.startsWith("Tiền điện")) return "kWh";
+    return "";
   }
   if (!invoice) return null;
 
@@ -40,6 +47,10 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
   const branchName = invoice.contract?.apartment?.building?.branch_name || "Chưa rõ";
   const address = invoice.contract?.apartment?.building?.address || "";
   const billingMonthYear = getInvoicePeriod(invoice).label;
+  const occupantCount = invoice.contract?.actual_occupants;
+  const displayTotalAmount = invoice.items && invoice.items.length > 0
+    ? invoice.items.reduce((sum, item) => sum + getDisplayItemAmount(item, occupantCount), 0)
+    : Number(invoice.total_amount);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Chi Tiết Hóa Đơn" size="lg">
@@ -107,8 +118,9 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
               <tbody className="divide-y divide-gray-200 text-gray-700">
                 {invoice.items && invoice.items.length > 0 ? (
                   invoice.items.map((item) => {
-                    const electricTierDetails = getElectricTierDetails(item);
-                    const hasElectricTierDetails = electricTierDetails.length > 0;
+                    const tierDetails = getTierDetails(item, occupantCount);
+                    const hasTierDetails = tierDetails.length > 0;
+                    const utilityUnit = getUtilityUnit(item);
 
                     return (
                       <Fragment key={item.id}>
@@ -116,16 +128,16 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
                           <td className="p-3 font-medium text-gray-800">{item.item_name}</td>
                           <td className="p-3 text-center">{formatNumber(Number(item.quantity))}</td>
                           <td className="p-3 text-right">
-                            {hasElectricTierDetails ? "Theo bậc" : formatCurrency(Number(item.unit_price))}
+                            {hasTierDetails ? "Theo bậc" : formatCurrency(Number(item.unit_price))}
                           </td>
                           <td className="p-3 text-right font-semibold text-gray-900">
-                            {formatCurrency(Number(item.amount))}
+                            {formatCurrency(getDisplayItemAmount(item, occupantCount))}
                           </td>
                         </tr>
-                        {electricTierDetails.map((detail) => (
+                        {tierDetails.map((detail) => (
                           <tr key={`${item.id}-${detail.tier}`} className="bg-gray-50/70 text-xs text-gray-550">
                             <td className="py-2 pl-8 pr-3">{detail.label}</td>
-                            <td className="p-2 text-center">{formatNumber(Number(detail.quantity))} kWh</td>
+                            <td className="p-2 text-center">{formatNumber(Number(detail.quantity))}{utilityUnit ? ` ${utilityUnit}` : ""}</td>
                             <td className="p-2 text-right">{formatCurrency(Number(detail.unit_price))}</td>
                             <td className="p-2 text-right font-medium text-gray-700">
                               {formatCurrency(Number(detail.amount))}
@@ -147,7 +159,7 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
                     TỔNG CỘNG THANH TOÁN:
                   </td>
                   <td className="p-3 text-right text-base text-primary-600">
-                    {formatCurrency(Number(invoice.total_amount))}
+                    {formatCurrency(displayTotalAmount)}
                   </td>
                 </tr>
               </tbody>
