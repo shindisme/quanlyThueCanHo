@@ -19,7 +19,6 @@ export const contractSchema = z.object({
   end_date: z.string().min(1, { message: "Ngày kết thúc không được để trống" }),
   actual_occupants: z.number({ message: "Số người ở phải là một số" }).min(1, { message: "Số người ở phải ít nhất là 1" }),
   monthly_rent: z.number().positive({ message: "Tiền thuê phải lớn hơn 0" }),
-  deposit_amount: z.number().positive({ message: "Tiền cọc phải lớn hơn 0" }),
 }).superRefine((data, ctx) => {
   if (data.start_date && data.end_date) {
     if (new Date(data.end_date) <= new Date(data.start_date)) {

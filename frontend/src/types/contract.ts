@@ -55,7 +55,6 @@ export interface CreateContractRequest {
   tenant_id: number;
   start_date: string;
   end_date: string;
-  deposit_amount: number;
   monthly_rent: number;
   signed_at?: string;
 }

@@ -72,7 +72,6 @@ export async function create(data: CreateContractRequest | Partial<RentalContrac
     tenant_id: Number(data.tenant_id),
     start_date: data.start_date,
     end_date: data.end_date,
-    deposit_amount: Number(data.deposit_amount),
     monthly_rent: Number(data.monthly_rent),
     signed_at: ('signedAt' in data ? data.signedAt : undefined) || data.start_date || new Date().toISOString().split("T")[0],
   });

@@ -57,7 +57,6 @@ export default function ContractCreateModal({
     formApartments,
     actualOccupantsValue,
     monthlyRentValue,
-    depositAmountValue,
     maxOccupants,
     buildingApartments,
   } = useContractCreate({
@@ -205,7 +204,6 @@ export default function ContractCreateModal({
               className="rounded-md"
             />
           </div>
-
           <div className="col-span-12 sm:col-span-6">
             <Input
               label="Tiền thuê/tháng (VND) *"
@@ -227,16 +225,6 @@ export default function ContractCreateModal({
               }
               return null;
             })()}
-          </div>
-          <div className="col-span-12 sm:col-span-6">
-            <Input
-              label="Tiền cọc (VND) *"
-              type="number"
-              value={depositAmountValue || 0}
-              {...register("deposit_amount", { valueAsNumber: true })}
-              error={errors.deposit_amount?.message}
-              className="rounded-md"
-            />
           </div>
         </div>
       </div>

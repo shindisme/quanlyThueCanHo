@@ -33,7 +33,7 @@ const tenantSchema = z.object({
         .regex(/^\+?\d{9,15}$/)
         .nullable()
         .optional(),
-    email: z.string().trim().email().max(320).nullable().optional(),
+    email: z.string().trim().email().max(320),
     date_of_birth: dateOnlySchema.nullable().optional(),
     citizen_id: z.string().trim().regex(/^\d{12}$/),
     address: z.string().trim().max(500).nullable().optional()
@@ -45,6 +45,7 @@ export const createReservationRequestSchema = z.object({
     body: z.object({
         apartment_id: positiveIdSchema,
         deposit_amount: depositAmountSchema,
+        move_in_date: dateOnlySchema,
         tenant: tenantSchema
     }).strict()
 }).strict();

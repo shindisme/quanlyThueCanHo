@@ -3,6 +3,7 @@ import Button from "../../../../components/ui/Button";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import { formatDate } from "../../../../utils/date";
 import { getInvoicePeriod } from "../../../../utils/invoicePeriod";
+import { getInvoiceApartment, getInvoiceRoomDisplay, getInvoiceTenant } from "../../../../utils/invoiceDisplay";
 import type { Payment } from "../../../../types";
 import type { PaymentMethod, PaymentStatus } from "../../../../constants/enums";
 
@@ -39,12 +40,11 @@ export default function PaymentDetailModal({ isOpen, onClose, payment }: Payment
   if (!payment) return null;
 
   const invoice = payment.invoice;
-  const contract = invoice?.contract;
-  const tenant = contract?.tenant;
-  const apartment = contract?.apartment;
+  const tenant = invoice ? getInvoiceTenant(invoice) : null;
+  const apartment = invoice ? getInvoiceApartment(invoice) : null;
   const building = apartment?.building;
 
-  const roomNum = apartment ? `P.${apartment.floor}${apartment.room_number}` : "Chưa rõ";
+  const roomNum = invoice ? getInvoiceRoomDisplay(invoice).room : "Chưa rõ";
   const branchName = building?.branch_name || "Chưa rõ";
   const address = building?.address || "";
 

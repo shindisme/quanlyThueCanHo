@@ -2,19 +2,42 @@ import type { InvoiceStatus } from "../constants/enums";
 import type { RentalContract } from "./contract";
 import type { Tenant } from "./tenant";
 import type { Payment } from "./payment";
+import type { Apartment } from "./apartment";
+
+export type InvoiceTenant = Pick<Tenant, "id" | "user_id" | "full_name" | "phone" | "email"> & {
+  user?: Tenant["user"];
+};
+
+export interface InvoiceReservation {
+  id: number;
+  apartment_id: number;
+  tenant_id: number;
+  contract_id: number | null;
+  deposit_amount: number;
+  reserved_at: string;
+  expires_at: string;
+  status: string;
+  apartment?: (Pick<Apartment, "id" | "floor" | "room_number"> &
+    Partial<Pick<Apartment, "building_id" | "area" | "rental_price" | "status">> & {
+      building?: Apartment["building"] | null;
+    }) | null;
+  tenant?: InvoiceTenant | null;
+}
 
 export interface Invoice {
   id: number;
   invoice_code: string;
-  contract_id: number;
+  contract_id: number | null;
+  reservation_id?: number | null;
   tenant_id: number;
   due_date: string;
   total_amount: number;
   status: InvoiceStatus;
   paid_at: string | null;
   created_at: string;
-  contract?: RentalContract;
-  tenant?: Tenant;
+  contract?: RentalContract | null;
+  tenant?: InvoiceTenant | null;
+  reservation?: InvoiceReservation | null;
   items?: InvoiceItem[];
   payments?: Payment[];
 }

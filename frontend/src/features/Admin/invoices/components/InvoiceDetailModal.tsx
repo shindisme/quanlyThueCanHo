@@ -5,6 +5,7 @@ import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import { formatDate } from "../../../../utils/date";
 import { getInvoicePeriod } from "../../../../utils/invoicePeriod";
 import { getDisplayItemAmount, getDisplayTierDetails } from "../../../../utils/feeSettings";
+import { getInvoiceApartment, getInvoiceTenant } from "../../../../utils/invoiceDisplay";
 import type { Invoice } from "../../../../types";
 
 interface InvoiceDetailModalProps {
@@ -43,9 +44,11 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
   }
   if (!invoice) return null;
 
-  const roomNum = invoice.contract?.apartment?.room_number ? `P.${invoice.contract.apartment.room_number}` : "Chưa rõ";
-  const branchName = invoice.contract?.apartment?.building?.branch_name || "Chưa rõ";
-  const address = invoice.contract?.apartment?.building?.address || "";
+  const apartment = getInvoiceApartment(invoice);
+  const tenant = getInvoiceTenant(invoice);
+  const roomNum = apartment?.room_number ? `P.${apartment.room_number}` : "Chưa rõ";
+  const branchName = apartment?.building?.branch_name || "Chưa rõ";
+  const address = apartment?.building?.address || "";
   const billingMonthYear = getInvoicePeriod(invoice).label;
   const occupantCount = invoice.contract?.actual_occupants;
   const displayTotalAmount = invoice.items && invoice.items.length > 0
@@ -77,7 +80,7 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
           <div className="bg-gray-50/50 p-4 rounded-none border border-gray-200 space-y-2">
             <h5 className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Thông tin căn hộ</h5>
             <p>
-              <span className="font-semibold text-gray-600">Căn hộ:</span> {roomNum} (Tầng {invoice.contract?.apartment?.floor || "Chưa rõ"})
+              <span className="font-semibold text-gray-600">Căn hộ:</span> {roomNum} (Tầng {apartment?.floor || "Chưa rõ"})
             </p>
             <p>
               <span className="font-semibold text-gray-600">Tòa nhà:</span> {branchName}
@@ -91,13 +94,13 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
           <div className="bg-gray-50/50 p-4 rounded-none border border-gray-200 space-y-2">
             <h5 className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Khách hàng thuê</h5>
             <p>
-              <span className="font-semibold text-gray-600">Họ và tên:</span> {invoice.contract?.tenant?.full_name || "Chưa rõ"}
+              <span className="font-semibold text-gray-600">Họ và tên:</span> {tenant?.full_name || "Chưa rõ"}
             </p>
             <p>
-              <span className="font-semibold text-gray-600">Số điện thoại:</span> {invoice.contract?.tenant?.phone || "-"}
+              <span className="font-semibold text-gray-600">Số điện thoại:</span> {tenant?.phone || "-"}
             </p>
             <p>
-              <span className="font-semibold text-gray-600">Email:</span> {invoice.contract?.tenant?.email || "-"}
+              <span className="font-semibold text-gray-600">Email:</span> {tenant?.email || "-"}
             </p>
           </div>
         </div>

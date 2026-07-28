@@ -57,7 +57,6 @@ export function useContractCreate({
       end_date: "",
       actual_occupants: undefined as unknown as number,
       monthly_rent: 0,
-      deposit_amount: 0,
     },
   });
 
@@ -69,7 +68,6 @@ export function useContractCreate({
   const endDateValue = watch("end_date");
   const actualOccupantsValue = watch("actual_occupants");
   const monthlyRentValue = watch("monthly_rent");
-  const depositAmountValue = watch("deposit_amount");
 
   // Fetch apartments for the selected building
   const { data: buildingApartments = [], isLoading: loadingApartments } = useQuery({
@@ -118,7 +116,6 @@ export function useContractCreate({
         end_date: "",
         actual_occupants: undefined as unknown as number,
         monthly_rent: 0,
-        deposit_amount: 0,
       });
     }
   }, [isOpen, initialTenantId, initialBuildingId, initialApartmentId, initialFloor, role, managerBuildingId, reset]);
@@ -130,7 +127,6 @@ export function useContractCreate({
         apartments.find((a: Apartment) => a.id === apartmentIdValue);
       if (apt && apt.rental_price) {
         setValue("monthly_rent", apt.rental_price);
-        setValue("deposit_amount", apt.rental_price);
       }
     }
   }, [apartmentIdValue, buildingApartments, apartments, setValue]);
@@ -144,7 +140,6 @@ export function useContractCreate({
       start_date: data.start_date,
       end_date: data.end_date,
       monthly_rent: data.monthly_rent,
-      deposit_amount: data.deposit_amount,
     }),    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CONTRACTS });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APARTMENTS });
@@ -185,7 +180,6 @@ export function useContractCreate({
     formApartments,
     actualOccupantsValue,
     monthlyRentValue,
-    depositAmountValue,
     maxOccupants,
     buildingApartments,
   };

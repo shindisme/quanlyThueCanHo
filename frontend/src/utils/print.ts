@@ -2,6 +2,7 @@ import type { Invoice } from "../types";
 import { formatDate } from "./date";
 import { getInvoicePeriod } from "./invoicePeriod";
 import { getDisplayItemAmount, getDisplayTierDetails } from "./feeSettings";
+import { getInvoiceApartment, getInvoiceTenant } from "./invoiceDisplay";
 
 export function printInvoiceHelper(invoice: Invoice) {
   const printWindow = window.open("", "_blank");
@@ -10,9 +11,11 @@ export function printInvoiceHelper(invoice: Invoice) {
     return;
   }
 
-  const roomNum = invoice.contract?.apartment?.room_number ? `P.${invoice.contract.apartment.room_number}` : "Chưa rõ";
-  const branchName = invoice.contract?.apartment?.building?.branch_name || "Chưa rõ";
-  const address = invoice.contract?.apartment?.building?.address || "";
+  const apartment = getInvoiceApartment(invoice);
+  const tenant = getInvoiceTenant(invoice);
+  const roomNum = apartment?.room_number ? `P.${apartment.room_number}` : "Chưa rõ";
+  const branchName = apartment?.building?.branch_name || "Chưa rõ";
+  const address = apartment?.building?.address || "";
   const billingMonthYear = getInvoicePeriod(invoice).label;
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
@@ -176,14 +179,14 @@ export function printInvoiceHelper(invoice: Invoice) {
           <div class="info-box">
             <h3>Thông tin căn hộ</h3>
             <p><strong>Căn hộ:</strong> ${roomNum}</p>
-            <p><strong>Tầng:</strong> Tầng ${invoice.contract?.apartment?.floor || "Chưa rõ"}</p>
+            <p><strong>Tầng:</strong> Tầng ${apartment?.floor || "Chưa rõ"}</p>
             <p><strong>Tòa nhà:</strong> ${branchName}</p>
             <p><strong>Địa chỉ:</strong> ${address}</p>
           </div>
           <div class="info-box">
             <h3>Khách hàng thanh toán</h3>
-            <p><strong>Khách thuê:</strong> ${invoice.tenant?.full_name}</p>
-            <p><strong>Số điện thoại:</strong> ${invoice.tenant?.phone || "-"}</p>
+            <p><strong>Khách thuê:</strong> ${tenant?.full_name || "Chưa rõ"}</p>
+            <p><strong>Số điện thoại:</strong> ${tenant?.phone || "-"}</p>
             <p><strong>Kỳ hóa đơn:</strong> ${billingMonthYear}</p>
             <p><strong>Hạn thanh toán:</strong> ${formatDate(invoice.due_date)}</p>
           </div>

@@ -50,6 +50,7 @@ export default function ApartmentDetailPage() {
     citizen_id: "",
     date_of_birth: "",
     address: "",
+    move_in_date: "",
     deposit_amount: 0,
   });
 
@@ -57,10 +58,11 @@ export default function ApartmentDetailPage() {
     mutationFn: () => reservationService.createReservationDeposit({
       apartment_id: apartment!.id,
       deposit_amount: Number(reservationForm.deposit_amount),
+      move_in_date: reservationForm.move_in_date,
       tenant: {
         full_name: reservationForm.full_name.trim(),
         phone: reservationForm.phone.trim() || null,
-        email: reservationForm.email.trim() || null,
+        email: reservationForm.email.trim(),
         citizen_id: reservationForm.citizen_id.trim(),
         date_of_birth: reservationForm.date_of_birth || null,
         address: reservationForm.address.trim() || null,
@@ -85,6 +87,7 @@ export default function ApartmentDetailPage() {
       citizen_id: "",
       date_of_birth: "",
       address: "",
+      move_in_date: "",
       deposit_amount: apartment?.rental_price || 0,
     });
     setShowReservationModal(true);
@@ -92,8 +95,12 @@ export default function ApartmentDetailPage() {
 
   const handleReservationSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!reservationForm.full_name.trim() || !reservationForm.citizen_id.trim()) {
-      toast.error("Vui lòng nhập họ tên và CCCD người thuê");
+    if (!reservationForm.full_name.trim() || !reservationForm.citizen_id.trim() || !reservationForm.email.trim()) {
+      toast.error("Vui lòng nhập họ tên, CCCD và email người thuê");
+      return;
+    }
+    if (!reservationForm.move_in_date) {
+      toast.error("Vui lòng chọn ngày dọn vào");
       return;
     }
     if (!Number.isFinite(Number(reservationForm.deposit_amount)) || Number(reservationForm.deposit_amount) <= 0) {
@@ -558,6 +565,26 @@ export default function ApartmentDetailPage() {
         title="Lập hóa đơn cọc phòng"
       >
         <form onSubmit={handleReservationSubmit} className="space-y-4 text-left">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="Chi nhánh *"
+              value={apartment.building?.branch_name || apartment.building?.name || ""}
+              readOnly
+              className="bg-gray-50 cursor-default"
+            />
+            <Input
+              label="Tầng *"
+              value={`Tầng ${apartment.floor}`}
+              readOnly
+              className="bg-gray-50 cursor-default"
+            />
+          </div>
+          <Input
+            label="Căn hộ *"
+            value={`P.${apartment.room_number} (${apartment.area}m²)`}
+            readOnly
+            className="bg-gray-50 cursor-default"
+          />
           <Input
             label="Họ tên người thuê"
             value={reservationForm.full_name}
@@ -577,6 +604,7 @@ export default function ApartmentDetailPage() {
               type="email"
               value={reservationForm.email}
               onChange={(e) => setReservationForm((prev) => ({ ...prev, email: e.target.value }))}
+              required
               disabled={reservationMutation.isPending}
             />
           </div>
@@ -600,6 +628,15 @@ export default function ApartmentDetailPage() {
             label="Địa chỉ"
             value={reservationForm.address}
             onChange={(e) => setReservationForm((prev) => ({ ...prev, address: e.target.value }))}
+            disabled={reservationMutation.isPending}
+          />
+          <Input
+            label="Ngày dọn vào"
+            type="date"
+            value={reservationForm.move_in_date}
+            onChange={(e) => setReservationForm((prev) => ({ ...prev, move_in_date: e.target.value }))}
+            required
+            min={new Date().toISOString().split("T")[0]}
             disabled={reservationMutation.isPending}
           />
           <Input

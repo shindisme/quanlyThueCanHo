@@ -884,6 +884,16 @@ export const getPaymentsService = async (
                 },
                 {
                     invoice: {
+                        tenant: {
+                            full_name: {
+                                contains: filters.search,
+                                mode: "insensitive"
+                            }
+                        }
+                    }
+                },
+                {
+                    invoice: {
                         contract: {
                             tenant: {
                                 full_name: {

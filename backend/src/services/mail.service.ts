@@ -225,6 +225,10 @@ type ReservationDepositPaidEmailData = Omit<
     ReservationDepositPaymentEmailData,
     "paymentUrl"
 >;
+type ReservationExpiredEmailData = Pick<
+    ReservationDepositPaymentEmailData,
+    "to" | "tenantName" | "apartmentLabel" | "buildingAddress" | "moveInDeadline"
+>;
 
 const formatDate = (date: Date) =>
     new Intl.DateTimeFormat("vi-VN", {
@@ -329,6 +333,41 @@ export const sendReservationDepositPaidEmail = async (
                 <h3 style="margin: 18px 0 8px;">Quy định giữ phòng</h3>
                 <p>Bạn cần đến nhận phòng và ký hợp đồng chậm nhất vào <strong>${escapeHtml(moveInDeadline)}</strong>.</p>
                 <p>Nếu sau ngày này bạn không đến nhận phòng và ký hợp đồng, hệ thống xem như bạn bỏ cọc và không thuê căn hộ. Tiền cọc đã thanh toán sẽ không được hoàn lại.</p>
+            </div>
+        `
+    });
+};
+export const sendReservationExpiredEmail = async (
+    data: ReservationExpiredEmailData
+) => {
+    const tenantName = escapeHtml(data.tenantName);
+    const apartmentLabel = escapeHtml(data.apartmentLabel);
+    const buildingAddress = escapeHtml(data.buildingAddress);
+    const moveInDeadline = formatDate(data.moveInDeadline);
+
+    await getTransporter().sendMail({
+        from: getRequiredEnv("SMTP_FROM"),
+        to: data.to,
+        subject: `Đã hết thời gian giữ chỗ căn hộ ${data.apartmentLabel}`,
+        text: [
+            `Xin chào ${data.tenantName},`,
+            "",
+            "Thời gian giữ chỗ căn hộ của bạn đã hết.",
+            `Căn hộ: ${data.apartmentLabel}`,
+            `Địa chỉ: ${data.buildingAddress}`,
+            `Hạn nhận phòng/ký hợp đồng: ${moveInDeadline}`,
+            "",
+            "Do bạn chưa đến nhận phòng và ký hợp đồng đúng hạn, hệ thống đã chuyển căn hộ về trạng thái còn trống. Tiền cọc đã thanh toán được ghi nhận là bỏ cọc theo quy định."
+        ].join("\n"),
+        html: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+                <h2 style="margin: 0 0 16px;">Đã hết thời gian giữ chỗ căn hộ</h2>
+                <p>Xin chào <strong>${tenantName}</strong>,</p>
+                <p>Thời gian giữ chỗ căn hộ của bạn đã hết.</p>
+                <p><strong>Căn hộ:</strong> ${apartmentLabel}</p>
+                <p><strong>Địa chỉ:</strong> ${buildingAddress}</p>
+                <p><strong>Hạn nhận phòng/ký hợp đồng:</strong> ${escapeHtml(moveInDeadline)}</p>
+                <p>Do bạn chưa đến nhận phòng và ký hợp đồng đúng hạn, hệ thống đã chuyển căn hộ về trạng thái còn trống. Tiền cọc đã thanh toán được ghi nhận là bỏ cọc theo quy định.</p>
             </div>
         `
     });

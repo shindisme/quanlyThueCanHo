@@ -4,10 +4,11 @@ import type { ApiPagination, Apartment, Tenant } from "../types";
 export interface CreateReservationPayload {
   apartment_id: number;
   deposit_amount: number;
+  move_in_date: string;
   tenant: {
     full_name: string;
     phone?: string | null;
-    email?: string | null;
+    email: string;
     date_of_birth?: string | null;
     citizen_id: string;
     address?: string | null;

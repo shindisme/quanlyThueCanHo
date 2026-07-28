@@ -1,4 +1,4 @@
-﻿import { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 export type BillingInvoiceItem = {
     item_name: string;
@@ -259,17 +259,17 @@ type UtilityItemInput = {
 };
 
 const TIER_ITEM_PATTERN =
-    /^(Tiá»n Ä‘iá»‡n|Tiá»n nÆ°á»›c)(.*?)\s+-\s+(Báº­c\s+(\d+)\s+\(.+\))$/u;
-const UTILITY_ITEM_PATTERN = /^(Tiá»n Ä‘iá»‡n|Tiá»n nÆ°á»›c)\b/u;
+    /^(Tiền điện|Tiền nước)(.*?)\s+-\s+(Bậc\s+(\d+)\s+\(.+\))$/u;
+const UTILITY_ITEM_PATTERN = /^(Tiền điện|Tiền nước)\b/u;
 
 const utilityTypeFromName = (
     name: string
 ): UtilityType | undefined => {
-    if (name.startsWith("Tiá»n Ä‘iá»‡n")) {
+    if (name.startsWith("Tiền điện")) {
         return "ELECTRIC";
     }
 
-    if (name.startsWith("Tiá»n nÆ°á»›c")) {
+    if (name.startsWith("Tiền nước")) {
         return "WATER";
     }
 
@@ -317,7 +317,7 @@ const legacyTierDetails = (
 
     return [{
         tier: 1,
-        label: "Báº­c 1 (theo hÃ³a Ä‘Æ¡n)",
+        label: "Bậc 1 (theo hóa đơn)",
         quantity: item.quantity,
         unit_price: item.unit_price,
         amount: item.amount
@@ -334,7 +334,7 @@ export const attachUtilityTierDetails = <T extends UtilityItemInput>(
         const tierMatch = item.item_name.match(TIER_ITEM_PATTERN);
         if (tierMatch) {
             const [, utilityName, period, label, tierText] = tierMatch;
-            const type = utilityName === "Tiá»n Ä‘iá»‡n" ? "ELECTRIC" : "WATER";
+            const type = utilityName === "Tiền điện" ? "ELECTRIC" : "WATER";
             const key = `${utilityName}${period}`;
             let group = groups.get(key);
 
@@ -413,13 +413,13 @@ export const buildFirstRentalInvoiceItems = (input: {
 
     const items: BillingInvoiceItem[] = [
         {
-            item_name: "Tiá»n thuÃª phÃ²ng thÃ¡ng Ä‘áº§u tiÃªn",
+            item_name: "Tiền thuê phòng tháng đầu tiên",
             quantity: 1,
             unit_price: rentAmount,
             amount: rentAmount
         },
         {
-            item_name: "PhÃ­ quáº£n lÃ½",
+            item_name: "Phí quản lý",
             quantity: area,
             unit_price: managementFeePerM2,
             amount: managementAmount
@@ -428,7 +428,7 @@ export const buildFirstRentalInvoiceItems = (input: {
 
     if (managementFee > 0) {
         items.push({
-            item_name: "PhÃ­ quáº£n lÃ½ cá»‘ Ä‘á»‹nh",
+            item_name: "Phí quản lý cố định",
             quantity: 1,
             unit_price: managementFee,
             amount: managementFee
@@ -436,7 +436,7 @@ export const buildFirstRentalInvoiceItems = (input: {
     }
 
     items.push({
-        item_name: "PhÃ­ dá»‹ch vá»¥",
+        item_name: "Phí dịch vụ",
         quantity: 1,
         unit_price: serviceFee,
         amount: serviceFee
@@ -473,13 +473,13 @@ export const buildRecurringMonthlyInvoiceItems = (
 
     const items: BillingInvoiceItem[] = [
         {
-            item_name: `PhÃ­ thuÃª cÄƒn há»™ ${input.periodLabel}`,
+            item_name: `Phí thuê căn hộ ${input.periodLabel}`,
             quantity: 1,
             unit_price: rentAmount,
             amount: rentAmount
         },
         {
-            item_name: `PhÃ­ quáº£n lÃ½ ${input.periodLabel}`,
+            item_name: `Phí quản lý ${input.periodLabel}`,
             quantity: area,
             unit_price: managementFeePerM2,
             amount: managementAmount
@@ -488,7 +488,7 @@ export const buildRecurringMonthlyInvoiceItems = (
 
     if (managementFee > 0) {
         items.push({
-            item_name: `PhÃ­ quáº£n lÃ½ cá»‘ Ä‘á»‹nh ${input.periodLabel}`,
+            item_name: `Phí quản lý cố định ${input.periodLabel}`,
             quantity: 1,
             unit_price: managementFee,
             amount: managementFee
@@ -501,13 +501,13 @@ export const buildRecurringMonthlyInvoiceItems = (
     );
     items.push(...(electricTierDetails.length > 0
         ? electricTierDetails.map((detail) => ({
-            item_name: `Tiá»n Ä‘iá»‡n ${input.periodLabel} - ${detail.label}`,
+            item_name: `Tiền điện ${input.periodLabel} - ${detail.label}`,
             quantity: detail.quantity,
             unit_price: detail.unit_price,
             amount: detail.amount
         }))
         : [{
-            item_name: `Tiá»n Ä‘iá»‡n ${input.periodLabel}`,
+            item_name: `Tiền điện ${input.periodLabel}`,
             quantity: electricQuantity.toNumber(),
             unit_price: 0,
             amount: 0
@@ -520,20 +520,20 @@ export const buildRecurringMonthlyInvoiceItems = (
     );
     items.push(...(waterTierDetails.length > 0
         ? waterTierDetails.map((detail) => ({
-            item_name: `Tiá»n nÆ°á»›c ${input.periodLabel} - ${detail.label}`,
+            item_name: `Tiền nước ${input.periodLabel} - ${detail.label}`,
             quantity: detail.quantity,
             unit_price: detail.unit_price,
             amount: detail.amount
         }))
         : [{
-            item_name: `Tiá»n nÆ°á»›c ${input.periodLabel}`,
+            item_name: `Tiền nước ${input.periodLabel}`,
             quantity: waterQuantity.toNumber(),
             unit_price: 0,
             amount: 0
         }]));
 
     items.push({
-        item_name: `PhÃ­ dá»‹ch vá»¥ ${input.periodLabel}`,
+        item_name: `Phí dịch vụ ${input.periodLabel}`,
         quantity: 1,
         unit_price: serviceFee,
         amount: serviceFee

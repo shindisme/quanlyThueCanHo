@@ -1,4 +1,4 @@
-﻿import { ContractStatus } from "@prisma/client";
+import { ContractStatus } from "@prisma/client";
 import { z } from "zod";
 import {
     isPositiveDecimal12_2Amount
@@ -91,7 +91,6 @@ const contractBodySchema = z.object({
     tenant_id: positiveIdSchema,
     start_date: strictDateSchema,
     end_date: strictDateSchema,
-    deposit_amount: positiveAmountSchema,
     monthly_rent: positiveAmountSchema,
     signed_at: strictDateSchema,
     contract_file: z.string().trim().min(1).max(2000)

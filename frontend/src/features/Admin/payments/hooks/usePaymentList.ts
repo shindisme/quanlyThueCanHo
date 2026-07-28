@@ -8,6 +8,7 @@ import { useDebounce } from "../../../../hooks/useDebounce";
 import { usePagination } from "../../../../hooks/usePagination";
 import { useSort } from "../../../../hooks/useSort";
 import { useUserRole } from "../../../../hooks/useUserRole";
+import { getInvoiceApartment } from "../../../../utils/invoiceDisplay";
 import type { Payment } from "../../../../types";
 
 export function usePaymentList() {
@@ -67,7 +68,7 @@ export function usePaymentList() {
     return payments.filter((pmt) => {
       // 1. Lọc theo Tầng
       if (selectedFloor) {
-        const apt = pmt.invoice?.contract?.apartment;
+        const apt = pmt.invoice ? getInvoiceApartment(pmt.invoice) : null;
         if (!apt || apt.floor !== Number(selectedFloor)) return false;
       }
 

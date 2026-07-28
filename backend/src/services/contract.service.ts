@@ -1,4 +1,4 @@
-﻿import {
+import {
     ApartmentStatus,
     ContractStatus,
     InvoiceType,
@@ -408,10 +408,6 @@ export const createContractService = async (
     actor: Actor
 ) => {
     assertPositiveMoney(
-        input.deposit_amount,
-        "deposit_amount"
-    );
-    assertPositiveMoney(
         input.monthly_rent,
         "monthly_rent"
     );
@@ -503,7 +499,7 @@ export const createContractService = async (
                     tenant_id: tenant.id,
                     status: ReservationStatus.ACTIVE
                 },
-                select: { id: true }
+                select: { id: true, deposit_amount: true }
             });
 
             if (!reservation) {
@@ -513,6 +509,9 @@ export const createContractService = async (
                     "Căn hộ đã được giữ chỗ cho người thuê khác hoặc chưa có đặt cọc"
                 );
             }
+
+            const depositAmount = Number(reservation.deposit_amount);
+            assertPositiveMoney(depositAmount, "deposit_amount");
 
             const apartmentConnect:
                 Prisma.ApartmentWhereUniqueInput = {
@@ -540,7 +539,7 @@ export const createContractService = async (
                     tenant: { connect: tenantConnect },
                     start_date: input.start_date,
                     end_date: input.end_date,
-                    deposit_amount: input.deposit_amount,
+                    deposit_amount: depositAmount,
                     monthly_rent: input.monthly_rent,
                     signed_at: input.signed_at,
                     contract_file: input.contract_file,
@@ -580,7 +579,7 @@ export const createContractService = async (
                 }
             }
             const firstInvoiceItems = buildFirstRentalInvoiceItems({
-                depositAmount: input.deposit_amount,
+                depositAmount,
                 monthlyRent: input.monthly_rent,
                 area: apartment.area
             });

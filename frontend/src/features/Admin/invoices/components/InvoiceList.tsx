@@ -2,8 +2,8 @@ import { Eye, Printer, CheckCircle, XCircle } from "lucide-react";
 import Badge from "../../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import { INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS, type InvoiceStatus } from "../../../../constants/enums";
-import { formatApartmentDisplay } from "../../../../utils/string";
 import { getInvoicePeriod, getInvoicePeriodSortValue } from "../../../../utils/invoicePeriod";
+import { getInvoiceRoomDisplay, getInvoiceTenant } from "../../../../utils/invoiceDisplay";
 import type { Invoice } from "../../../../types";
 
 interface InvoiceListProps {
@@ -32,15 +32,6 @@ export default function InvoiceList({
     return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
   }
 
-  function getRoomDisplay(inv: Invoice) {
-    const apt = inv.contract?.apartment;
-    if (!apt) return { room: "Chưa rõ", branch: "" };
-
-    const roomNum = formatApartmentDisplay(apt.room_number, apt.floor);
-    const branchName = apt.building?.branch_name || "";
-    return { room: roomNum, branch: branchName };
-  }
-
   const columns: Column<Invoice>[] = [
     {
       key: "index",
@@ -57,9 +48,9 @@ export default function InvoiceList({
     {
       key: "room",
       label: "Phòng",
-      sortValue: (inv) => getRoomDisplay(inv).room,
+      sortValue: (inv) => getInvoiceRoomDisplay(inv).room,
       render: (inv) => {
-        const { room, branch } = getRoomDisplay(inv);
+        const { room, branch } = getInvoiceRoomDisplay(inv);
         return (
           <div className="flex flex-col">
             <span className="font-semibold text-gray-800">{room}</span>
@@ -71,15 +62,19 @@ export default function InvoiceList({
     ...(role !== "TENANT" ? [{
       key: "tenant",
       label: "Người thuê",
-      sortValue: (inv: Invoice) => inv.contract?.tenant?.full_name || "",
-      render: (inv: Invoice) => (
-        <div className="flex flex-col">
-          <span className="font-medium text-gray-700">{inv.contract?.tenant?.full_name || "-"}</span>
-          {inv.contract?.tenant?.phone && (
-            <span className="text-[10px] text-gray-400">{inv.contract.tenant.phone}</span>
-          )}
-        </div>
-      )
+      sortValue: (inv: Invoice) => getInvoiceTenant(inv)?.full_name || "",
+      render: (inv: Invoice) => {
+        const tenant = getInvoiceTenant(inv);
+
+        return (
+          <div className="flex flex-col">
+            <span className="font-medium text-gray-700">{tenant?.full_name || "-"}</span>
+            {tenant?.phone && (
+              <span className="text-[10px] text-gray-400">{tenant.phone}</span>
+            )}
+          </div>
+        );
+      }
     }] : []),
     {
       key: "period",

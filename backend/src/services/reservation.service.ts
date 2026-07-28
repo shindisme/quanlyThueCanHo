@@ -1,4 +1,4 @@
-﻿import {
+import {
     ApartmentStatus,
     InvoiceStatus,
     InvoiceType,
@@ -16,21 +16,18 @@ import type {
 } from "../schemas/reservation.schema.js";
 import type { Actor } from "../types/auth.js";
 import { createInitialCredential, tenantUsername } from "./account.service.js";
-import { sendReservationDepositPaymentEmail } from "./mail.service.js";
+import {
+    sendReservationDepositPaymentEmail,
+    sendReservationExpiredEmail
+} from "./mail.service.js";
 import { buildDepositPaymentUrl } from "./payment.service.js";
 import { runSerializableTransaction } from "../utils/prisma-transaction.js";
 
 type CreateReservationInput = CreateReservationRequest["body"];
 type ListReservationsInput = ListReservationsRequest["query"];
 
-const RESERVATION_DAYS = 15;
 const TENANT_USERNAME_RETRY_LIMIT = 3;
 
-const addDays = (date: Date, days: number) => {
-    const next = new Date(date);
-    next.setUTCDate(next.getUTCDate() + days);
-    return next;
-};
 
 const apartmentUnavailable = () => new AppError(
     409,
@@ -144,7 +141,7 @@ const formatApartmentLabel = (
         room_number: string;
         floor: number;
     }
-) => `P.${apartment.room_number} - Táº§ng ${apartment.floor}`;
+) => `P.${apartment.room_number} - Tầng ${apartment.floor}`;
 
 const sendDepositPaymentEmail = async (
     data: {
@@ -186,6 +183,38 @@ const sendDepositPaymentEmail = async (
         });
     } catch {
         // Email lỗi không được làm rollback đặt cọc đã tạo.
+    }
+};
+const sendReservationExpiredNotice = async (
+    data: {
+        expires_at: Date;
+        tenant?: {
+            email: string | null;
+            full_name: string;
+        } | null;
+        apartment?: {
+            room_number: string;
+            floor: number;
+            building?: {
+                address: string;
+            } | null;
+        } | null;
+    }
+) => {
+    if (!data.tenant?.email || !data.apartment) {
+        return;
+    }
+
+    try {
+        await sendReservationExpiredEmail({
+            to: data.tenant.email,
+            tenantName: data.tenant.full_name,
+            apartmentLabel: formatApartmentLabel(data.apartment),
+            buildingAddress: data.apartment.building?.address || "",
+            moveInDeadline: data.expires_at
+        });
+    } catch {
+        // Email lỗi không được làm rollback xử lý bỏ cọc.
     }
 };
 export const getReservationsService = async (
@@ -362,7 +391,7 @@ export const createReservationDepositService = async (
                         tenant_id: tenant.id,
                         deposit_amount: input.deposit_amount,
                         status: ReservationStatus.ACTIVE,
-                        expires_at: addDays(now, RESERVATION_DAYS)
+                        expires_at: input.move_in_date
                     },
                     select: reservationSelect
                 });
@@ -422,7 +451,7 @@ export const expireReservationsService = async (actor: Actor) => {
     assertCanManageReservations(actor);
     const now = new Date();
 
-    return runSerializableTransaction(async (tx) => {
+    const result = await runSerializableTransaction(async (tx) => {
         const expired = await tx.reservation.findMany({
             where: {
                 status: ReservationStatus.ACTIVE,
@@ -431,9 +460,28 @@ export const expireReservationsService = async (actor: Actor) => {
             },
             select: {
                 id: true,
-                apartment_id: true
+                apartment_id: true,
+                expires_at: true,
+                tenant: {
+                    select: {
+                        full_name: true,
+                        email: true
+                    }
+                },
+                apartment: {
+                    select: {
+                        room_number: true,
+                        floor: true,
+                        building: {
+                            select: {
+                                address: true
+                            }
+                        }
+                    }
+                }
             }
         });
+        const expiredNotices: typeof expired = [];
         let expiredCount = 0;
 
         for (const reservation of expired) {
@@ -458,8 +506,18 @@ export const expireReservationsService = async (actor: Actor) => {
                 },
                 data: { status: ApartmentStatus.AVAILABLE }
             });
+            expiredNotices.push(reservation);
         }
 
-        return { expired_count: expiredCount };
+        return {
+            expired_count: expiredCount,
+            expiredNotices
+        };
     }, reservationConcurrentModification);
+
+    await Promise.all(
+        result.expiredNotices.map(sendReservationExpiredNotice)
+    );
+
+    return { expired_count: result.expired_count };
 };

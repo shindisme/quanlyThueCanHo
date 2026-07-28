@@ -3,7 +3,7 @@ import Badge from "../../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS, PAYMENT_METHOD_LABELS, type PaymentStatus, type PaymentMethod } from "../../../../constants/enums";
 import { formatDate } from "../../../../utils/date";
-import { formatApartmentDisplay } from "../../../../utils/string";
+import { getInvoiceRoomDisplay, getInvoiceTenant } from "../../../../utils/invoiceDisplay";
 import type { Payment } from "../../../../types";
 
 interface PaymentListProps {
@@ -39,12 +39,7 @@ export default function PaymentList({
   }
 
   function getRoomDisplay(pmt: Payment) {
-    const apt = pmt.invoice?.contract?.apartment;
-    if (!apt) return { room: "", branch: "" };
-
-    const roomNum = formatApartmentDisplay(apt.room_number, apt.floor);
-    const branchName = apt.building?.branch_name || "";
-    return { room: roomNum, branch: branchName };
+    return pmt.invoice ? getInvoiceRoomDisplay(pmt.invoice) : { room: "", branch: "" };
   }
 
   const columns: Column<Payment>[] = [
@@ -77,10 +72,11 @@ export default function PaymentList({
     {
       key: "tenant",
       label: "Người nộp",
-      sortValue: (pmt) => pmt.invoice?.contract?.tenant?.full_name || "",
+      sortValue: (pmt) => pmt.invoice ? getInvoiceTenant(pmt.invoice)?.full_name || "" : "",
       render: (pmt) => {
-        const tenantName = pmt.invoice?.contract?.tenant?.full_name || "Chưa rõ";
-        const tenantPhone = pmt.invoice?.contract?.tenant?.phone || "";
+        const tenant = pmt.invoice ? getInvoiceTenant(pmt.invoice) : null;
+        const tenantName = tenant?.full_name || "Chưa rõ";
+        const tenantPhone = tenant?.phone || "";
         return (
           <div className="flex flex-col">
             <span className="font-medium text-gray-700">{tenantName}</span>
