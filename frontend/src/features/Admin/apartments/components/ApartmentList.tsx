@@ -53,10 +53,11 @@ export default function ApartmentList({
       render: (apt) => {
         const roomName = formatApartmentDisplay(apt.room_number, apt.floor);
         const branch = buildings.find((b) => b.id === apt.building_id)?.branch_name;
+        const basePath = role === "MANAGER" ? "/manager" : "/admin";
         return (
           <div
             className="font-semibold cursor-pointer hover:underline"
-            onClick={() => navigate(`/admin/apartments/${apt.id}`)}
+            onClick={() => navigate(`${basePath}/apartments/${apt.id}`)}
           >
             <span>{roomName}</span>
             {role === "ADMIN" && branch && (
@@ -126,7 +127,10 @@ export default function ApartmentList({
       render: (apt) => (
         <div className="flex items-center justify-end gap-1">
           <button
-            onClick={() => navigate(`/admin/apartments/${apt.id}`)}
+            onClick={() => {
+              const basePath = role === "MANAGER" ? "/manager" : "/admin";
+              navigate(`${basePath}/apartments/${apt.id}`);
+            }}
             className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
             title="Xem chi tiết"
           >

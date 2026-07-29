@@ -12,11 +12,13 @@ import type { Apartment } from "../../../../types";
 import type { Building } from "../../../../types";
 import type { ApartmentImage, TenantOccupant } from "../../../../types";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { useUserRole } from "../../../../hooks/useUserRole";
 import { getApartmentById, updateApartment } from "../../../../services/apartmentService";
 
 export function useApartmentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const { role } = useUserRole();
 
   const uploadMutation = useMutation({
     mutationFn: (formDataToSend: FormData) => updateApartment(Number(id), formDataToSend),
@@ -179,6 +181,7 @@ export function useApartmentDetailPage() {
   }
 
   return {
+    role,
     id,
     apartment: apartment as unknown as Apartment,
     loading,

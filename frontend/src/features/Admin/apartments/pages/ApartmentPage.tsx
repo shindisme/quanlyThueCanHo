@@ -19,6 +19,9 @@ export default function ApartmentPage() {
     setSearch,
     filterStatus,
     setFilterStatus,
+    filterFloor,
+    setFilterFloor,
+    availableFloors,
     filterFeatured,
     setFilterFeatured,
     filterBuilding,
@@ -94,6 +97,20 @@ export default function ApartmentPage() {
             />
           </div>
         )}
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
+          <Combobox
+            options={availableFloors.map((f) => ({ value: String(f), label: `Tầng ${f}` }))}
+            value={filterFloor !== "" ? String(filterFloor) : ""}
+            onChange={(val) => {
+              setFilterFloor(val ? Number(val) : "");
+              setCurrentPage(1);
+            }}
+            placeholder="Tất cả tầng"
+            className="w-full"
+            triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
+            clearable={true}
+          />
+        </div>
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Combobox
             options={[

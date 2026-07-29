@@ -146,6 +146,24 @@ export default function ApartmentModifyModal({
     formDataToSend.append("description", data.description || "");
     formDataToSend.append("status", data.status);
 
+    const existingKeepUrls: string[] = [];
+    if (localThumbnail && !localThumbnail.startsWith("blob:")) {
+      existingKeepUrls.push(localThumbnail);
+    }
+    localImages.forEach((imgUrl) => {
+      if (imgUrl && !imgUrl.startsWith("blob:")) {
+        existingKeepUrls.push(imgUrl);
+      }
+    });
+
+    if (existingKeepUrls.length > 0) {
+      existingKeepUrls.forEach((url) => {
+        formDataToSend.append("existing_image_urls", url);
+      });
+    } else {
+      formDataToSend.append("existing_image_urls", JSON.stringify([]));
+    }
+
     if (thumbnailFile) {
       formDataToSend.append("images", thumbnailFile);
     }
@@ -172,6 +190,32 @@ export default function ApartmentModifyModal({
     );
   };
 
+  const onInvalid = (errors: Record<string, any>) => {
+    const fieldLabels: Record<string, string> = {
+      room_number: "Số phòng",
+      building_id: "Chi nhánh",
+      floor: "Tầng",
+      area: "Diện tích",
+      bedrooms: "Số phòng ngủ",
+      bathrooms: "Số phòng vệ sinh",
+      rental_price: "Giá thuê",
+      description: "Mô tả",
+      status: "Trạng thái",
+    };
+
+    const messages = Object.entries(errors)
+      .map(([key, err]: [string, any]) => {
+        if (!err?.message) return null;
+        const label = fieldLabels[key];
+        return label ? `${label}: ${err.message}` : String(err.message);
+      })
+      .filter(Boolean);
+
+    if (messages.length > 0) {
+      messages.forEach((msg) => toast.error(String(msg)));
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -181,11 +225,11 @@ export default function ApartmentModifyModal({
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={saving}>Hủy</Button>
-          <Button onClick={handleSubmit(onSubmit)} isLoading={saving}>Cập nhật</Button>
+          <Button onClick={handleSubmit(onSubmit, onInvalid)} isLoading={saving}>Cập nhật</Button>
         </>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 sm:col-span-6">
             <Input

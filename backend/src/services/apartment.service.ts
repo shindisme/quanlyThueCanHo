@@ -314,6 +314,7 @@ export const updateApartmentService = async (
 ) => {
     const {
         building_id: requestedBuildingId,
+        existing_image_urls,
         ...adminData
     } = data;
     let where: Prisma.ApartmentWhereUniqueInput = { id };
@@ -333,32 +334,51 @@ export const updateApartmentService = async (
         updateData = adminData;
     }
 
-    if (imageUrls.length === 0) {
-        return prisma.apartment.update({
-            where,
-            data: updateData,
-            select: apartmentSelect
-        });
-    }
-
     return runSerializableTransaction(async (transaction) => {
-        const existingImageCount =
-            await transaction.apartmentImage.count({
-                where: { apartment_id: id }
+        if (existing_image_urls !== undefined) {
+            await transaction.apartmentImage.deleteMany({
+                where: {
+                    apartment_id: id,
+                    image_url: {
+                        notIn: existing_image_urls
+                    }
+                }
             });
+        }
+
+        // Add new uploaded image files
+        if (imageUrls.length > 0) {
+            await transaction.apartmentImage.createMany({
+                data: imageUrls.map((url) => ({
+                    apartment_id: id,
+                    image_url: url,
+                    is_thumbnail: false
+                }))
+            });
+        }
+
+        const allImages = await transaction.apartmentImage.findMany({
+            where: { apartment_id: id },
+            orderBy: { id: "asc" }
+        });
+
+        if (allImages.length > 0) {
+            const hasThumbnail = allImages.some((img) => img.is_thumbnail);
+            if (!hasThumbnail) {
+                await transaction.apartmentImage.updateMany({
+                    where: { apartment_id: id },
+                    data: { is_thumbnail: false }
+                });
+                await transaction.apartmentImage.update({
+                    where: { id: allImages[0].id },
+                    data: { is_thumbnail: true }
+                });
+            }
+        }
 
         return transaction.apartment.update({
             where,
-            data: {
-                ...updateData,
-                images: {
-                    create: imageUrls.map((url, index) => ({
-                        image_url: url,
-                        is_thumbnail:
-                            existingImageCount === 0 && index === 0
-                    }))
-                }
-            },
+            data: updateData,
             select: apartmentSelect
         });
     });
