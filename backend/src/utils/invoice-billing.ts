@@ -295,11 +295,12 @@ const sameMoney = (left: number, right: number) =>
 
 const legacyTierDetails = (
     item: UtilityItemInput,
-    type: UtilityType
+    type: UtilityType,
+    occupantCount?: number
 ) => {
     const calculated = type === "ELECTRIC"
         ? calculateElectricTierDetails(item.quantity)
-        : calculateWaterTierDetails(item.quantity, undefined);
+        : calculateWaterTierDetails(item.quantity, occupantCount);
     const calculatedTotal = sumBillingItems(calculated.map((detail) => ({
         item_name: detail.label,
         quantity: detail.quantity,
@@ -325,7 +326,8 @@ const legacyTierDetails = (
 };
 
 export const attachUtilityTierDetails = <T extends UtilityItemInput>(
-    items: T[]
+    items: T[],
+    occupantCount?: number
 ): Array<UtilityTierInvoiceItem<T>> => {
     const result: Array<UtilityTierInvoiceItem<T>> = [];
     const groups = new Map<string, UtilityTierInvoiceItem<T>>();
@@ -373,7 +375,7 @@ export const attachUtilityTierDetails = <T extends UtilityItemInput>(
         if (UTILITY_ITEM_PATTERN.test(item.item_name)) {
             const type = utilityTypeFromName(item.item_name);
             result.push(type
-                ? withTierDetails(item, type, legacyTierDetails(item, type))
+                ? withTierDetails(item, type, legacyTierDetails(item, type, occupantCount))
                 : item);
             continue;
         }

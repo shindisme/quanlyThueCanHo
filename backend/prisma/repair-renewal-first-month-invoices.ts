@@ -27,7 +27,12 @@ const invoiceInclude = {
             tenant: {
                 select: {
                     id: true,
-                    full_name: true
+                    full_name: true,
+                    _count: {
+                        select: {
+                            occupants: true
+                        }
+                    }
                 }
             }
         }
@@ -132,6 +137,7 @@ const buildRecurringItems = async (
             reading.water_new,
             reading.water_old
         ),
+        occupantCount: 1 + invoice.contract.tenant._count.occupants,
         periodLabel: `${padMonth(period.month)}/${period.year}`
     });
 };

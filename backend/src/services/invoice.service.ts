@@ -100,6 +100,11 @@ const invoiceInclude = {
                             username: true,
                             role: true
                         }
+                    },
+                    _count: {
+                        select: {
+                            occupants: true
+                        }
                     }
                 }
             },
@@ -513,10 +518,14 @@ const normalizeInvoice = (invoice: InvoiceWithRelations) => {
     const paidAmount = payments
         .filter((payment) => payment.status === PaymentStatus.SUCCESS)
         .reduce((sum, payment) => sum + toNumber(payment.amount), 0);
+    const contractOccupantCount = invoice.contract === null
+        ? undefined
+        : 1 + invoice.contract.tenant._count.occupants;
     const contract = invoice.contract === null
         ? null
         : {
             ...invoice.contract,
+            actual_occupants: contractOccupantCount,
             deposit_amount: toNumber(invoice.contract.deposit_amount),
             monthly_rent: toNumber(invoice.contract.monthly_rent),
             apartment: {
@@ -549,7 +558,7 @@ const normalizeInvoice = (invoice: InvoiceWithRelations) => {
             quantity: toNumber(item.quantity),
             unit_price: toNumber(item.unit_price),
             amount: toNumber(item.amount)
-        })))
+        })), contractOccupantCount)
     };
 };
 
