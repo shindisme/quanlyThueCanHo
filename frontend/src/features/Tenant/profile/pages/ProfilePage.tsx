@@ -18,7 +18,7 @@ import PageHeader from "../../../../components/PageHeader";
 import Modal from "../../../../components/ui/Modal";
 import Input from "../../../../components/ui/Input";
 import { formatCurrency } from "../../../../utils/currency";
-import { formatDate } from "../../../../utils/date";
+import { formatApartmentDisplay, maskPhone, maskCCCD } from "../../../../utils/string";
 import { useProfile } from "../hooks/useProfile";
 
 export default function ProfilePage() {
@@ -115,7 +115,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="text-xs">
                   <p className="font-semibold text-gray-800">
-                    {apartmentInfo ? `Phòng ${apartmentInfo.floor}${apartmentInfo.room_number}` : "Căn hộ của tôi"}
+                    {apartmentInfo ? formatApartmentDisplay(apartmentInfo.room_number, apartmentInfo.floor) : "Căn hộ của tôi"}
                   </p>
                   <p className="text-violet-600 font-medium mt-0.5">
                     {buildingInfo?.branch_name || "Yuki House"}
@@ -277,7 +277,7 @@ export default function ProfilePage() {
                 <div className="p-4 bg-gray-50/70 border border-gray-100 space-y-1">
                   <p className="text-xs text-gray-400">Căn hộ & Phòng</p>
                   <p className="font-bold text-gray-800">
-                    {apartmentInfo ? `Phòng ${apartmentInfo.floor}${apartmentInfo.room_number}` : "Căn hộ"}
+                    {apartmentInfo ? formatApartmentDisplay(apartmentInfo.room_number, apartmentInfo.floor) : "Căn hộ"}
                   </p>
                 </div>
 

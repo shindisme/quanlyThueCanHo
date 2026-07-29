@@ -280,7 +280,7 @@ export default function GuestApartmentDetail() {
             </Card>
 
             {/* Mo ta */}
-            <Card>
+            <Card className="rounded-none">
               <h3 className="font-semibold text-gray-800 mb-3">Mô tả</h3>
               <p className="text-sm text-gray-600 leading-relaxed">{apartment.description}</p>
             </Card>

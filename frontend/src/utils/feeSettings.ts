@@ -105,8 +105,9 @@ const isFallbackTier = (details: InvoiceElectricTierDetail[]) =>
   details.length === 1 && details[0].label.includes("theo hóa đơn");
 
 export const getUtilityUnit = (item: InvoiceItem) => {
-  if (item.utility_type === "WATER" || item.item_name.startsWith("Tiền nước")) return "m³";
-  if (item.utility_type === "ELECTRIC" || item.item_name.startsWith("Tiền điện")) return "kWh";
+  const name = (item.item_name || "").toLowerCase();
+  if (item.utility_type === "WATER" || name.includes("nước") || name.includes("water")) return "m³";
+  if (item.utility_type === "ELECTRIC" || name.includes("điện") || name.includes("electric")) return "kWh";
   return "";
 };
 
@@ -115,11 +116,13 @@ export const getDisplayTierDetails = (item: InvoiceItem, occupantCount?: number)
   if (details.length > 0 && !isFallbackTier(details)) return details;
 
   const settings = readFeeSettings();
-  if (item.utility_type === "ELECTRIC" || item.item_name.startsWith("Tiền điện")) {
+  const name = (item.item_name || "").toLowerCase();
+
+  if (item.utility_type === "ELECTRIC" || name.includes("điện") || name.includes("electric")) {
     return calculateTiers(Number(item.quantity), settings.electricityRates, ELECTRIC_LIMITS, "kWh");
   }
 
-  if (item.utility_type === "WATER" || item.item_name.startsWith("Tiền nước")) {
+  if (item.utility_type === "WATER" || name.includes("nước") || name.includes("water")) {
     return calculateTiers(Number(item.quantity), settings.waterRates, waterLimitsFor(occupantCount), "m³");
   }
 

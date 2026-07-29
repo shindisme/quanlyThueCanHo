@@ -1,8 +1,5 @@
 import { Link } from "react-router-dom";
-import {
-  Search, ArrowRight, Building2, Users, Shield, Star,
-  MapPin, Maximize2, Phone, CheckCircle2,
-} from "lucide-react";
+import { Search, ArrowRight, Building2, Shield, Users, MapPin, Maximize2, Phone } from "lucide-react";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
@@ -31,96 +28,87 @@ export default function GuestHomePage() {
   } = useHomePage();
 
   return (
-    <div className="font-sans">
+    <div className="font-sans text-gray-900 bg-white">
       {/* HERO SECTION */}
-      <section className="relative pt-16 overflow-hidden"
-        style={{ background: "linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 50%, #DDD6FE 100%)" }}>
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-20 lg:py-28">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
+      <section className="relative pt-12 pb-20 overflow-hidden bg-gray-50 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-12 lg:py-16">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            {/* Hero Left */}
+            <div className="lg:col-span-7">
               {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-100 text-primary-700 text-xs font-semibold mb-6">
-                <Star size={14} />
-                <span>Nền tảng quản lý căn hộ #1 TP.HCM</span>
+              <div className="inline-block px-3 py-1 bg-violet-100 text-violet-800 text-xs font-bold mb-6 border-l-2 border-violet-600 uppercase tracking-wider">
+                Nền tảng quản lý căn hộ #1 TP.HCM
               </div>
 
-              <h1 className="text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-6 whitespace-pre-line">
+              <h1 className="text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight mb-6 whitespace-pre-line">
                 {heroTitle}
               </h1>
-              <p className="text-lg text-gray-600 mb-8 leading-relaxed max-w-lg">
+              <p className="text-base text-gray-600 mb-8 leading-relaxed max-w-xl">
                 {heroSubtitle}
               </p>
 
               {/* Search bar */}
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 max-w-xl shadow-md border border-gray-300 p-1.5 bg-white rounded-xl">
                 <div className="relative flex-1">
-                  <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Tìm theo tên, địa chỉ, giá..."
-                    className="w-full pl-11 pr-4 py-4 rounded-xl border border-gray-300 text-sm bg-white
-                      focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100
-                      shadow-sm"
+                    placeholder="Tìm kiếm theo địa chỉ..."
+                    className="w-full pl-10 pr-3 py-3 text-sm bg-transparent focus:outline-none text-gray-800"
                   />
                 </div>
                 <Link
                   to={`/apartments?search=${encodeURIComponent(searchQuery)}`}
-                  className="px-6 py-4 text-white rounded-xl font-medium hover:opacity-90 transition-all
-                    flex items-center justify-center gap-2 shadow-md w-full sm:w-auto"
-                  style={{ background: "linear-gradient(135deg, #7C3AED, #6D28D9)" }}
+                  className="px-6 py-3 bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-all flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 rounded-lg"
                 >
                   Tìm kiếm
-                  <ArrowRight size={18} />
+                  <ArrowRight size={16} />
                 </Link>
               </div>
 
               {/* Stats */}
-              <div className="flex gap-10 mt-10">
+              <div className="grid grid-cols-3 gap-6 mt-12 pt-8 border-t border-gray-200 max-w-lg">
                 {[
-                  { value: "5+", label: "Tòa nhà" },
-                  { value: "1000+", label: "Căn hộ" },
-                  { value: "98%", label: "Hài lòng" },
+                  { value: "5+", label: "Tòa nhà chi nhánh" },
+                  { value: "1000+", label: "Căn hộ cao cấp" },
+                  { value: "98%", label: "Khách thuê hài lòng" },
                 ].map((stat, i) => (
                   <div key={i}>
-                    <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
-                    <p className="text-sm text-gray-500">{stat.label}</p>
+                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                    <p className="text-xs text-gray-500 font-medium mt-0.5">{stat.label}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="hidden lg:block relative">
-              <div className="w-full h-96 rounded-2xl flex items-center justify-center"
-                style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.1), rgba(167,139,250,0.15))" }}>
-                <div className="text-center">
-                  <Building2 size={80} className="text-primary-400 mx-auto mb-4" />
-                  <p className="text-primary-500 font-medium">YuKi House Apartment</p>
-                </div>
-              </div>
-              {/* Floating card */}
-              <div className="absolute -bottom-6 -left-6 bg-white rounded-xl shadow-lg p-4 animate-slide-in-up border border-gray-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-success-50 rounded-lg flex items-center justify-center">
-                    <Star size={20} className="text-success-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-800">4.9/5.0</p>
-                    <p className="text-xs text-gray-400">Đánh giá từ khách</p>
+            {/* Hero Right*/}
+            <div className="lg:col-span-5 relative">
+              <div className="relative border border-gray-300 shadow-xl overflow-hidden bg-gray-100 rounded-lg">
+                <img
+                  src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1000&q=80"
+                  alt="YuKi House Building"
+                  className="w-full h-105 object-cover"
+                />
+                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent flex items-end p-6">
+                  <div className="text-white">
+                    <p className="text-xs font-bold uppercase tracking-wider text-violet-300">Hệ thống căn hộ YuKi House</p>
+                    <p className="text-lg font-bold mt-1">Không gian sống hiện đại & Đầy đủ tiện nghi</p>
                   </div>
                 </div>
               </div>
-              {/* Floating card 2 */}
-              <div className="absolute -top-4 -right-4 bg-white rounded-xl shadow-lg p-4 animate-slide-in-up border border-gray-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center">
-                    <CheckCircle2 size={20} className="text-primary-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-800">500+</p>
-                    <p className="text-xs text-gray-400">Cư dân tin tưởng</p>
-                  </div>
+
+              {/* hình ảnh gthieu */}
+              <div className="absolute -bottom-18 -left-6 bg-white border rounded-lg border-gray-300 shadow-xl p-1 flex items-center gap-3 sm:flex">
+                <img
+                  src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=200&q=80"
+                  alt="Phòng mẫu"
+                  className="w-20 h-20 object-cover border border-gray-200 rounded-lg"
+                />
+                <div>
+                  <p className="text-sm font-bold text-gray-900">Nội thất cao cấp</p>
+                  <p className="text-xs text-gray-500">Được trang bị sẵn 100%</p>
                 </div>
               </div>
             </div>
@@ -128,10 +116,42 @@ export default function GuestHomePage() {
         </div>
       </section>
 
-      {/* AVAILABLE APARTMENTS */}
-      <section className="py-20 bg-white">
+      {/* GALLERY SHOWCASE SECTION */}
+      <section className="py-16 bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div className="flex items-center justify-between mb-10">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 pb-4 border-b border-gray-200">
+            <div>
+              <p className="text-xs font-bold text-violet-600 uppercase tracking-wider mb-1">Hình ảnh</p>
+              <h2 className="text-2xl font-bold text-gray-900">Không gian sống tiêu chuẩn tại YuKi House</h2>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { title: "Phòng khách hiện đại", img: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=600&q=80" },
+              { title: "Phòng ngủ ấm cúng", img: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=600&q=80" },
+              { title: "Khu vực bếp sang trọng", img: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=600&q=80" },
+              { title: "Nhà vệ sinh sạch đẹp", img: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=600&q=80" },
+            ].map((item, index) => (
+              <div key={index} className="relative group border border-gray-200 overflow-hidden bg-gray-100">
+                <img
+                  src={item.img}
+                  alt={item.title}
+                  className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                  <span className="text-xs font-semibold text-white">{item.title}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* AVAILABLE APARTMENTS*/}
+      <section className="py-16 bg-gray-50/50">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200">
             <div>
               <p className="text-xs font-semibold text-primary-600 uppercase tracking-wider mb-2">Căn hộ</p>
               <h2 className="text-3xl font-bold text-gray-900">Căn hộ còn trống</h2>
@@ -141,16 +161,16 @@ export default function GuestHomePage() {
               to="/apartments"
               className="text-primary-600 font-medium text-sm hover:text-primary-700 flex items-center gap-1 transition-colors"
             >
-              Xem tất cả <ArrowRight size={16} />
+              Xem tất cả <ArrowRight size={14} />
             </Link>
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-20">
+            <div className="flex items-center justify-center py-16">
               <LoadingSpinner size={32} />
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {availableApartments.map((apt: ApartmentData) => {
                 const building = buildings.find((b) => b.id === apt.building_id);
                 return (

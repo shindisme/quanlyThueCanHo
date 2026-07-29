@@ -8,7 +8,7 @@ import Input from "../../../../components/ui/Input";
 import Combobox from "../../../../components/ui/Combobox";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import { formatDate } from "../../../../utils/date";
-import { removeVietnameseTones } from "../../../../utils/string";
+import { formatApartmentDisplay, removeVietnameseTones } from "../../../../utils/string";
 import { useTenantMaintenance } from "../hooks/useTenantMaintenance";
 import { REQUEST_STATUS_LABELS, REQUEST_STATUS_COLORS, PRIORITY_LABELS, PRIORITY_COLORS, type RequestStatus, type Priority } from "../../../../constants/enums";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
@@ -72,7 +72,7 @@ export default function MyMaintenance() {
       key: "room",
       label: "Phòng",
       render: (req: MaintenanceRequest) => {
-        const aptRoom = req.apartment ? `Phòng ${req.apartment.room_number}` : "Chưa xác định";
+        const aptRoom = req.apartment ? formatApartmentDisplay(req.apartment.room_number, req.apartment.floor) : "Chưa xác định";
         return <span className="font-medium text-gray-805 whitespace-nowrap">{aptRoom}</span>;
       }
     },

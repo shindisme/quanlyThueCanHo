@@ -144,6 +144,8 @@ export function DatePicker({
         !containerRef.current.contains(target)
       ) {
         setIsOpen(false);
+        setIsMonthOpen(false);
+        setIsYearOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -247,6 +249,19 @@ export function DatePicker({
     onChange?.(baseDate);
   };
 
+  const [isMonthOpen, setIsMonthOpen] = useState(false);
+  const [isYearOpen, setIsYearOpen] = useState(false);
+  const yearListRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isYearOpen && yearListRef.current) {
+      const selectedEl = yearListRef.current.querySelector("[data-selected='true']");
+      if (selectedEl) {
+        selectedEl.scrollIntoView({ block: "center" });
+      }
+    }
+  }, [isYearOpen]);
+
   return (
     <div ref={containerRef} className="relative w-full">
       <div className="relative flex items-center">
@@ -277,42 +292,88 @@ export function DatePicker({
             top: `${popoverCoords.top}px`,
             left: `${popoverCoords.left}px`,
           }}
-          className="z-9999 bg-white border border-gray-200 rounded-lg shadow-lg flex font-sans overflow-hidden"
+          className="z-9999 bg-white border border-gray-200 rounded-lg shadow-lg flex font-sans overflow-visible"
         >
           {/* Day Grid Panel */}
-          <div className="p-3 w-[260px] flex flex-col justify-between">
+          <div className="p-3 w-65 flex flex-col justify-between">
             <div>
               {/* Header */}
-              <div className="flex items-center justify-between pb-3 mb-2 border-b border-gray-100">
+              <div className="flex items-center justify-between pb-3 mb-2 border-b border-gray-100 relative z-20">
                 <div className="flex items-center gap-1">
                   {/* Month Dropdown */}
-                  <div className="relative flex items-center gap-0.5 font-bold text-xs text-gray-800 hover:bg-gray-50 px-1.5 py-0.5 rounded cursor-pointer transition-colors">
-                    <span>Tháng {monthWordNames[month]}</span>
-                    <ChevronDown size={12} className="text-gray-500" />
-                    <select
-                      value={month}
-                      onChange={(e) => handleMonthYearChange(year, Number(e.target.value))}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMonthOpen((prev) => !prev);
+                        setIsYearOpen(false);
+                      }}
+                      className="flex items-center gap-0.5 font-bold text-xs text-gray-800 hover:bg-gray-100 px-1.5 py-1 rounded cursor-pointer transition-colors"
                     >
-                      {monthWordNames.map((name, idx) => (
-                        <option key={idx} value={idx}>Tháng {name}</option>
-                      ))}
-                    </select>
+                      <span>Tháng {monthWordNames[month]}</span>
+                      <ChevronDown size={12} className="text-gray-500" />
+                    </button>
+
+                    {isMonthOpen && (
+                      <div className="absolute top-full left-0 mt-1 w-28 max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-xl z-30 py-1 text-xs divide-y divide-gray-50">
+                        {monthWordNames.map((name, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              handleMonthYearChange(year, idx);
+                              setIsMonthOpen(false);
+                            }}
+                            className={cn(
+                              "w-full text-left px-3 py-1.5 hover:bg-primary-50 hover:text-primary-600 transition-colors font-medium cursor-pointer",
+                              idx === month && "bg-primary-50 font-bold text-primary-600"
+                            )}
+                          >
+                            Tháng {name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Year Dropdown */}
-                  <div className="relative flex items-center gap-0.5 font-bold text-xs text-gray-800 hover:bg-gray-50 px-1.5 py-0.5 rounded cursor-pointer transition-colors">
-                    <span>{year}</span>
-                    <ChevronDown size={12} className="text-gray-500" />
-                    <select
-                      value={year}
-                      onChange={(e) => handleMonthYearChange(Number(e.target.value), month)}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsYearOpen((prev) => !prev);
+                        setIsMonthOpen(false);
+                      }}
+                      className="flex items-center gap-0.5 font-bold text-xs text-gray-800 hover:bg-gray-100 px-1.5 py-1 rounded cursor-pointer transition-colors"
                     >
-                      {yearsList.map((y) => (
-                        <option key={y} value={y}>{y}</option>
-                      ))}
-                    </select>
+                      <span>{year}</span>
+                      <ChevronDown size={12} className="text-gray-500" />
+                    </button>
+
+                    {isYearOpen && (
+                      <div
+                        ref={yearListRef}
+                        className="absolute top-full left-0 mt-1 w-24 max-h-40 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-xl z-30 py-1 text-xs scroll-smooth"
+                      >
+                        {yearsList.map((y) => (
+                          <button
+                            key={y}
+                            type="button"
+                            data-selected={y === year}
+                            onClick={() => {
+                              handleMonthYearChange(y, month);
+                              setIsYearOpen(false);
+                            }}
+                            className={cn(
+                              "w-full text-left px-3 py-1.5 hover:bg-primary-50 hover:text-primary-600 transition-colors font-medium cursor-pointer",
+                              y === year && "bg-primary-600 text-white font-bold hover:bg-primary-700 hover:text-white"
+                            )}
+                          >
+                            {y}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
