@@ -35,6 +35,8 @@ export default function ProfilePage() {
     userContract,
     apartmentInfo,
     buildingInfo,
+    currentStaff,
+    staffBuildingInfo,
     occupants,
     handleChangePassword,
     fullName,
@@ -124,6 +126,22 @@ export default function ProfilePage() {
               </div>
             )}
 
+            {role === "MANAGER" && (
+              <div className="bg-violet-50/70 border border-violet-100 p-3 flex items-center gap-3">
+                <div className="w-10 h-10 bg-violet-600 text-white flex items-center justify-center">
+                  <Home size={18} />
+                </div>
+                <div className="text-xs">
+                  <p className="font-semibold text-gray-800">
+                    Chi nhánh phụ trách
+                  </p>
+                  <p className="text-violet-600 font-bold mt-0.5">
+                    {staffBuildingInfo?.branch_name || "Tất cả chi nhánh"}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <button
               onClick={handleOpenEditProfile}
               className="px-4 py-2.5 bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border border-violet-200 shadow-sm rounded-xl"
@@ -192,10 +210,23 @@ export default function ProfilePage() {
                   <p className="text-xs text-gray-400 font-medium">Vai trò hệ thống</p>
                   <p className="text-sm font-semibold text-gray-800 mt-1">{roleLabel}</p>
                 </div>
+
+                {(role === "STAFF" || role === "MANAGER") && (
+                  <>
+                    <div className="p-3.5 bg-gray-50/70 border border-gray-100">
+                      <p className="text-xs text-gray-400 font-medium">Chi nhánh phụ trách</p>
+                      <p className="text-sm font-semibold text-gray-800 mt-1">{staffBuildingInfo?.branch_name || "Tất cả chi nhánh"}</p>
+                    </div>
+                    <div className="p-3.5 bg-gray-50/70 border border-gray-100">
+                      <p className="text-xs text-gray-400 font-medium">Vị trí công tác</p>
+                      <p className="text-sm font-semibold text-gray-800 mt-1">{currentStaff?.position || roleLabel}</p>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
-            {/* Quick banner khai báo người ở cùng cho cư dân */}
+            {/* khai báo người ở cùng cho cư dân */}
             {role === "TENANT" && (
               <div className="bg-indigo-600 p-6 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="space-y-1">

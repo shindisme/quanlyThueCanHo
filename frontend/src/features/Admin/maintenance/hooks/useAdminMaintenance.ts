@@ -81,7 +81,7 @@ export function useAdminMaintenance() {
       const bId = selectedRequest?.apartment?.building_id || selectedRequest?.apartment?.building?.id || (role === "MANAGER" ? managedBuildingId : undefined);
       return staffService.getAllStaffs(bId ? { building_id: Number(bId) } : undefined);
     },
-    enabled: !!(selectedRequest?.apartment?.building_id || selectedRequest?.apartment?.building?.id || (role === "MANAGER" && managedBuildingId)),
+    enabled: role !== "STAFF" && !!(selectedRequest?.apartment?.building_id || selectedRequest?.apartment?.building?.id || (role === "MANAGER" && managedBuildingId)),
   });
   const technicians = (staffRes?.data || []).filter(
     (s) => s.position !== "Quản lý"

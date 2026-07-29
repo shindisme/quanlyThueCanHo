@@ -144,17 +144,22 @@ export default function Header() {
     async function loadUserProfile() {
       try {
         if (role === "MANAGER" || role === "STAFF") {
-          const { getAllStaffs } = await import("../services/staffService");
-          const staffRes = await getAllStaffs();
-          const currentStaff = staffRes.data.find((s) => s.user_id === userId);
-          if (currentStaff) {
-            setUserFullName(currentStaff.full_name);
-            if (currentStaff.user?.username) {
-              setAccountUsername(currentStaff.user.username);
+          try {
+            const { getAllStaffs } = await import("../services/staffService");
+            const staffRes = await getAllStaffs();
+            const currentStaff = staffRes.data.find((s) => s.user_id === userId);
+            if (currentStaff) {
+              setUserFullName(currentStaff.full_name);
+              if (currentStaff.user?.username) {
+                setAccountUsername(currentStaff.user.username);
+              }
+              if (currentStaff.building?.branch_name) {
+                setManagedBuildingName(currentStaff.building.branch_name);
+              }
             }
-            if (currentStaff.building?.branch_name) {
-              setManagedBuildingName(currentStaff.building.branch_name);
-            }
+          } catch {
+            const storedFullName = email ? localStorage.getItem(`profile-fullname-${email}`) : null;
+            if (storedFullName) setUserFullName(storedFullName);
           }
         } else if (role === "TENANT") {
           try {
@@ -294,9 +299,9 @@ export default function Header() {
   const roleLabel =
     role === "ADMIN" ? "Quản trị viên"
       : role === "MANAGER" ? (managedBuildingName ? `Quản lý: ${managedBuildingName}` : "Quản lý")
-        : role === "STAFF" ? (managedBuildingName ? `Nhân viên: ${managedBuildingName}` : "Nhân viên")
-          : role === "TENANT" ? (managedBuildingName ? `Người thuê: ${managedBuildingName}` : "Người thuê")
-            : "Người thuê";
+        : role === "STAFF" ? (managedBuildingName ? `Kỹ thuật: ${managedBuildingName}` : "Nhân viên kỹ thuật")
+          : role === "TENANT" ? (managedBuildingName ? `Cư dân: ${managedBuildingName}` : "Cư dân")
+            : "Người dùng";
 
   function getBreadcrumb() {
     const parts = location.pathname.split("/").filter(Boolean);
@@ -505,8 +510,8 @@ export default function Header() {
 
             {/* Menu items */}
             <DropdownMenuItem
-              onClick={() => navigate(`/${role?.toLowerCase()}/profile`)}
-              className="gap-3 px-3 py-2"
+              onClick={() => navigate(role === "STAFF" || role === "MANAGER" ? "/manager/profile" : `/${role?.toLowerCase()}/profile`)}
+              className="gap-3 px-3 py-2 cursor-pointer"
             >
               <User size={16} className="text-gray-400" />
               Hồ sơ cá nhân

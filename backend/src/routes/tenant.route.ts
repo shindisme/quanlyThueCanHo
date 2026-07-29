@@ -74,7 +74,7 @@ router.post(
 );
 router.put(
     "/:id",
-    authorizeTenantManagement,
+    authorizeTenantDetail,
     validate(updateTenantRequestSchema),
     tenantController.update
 );

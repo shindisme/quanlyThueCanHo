@@ -116,20 +116,21 @@ export function useProfile() {
     ? staffRes.data.find((s) => s.user_id === userId)
     : null;
 
-  const overrideFullName = email ? localStorage.getItem(`profile-fullname-${email}`) : null;
-  const overridePhone = email ? localStorage.getItem(`profile-phone-${email}`) : null;
+  const staffBuildingInfo = (role === "MANAGER" || role === "STAFF")
+    ? (currentStaff?.building || (currentStaff?.building_id ? buildings.find((b) => b.id === currentStaff.building_id) : null))
+    : null;
 
-  const fullName = overrideFullName || (role === "TENANT"
-    ? userContract?.tenant?.full_name
+  const fullName = role === "TENANT"
+    ? (userContract?.tenant?.full_name || "Cư dân")
     : (role === "MANAGER" || role === "STAFF"
-      ? currentStaff?.full_name
-      : "Quản trị viên"));
+      ? (currentStaff?.full_name || "Nhân viên kỹ thuật")
+      : "Quản trị viên");
 
-  const phone = overridePhone || (role === "TENANT"
-    ? userContract?.tenant?.phone
+  const phone = role === "TENANT"
+    ? (userContract?.tenant?.phone || "")
     : (role === "MANAGER" || role === "STAFF"
-      ? currentStaff?.phone
-      : ""));
+      ? (currentStaff?.phone || "")
+      : "");
 
   const [editFullName, setEditFullName] = useState("");
   const [editPhone, setEditPhone] = useState("");
@@ -154,11 +155,6 @@ export function useProfile() {
             phone: editPhone.trim() || undefined,
           });
           queryClient.invalidateQueries({ queryKey: ["contracts"] });
-        } else {
-          if (email) {
-            localStorage.setItem(`profile-fullname-${email}`, editFullName.trim());
-            localStorage.setItem(`profile-phone-${email}`, editPhone.trim());
-          }
         }
       } else if (role === "MANAGER" || role === "STAFF") {
         if (currentStaff?.id) {
@@ -167,16 +163,6 @@ export function useProfile() {
             phone: editPhone.trim() || undefined,
           });
           queryClient.invalidateQueries({ queryKey: ["staffProfile"] });
-        } else {
-          if (email) {
-            localStorage.setItem(`profile-fullname-${email}`, editFullName.trim());
-            localStorage.setItem(`profile-phone-${email}`, editPhone.trim());
-          }
-        }
-      } else if (role === "ADMIN") {
-        if (email) {
-          localStorage.setItem(`profile-fullname-${email}`, editFullName.trim());
-          localStorage.setItem(`profile-phone-${email}`, editPhone.trim());
         }
       }
 
@@ -322,6 +308,8 @@ export function useProfile() {
     userContract,
     apartmentInfo,
     buildingInfo,
+    currentStaff,
+    staffBuildingInfo,
     occupants,
     showOccupantModal,
     setShowOccupantModal,
