@@ -105,12 +105,23 @@ export function useAdminMaintenance() {
     },
   });
 
+  // State modal hoàn thành
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [chargeTenant, setChargeTenant] = useState(false);
+  const [repairFee, setRepairFee] = useState<string>("");
+
   // Đánh dấu hoàn thành
   const completeMutation = useMutation({
-    mutationFn: (id: number) => maintenanceService.completeMaintenanceRequest(id),
+    mutationFn: ({ id, charge_tenant, repair_fee }: { id: number; charge_tenant: boolean; repair_fee?: number }) =>
+      maintenanceService.completeMaintenanceRequest(id, { charge_tenant, repair_fee }),
     onSuccess: () => {
-      toast.success("Đã đánh dấu hoàn thành sửa chữa");
+      toast.success("Đã đánh dấu hoàn thành sửa chữa thành công");
+      setShowCompleteModal(false);
+      setSelectedRequest(null);
+      setChargeTenant(false);
+      setRepairFee("");
       queryClient.invalidateQueries({ queryKey: ["adminMaintenanceRequests"] });
+      queryClient.invalidateQueries({ queryKey: ["invoices"] });
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string } } };
@@ -145,6 +156,13 @@ export function useAdminMaintenance() {
     setShowUnableModal(true);
   };
 
+  const handleOpenComplete = (req: MaintenanceRequest) => {
+    setSelectedRequest(req);
+    setChargeTenant(false);
+    setRepairFee("");
+    setShowCompleteModal(true);
+  };
+
   const handleConfirm = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRequest) return;
@@ -176,9 +194,19 @@ export function useAdminMaintenance() {
     unableMutation.mutate({ id: selectedRequest.id, reason: unableReason.trim() });
   };
 
-  const handleComplete = (id: number) => {
-    if (!window.confirm("Xác nhận đã sửa chữa hoàn tất sự cố này?")) return;
-    completeMutation.mutate(id);
+  const handleCompleteSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRequest) return;
+    if (chargeTenant && (!repairFee || Number(repairFee) <= 0)) {
+      toast.error("Vui lòng nhập số tiền phí sửa chữa lớn hơn 0");
+      return;
+    }
+
+    completeMutation.mutate({
+      id: selectedRequest.id,
+      charge_tenant: chargeTenant,
+      repair_fee: chargeTenant ? Number(repairFee) : undefined,
+    });
   };
 
   const filteredRequestsByFloor = useMemo(() => {
@@ -230,8 +258,16 @@ export function useAdminMaintenance() {
     handleOpenUnable,
     handleUnableSubmit,
 
-    // Actions
-    handleComplete,
+    // Modal hoàn thành 
+    showCompleteModal,
+    setShowCompleteModal,
+    chargeTenant,
+    setChargeTenant,
+    repairFee,
+    setRepairFee,
+    handleOpenComplete,
+    handleCompleteSubmit,
+
     saving: confirmMutation.isPending || completeMutation.isPending || unableMutation.isPending,
   };
 }

@@ -10,6 +10,7 @@ import { useAdminMaintenance } from "../hooks/useAdminMaintenance";
 import MaintenanceList from "../components/MaintenanceList";
 import MaintenanceAssignModal from "../components/MaintenanceAssignModal";
 import MaintenanceUnableModal from "../components/MaintenanceUnableModal";
+import MaintenanceCompleteModal from "../components/MaintenanceCompleteModal";
 import MaintenanceDetailModal from "../components/MaintenanceDetailModal";
 
 import type { MaintenanceRequest } from "../../../../types";
@@ -47,7 +48,14 @@ export default function MaintenancePage() {
     setUnableReason,
     handleOpenUnable,
     handleUnableSubmit,
-    handleComplete,
+    showCompleteModal,
+    setShowCompleteModal,
+    chargeTenant,
+    setChargeTenant,
+    repairFee,
+    setRepairFee,
+    handleOpenComplete,
+    handleCompleteSubmit,
     saving,
   } = useAdminMaintenance();
 
@@ -170,7 +178,7 @@ export default function MaintenancePage() {
           onOpenDetail={handleOpenDetail}
           onOpenAssign={handleOpenAssign}
           onOpenUnable={handleOpenUnable}
-          onComplete={handleComplete}
+          onComplete={handleOpenComplete}
         />
       )}
 
@@ -194,6 +202,17 @@ export default function MaintenancePage() {
         unableReason={unableReason}
         setUnableReason={setUnableReason}
         onUnableSubmit={handleUnableSubmit}
+      />
+
+      <MaintenanceCompleteModal
+        isOpen={showCompleteModal}
+        onClose={() => setShowCompleteModal(false)}
+        saving={saving}
+        chargeTenant={chargeTenant}
+        setChargeTenant={setChargeTenant}
+        repairFee={repairFee}
+        setRepairFee={setRepairFee}
+        onCompleteSubmit={handleCompleteSubmit}
       />
 
       <MaintenanceDetailModal isOpen={showDetailModal} onClose={() => setShowDetailModal(false)} detailRequest={detailRequest} role={role} />

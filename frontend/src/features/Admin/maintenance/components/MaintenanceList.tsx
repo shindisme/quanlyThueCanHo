@@ -13,7 +13,7 @@ interface MaintenanceListProps {
   onOpenDetail: (req: MaintenanceRequest) => void;
   onOpenAssign: (req: MaintenanceRequest) => void;
   onOpenUnable: (req: MaintenanceRequest) => void;
-  onComplete: (id: number) => void;
+  onComplete: (req: MaintenanceRequest) => void;
 }
 
 export default function MaintenanceList({
@@ -155,7 +155,7 @@ export default function MaintenanceList({
               <>
                 <button
                   type="button"
-                  onClick={() => onComplete(req.id)}
+                  onClick={() => onComplete(req)}
                   disabled={saving}
                   className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer disabled:opacity-50 transition-colors"
                   title="Hoàn thành sửa chữa"

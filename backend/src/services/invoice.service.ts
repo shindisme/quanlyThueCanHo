@@ -1,4 +1,4 @@
-﻿import {
+import {
     InvoiceStatus,
     InvoiceType,
     PaymentStatus,
@@ -720,10 +720,22 @@ export const getInvoicesService = async (filters: InvoiceFilters, actor: Invoice
         filters.month !== undefined
         && filters.year !== undefined
     ) {
+        const startOfMonth = new Date(filters.year, filters.month - 1, 1);
+        const endOfMonth = new Date(filters.year, filters.month, 0, 23, 59, 59, 999);
         andFilters.push({
-            invoice_code: {
-                contains: `-${filters.year}${padMonth(filters.month)}`
-            }
+            OR: [
+                {
+                    invoice_code: {
+                        contains: `-${filters.year}${padMonth(filters.month)}`
+                    }
+                },
+                {
+                    created_at: {
+                        gte: startOfMonth,
+                        lte: endOfMonth
+                    }
+                }
+            ]
         });
     }
 
