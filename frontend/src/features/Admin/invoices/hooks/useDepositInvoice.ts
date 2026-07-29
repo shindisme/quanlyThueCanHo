@@ -208,6 +208,13 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
       toast.error("Ngày dọn vào: Vui lòng chọn ngày dọn vào");
       return;
     }
+    const moveInDateObj = new Date(form.move_in_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (isNaN(moveInDateObj.getTime()) || moveInDateObj < today) {
+      toast.error("Ngày dọn vào: Ngày dọn vào không được ở trong quá khứ");
+      return;
+    }
     if (!Number.isFinite(Number(form.deposit_amount)) || Number(form.deposit_amount) <= 0) {
       toast.error("Số tiền cọc: Số tiền cọc phải lớn hơn 0");
       return;
