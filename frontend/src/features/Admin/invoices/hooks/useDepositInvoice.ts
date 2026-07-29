@@ -185,19 +185,31 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
     e.preventDefault();
     const aptId = fixedApartment ? fixedApartment.id : Number(form.apartment_id);
     if (!aptId) {
-      toast.error("Vui lòng chọn căn hộ đặt cọc");
+      toast.error("Căn hộ: Vui lòng chọn căn hộ đặt cọc");
       return;
     }
-    if (!form.full_name.trim() || !form.citizen_id.trim() || !form.email.trim()) {
-      toast.error("Vui lòng nhập họ tên, CCCD và email người thuê");
+    if (!form.full_name.trim()) {
+      toast.error("Họ tên: Vui lòng nhập họ tên người thuê");
+      return;
+    }
+    if (!form.phone.trim()) {
+      toast.error("Số điện thoại: Vui lòng nhập số điện thoại người thuê");
+      return;
+    }
+    if (!form.email.trim()) {
+      toast.error("Email: Vui lòng nhập địa chỉ email người thuê");
+      return;
+    }
+    if (!form.citizen_id.trim()) {
+      toast.error("CCCD: Vui lòng nhập số CCCD người thuê");
       return;
     }
     if (!form.move_in_date) {
-      toast.error("Vui lòng chọn ngày dọn vào");
+      toast.error("Ngày dọn vào: Vui lòng chọn ngày dọn vào");
       return;
     }
     if (!Number.isFinite(Number(form.deposit_amount)) || Number(form.deposit_amount) <= 0) {
-      toast.error("Số tiền cọc phải lớn hơn 0");
+      toast.error("Số tiền cọc: Số tiền cọc phải lớn hơn 0");
       return;
     }
     depositMutation.mutate();

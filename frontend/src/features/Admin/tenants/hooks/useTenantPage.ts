@@ -181,8 +181,12 @@ export function useTenantPage() {
         toast.success("Đã xóa người thuê");
       },
       onError: (error: unknown) => {
-        const err = error as { response?: { data?: { message?: string } } };
-        toast.error(err.response?.data?.message || "Xóa người thuê thất bại");
+        const err = error as { response?: { data?: { message?: string; error?: string } } };
+        toast.error(
+          err.response?.data?.message ||
+            err.response?.data?.error ||
+            "Xóa người thuê thất bại"
+        );
       },
     });
   }

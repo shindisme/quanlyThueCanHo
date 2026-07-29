@@ -160,6 +160,32 @@ export default function ApartmentCreateModal({
     });
   };
 
+  const onInvalid = (errors: Record<string, any>) => {
+    const fieldLabels: Record<string, string> = {
+      room_number: "Số phòng",
+      building_id: "Chi nhánh",
+      floor: "Tầng",
+      area: "Diện tích",
+      bedrooms: "Số phòng ngủ",
+      bathrooms: "Số phòng vệ sinh",
+      rental_price: "Giá thuê",
+      description: "Mô tả",
+      status: "Trạng thái",
+    };
+
+    const messages = Object.entries(errors)
+      .map(([key, err]: [string, any]) => {
+        if (!err?.message) return null;
+        const label = fieldLabels[key];
+        return label ? `${label}: ${err.message}` : String(err.message);
+      })
+      .filter(Boolean);
+
+    if (messages.length > 0) {
+      messages.forEach((msg) => toast.error(String(msg)));
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -169,11 +195,11 @@ export default function ApartmentCreateModal({
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={saving}>Hủy</Button>
-          <Button onClick={handleSubmit(onSubmit)} isLoading={saving}>Thêm mới</Button>
+          <Button onClick={handleSubmit(onSubmit, onInvalid)} isLoading={saving}>Thêm mới</Button>
         </>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 sm:col-span-6">
             <Input

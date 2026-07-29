@@ -20,6 +20,7 @@ export function useApartmentPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterFeatured, setFilterFeatured] = useState("");
+  const [filterFloor, setFilterFloor] = useState<number | "">("");
   const [filterBuilding, setFilterBuilding] = useState<number | undefined>(
     role === "MANAGER" ? (managedBuildingId || undefined) : undefined
   );
@@ -80,6 +81,10 @@ export function useApartmentPage() {
     localStorage.setItem("featured-apartment-ids", JSON.stringify(updated));
   }
 
+  const availableFloors = Array.from(
+    new Set(apartments.map((a) => a.floor).filter(Boolean))
+  ).sort((a, b) => a - b);
+
   const filtered: Apartment[] = apartments.filter((apt) => {
     if (debouncedSearch) {
       const s = removeVietnameseTones(debouncedSearch.toLowerCase());
@@ -96,6 +101,10 @@ export function useApartmentPage() {
     }
 
     if (filterStatus && apt.status !== filterStatus) {
+      return false;
+    }
+
+    if (filterFloor !== "" && apt.floor !== Number(filterFloor)) {
       return false;
     }
 
@@ -155,6 +164,9 @@ export function useApartmentPage() {
     setSearch,
     filterStatus,
     setFilterStatus,
+    filterFloor,
+    setFilterFloor,
+    availableFloors,
     filterFeatured,
     setFilterFeatured,
     filterBuilding,

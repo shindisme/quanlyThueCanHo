@@ -44,6 +44,8 @@ import GuestContact from "../features/Guest/contact/pages/Contact";
 import GuestAbout from "../features/Guest/about/pages/About";
 import SettingsPage from "../features/Admin/settings/pages/SettingsPage";
 
+import PublicPaymentResultPage from "../features/Guest/payments/pages/PublicPaymentResultPage";
+
 const router = createBrowserRouter([
   // Đăng nhập
   {
@@ -69,6 +71,7 @@ const router = createBrowserRouter([
       { path: "buildings", element: <GuestApartmentListing /> },
       { path: "about", element: <GuestAbout /> },
       { path: "contact", element: <GuestContact /> },
+      { path: "payment-result", element: <PublicPaymentResultPage /> },
     ],
   },
 
