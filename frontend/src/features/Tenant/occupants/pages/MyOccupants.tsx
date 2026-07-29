@@ -44,7 +44,7 @@ export default function MyOccupants() {
 
       {/* Thống kê hạn ngạch */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+        <div className="bg-white p-5 border border-gray-100 flex items-center justify-between shadow-lg">
           <div className="space-y-1">
             <p className="text-xs font-medium text-gray-400">Đã khai báo</p>
             <p className="text-2xl font-bold text-gray-800">{occupants.length} người</p>
@@ -54,7 +54,7 @@ export default function MyOccupants() {
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+        <div className="bg-white p-5  border border-gray-100 shadow-lg flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs font-medium text-gray-400">Tối đa theo hợp đồng</p>
             <p className="text-2xl font-bold text-gray-800">{maxOccupantsLimit} người</p>
@@ -64,14 +64,13 @@ export default function MyOccupants() {
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between">
+        <div className="bg-white p-5 border border-gray-100 shadow-lg flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs font-medium text-gray-400">Trạng thái khai báo</p>
             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${isLimitReached
               ? "bg-amber-50 text-amber-700 border border-amber-200"
               : "bg-emerald-50 text-emerald-700 border border-emerald-200"
               }`}>
-              <ShieldCheck size={14} />
               {isLimitReached ? "Đã đạt hạn ngạch" : "Còn chỗ khai báo"}
             </span>
           </div>
@@ -93,7 +92,7 @@ export default function MyOccupants() {
       )}
 
       {/* Danh sách người ở cùng */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white border border-gray-100 shadow-lg overflow-hidden">
         <div className="p-6 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h3 className="font-bold text-gray-800 text-base">Danh sách thành viên đăng ký</h3>

@@ -57,10 +57,10 @@ export default function DashboardTenant() {
       </div>
 
       {/* APARTMENT INFO */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+      <div className="bg-white border border-gray-100 p-5 shadow-lg">
         {activeContract ? (
           <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
+            <div className="w-14 h-14 rounded-t-2xl flex items-center justify-center shrink-0"
               style={{ background: "linear-gradient(135deg, #7C3AED, #A78BFA)" }}>
               <HomeIcon size={28} className="text-white" />
             </div>
@@ -102,7 +102,7 @@ export default function DashboardTenant() {
           </div>
         ) : endedContract ? (
           <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
+            <div className="w-14 h-14  flex items-center justify-center shrink-0"
               style={{ background: "linear-gradient(135deg, #EF4444, #F87171)" }}>
               <HomeIcon size={28} className="text-white" />
             </div>
@@ -162,7 +162,7 @@ export default function DashboardTenant() {
       </div>
 
       {/* QUICK SHORTCUT ACTIONS */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+      <div className="bg-white border border-gray-100 p-5 shadow-lg">
         <h4 className="font-semibold text-gray-800 mb-4">Lối tắt chức năng</h4>
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
           <Link to="/tenant/contracts" className="p-4 border border-gray-100 rounded-2xl shadow-sm hover:bg-primary-50/30 hover:border-primary-200 hover:shadow-md transition-all duration-200 text-center flex flex-col items-center gap-2 group cursor-pointer">
@@ -203,7 +203,7 @@ export default function DashboardTenant() {
       </div>
 
       {/* ROOMMATES */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+      <div className="bg-white  border border-gray-100 p-5 shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center">

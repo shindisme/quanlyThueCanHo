@@ -55,7 +55,15 @@ export function useMyOccupants() {
     [contracts]
   );
 
-  const maxOccupantsLimit = userContract?.max_occupants || 4;
+  const maxOccupantsLimit = useMemo(() => {
+    if (userContract?.max_occupants && userContract.max_occupants > 0) {
+      return userContract.max_occupants;
+    }
+    if (userContract?.apartment?.bedrooms) {
+      return Math.max(2, userContract.apartment.bedrooms * 2);
+    }
+    return 4;
+  }, [userContract]);
 
   // Query danh sách người ở cùng của cư dân
   const { data: occupantData = [], isLoading } = useQuery({

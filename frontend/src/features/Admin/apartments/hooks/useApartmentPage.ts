@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as buildingService from "../../../../services/buildingService";
+import * as reservationService from "../../../../services/reservationService";
 import type { Apartment } from "../../../../types";
 import type { Building } from "../../../../types";
 import { useDebounce } from "../../../../hooks/useDebounce";
@@ -15,7 +16,17 @@ import { QUERY_KEYS } from "../../../../constants/queryKeys";
 import { getAllApartmentsPage } from "../../../../services/apartmentService";
 
 export function useApartmentPage() {
+  const queryClient = useQueryClient();
   const { role, managedBuildingId } = useUserRole();
+
+  useEffect(() => {
+    reservationService.expireReservations().then((res) => {
+      if (res.data?.expired_count && res.data.expired_count > 0) {
+        toast.info(`Đã tự động hủy giữ phòng & gửi Email thông báo cho ${res.data.expired_count} cọc quá hạn dọn vào.`);
+        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.APARTMENTS] });
+      }
+    }).catch(() => {});
+  }, [queryClient]);
 
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");

@@ -20,6 +20,7 @@ function mapBackendToFrontend(c: RawContract): RentalContract {
     start_date: c.start_date ? c.start_date.split("T")[0] : "",
     end_date: c.end_date ? c.end_date.split("T")[0] : "",
     created_at: c.created_at,
+    max_occupants: c.max_occupants,
     tenant: c.tenant,
     apartment: c.apartment,
   };

@@ -1,8 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as invoiceService from "../../../../services/invoiceService";
 import * as buildingService from "../../../../services/buildingService";
+import * as reservationService from "../../../../services/reservationService";
 import { useDebounce } from "../../../../hooks/useDebounce";
 import { useOnOff } from "../../../../hooks/useOnOff";
 import { usePagination } from "../../../../hooks/usePagination";
@@ -13,6 +14,18 @@ import type { Invoice } from "../../../../types";
 export function useInvoiceList() {
   const queryClient = useQueryClient();
   const { role, managedBuildingId } = useUserRole();
+
+  useEffect(() => {
+    reservationService.expireReservations().then((res) => {
+      if (res.data?.expired_count && res.data.expired_count > 0) {
+        toast.info(`Hệ thống đã tự động hủy giữ phòng và gửi Email thông báo cho ${res.data.expired_count} cọc đã quá hạn.`);
+        queryClient.invalidateQueries({ queryKey: ["invoices"] });
+        queryClient.invalidateQueries({ queryKey: ["apartments"] });
+      }
+    }).catch(() => {
+      // Bỏ qua lỗi ngầm
+    });
+  }, [queryClient]);
 
   // State lọc
   const [search, setSearch] = useState("");
@@ -33,7 +46,7 @@ export function useInvoiceList() {
   // Chọn hóa đơn
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
-  // Lấy danh sách chi nhánh để lọc & chọn
+  // Lấy danh sách chi nhánh để lọc và chọn
   const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
     queryFn: () => buildingService.getAllBuildingsPage(),

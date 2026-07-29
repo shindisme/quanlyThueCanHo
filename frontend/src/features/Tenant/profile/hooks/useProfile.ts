@@ -242,11 +242,22 @@ export function useProfile() {
     }
   });
 
-  const maxOccupantsLimit = userContract?.max_occupants || (apartmentInfo ? Math.max(2, apartmentInfo.bedrooms * 2) : 2);
+  const maxOccupantsLimit = useMemo(() => {
+    if (userContract?.max_occupants && userContract.max_occupants > 0) {
+      return userContract.max_occupants;
+    }
+    if (apartmentInfo?.bedrooms) {
+      return Math.max(2, apartmentInfo.bedrooms * 2);
+    }
+    if (userContract?.apartment?.bedrooms) {
+      return Math.max(2, userContract.apartment.bedrooms * 2);
+    }
+    return 4;
+  }, [userContract, apartmentInfo]);
 
   const handleOpenOccupantForm = (selectedOccupant: Occupant | null) => {
     if (!selectedOccupant) {
-      if (1 + occupants.length >= maxOccupantsLimit) {
+      if (occupants.length >= maxOccupantsLimit) {
         toast.error(`Căn hộ đã đạt số người ở tối đa theo hợp đồng (Giới hạn: ${maxOccupantsLimit} người).`);
         return;
       }

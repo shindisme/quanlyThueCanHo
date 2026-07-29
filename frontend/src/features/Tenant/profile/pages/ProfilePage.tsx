@@ -50,7 +50,7 @@ export default function ProfilePage() {
     maxOccupantsLimit,
   } = useProfile();
 
-  const [activeTab, setActiveTab] = useState<"info" | "contract" | "security">("info");
+  const [activeTab, setActiveTab] = useState<"info" | "security">("info");
   const [showOldPass, setShowOldPass] = useState(false);
   const [showNewPass, setShowNewPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
@@ -145,18 +145,6 @@ export default function ProfilePage() {
             <User size={16} /> Thông tin cá nhân
           </button>
 
-          {role === "TENANT" && (
-            <button
-              onClick={() => setActiveTab("contract")}
-              className={`py-3.5 border-b-2 flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${activeTab === "contract"
-                ? "border-violet-600 text-violet-600 font-bold"
-                : "border-transparent text-gray-500 hover:text-gray-800"
-                }`}
-            >
-              <FileText size={16} /> Hợp đồng thuê
-            </button>
-          )}
-
           <button
             onClick={() => setActiveTab("security")}
             className={`py-3.5 border-b-2 flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${activeTab === "security"
@@ -245,80 +233,6 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* TAB CONTENT: Hợp đồng thuê */}
-      {activeTab === "contract" && role === "TENANT" && (
-        <div className="space-y-6 animate-in fade-in duration-300">
-          {userContract ? (
-            <div className="bg-white p-6 border border-gray-200 shadow-sm space-y-6">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-violet-50 text-violet-600 flex items-center justify-center">
-                    <FileText size={20} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900 text-base">Hợp đồng thuê đang hiệu lực</h3>
-                    <p className="text-xs text-gray-400">Chi tiết thông tin căn hộ và điều khoản hợp đồng của bạn</p>
-                  </div>
-                </div>
-                <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
-                  Đang hoạt động
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 font-sans text-sm">
-                <div className="p-4 bg-gray-50/70 border border-gray-100 space-y-1">
-                  <p className="text-xs text-gray-400">Mã hợp đồng</p>
-                  <p className="font-bold text-violet-600 text-base">HD-{String(userContract.id).padStart(5, "0")}</p>
-                </div>
-
-                <div className="p-4 bg-gray-50/70 border border-gray-100 space-y-1">
-                  <p className="text-xs text-gray-400">Căn hộ & Phòng</p>
-                  <p className="font-bold text-gray-800">
-                    {apartmentInfo ? formatApartmentDisplay(apartmentInfo.room_number, apartmentInfo.floor) : "Căn hộ"}
-                  </p>
-                </div>
-
-                <div className="p-4 bg-gray-50/70 border border-gray-100 space-y-1">
-                  <p className="text-xs text-gray-400">Tòa nhà / Chi nhánh</p>
-                  <p className="font-semibold text-gray-800">{buildingInfo?.branch_name || "Yuki House"}</p>
-                </div>
-
-                <div className="p-4 bg-gray-50/70 border border-gray-100 space-y-1">
-                  <p className="text-xs text-gray-400">Giá thuê hàng tháng</p>
-                  <p className="font-bold text-indigo-600 text-base">{formatCurrency(userContract.monthly_rent)}</p>
-                </div>
-
-                <div className="p-4 bg-gray-50/70 border border-gray-100 space-y-1">
-                  <p className="text-xs text-gray-400">Tiền cọc hợp đồng</p>
-                  <p className="font-semibold text-gray-800">{formatCurrency(userContract.deposit_amount)}</p>
-                </div>
-
-                <div className="p-4 bg-gray-50/70 border border-gray-100 space-y-1">
-                  <p className="text-xs text-gray-400">Giới hạn người ở</p>
-                  <p className="font-bold text-purple-600">{maxOccupantsLimit} người tối đa</p>
-                </div>
-
-                <div className="p-4 bg-gray-50/70 border border-gray-100 space-y-1">
-                  <p className="text-xs text-gray-400">Ngày bắt đầu thuê</p>
-                  <p className="font-semibold text-gray-800">{formatDate(userContract.start_date)}</p>
-                </div>
-
-                <div className="p-4 bg-gray-50/70 border border-gray-100 space-y-1">
-                  <p className="text-xs text-gray-400">Ngày hết hạn hợp đồng</p>
-                  <p className="font-semibold text-gray-800">{formatDate(userContract.end_date)}</p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-white p-8 border border-gray-200 text-center space-y-3">
-              <AlertCircle size={32} className="text-amber-500 mx-auto" />
-              <p className="text-gray-700 font-semibold">Chưa tìm thấy hợp đồng hoạt động</p>
-              <p className="text-xs text-gray-400">Bạn hiện không có hợp đồng thuê căn hộ nào đang chạy trong hệ thống.</p>
-            </div>
-          )}
         </div>
       )}
 
