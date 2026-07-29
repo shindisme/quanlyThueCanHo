@@ -5,6 +5,7 @@ import {
 import { Link } from "react-router-dom";
 import { useDashboardTenant } from "../hooks/useDashboardTenant";
 import { formatCurrency } from "../../../../utils/currency";
+import { formatApartmentDisplay } from "../../../../utils/string";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
@@ -69,7 +70,7 @@ export default function DashboardTenant() {
                   <h3 className="font-bold text-gray-800 text-lg">Căn hộ của bạn</h3>
                   <p className="text-sm text-gray-600 mt-1">
                     <span className="font-semibold text-primary-600">
-                      P.{apartment?.room_number || "-"} Tầng {apartment?.floor || "-"}
+                      {apartment ? formatApartmentDisplay(apartment.room_number, apartment.floor) : "-"}
                     </span>
                     {" "}- {apartment?.description || "Căn hộ của bạn"}
                   </p>
@@ -111,7 +112,7 @@ export default function DashboardTenant() {
                   <h3 className="font-bold text-gray-800 text-lg">Căn hộ đã hết hạn thuê</h3>
                   <p className="text-sm text-gray-600 mt-1">
                     <span className="font-semibold text-red-600">
-                      P.{endedApartment?.room_number || "-"} Tầng {endedApartment?.floor || "-"}
+                      {endedApartment ? formatApartmentDisplay(endedApartment.room_number, endedApartment.floor) : "-"}
                     </span>
                     {" "}- {endedApartment?.description || "Căn hộ trước đây"}
                   </p>

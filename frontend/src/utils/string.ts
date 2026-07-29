@@ -15,19 +15,26 @@ export function formatApartmentDisplay(
   role?: string,
   branchName?: string
 ): string {
-  const cleanRoom = roomNumber.replace(/^P\.?/i, "").trim();
-  const floorStr = String(floor);
-  
+  const cleanRoom = (roomNumber || "").replace(/^P\.?/i, "").trim();
+  const floorStr = String(floor || 0);
+
   let roomPart = cleanRoom;
   if (cleanRoom.startsWith(floorStr) && cleanRoom.length > floorStr.length) {
     roomPart = cleanRoom.slice(floorStr.length);
   }
-  
+
   const paddedRoom = roomPart.padStart(2, "0");
   const baseName = `P.${floorStr}${paddedRoom}`;
 
-  if (role === "ADMIN" && branchName) {
-    return `${baseName} - ${branchName}`;
+  let targetBranch = branchName;
+  if (!targetBranch && role && !["ADMIN", "MANAGER", "STAFF", "TENANT", "GUEST"].includes(role)) {
+    targetBranch = role;
+  }
+
+  // Hiển thị cho admin
+  const isAdmin = !role || role === "ADMIN";
+  if (targetBranch && isAdmin) {
+    return `${baseName} - ${targetBranch}`;
   }
   return baseName;
 }

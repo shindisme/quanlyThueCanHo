@@ -4,6 +4,7 @@ import Button from "../../../../components/ui/Button";
 import type { Notification, Invoice } from "../../../../types";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatDate } from "../../../../utils/date";
+import { formatApartmentDisplay } from "../../../../utils/string";
 import { getAllInvoices } from "../../../../services/invoiceService";
 import { FileText, CreditCard, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -121,7 +122,9 @@ export default function NotificationDetailModal({
                                 <div>
                                     <span className="text-gray-400 block mb-0.5">Căn hộ:</span>
                                     <span className="font-semibold text-gray-800">
-                                        P.{invoice.contract?.apartment?.room_number || ""} ({invoice.contract?.apartment?.building?.branch_name || ""})
+                                        {invoice.contract?.apartment
+                                            ? formatApartmentDisplay(invoice.contract.apartment.room_number, invoice.contract.apartment.floor, invoice.contract.apartment.building?.branch_name)
+                                            : "Chưa rõ"}
                                     </span>
                                 </div>
                                 <div>

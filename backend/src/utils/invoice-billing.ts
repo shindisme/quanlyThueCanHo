@@ -128,8 +128,8 @@ const buildElectricTierLabel = (
     from: number,
     to: number | null
 ) => to === null
-    ? `Báº­c ${tier} (TrÃªn ${from - 1} kWh)`
-    : `Báº­c ${tier} (${from}-${to} kWh)`;
+    ? `Bậc ${tier} (Trên ${from - 1} kWh)`
+    : `Bậc ${tier} (${from}-${to} kWh)`;
 
 const buildWaterTierLabel = (
     tier: number,
@@ -137,8 +137,8 @@ const buildWaterTierLabel = (
     to: number | null,
     personCount: number
 ) => to === null
-    ? `Báº­c ${tier} (${from}+ mÂ³, ${personCount} ngÆ°á»i)`
-    : `Báº­c ${tier} (${from}-${to} mÂ³, ${personCount} ngÆ°á»i)`;
+    ? `Bậc ${tier} (${from}+ m³, ${personCount} người)`
+    : `Bậc ${tier} (${from}-${to} m³, ${personCount} người)`;
 
 export const calculateElectricTierDetails = (
     consumption: MoneyInput,

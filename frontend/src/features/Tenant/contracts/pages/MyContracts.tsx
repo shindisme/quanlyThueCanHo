@@ -8,6 +8,7 @@ import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import { useDebounce } from "../../../../hooks/useDebounce";
 import { useTenantContracts } from "../hooks/useTenantContracts";
 import { formatCurrency, numberToVietnameseWords } from "../../../../utils/currency";
+import DatePicker from "../../../../components/ui/DatePicker";
 import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay, removeVietnameseTones } from "../../../../utils/string";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
@@ -680,16 +681,19 @@ export default function MyContracts() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-550 block mb-1">Ngày đề xuất trả phòng sớm nhất *</label>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={checkoutDate}
-                    onChange={(e) => setCheckoutDate(e.target.value)}
-                    min={(() => {
-                      const minDate = new Date();
-                      minDate.setDate(minDate.getDate() + 30);
-                      return minDate.toISOString().split("T")[0];
-                    })()}
-                    className="w-full rounded-lg border-gray-300 p-2 text-xs font-semibold text-gray-800 focus:ring-primary-500"
+                    onChange={(date) => {
+                      if (date) {
+                        const y = date.getFullYear();
+                        const m = String(date.getMonth() + 1).padStart(2, "0");
+                        const d = String(date.getDate()).padStart(2, "0");
+                        setCheckoutDate(`${y}-${m}-${d}`);
+                      } else {
+                        setCheckoutDate("");
+                      }
+                    }}
+                    placeholder="Chọn ngày trả phòng"
                   />
                 </div>
               </div>

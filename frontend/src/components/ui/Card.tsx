@@ -6,7 +6,7 @@ function Card({ className, ref, ...props }: ComponentProps<"div">) {
     <div
       ref={ref}
       className={cn(
-        "border border-gray-200/80 bg-white rounded-xl shadow-sm hover:shadow transition-all duration-200",
+        "border border-gray-200/80 bg-white shadow-lg hover:shadow transition-all duration-200",
         className
       )}
       {...props}

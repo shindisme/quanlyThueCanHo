@@ -59,11 +59,10 @@ export default function ApartmentList({
             onClick={() => navigate(`/admin/apartments/${apt.id}`)}
           >
             <span>{roomName}</span>
-            {branch && (
+            {role === "ADMIN" && branch && (
               <span className="block text-[10px] font-semibold text-primary-600">
-                {role === "ADMIN" && branch && <span className="text-[10px] font-semibold text-primary-600">{branch}</span>}
+                {branch}
               </span>
-
             )}
           </div>
         );

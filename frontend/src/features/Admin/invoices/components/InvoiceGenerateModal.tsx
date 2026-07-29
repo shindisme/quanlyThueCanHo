@@ -4,7 +4,9 @@ import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
 import Combobox from "../../../../components/ui/Combobox";
 import { toast } from "sonner";
-
+import { readFeeSettings } from "../../../../utils/feeSettings";
+import { formatCurrency } from "../../../../utils/currency";
+import DatePicker from "../../../../components/ui/DatePicker";
 import type { Building, GenerateMonthlyInvoicesPayload } from "../../../../types";
 
 interface InvoiceGenerateModalProps {
@@ -17,42 +19,8 @@ interface InvoiceGenerateModalProps {
   managedBuildingId: number | null;
 }
 
-const DEFAULT_ELECTRIC_TIER_PRICES = [1984, 2050, 2380, 2998, 3350, 3460];
-const DEFAULT_WATER_TIER_PRICES = [6700, 12900, 14400];
 const ELECTRIC_LABELS = ["B1", "B2", "B3", "B4", "B5", "B6"];
 const WATER_LABELS = ["B1", "B2", "B3"];
-
-type SavedFeeSettings = {
-  managementFeePerM2?: number;
-  internetRate?: number;
-  electricityRates?: number[];
-  electricTierPrices?: number[];
-  waterRates?: number[];
-  waterTierPrices?: number[];
-};
-
-const readSavedFees = (): SavedFeeSettings => {
-  try {
-    const saved = localStorage.getItem("system_fee_settings");
-    return saved ? JSON.parse(saved) : {};
-  } catch {
-    return {};
-  }
-};
-
-const readSavedNumber = (key: keyof SavedFeeSettings, fallback: number) => {
-  const value = readSavedFees()[key];
-  return typeof value === "number" && Number.isFinite(value) ? String(value) : String(fallback);
-};
-
-const readSavedRates = (keys: Array<keyof SavedFeeSettings>, fallback: number[]) => {
-  const saved = readSavedFees();
-  const value = keys.map((key) => saved[key]).find(Array.isArray);
-  if (!Array.isArray(value) || value.length !== fallback.length) return fallback.map(String);
-
-  const rates = value.map(Number);
-  return rates.every(Number.isFinite) ? rates.map(String) : fallback.map(String);
-};
 
 export default function InvoiceGenerateModal({
   isOpen,
@@ -78,24 +46,12 @@ export default function InvoiceGenerateModal({
     return d.toISOString().split("T")[0];
   };
   const [dueDate, setDueDate] = useState(getDefaultDueDate());
-
-  const [managementFeePerM2, setManagementFeePerM2] = useState(() => readSavedNumber("managementFeePerM2", 10000));
-  const [electricTierPrices, setElectricTierPrices] = useState(() =>
-    readSavedRates(["electricityRates", "electricTierPrices"], DEFAULT_ELECTRIC_TIER_PRICES)
-  );
-  const [waterTierPrices, setWaterTierPrices] = useState(() =>
-    readSavedRates(["waterRates", "waterTierPrices"], DEFAULT_WATER_TIER_PRICES)
-  );
-  const [internetFee, setInternetFee] = useState(() => readSavedNumber("internetRate", 300000));
   const [notify, setNotify] = useState(true);
 
-  const handleTierChange = (
-    setter: React.Dispatch<React.SetStateAction<string[]>>,
-    index: number,
-    value: string
-  ) => {
-    setter((prev) => prev.map((rate, rateIndex) => (rateIndex === index ? value : rate)));
-  };
+  const feeSettings = readFeeSettings();
+
+  const [managementFeePerM2, setManagementFeePerM2] = useState(() => String(feeSettings.managementFeePerM2));
+  const [internetFee, setInternetFee] = useState(() => String(feeSettings.internetRate));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,8 +66,8 @@ export default function InvoiceGenerateModal({
       building_id: Number(buildingId),
       due_date: new Date(dueDate).toISOString(),
       management_fee_per_m2: Number(managementFeePerM2),
-      electric_tier_prices: electricTierPrices.map(Number),
-      water_tier_prices: waterTierPrices.map(Number),
+      electric_tier_prices: feeSettings.electricityRates,
+      water_tier_prices: feeSettings.waterRates,
       internet_fee: Number(internetFee),
       notify,
     };
@@ -133,36 +89,36 @@ export default function InvoiceGenerateModal({
       <form onSubmit={handleSubmit} className="space-y-4 text-sm font-sans">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="text-xs font-semibold text-gray-650 block mb-1 select-none">Tháng</label>
+            <label className="text-xs font-semibold text-gray-650 block mb-1 ">Tháng</label>
             <Combobox
               options={monthOptions}
               value={month}
               onChange={setMonth}
-              triggerClassName="h-[42px] rounded-xl border-gray-300 px-4"
-              clearable={false}
+              triggerClassName="h-10.5 rounded-xl border-gray-300 px-4"
+              clearable={true}
               searchable={false}
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-650 block mb-1 select-none">Năm</label>
+            <label className="text-xs font-semibold text-gray-650 block mb-1 ">Năm</label>
             <Combobox
               options={yearOptions}
               value={year}
               onChange={setYear}
-              triggerClassName="h-[42px] rounded-xl border-gray-300 px-4"
-              clearable={false}
+              triggerClassName="h-10.5 rounded-xl border-gray-300 px-4"
+              clearable={true}
               searchable={false}
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-gray-650 block mb-1 select-none">Chi nhánh / Tòa nhà</label>
+            <label className="text-xs font-semibold text-gray-650 block mb-1 ">Tòa nhà</label>
             <Combobox
               options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
               value={buildingId}
               onChange={setBuildingId}
-              triggerClassName="h-[42px] rounded-lg border-gray-300 px-4"
+              triggerClassName="h-10.5 rounded-xl border-gray-300 px-4 shadow-lg"
               placeholder="Chọn tòa nhà"
-              clearable={false}
+              clearable={true}
               disabled={role === "MANAGER"}
             />
           </div>
@@ -170,17 +126,24 @@ export default function InvoiceGenerateModal({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-semibold text-gray-650 block mb-1 select-none">Hạn thanh toán</label>
-            <Input
-              type="date"
+            <label className="text-xs font-semibold text-gray-650 block mb-1">Hạn thanh toán</label>
+            <DatePicker
               value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="rounded-lg h-[42px]"
-              required
+              onChange={(date) => {
+                if (date) {
+                  const y = date.getFullYear();
+                  const m = String(date.getMonth() + 1).padStart(2, "0");
+                  const d = String(date.getDate()).padStart(2, "0");
+                  setDueDate(`${y}-${m}-${d}`);
+                } else {
+                  setDueDate("");
+                }
+              }}
+              placeholder="Chọn hạn thanh toán"
             />
           </div>
           <div className="flex items-center pt-5">
-            <label className="flex items-center gap-2 cursor-pointer select-none">
+            <label className="flex items-center gap-2 cursor-pointer ">
               <input
                 type="checkbox"
                 checked={notify}
@@ -192,64 +155,59 @@ export default function InvoiceGenerateModal({
           </div>
         </div>
 
-        <div className="border-t border-gray-200 pt-3">
-          <div className="flex items-center justify-between mb-3">
-            <h5 className="font-bold text-gray-800 text-xs uppercase tracking-wider">Cấu hình đơn giá dịch vụ áp dụng</h5>
+        {/* Biểu phí */}
+        <div className="border border-gray-200 bg-gray-50/60 p-4 space-y-3 shadow-lg">
+          <div className="flex items-center justify-between border-b border-gray-200 pb-2">
+            <h5 className="font-bold text-gray-800 text-xs uppercase tracking-wider">
+              Biểu phí áp dụng
+            </h5>
           </div>
-          <div className="space-y-4">
+
+          <div className="space-y-4 text-xs">
             <div>
-              <label className="text-xs font-semibold text-gray-650 block mb-2 select-none">Biểu giá điện 6 bậc (VND / kWh)</label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-                {electricTierPrices.map((price, index) => (
-                  <Input
-                    key={ELECTRIC_LABELS[index]}
-                    type="number"
-                    value={price}
-                    onChange={(e) => handleTierChange(setElectricTierPrices, index, e.target.value)}
-                    className="rounded-lg h-[42px] font-semibold"
-                    aria-label={`Đơn giá điện ${ELECTRIC_LABELS[index]}`}
-                    required
-                  />
+              <span className="font-semibold text-gray-600 block mb-1">Điện 6 bậc (đ/kWh):</span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 ">
+                {feeSettings.electricityRates.map((rate, idx) => (
+                  <div key={ELECTRIC_LABELS[idx]} className="bg-gray-100 border border-gray-200 rounded-lg p-2 text-center ">
+                    <span className="text-[10px] text-gray-400 font-bold block">{ELECTRIC_LABELS[idx]}</span>
+                    <span className="font-bold text-gray-800">{formatCurrency(rate)}</span>
+                  </div>
                 ))}
               </div>
             </div>
+
             <div>
-              <label className="text-xs font-semibold text-gray-650 block mb-2 select-none">Biểu giá nước 3 bậc (VND / m³/người)</label>
+              <span className="font-semibold text-gray-600 block mb-1">Nước 3 bậc (đ/m³):</span>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {waterTierPrices.map((price, index) => (
-                  <Input
-                    key={WATER_LABELS[index]}
-                    type="number"
-                    value={price}
-                    onChange={(e) => handleTierChange(setWaterTierPrices, index, e.target.value)}
-                    className="rounded-lg h-[42px] font-semibold"
-                    aria-label={`Đơn giá nước ${WATER_LABELS[index]}`}
-                    required
-                  />
+                {feeSettings.waterRates.map((rate, idx) => (
+                  <div key={WATER_LABELS[idx]} className="bg-gray-100 border border-gray-200 rounded-lg p-2 text-center">
+                    <span className="text-[10px] text-gray-400 font-bold block">{WATER_LABELS[idx]}</span>
+                    <span className="font-bold text-gray-800">{formatCurrency(rate)}</span>
+                  </div>
                 ))}
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-gray-650 block mb-1 select-none">Phí dịch vụ & Internet (VND)</label>
-                <Input
-                  type="number"
-                  value={internetFee}
-                  onChange={(e) => setInternetFee(e.target.value)}
-                  className="rounded-lg h-[42px] font-semibold"
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-gray-650 block mb-1 select-none">Phí quản lý theo m² (VND / m²)</label>
-                <Input
-                  type="number"
-                  value={managementFeePerM2}
-                  onChange={(e) => setManagementFeePerM2(e.target.value)}
-                  className="rounded-lg h-10.5 font-semibold"
-                  required
-                />
-              </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-200">
+            <div>
+              <label className="text-xs font-semibold text-gray-650 block mb-1 ">Phí dịch vụ & Internet (VND)</label>
+              <Input
+                type="number"
+                value={internetFee}
+                onChange={(e) => setInternetFee(e.target.value)}
+                className="rounded-lg h-10.5 font-semibold bg-white"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-650 block mb-1">Phí quản lý theo m² (VND / m²)</label>
+              <Input
+                type="number"
+                value={managementFeePerM2}
+                onChange={(e) => setManagementFeePerM2(e.target.value)}
+                className="rounded-lg h-10.5 font-semibold bg-white"
+                required
+              />
             </div>
           </div>
         </div>

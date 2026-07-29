@@ -3,6 +3,7 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import { formatDate } from "../../../../utils/date";
+import { formatApartmentDisplay } from "../../../../utils/string";
 import { getInvoicePeriod } from "../../../../utils/invoicePeriod";
 import { getDisplayItemAmount, getDisplayTierDetails } from "../../../../utils/feeSettings";
 import { getInvoiceApartment, getInvoiceTenant } from "../../../../utils/invoiceDisplay";
@@ -38,15 +39,17 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
   }
 
   function getUtilityUnit(item: NonNullable<Invoice["items"]>[number]) {
-    if (item.utility_type === "WATER" || item.item_name.startsWith("Tiền nước")) return "m³";
-    if (item.utility_type === "ELECTRIC" || item.item_name.startsWith("Tiền điện")) return "kWh";
+    if (item.utility_type === "WATER" || item.item_name.toLowerCase().includes("nước")) return "m³";
+    if (item.utility_type === "ELECTRIC" || item.item_name.toLowerCase().includes("điện")) return "kWh";
     return "";
   }
   if (!invoice) return null;
 
   const apartment = getInvoiceApartment(invoice);
   const tenant = getInvoiceTenant(invoice);
-  const roomNum = apartment?.room_number ? `P.${apartment.room_number}` : "Chưa rõ";
+  const formattedRoom = apartment
+    ? formatApartmentDisplay(apartment.room_number, apartment.floor)
+    : "Chưa rõ";
   const branchName = apartment?.building?.branch_name || "Chưa rõ";
   const address = apartment?.building?.address || "";
   const billingMonthYear = getInvoicePeriod(invoice).label;
@@ -77,10 +80,10 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
 
         {/* Branch / Tenant */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-gray-50/50 p-4 rounded-none border border-gray-200 space-y-2">
+          <div className="bg-gray-50/50 p-4 border border-gray-200 space-y-2 shadow-lg">
             <h5 className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Thông tin căn hộ</h5>
             <p>
-              <span className="font-semibold text-gray-600">Căn hộ:</span> {roomNum} (Tầng {apartment?.floor || "Chưa rõ"})
+              <span className="font-semibold text-gray-600">Căn hộ:</span> {formattedRoom}
             </p>
             <p>
               <span className="font-semibold text-gray-600">Tòa nhà:</span> {branchName}
@@ -91,7 +94,7 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
               </p>
             )}
           </div>
-          <div className="bg-gray-50/50 p-4 rounded-none border border-gray-200 space-y-2">
+          <div className="bg-gray-50/50 p-4 rounded-none border border-gray-200 space-y-2 shadow-lg">
             <h5 className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Khách hàng thuê</h5>
             <p>
               <span className="font-semibold text-gray-600">Họ và tên:</span> {tenant?.full_name || "Chưa rõ"}
@@ -107,8 +110,8 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
 
         {/* Invoice Items Table */}
         <div className="space-y-2">
-          <h5 className="font-bold text-gray-850 border-b border-gray-100 pb-1">Chi tiết các dịch vụ</h5>
-          <div className="border border-gray-200 rounded-none overflow-hidden">
+          <h5 className="font-bold text-gray-850 border-b border-gray-100 pb-1 ">Chi tiết các dịch vụ</h5>
+          <div className="border border-gray-200 rounded-none overflow-hidden shadow-lg">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 text-gray-600 font-bold border-b border-gray-200 text-xs">
@@ -172,7 +175,7 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
 
         {/* Footer */}
         <div className="flex justify-end pt-2.5 border-t border-gray-100">
-          <Button type="button" onClick={onClose} className="rounded-none">
+          <Button type="button" onClick={onClose}>
             Đóng
           </Button>
         </div>
