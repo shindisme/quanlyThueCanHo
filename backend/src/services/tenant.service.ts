@@ -191,6 +191,27 @@ const ensureOccupantCitizenIdUnique = async (
         throw occupantDuplicated();
     }
 };
+
+// const ensureTenantIsAdult = (dateOfBirth: Date | null | undefined) => {
+//     if (dateOfBirth === undefined || dateOfBirth === null) {
+//         return;
+//     }
+
+//     const today = new Date();
+//     const adultDate = new Date(
+//         today.getFullYear() - 18,
+//         today.getMonth(),
+//         today.getDate()
+//     );
+//     if (dateOfBirth > adultDate) {
+//         throw new AppError(
+//             400,
+//             "TENANT_NOT_ADULT",
+//             "Khách thuê phải đủ 18 tuổi"
+//         );
+//     }
+// };
+
 export const createTenant = async (
     input: CreateTenantRequest["body"],
     actor: Actor
