@@ -108,7 +108,6 @@ export default function MyOccupants() {
               <Users size={32} />
             </div>
             <p className="text-gray-700 font-semibold">Chưa có thông tin người ở cùng</p>
-            <p className="text-xs text-gray-400 max-w-sm mx-auto">Nhấn nút "Khai báo người ở cùng" ở trên để bổ sung thông tin các thành viên đang sinh sống cùng bạn.</p>
             <Button size="sm" onClick={() => handleOpenOccupantForm(null)} className="mt-2">
               <Plus size={16} /> Khai báo ngay
             </Button>
