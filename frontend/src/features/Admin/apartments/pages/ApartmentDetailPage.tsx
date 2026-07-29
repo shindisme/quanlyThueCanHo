@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Home, Trash2, Plus, Star } from "lucide-react";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import Card from "../../../../components/ui/Card";
@@ -14,6 +14,7 @@ import { useDepositInvoice } from "../../invoices/hooks/useDepositInvoice";
 import DepositInvoiceModal from "../../invoices/components/DepositInvoiceModal";
 
 export default function ApartmentDetailPage() {
+  const navigate = useNavigate();
   const { role } = useUserRole();
   const {
     apartment,
@@ -36,11 +37,18 @@ export default function ApartmentDetailPage() {
     fetchData,
     handleImageUpload,
     handleSetThumbnail,
-    role,
     handleDeleteImage,
   } = useApartmentDetailPage();
 
   const basePath = role === "MANAGER" ? "/manager" : "/admin";
+
+  const handleBack = () => {
+    if (window.history.length > 2) {
+      navigate(-1);
+    } else {
+      navigate(`${basePath}/apartments`);
+    }
+  };
 
   const depositModal = useDepositInvoice({
     fixedApartment: apartment,
@@ -60,9 +68,13 @@ export default function ApartmentDetailPage() {
     return (
       <div className="text-center py-16">
         <p className="text-gray-500 mb-4">Không tìm thấy căn hộ</p>
-        <Link to={`${basePath}/apartments`} className="text-primary-600 hover:underline text-sm">
-          Quay lại danh sách
-        </Link>
+        <button
+          type="button"
+          onClick={handleBack}
+          className="text-primary-600 hover:underline text-sm cursor-pointer"
+        >
+          Quay lại
+        </button>
       </div>
     );
   }
@@ -80,12 +92,13 @@ export default function ApartmentDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link
-        to={`${basePath}/apartments`}
-        className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
+      <button
+        type="button"
+        onClick={handleBack}
+        className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 cursor-pointer"
       >
-        <ArrowLeft size={16} /> Quay lại danh sách căn hộ
-      </Link>
+        <ArrowLeft size={16} /> Quay lại
+      </button>
 
       {/* Thông tin chính */}
       <div className="flex flex-col lg:flex-row gap-6">
