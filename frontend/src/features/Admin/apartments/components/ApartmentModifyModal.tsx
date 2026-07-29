@@ -146,6 +146,24 @@ export default function ApartmentModifyModal({
     formDataToSend.append("description", data.description || "");
     formDataToSend.append("status", data.status);
 
+    const existingKeepUrls: string[] = [];
+    if (localThumbnail && !localThumbnail.startsWith("blob:")) {
+      existingKeepUrls.push(localThumbnail);
+    }
+    localImages.forEach((imgUrl) => {
+      if (imgUrl && !imgUrl.startsWith("blob:")) {
+        existingKeepUrls.push(imgUrl);
+      }
+    });
+
+    if (existingKeepUrls.length > 0) {
+      existingKeepUrls.forEach((url) => {
+        formDataToSend.append("existing_image_urls", url);
+      });
+    } else {
+      formDataToSend.append("existing_image_urls", JSON.stringify([]));
+    }
+
     if (thumbnailFile) {
       formDataToSend.append("images", thumbnailFile);
     }

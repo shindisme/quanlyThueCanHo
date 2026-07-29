@@ -1,4 +1,4 @@
-﻿import { ApartmentStatus } from "@prisma/client";
+import { ApartmentStatus } from "@prisma/client";
 import { z } from "zod";
 import {
     emptyObjectSchema,
@@ -64,7 +64,22 @@ export const updateApartmentRequestSchema = z.object({
         bathrooms: apartmentFields.bathrooms.optional(),
         rental_price: apartmentFields.rental_price.optional(),
         description: apartmentFields.description,
-        status: apartmentFields.status.optional()
+        status: apartmentFields.status.optional(),
+        existing_image_urls: z.preprocess((val) => {
+            if (val === undefined || val === null || val === "") return [];
+            if (typeof val === "string") {
+                try { return JSON.parse(val); } catch { return [val]; }
+            }
+            if (Array.isArray(val)) {
+                return val.flatMap((v) => {
+                    if (typeof v === "string" && v.startsWith("[")) {
+                        try { return JSON.parse(v); } catch { return [v]; }
+                    }
+                    return v;
+                });
+            }
+            return val;
+        }, z.array(z.string()).optional())
     }).strict()
 }).strict();
 

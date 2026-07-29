@@ -190,7 +190,7 @@ export default function BuildingDetailPage() {
           {apartments.filter((a) => a.floor === selectedFloor).map((apt) => (
             <Link
               key={apt.id}
-              to={`/admin/apartments/${apt.id}`}
+              to={`${role === "MANAGER" ? "/manager" : "/admin"}/apartments/${apt.id}`}
               className="col-span-12 sm:col-span-6 lg:col-span-4 xl:col-span-3 block"
             >
               <Card className="hover:shadow-card-hover transition-shadow cursor-pointer h-full">

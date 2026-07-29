@@ -36,8 +36,11 @@ export default function ApartmentDetailPage() {
     fetchData,
     handleImageUpload,
     handleSetThumbnail,
+    role,
     handleDeleteImage,
   } = useApartmentDetailPage();
+
+  const basePath = role === "MANAGER" ? "/manager" : "/admin";
 
   const depositModal = useDepositInvoice({
     fixedApartment: apartment,
@@ -57,7 +60,7 @@ export default function ApartmentDetailPage() {
     return (
       <div className="text-center py-16">
         <p className="text-gray-500 mb-4">Không tìm thấy căn hộ</p>
-        <Link to="/admin/apartments" className="text-primary-600 hover:underline text-sm">
+        <Link to={`${basePath}/apartments`} className="text-primary-600 hover:underline text-sm">
           Quay lại danh sách
         </Link>
       </div>
@@ -78,7 +81,7 @@ export default function ApartmentDetailPage() {
   return (
     <div className="space-y-6">
       <Link
-        to="/admin/apartments"
+        to={`${basePath}/apartments`}
         className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700"
       >
         <ArrowLeft size={16} /> Quay lại danh sách căn hộ
