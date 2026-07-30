@@ -5,20 +5,17 @@ import {
   Phone,
   Pencil,
   Lock,
-  FileText,
   Eye,
   EyeOff,
   Home,
   ArrowRight,
   CheckCircle2,
-  AlertCircle
 } from "lucide-react";
 import Button from "../../../../components/ui/Button";
 import PageHeader from "../../../../components/PageHeader";
 import Modal from "../../../../components/ui/Modal";
 import Input from "../../../../components/ui/Input";
-import { formatCurrency } from "../../../../utils/currency";
-import { formatApartmentDisplay, maskPhone, maskCCCD } from "../../../../utils/string";
+import { formatApartmentDisplay } from "../../../../utils/string";
 import { useProfile } from "../hooks/useProfile";
 
 export default function ProfilePage() {

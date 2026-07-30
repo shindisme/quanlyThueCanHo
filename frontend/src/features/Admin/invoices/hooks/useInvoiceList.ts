@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import * as invoiceService from "../../../../services/invoiceService";
 import * as buildingService from "../../../../services/buildingService";
 import * as reservationService from "../../../../services/reservationService";
+import * as paymentService from "../../../../services/paymentService";
 import { useDebounce } from "../../../../hooks/useDebounce";
 import { useOnOff } from "../../../../hooks/useOnOff";
 import { usePagination } from "../../../../hooks/usePagination";
@@ -55,15 +56,151 @@ export function useInvoiceList() {
 
   // Load invoices
   const { data: invoicesRes, isLoading, refetch } = useQuery({
-    queryKey: ["invoices", statusFilter, buildingFilter, monthFilter, yearFilter, debouncedSearch],
-    queryFn: () =>
-      invoiceService.getAllInvoicesPage({
+    queryKey: ["invoices", role, managedBuildingId, statusFilter, buildingFilter, monthFilter, yearFilter, debouncedSearch],
+    queryFn: async () => {
+      const res = await invoiceService.getAllInvoicesPage({
         status: statusFilter || undefined,
         building_id: buildingFilter,
         month: monthFilter,
         year: yearFilter,
         search: debouncedSearch || undefined,
-      }),
+      });
+
+      const baseInvoices = res.data || [];
+
+      if (role !== "MANAGER") {
+        return { data: baseInvoices };
+      }
+
+      try {
+        const [paymentsRes, reservationsRes] = await Promise.all([
+          paymentService.getAllPaymentsPage().catch(() => ({ data: [] })),
+          reservationService.getReservations({ limit: 100 }).catch(() => ({ data: [] })),
+        ]);
+
+        const depositInvoicesFromPayments: Invoice[] = (paymentsRes.data || [])
+          .map((p) => p.invoice)
+          .filter((inv): inv is Invoice => !!inv && (inv.type === "DEPOSIT" || !!inv.reservation_id || inv.invoice_code?.startsWith("DEP-")));
+
+        const reservations = reservationsRes.data || [];
+
+        const existingDepositCodes = new Set(
+          [...baseInvoices, ...depositInvoicesFromPayments].map((inv) => inv.invoice_code)
+        );
+
+        const syntheticDepositInvoices: Invoice[] = reservations
+          .filter((resv) => !existingDepositCodes.has(`DEP-${resv.id}`))
+          .map((resv) => {
+            const isPaid = resv.status === "CONVERTED";
+            const isForfeited = resv.status === "FORFEITED" || resv.status === "CANCELLED";
+            const invStatus = isPaid ? "PAID" : isForfeited ? "OVERDUE" : "UNPAID";
+
+            return {
+              id: resv.id,
+              invoice_code: `DEP-${resv.id}`,
+              type: "DEPOSIT",
+              tenant_id: resv.tenant_id,
+              contract_id: null,
+              reservation_id: resv.id,
+              due_date: resv.expires_at || resv.created_at,
+              total_amount: resv.deposit_amount,
+              paid_amount: isPaid ? resv.deposit_amount : 0,
+              remaining_amount: isPaid ? 0 : resv.deposit_amount,
+              status: invStatus,
+              created_at: resv.created_at || resv.reserved_at,
+              updated_at: resv.created_at || resv.reserved_at,
+              tenant: resv.tenant
+                ? {
+                  id: resv.tenant.id,
+                  full_name: resv.tenant.full_name,
+                  phone: resv.tenant.phone || "",
+                  email: resv.tenant.email || "",
+                  user_id: resv.tenant.user_id || 0,
+                }
+                : undefined,
+              reservation: {
+                id: resv.id,
+                apartment_id: resv.apartment_id,
+                tenant_id: resv.tenant_id,
+                deposit_amount: resv.deposit_amount,
+                reserved_at: resv.reserved_at,
+                expires_at: resv.expires_at,
+                status: resv.status,
+                created_at: resv.created_at,
+                apartment: resv.apartment
+                  ? {
+                    id: resv.apartment.id,
+                    building_id: resv.apartment.building_id,
+                    floor: resv.apartment.floor,
+                    room_number: resv.apartment.room_number,
+                    area: 0,
+                    rental_price: resv.deposit_amount,
+                    building: undefined,
+                  }
+                  : undefined,
+              },
+              contract: null,
+              items: [
+                {
+                  id: resv.id,
+                  invoice_id: resv.id,
+                  item_name: "Tiền cọc phòng",
+                  quantity: 1,
+                  unit_price: resv.deposit_amount,
+                  amount: resv.deposit_amount,
+                },
+              ],
+              payments: [],
+            } as unknown as Invoice;
+          });
+
+        const allCombinedMap = new Map<string, Invoice>();
+        for (const inv of baseInvoices) {
+          allCombinedMap.set(inv.invoice_code || String(inv.id), inv);
+        }
+        for (const inv of depositInvoicesFromPayments) {
+          allCombinedMap.set(inv.invoice_code || String(inv.id), inv);
+        }
+        for (const inv of syntheticDepositInvoices) {
+          allCombinedMap.set(inv.invoice_code || String(inv.id), inv);
+        }
+
+        let combinedInvoices = Array.from(allCombinedMap.values());
+
+        if (statusFilter) {
+          combinedInvoices = combinedInvoices.filter((inv) => inv.status === statusFilter);
+        }
+        if (buildingFilter) {
+          combinedInvoices = combinedInvoices.filter((inv) => {
+            const apt = inv.contract?.apartment || inv.reservation?.apartment;
+            return apt ? Number(apt.building_id) === Number(buildingFilter) : true;
+          });
+        }
+        if (monthFilter || yearFilter) {
+          combinedInvoices = combinedInvoices.filter((inv) => {
+            const d = new Date(inv.created_at || inv.due_date);
+            const m = d.getMonth() + 1;
+            const y = d.getFullYear();
+            if (monthFilter && m !== monthFilter) return false;
+            if (yearFilter && y !== yearFilter) return false;
+            return true;
+          });
+        }
+        if (debouncedSearch) {
+          const s = debouncedSearch.toLowerCase();
+          combinedInvoices = combinedInvoices.filter((inv) => {
+            const code = inv.invoice_code?.toLowerCase() || "";
+            const tenantName = (inv.contract?.tenant?.full_name || inv.tenant?.full_name || inv.reservation?.tenant?.full_name || "").toLowerCase();
+            const room = (inv.contract?.apartment?.room_number || inv.reservation?.apartment?.room_number || "").toLowerCase();
+            return code.includes(s) || tenantName.includes(s) || room.includes(s);
+          });
+        }
+
+        return { data: combinedInvoices };
+      } catch {
+        return { data: baseInvoices };
+      }
+    },
     select: (res) => res.data,
   });
   const invoices = invoicesRes || [];
@@ -100,10 +237,31 @@ export function useInvoiceList() {
   });
 
   const handleUpdateStatusInvoice = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: string }) =>
-      invoiceService.updateInvoiceStatus(id, status),
+    mutationFn: async ({ id, status, invoice }: { id: number; status: string; invoice?: Invoice }) => {
+      try {
+        return await invoiceService.updateInvoiceStatus(id, status);
+      } catch (err) {
+        if (role === "MANAGER" && invoice && (invoice.type === "DEPOSIT" || invoice.invoice_code?.startsWith("DEP-"))) {
+          if (invoice.payments && invoice.payments.length > 0) {
+            const paymentId = invoice.payments[0].id;
+            const paymentStatus = status === "PAID" ? "SUCCESS" : "FAILED";
+            return await paymentService.updateStatus(paymentId, paymentStatus);
+          } else if (status === "PAID") {
+            return await paymentService.create({
+              invoice_id: invoice.id > 0 ? invoice.id : Number(invoice.reservation_id),
+              amount: Number(invoice.total_amount),
+              payment_method: "BANK_TRANSFER",
+              status: "SUCCESS",
+            });
+          }
+        }
+        throw err;
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
+      queryClient.invalidateQueries({ queryKey: ["reservations"] });
       toast.success("Cập nhật trạng thái hóa đơn thành công!");
     },
     onError: (error: unknown) => {
@@ -119,7 +277,7 @@ export function useInvoiceList() {
 
   const handleToggleStatus = (invoice: Invoice) => {
     const nextStatus = invoice.status === "PAID" ? "UNPAID" : "PAID";
-    handleUpdateStatusInvoice.mutate({ id: invoice.id, status: nextStatus });
+    handleUpdateStatusInvoice.mutate({ id: invoice.id, status: nextStatus, invoice });
   };
 
   return {
