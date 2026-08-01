@@ -1,3 +1,4 @@
+import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   Building2,
@@ -17,11 +18,12 @@ import {
   Settings,
 } from "lucide-react";
 import type { Role } from "./enums";
+import { ROUTES } from "./routes";
 
 export interface SidebarItem {
   label: string;
   path: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
+  icon: LucideIcon;
   badge?: number;
 }
 
@@ -30,141 +32,126 @@ export interface SidebarGroup {
   items: SidebarItem[];
 }
 
-// Menu Admin
+// Common operational items shared across roles
+const createCommonOperationGroup = (basePath: string): SidebarGroup => ({
+  title: "Vận hành",
+  items: [
+    { label: "Yêu cầu sửa chữa", path: `${basePath}/maintenance`, icon: Wrench },
+    { label: "Lịch xem phòng", path: `${basePath}/schedules`, icon: CalendarDays },
+    { label: "Điện nước", path: `${basePath}/utilities`, icon: Zap },
+    { label: "Thông báo", path: `${basePath}/notifications`, icon: Bell },
+  ],
+});
+
+// Admin Menu
 const adminMenu: SidebarGroup[] = [
   {
     items: [
-      { label: "Dashboard", path: "/admin/dashboard", icon: LayoutDashboard },
+      { label: "Dashboard", path: ROUTES.ADMIN.DASHBOARD, icon: LayoutDashboard },
     ],
   },
   {
     title: "Quản lý",
     items: [
-      { label: "Tòa nhà", path: "/admin/buildings", icon: Building2 },
-      { label: "Căn hộ", path: "/admin/apartments", icon: Home },
-      { label: "Người thuê", path: "/admin/tenants", icon: Users },
-      { label: "Nhân viên", path: "/admin/staff", icon: Briefcase },
-      { label: "Hợp đồng", path: "/admin/contracts", icon: FileText },
-      { label: "Hoá đơn", path: "/admin/invoices", icon: Receipt },
-      { label: "Thanh toán", path: "/admin/payments", icon: CreditCard },
+      { label: "Tòa nhà", path: ROUTES.ADMIN.BUILDINGS, icon: Building2 },
+      { label: "Căn hộ", path: ROUTES.ADMIN.APARTMENTS, icon: Home },
+      { label: "Người thuê", path: ROUTES.ADMIN.TENANTS, icon: Users },
+      { label: "Nhân viên", path: ROUTES.ADMIN.STAFF, icon: Briefcase },
+      { label: "Hợp đồng", path: ROUTES.ADMIN.CONTRACTS, icon: FileText },
+      { label: "Hoá đơn", path: ROUTES.ADMIN.INVOICES, icon: Receipt },
+      { label: "Thanh toán", path: ROUTES.ADMIN.PAYMENTS, icon: CreditCard },
     ],
   },
-  {
-    title: "Vận hành",
-    items: [
-      { label: "Yêu cầu sửa chữa", path: "/admin/maintenance", icon: Wrench },
-      { label: "Lịch xem phòng", path: "/admin/schedules", icon: CalendarDays },
-      { label: "Điện nước", path: "/admin/utilities", icon: Zap },
-      { label: "Thông báo", path: "/admin/notifications", icon: Bell },
-    ],
-  },
+  createCommonOperationGroup(ROUTES.ADMIN.ROOT),
   {
     title: "Hệ thống",
     items: [
-      { label: "Tài khoản", path: "/admin/users", icon: UserCog },
-      { label: "Cài đặt", path: "/admin/settings", icon: Settings }
-      // { label: "Báo cáo", path: "/admin/reports", icon: BarChart3 },
+      { label: "Tài khoản", path: ROUTES.ADMIN.USERS, icon: UserCog },
+      { label: "Cài đặt", path: ROUTES.ADMIN.SETTINGS, icon: Settings },
     ],
   },
 ];
 
-// Menu Manager
+// Manager Menu
 const managerMenu: SidebarGroup[] = [
   {
     items: [
-      { label: "Dashboard", path: "/manager/dashboard", icon: LayoutDashboard },
+      { label: "Dashboard", path: ROUTES.MANAGER.DASHBOARD, icon: LayoutDashboard },
     ],
   },
   {
     title: "Quản lý",
     items: [
-      { label: "Căn hộ", path: "/manager/apartments", icon: Home },
-      { label: "Người thuê", path: "/manager/tenants", icon: Users },
-      { label: "Nhân viên", path: "/manager/staff", icon: Briefcase },
-      { label: "Hợp đồng", path: "/manager/contracts", icon: FileText },
-      { label: "Hoá đơn", path: "/manager/invoices", icon: Receipt },
-      { label: "Thanh toán", path: "/manager/payments", icon: CreditCard },
+      { label: "Căn hộ", path: ROUTES.MANAGER.APARTMENTS, icon: Home },
+      { label: "Người thuê", path: ROUTES.MANAGER.TENANTS, icon: Users },
+      { label: "Nhân viên", path: ROUTES.MANAGER.STAFF, icon: Briefcase },
+      { label: "Hợp đồng", path: ROUTES.MANAGER.CONTRACTS, icon: FileText },
+      { label: "Hoá đơn", path: ROUTES.MANAGER.INVOICES, icon: Receipt },
+      { label: "Thanh toán", path: ROUTES.MANAGER.PAYMENTS, icon: CreditCard },
+    ],
+  },
+  createCommonOperationGroup(ROUTES.MANAGER.ROOT),
+];
+
+// Staff Menu
+const staffMenu: SidebarGroup[] = [
+  {
+    items: [
+      { label: "Dashboard", path: ROUTES.STAFF.DASHBOARD, icon: LayoutDashboard },
     ],
   },
   {
     title: "Vận hành",
     items: [
-      { label: "Yêu cầu sửa chữa", path: "/manager/maintenance", icon: Wrench },
-      { label: "Lịch xem phòng", path: "/manager/schedules", icon: CalendarDays },
-      { label: "Điện nước", path: "/manager/utilities", icon: Zap },
-      { label: "Thông báo", path: "/manager/notifications", icon: Bell },
+      { label: "Yêu cầu sửa chữa", path: `${ROUTES.STAFF.ROOT}/maintenance`, icon: Wrench },
+      { label: "Điện nước", path: `${ROUTES.STAFF.ROOT}/utilities`, icon: Zap },
+      { label: "Thông báo", path: `${ROUTES.STAFF.ROOT}/notifications`, icon: Bell },
     ],
   },
   {
     title: "Khác",
     items: [
-      // { label: "Báo cáo", path: "/manager/reports", icon: BarChart3 },
+      { label: "Hồ sơ cá nhân", path: ROUTES.STAFF.PROFILE, icon: User },
     ],
   },
 ];
 
-// Menu Tenant
+// Tenant Menu
 const tenantMenu: SidebarGroup[] = [
   {
     items: [
-      { label: "Trang chủ", path: "/tenant/home", icon: Home },
+      { label: "Trang chủ", path: ROUTES.TENANT.HOME, icon: Home },
     ],
   },
   {
     title: "Cá nhân",
     items: [
-      { label: "Hợp đồng của tôi", path: "/tenant/contracts", icon: ClipboardList },
-      { label: "Người ở cùng", path: "/tenant/occupants", icon: Users },
-      { label: "Hoá đơn", path: "/tenant/invoices", icon: Receipt },
-      { label: "Thanh toán", path: "/tenant/payments", icon: CreditCard },
-      { label: "Điện nước", path: "/tenant/utilities", icon: Zap },
+      { label: "Hợp đồng của tôi", path: ROUTES.TENANT.CONTRACTS, icon: ClipboardList },
+      { label: "Người ở cùng", path: ROUTES.TENANT.OCCUPANTS, icon: Users },
+      { label: "Hoá đơn", path: ROUTES.TENANT.INVOICES, icon: Receipt },
+      { label: "Thanh toán", path: ROUTES.TENANT.PAYMENTS, icon: CreditCard },
+      { label: "Điện nước", path: ROUTES.TENANT.UTILITIES, icon: Zap },
     ],
   },
   {
     title: "Hỗ trợ",
     items: [
-      { label: "Yêu cầu sửa chữa", path: "/tenant/maintenance", icon: Wrench },
-      { label: "Thông báo", path: "/tenant/notifications", icon: Bell },
-      { label: "Hồ sơ cá nhân", path: "/tenant/profile", icon: User },
+      { label: "Yêu cầu sửa chữa", path: ROUTES.TENANT.MAINTENANCE, icon: Wrench },
+      { label: "Thông báo", path: ROUTES.TENANT.NOTIFICATIONS, icon: Bell },
+      { label: "Hồ sơ cá nhân", path: ROUTES.TENANT.PROFILE, icon: User },
     ],
   },
 ];
 
-// Menu Staff
-const staffMenu: SidebarGroup[] = [
-  {
-    items: [
-      { label: "Dashboard", path: "/manager/dashboard", icon: LayoutDashboard },
-    ],
-  },
-  {
-    title: "Vận hành",
-    items: [
-      { label: "Yêu cầu sửa chữa", path: "/manager/maintenance", icon: Wrench },
-      { label: "Điện nước", path: "/manager/utilities", icon: Zap },
-      { label: "Thông báo", path: "/manager/notifications", icon: Bell },
-    ],
-  },
-  {
-    title: "Khác",
-    items: [
-      { label: "Hồ sơ cá nhân", path: "/manager/profile", icon: User },
-    ],
-  },
-];
+// Direct Record Mapping for Role-based Sidebar
+export const SIDEBAR_MENU: Record<Role, SidebarGroup[]> = {
+  ADMIN: adminMenu,
+  MANAGER: managerMenu,
+  STAFF: staffMenu,
+  TENANT: tenantMenu,
+};
 
-// Lay menu theo role nguoi dung
+// Retrieve sidebar menu by user role without switch-case
 export function getSidebarMenu(role: Role): SidebarGroup[] {
-  switch (role) {
-    case "ADMIN":
-      return adminMenu;
-    case "MANAGER":
-      return managerMenu;
-    case "STAFF":
-      return staffMenu;
-    case "TENANT":
-      return tenantMenu;
-    default:
-      return [];
-  }
+  return SIDEBAR_MENU[role] ?? [];
 }
