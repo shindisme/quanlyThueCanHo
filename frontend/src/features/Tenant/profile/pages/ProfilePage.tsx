@@ -328,7 +328,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => setShowConfirmPass(!showConfirmPass)}
-                className="absolute right-3 top-[34px] text-gray-400 hover:text-gray-600 cursor-pointer"
+                className="absolute right-3 top-8.5 text-gray-400 hover:text-gray-600 cursor-pointer"
               >
                 {showConfirmPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
