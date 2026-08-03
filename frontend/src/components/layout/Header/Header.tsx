@@ -1,7 +1,7 @@
-import HeaderMenuButton from "./header/HeaderMenuButton";
-import HeaderBreadcrumb from "./header/HeaderBreadcrumb";
-import NotificationDropdown from "./header/NotificationDropdown";
-import UserDropdown from "./header/UserDropdown";
+import HeaderMenuButton from "./HeaderMenuButton";
+import HeaderBreadcrumb from "./HeaderBreadcrumb";
+import NotificationDropdown from "./NotificationDropdown";
+import UserDropdown from "./UserDropdown";
 
 export function Header() {
   return (

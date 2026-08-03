@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useAuthStore } from "../../../stores/auth.store";
-import { parseJwt } from "../../../utils/jwt";
-import * as staffService from "../../../services/staffService";
-import * as contractService from "../../../services/contractService";
+import { useAuthStore } from "../../../../stores/auth.store";
+import { parseJwt } from "../../../../utils/jwt";
+import * as staffService from "../../../../services/staffService";
+import * as contractService from "../../../../services/contractService";
 
 export interface HeaderUser {
   userId: number | null;

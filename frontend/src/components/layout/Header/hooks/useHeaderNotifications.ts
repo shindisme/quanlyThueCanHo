@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "../../../stores/auth.store";
-import { queryKeys } from "../../../constants/queryKeys";
-import * as notificationService from "../../../services/notificationService";
-import type { Notification } from "../../../types/notification";
+import { useAuthStore } from "../../../../stores/auth.store";
+import { queryKeys } from "../../../../constants/queryKeys";
+import * as notificationService from "../../../../services/notificationService";
+import type { Notification } from "../../../../types/notification";
 
 export interface HeaderNotificationsResult {
   notifications: Notification[];

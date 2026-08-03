@@ -1,27 +1,23 @@
 import type { ReactNode } from "react";
-import type { LucideIcon } from "lucide-react";
 
-
-
-interface PageHeaderProps {
-  icon?: LucideIcon;
+export interface PageHeaderProps {
   title: string;
   subtitle?: string;
   count?: number;
   actions?: ReactNode;
-  iconColor?: string; // gradient CSS string
+  children?: ReactNode;
 }
 
-export default function PageHeader({
+export function PageHeader({
   title,
   subtitle,
   count,
   actions,
-  // iconColor: _iconColor = "linear-gradient(135deg, #7C3AED, #A78BFA)",
+  children,
 }: PageHeaderProps) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8 md:mb-10">
-      <div className="flex items-center gap-4">
+    <div className="flex flex-col gap-4 mb-8 md:mb-10">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
             {title}
@@ -33,8 +29,13 @@ export default function PageHeader({
             <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
           )}
         </div>
+
+        {actions && <div className="flex items-center gap-3">{actions}</div>}
       </div>
-      {actions && <div className="flex items-center gap-3">{actions}</div>}
+
+      {children && <div className="w-full">{children}</div>}
     </div>
   );
 }
+
+export default PageHeader;

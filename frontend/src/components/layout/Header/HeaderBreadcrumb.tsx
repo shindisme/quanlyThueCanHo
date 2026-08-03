@@ -6,7 +6,7 @@ import {
   BreadcrumbItem,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "../ui/Breadcrumb";
+} from "../../ui/Breadcrumb";
 
 export function HeaderBreadcrumb() {
   const parts = useHeaderBreadcrumb();

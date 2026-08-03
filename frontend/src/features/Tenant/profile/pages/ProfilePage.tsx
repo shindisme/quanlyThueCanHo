@@ -12,7 +12,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import Button from "../../../../components/ui/Button";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import Modal from "../../../../components/ui/Modal";
 import Input from "../../../../components/ui/Input";
 import { formatApartmentDisplay } from "../../../../utils/string";
@@ -68,10 +68,8 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6 max-w-5xl font-sans p-2">
       <PageHeader
-        icon={User}
-        title="Hồ sơ tài khoản"
-        subtitle="Quản lý thông tin cá nhân, cài đặt bảo mật và thông tin hợp đồng thuê"
-        iconColor="linear-gradient(135deg, #6366F1, #8B5CF6)"
+        title="Hồ sơ cá nhân"
+        subtitle="Quản lý thông tin tài khoản và thông tin cá nhân của bạn"
       />
 
       {/* Hero Profile Banner */}

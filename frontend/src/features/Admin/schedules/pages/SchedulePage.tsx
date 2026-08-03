@@ -1,6 +1,6 @@
-import { CalendarDays, Eye, Check, X, Trash2 } from "lucide-react";
+import { Eye, Check, X, Trash2 } from "lucide-react";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Badge from "../../../../components/ui/Badge";
 import Combobox from "../../../../components/ui/Combobox";
@@ -46,7 +46,7 @@ export default function SchedulePage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <div className="flex flex-col items-center justify-center min-h-100">
         <LoadingSpinner size={36} />
         <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải lịch hẹn...</span>
       </div>
@@ -170,11 +170,9 @@ export default function SchedulePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        icon={CalendarDays}
         title="Lịch xem phòng"
         subtitle="Quản lý các lượt hẹn xem phòng của khách hàng"
         count={schedules.length}
-        iconColor="linear-gradient(135deg, #3B82F6, #60A5FA)"
         actions={
           <SearchInput
             value={search}

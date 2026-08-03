@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { Settings } from "lucide-react";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import Button from "../../../../components/ui/Button";
 import { toast } from "sonner";
 
@@ -108,10 +107,8 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6 font-sans bg-white p-2 min-h-screen">
       <PageHeader
-        icon={Settings}
         title="Cấu hình hệ thống"
         subtitle="Quản lý biểu phí mặc định áp dụng khi lập hóa đơn cho toàn bộ các căn hộ"
-        iconColor="linear-gradient(135deg, #4B5563, #9CA3AF)"
       />
 
       <form onSubmit={handleSave} className="space-y-8 max-w-5xl">

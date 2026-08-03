@@ -1,5 +1,5 @@
-import { FileText, Plus, ClipboardList } from "lucide-react";
-import PageHeader from "../../../../components/PageHeader";
+import { Plus, ClipboardList } from "lucide-react";
+import PageHeader from "../../../../components/layout/PageHeader";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Combobox from "../../../../components/ui/Combobox";
 import Button from "../../../../components/ui/Button";
@@ -90,11 +90,9 @@ export default function InvoicePage() {
   return (
     <div className="space-y-6 font-sans">
       <PageHeader
-        icon={FileText}
         title="Quản lý hóa đơn"
         subtitle="Theo dõi công nợ, tính tiền dịch vụ hằng tháng và kiểm soát trạng thái thanh toán"
         count={rawInvoicesCount}
-        iconColor="linear-gradient(135deg, #10B981, #3B82F6)"
         actions={
           <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
             <SearchInput

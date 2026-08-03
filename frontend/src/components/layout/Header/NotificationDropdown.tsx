@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, ArrowRight } from "lucide-react";
-import { useAuthStore } from "../../stores/auth.store";
+import { useAuthStore } from "../../../stores/auth.store";
 import { useHeaderNotifications } from "./hooks/useHeaderNotifications";
-import { getNotificationMeta } from "../../constants/notification";
-import { formatTimeAgo } from "../../utils/date";
+import { getNotificationMeta } from "../../../constants/notification";
+import { formatTimeAgo } from "../../../utils/date";
 
 export function NotificationDropdown() {
   const { role } = useAuthStore();
@@ -100,9 +100,8 @@ export function NotificationDropdown() {
                     key={notif.id}
                     type="button"
                     onClick={() => handleNotificationClick(notif.id, notif.is_read)}
-                    className={`w-full text-left px-5 py-3.5 flex gap-3 items-start hover:bg-gray-50/60 transition-all duration-150 cursor-pointer ${
-                      !notif.is_read ? "bg-indigo-50/15" : ""
-                    }`}
+                    className={`w-full text-left px-5 py-3.5 flex gap-3 items-start hover:bg-gray-50/60 transition-all duration-150 cursor-pointer ${!notif.is_read ? "bg-indigo-50/15" : ""
+                      }`}
                   >
                     <div
                       className={`w-8 h-8 rounded-lg ${meta.bgClass} flex items-center justify-center shrink-0 mt-0.5`}
@@ -111,9 +110,8 @@ export function NotificationDropdown() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p
-                        className={`text-[13px] leading-snug truncate ${
-                          !notif.is_read ? "font-bold text-gray-900" : "font-medium text-gray-600"
-                        }`}
+                        className={`text-[13px] leading-snug truncate ${!notif.is_read ? "font-bold text-gray-900" : "font-medium text-gray-600"
+                          }`}
                       >
                         {notif.title}
                       </p>

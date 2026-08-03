@@ -1,5 +1,5 @@
 import { Plus, Building2 } from "lucide-react";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import Button from "../../../../components/ui/Button";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Pagination from "../../../../components/ui/Pagination";
@@ -47,7 +47,6 @@ export default function BuildingPage() {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
-        icon={Building2}
         title="Tòa nhà"
         subtitle="Quản lý danh sách tòa nhà"
         count={role === "MANAGER" ? filtered.length : totalCount}

@@ -32,7 +32,7 @@ export interface Staff {
 
 export interface LoginResponse {
   token: string;
-  role: string;
+  role: Role;
 }
 
 export interface UserData {

@@ -1,7 +1,7 @@
 import { FileText, Star, XCircle, AlertTriangle } from "lucide-react";
 import Badge from "../../../../components/ui/Badge";
 import SearchInput from "../../../../components/ui/SearchInput";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
@@ -161,7 +161,7 @@ export default function MyContracts() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <div className="flex flex-col items-center justify-center min-h-100">
         <LoadingSpinner size={32} />
         <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải danh sách hợp đồng...</span>
       </div>
@@ -171,11 +171,9 @@ export default function MyContracts() {
   return (
     <div className="space-y-6">
       <PageHeader
-        icon={FileText}
-        title="Hợp đồng của tôi"
-        subtitle="Xem các hợp đồng thuê căn hộ của bạn"
+        title="Hợp đồng thuê phòng"
+        subtitle="Danh sách các hợp đồng thuê nhà hiện tại và đã thanh lý"
         count={filtered.length}
-        iconColor="linear-gradient(135deg, #10B981, #34D399)"
       />
 
       <SearchInput value={search} onChange={setSearch} placeholder="Tìm theo mã hợp đồng hoặc số phòng..." className="max-w-md" />

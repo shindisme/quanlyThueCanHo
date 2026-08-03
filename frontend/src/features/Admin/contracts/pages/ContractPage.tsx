@@ -1,5 +1,5 @@
 import { FileText } from "lucide-react";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import Button from "../../../../components/ui/Button";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Pagination from "../../../../components/ui/Pagination";
@@ -79,7 +79,7 @@ export default function Contract() {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[400px]">
+            <div className="flex flex-col items-center justify-center min-h-100">
                 <LoadingSpinner size={36} />
                 <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải danh sách hợp đồng...</span>
             </div>
@@ -89,11 +89,9 @@ export default function Contract() {
     return (
         <div className="space-y-6">
             <PageHeader
-                icon={FileText}
                 title="Hợp đồng thuê"
                 subtitle="Quản lý thông tin hợp đồng thuê căn hộ"
                 count={filteredContracts.length}
-                iconColor="linear-gradient(135deg, #EF4444, #F87171)"
                 actions={
                     <>
                         <SearchInput
@@ -168,7 +166,7 @@ export default function Contract() {
                 <div className="col-span-12 sm:col-span-6 md:col-span-3">
                     <Combobox
                         options={
-                            (contracts.length > 0 
+                            (contracts.length > 0
                                 ? Array.from(new Set(contracts.map((c) => new Date(c.start_date).getFullYear()))).sort((a, b) => b - a)
                                 : [new Date().getFullYear()]
                             ).map((y) => ({ value: String(y), label: `Năm ${y}` }))

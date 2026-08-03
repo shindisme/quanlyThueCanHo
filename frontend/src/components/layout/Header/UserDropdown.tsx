@@ -1,14 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { User, LogOut, ChevronDown } from "lucide-react";
-import { useAuthStore } from "../../stores/auth.store";
+import { useAuthStore } from "../../../stores/auth.store";
 import { useHeaderUser } from "./hooks/useHeaderUser";
-import Avatar from "../ui/Avatar";
+import Avatar from "../../ui/Avatar";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-} from "../ui/DropdownMenu";
+} from "../../ui/DropdownMenu";
 
 export function UserDropdown() {
   const { role, logout } = useAuthStore();

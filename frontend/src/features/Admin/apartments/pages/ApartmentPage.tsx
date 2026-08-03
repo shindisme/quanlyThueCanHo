@@ -1,5 +1,5 @@
 import { Plus, Home } from "lucide-react";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import Button from "../../../../components/ui/Button";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Pagination from "../../../../components/ui/Pagination";
@@ -49,7 +49,7 @@ export default function ApartmentPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <div className="flex flex-col items-center justify-center min-h-100">
         <LoadingSpinner size={36} />
         <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải danh sách căn hộ...</span>
       </div>
@@ -60,11 +60,9 @@ export default function ApartmentPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <PageHeader
-        icon={Home}
         title="Căn hộ"
         subtitle="Quản lý danh sách căn hộ"
         count={filtered.length}
-        iconColor="linear-gradient(135deg, #3B82F6, #60A5FA)"
         actions={
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <SearchInput

@@ -1,9 +1,9 @@
 import { useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useAuthStore } from "../../../stores/auth.store";
-import * as buildingService from "../../../services/buildingService";
-import * as apartmentService from "../../../services/apartmentService";
-import { formatApartmentDisplay } from "../../../utils/string";
+import { useAuthStore } from "../../../../stores/auth.store";
+import * as buildingService from "../../../../services/buildingService";
+import * as apartmentService from "../../../../services/apartmentService";
+import { formatApartmentDisplay } from "../../../../utils/string";
 
 const BREADCRUMB_LABELS: Record<string, string> = {
   dashboard: "Dashboard",

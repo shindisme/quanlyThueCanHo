@@ -1,5 +1,5 @@
 import { Menu } from "lucide-react";
-import { useSidebarStore } from "../../stores/sidebar.store";
+import { useSidebarStore } from "../../../stores/sidebar.store";
 
 export function HeaderMenuButton() {
   const { setMobileOpen, toggle } = useSidebarStore();

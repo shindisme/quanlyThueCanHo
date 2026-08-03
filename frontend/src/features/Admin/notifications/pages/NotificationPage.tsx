@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Bell, Mail, CheckSquare, Plus } from "lucide-react";
+import { Mail, CheckSquare, Plus } from "lucide-react";
 import { useLocation } from "react-router-dom";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Combobox from "../../../../components/ui/Combobox";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
@@ -78,11 +78,9 @@ export default function NotificationPage() {
   return (
     <div className="space-y-6 font-sans">
       <PageHeader
-        icon={Bell}
         title="Thông báo"
         subtitle="Xem tin tức, hóa đơn mới phát sinh và các thông tin vận hành từ ban quản lý"
         count={unreadCount}
-        iconColor="linear-gradient(135deg, #EC4899, #8B5CF6)"
         actions={
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <SearchInput
@@ -159,7 +157,7 @@ export default function NotificationPage() {
                   triggerClassName="h-[42px] rounded-xl border-gray-200"
                 />
               ) : (
-                <div className="h-[42px] flex items-center px-4 bg-gray-50 border border-gray-200 text-gray-600 rounded-xl font-bold">
+                <div className="h-10.5 flex items-center px-4 bg-gray-50 border border-gray-200 text-gray-600 rounded-xl font-bold">
                   {buildings.find((b) => b.id === buildingId)?.branch_name || "Tòa nhà quản lý"}
                 </div>
               )}
@@ -210,7 +208,7 @@ export default function NotificationPage() {
               ) : apartments.length === 0 ? (
                 <p className="text-xs text-gray-400 italic">Không có căn hộ nào được tìm thấy trong tòa nhà.</p>
               ) : (
-                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5 max-h-[160px] overflow-y-auto border border-gray-100 p-2.5 bg-gray-50/50 rounded-xl">
+                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5 max-h-40 overflow-y-auto border border-gray-100 p-2.5 bg-gray-50/50 rounded-xl">
                   {apartments.map((apt) => {
                     const isSelected = selectedApartmentIds.includes(apt.id);
                     return (

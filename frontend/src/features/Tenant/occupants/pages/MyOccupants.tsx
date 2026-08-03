@@ -1,5 +1,5 @@
 import { Users, Plus, Pencil, Trash2, ShieldCheck, UserCheck, Phone, CreditCard, Calendar } from "lucide-react";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import Button from "../../../../components/ui/Button";
 import Modal from "../../../../components/ui/Modal";
 import Input from "../../../../components/ui/Input";
@@ -27,10 +27,8 @@ export default function MyOccupants() {
   return (
     <div className="space-y-6 max-w-5xl">
       <PageHeader
-        icon={Users}
-        title="Khai báo người ở cùng"
-        subtitle="Quản lý và khai báo danh sách thành viên sinh sống cùng căn hộ với bạn"
-        iconColor="linear-gradient(135deg, #0EA5E9, #38BDF8)"
+        title="Thành viên ở cùng"
+        subtitle="Danh sách các thành viên cùng sinh sống trong căn hộ"
         actions={
           <Button
             onClick={() => handleOpenOccupantForm(null)}

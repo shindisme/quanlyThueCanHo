@@ -1,5 +1,5 @@
 import { Plus, Users, Eye, Pencil, Trash2 } from "lucide-react";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import Button from "../../../../components/ui/Button";
 import SearchInput from "../../../../components/ui/SearchInput";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
@@ -50,7 +50,7 @@ export default function TenantPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <div className="flex flex-col items-center justify-center min-h-100">
         <LoadingSpinner size={32} />
         <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải danh sách người thuê...</span>
       </div>
@@ -154,11 +154,9 @@ export default function TenantPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        icon={Users}
         title="Người thuê"
         subtitle="Quản lý thông tin người thuê"
         count={filtered.length}
-        iconColor="linear-gradient(135deg, #8B5CF6, #A78BFA)"
         actions={
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <SearchInput

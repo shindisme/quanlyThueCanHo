@@ -1,5 +1,5 @@
 import { Plus, Trash2, RotateCcw, UserCog, Eye, Pencil } from "lucide-react";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import Button from "../../../../components/ui/Button";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
@@ -163,7 +163,7 @@ export default function UserPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <div className="flex flex-col items-center justify-center min-h-100">
         <LoadingSpinner size={36} />
         <span className="text-sm text-gray-400 mt-2 font-sans">
           Đang tải danh sách tài khoản...
@@ -176,11 +176,9 @@ export default function UserPage() {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
-        icon={UserCog}
         title="Tài khoản"
         subtitle="Quản lý tài khoản người dùng"
         count={users.length}
-        iconColor="linear-gradient(135deg, #F59E0B, #FBBF24)"
         actions={
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <SearchInput
