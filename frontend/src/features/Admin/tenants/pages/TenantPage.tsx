@@ -6,6 +6,7 @@ import Pagination from "../../../../components/ui/Pagination";
 import { useTenantPage } from "../hooks/useTenantPage";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import EmptyState from "../../../../components/ui/EmptyState";
+import Combobox from "../../../../components/ui/Combobox";
 
 import TenantList from "../components/TenantList";
 import TenantCreateModal from "../components/TenantCreateModal";
