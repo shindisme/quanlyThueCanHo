@@ -5,10 +5,10 @@ import type { Notification, Invoice } from "../../../../types";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay } from "../../../../utils/string";
-import { getAllInvoices } from "../../../../services/invoiceService";
 import { FileText, CreditCard, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../../stores/auth.store";
+import { invoiceService } from "../../../../services";
 
 interface NotificationDetailModalProps {
     isOpen: boolean;
@@ -48,7 +48,7 @@ export default function NotificationDetailModal({
     const loadInvoiceDetails = async (code: string) => {
         setLoadingInvoice(true);
         try {
-            const res = await getAllInvoices({ search: code });
+            const res = await invoiceService.getAll({ search: code });
             if (res.data && res.data.length > 0) {
                 const exact = res.data.find(inv => inv.invoice_code.toUpperCase() === code);
                 if (exact) {

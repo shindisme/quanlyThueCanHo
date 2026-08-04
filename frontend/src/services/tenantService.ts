@@ -57,7 +57,7 @@ export async function update(id: number, data: Partial<Tenant>): Promise<Tenant>
   return res.data.data || (res.data as unknown as Tenant);
 }
 
-export async function deleteTenant(id: number): Promise<void> {
+export async function remove(id: number): Promise<void> {
   await api.delete(`${TENANT_API}/${id}`);
 }
 
@@ -83,19 +83,13 @@ export async function deleteMyOccupant(id: number): Promise<void> {
   await api.delete(`${TENANT_API}/me/occupants/${id}`);
 }
 
-export const getAllTenants = getAll;
-export const getAllTenantsPage = getAllPage;
-export const createTenant = create;
-export const getTenantById = getById;
-export const updateTenant = update;
-
 export const tenantService = {
   getAll,
   getAllPage,
   create,
   getById,
   update,
-  delete: deleteTenant,
+  remove,
   getMyOccupants,
   createMyOccupant,
   updateMyOccupant,

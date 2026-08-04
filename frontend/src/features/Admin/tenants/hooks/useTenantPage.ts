@@ -40,7 +40,7 @@ export function useTenantPage() {
 
   const { data: tenantsRes, isLoading: loadingTenants, refetch: refetchTenants } = useQuery({
     queryKey: QUERY_KEYS.TENANTS,
-    queryFn: () => tenantService.getAllTenantsPage(),
+    queryFn: () => tenantService.getAllPage(),
     select: (res) => res.data as unknown as Tenant[],
   });
   const tenants = tenantsRes || [];
@@ -54,13 +54,13 @@ export function useTenantPage() {
 
   const { data: apartments = [], isLoading: loadingApartments, refetch: refetchApartments } = useQuery({
     queryKey: QUERY_KEYS.APARTMENTS,
-    queryFn: () => apartmentService.getAllApartmentsPage(),
+    queryFn: () => apartmentService.getAllPage(),
     select: (res) => res.data as unknown as Apartment[],
   });
 
   const { data: buildings = [], isLoading: loadingBuildings, refetch: refetchBuildings } = useQuery({
     queryKey: QUERY_KEYS.BUILDINGS,
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data as unknown as Building[],
   });
 

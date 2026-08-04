@@ -6,10 +6,10 @@ import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import type { RentalContract } from "../../../../types";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatApartmentDisplay } from "../../../../utils/string";
-import { createUtilityReading, getAllUtilityReadings } from "../../../../services/utilityService";
-import { generateMonthlyInvoices, getAllInvoicesPage } from "../../../../services/invoiceService";
+import { generateMonthlyInvoices } from "../../../../services/invoiceService";
 import { toast } from "sonner";
 import { Receipt, ShieldCheck, HelpCircle } from "lucide-react";
+import { invoiceService, utilityService } from "../../../../services";
 
 interface CheckoutModalProps {
     isOpen: boolean;
@@ -62,8 +62,7 @@ export default function CheckoutModal({
         if (!contract) return;
         setLoadingData(true);
         try {
-            // 1. Fetch latest utility reading to populate electricOld and waterOld
-            const readingsRes = await getAllUtilityReadings({
+            const readingsRes = await utilityService.getAll({
                 apartment_id: contract.apartment_id,
                 limit: 1,
             });
@@ -92,7 +91,7 @@ export default function CheckoutModal({
 
     const fetchUnpaidInvoices = async () => {
         if (!contract) return;
-        const res = await getAllInvoicesPage({
+        const res = await invoiceService.getAllPage({
             tenant_id: contract.tenant_id,
             status: "UNPAID",
         });
@@ -115,7 +114,7 @@ export default function CheckoutModal({
 
         setSavingUtility(true);
         try {
-            await createUtilityReading({
+            await utilityService.create({
                 apartment_id: contract.apartment_id,
                 month: currentMonth,
                 year: currentYear,

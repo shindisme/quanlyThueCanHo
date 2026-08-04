@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateBuilding } from "../../../../services/buildingService";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
 import type { BuildingModifyFormValues } from "../../../../schemas/building.schema";
+import { buildingService } from "../../../../services";
 
 interface UpdateBuildingParams {
   id: number;
@@ -36,13 +36,15 @@ export function useUpdateBuilding() {
           fd.append("remove_thumbnail", "true");
         }
         fd.append("image", image);
-        await updateBuilding(id, fd);
+        await buildingService.update(id, fd);
       } else {
-        await updateBuilding(id, payload);
+        await buildingService.update(id, payload);
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.BUILDINGS });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.BUILDINGS, String(variables.id)] });
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.BUILDINGS, variables.id] });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APARTMENTS });
     },
   });

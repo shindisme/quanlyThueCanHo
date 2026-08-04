@@ -26,7 +26,7 @@ export function useNotificationSend() {
   // Get danh sách tòa theo Admin
   const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     enabled: role === "ADMIN",
     select: (res) => res.data,
   });
@@ -35,7 +35,7 @@ export function useNotificationSend() {
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments-for-target", buildingId],
     queryFn: () =>
-      apartmentService.getAllApartmentsPage({
+      apartmentService.getAllPage({
         building_id: buildingId,
       }),
     enabled: !!buildingId && targetType === "APARTMENTS",

@@ -37,13 +37,10 @@ export async function markAllNotificationsRead(): Promise<{ success: boolean; me
   return res.data;
 }
 
-export async function deleteNotification(id: number): Promise<{ success: boolean; message: string }> {
+export async function remove(id: number): Promise<{ success: boolean; message: string }> {
   const res = await api.delete<{ success: boolean; message: string }>(`${NOTIFICATION_API}/${id}`);
   return res.data;
 }
-
-export const getAllNotifications = getAll;
-export const getAllNotificationsPage = getAllPage;
 
 export const notificationService = {
   getAll,
@@ -52,5 +49,5 @@ export const notificationService = {
   sendInvoiceNotifications,
   markNotificationRead,
   markAllNotificationsRead,
-  deleteNotification,
+  remove,
 };

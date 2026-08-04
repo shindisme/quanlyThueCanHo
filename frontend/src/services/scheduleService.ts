@@ -29,30 +29,27 @@ export async function getAllPage(params?: Omit<ScheduleFilters, "page" | "limit"
   return fetchAllPages<ScheduleData, ScheduleFilters>(getAll, params);
 }
 
-export async function confirmSchedule(id: number): Promise<unknown> {
+export async function confirm(id: number): Promise<unknown> {
   const res = await api.put(`${SCHEDULE_API}/${id}/confirm`, { status: "CONFIRMED" });
   return res.data;
 }
 
-export async function cancelSchedule(id: number): Promise<unknown> {
+export async function cancel(id: number): Promise<unknown> {
   const res = await api.put(`${SCHEDULE_API}/${id}/cancel`);
   return res.data;
 }
 
-export async function deleteSchedule(id: number): Promise<unknown> {
+export async function remove(id: number): Promise<unknown> {
   const res = await api.delete(`${SCHEDULE_API}/${id}`);
   return res.data;
 }
-
-export const getAllSchedules = getAll;
-export const getAllSchedulesPage = getAllPage;
 
 export const scheduleService = {
   bookViewing,
   getViewingAvailability,
   getAll,
   getAllPage,
-  confirmSchedule,
-  cancelSchedule,
-  deleteSchedule,
+  confirm,
+  cancel,
+  remove,
 };

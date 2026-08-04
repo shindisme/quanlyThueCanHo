@@ -71,16 +71,10 @@ export async function update(id: number, data: Partial<UtilityReadingData>): Pro
   return res.data;
 }
 
-export async function deleteUtilityReading(id: number): Promise<unknown> {
+export async function remove(id: number): Promise<unknown> {
   const res = await api.delete(`${UTILITY_API}/${id}`);
   return res.data;
 }
-
-export const getAllUtilityReadings = getAll;
-export const getAllUtilityReadingsPage = getAllPage;
-export const getUtilityReadingById = getById;
-export const createUtilityReading = create;
-export const updateUtilityReading = update;
 
 export const utilityService = {
   getAll,
@@ -90,5 +84,5 @@ export const utilityService = {
   getById,
   create,
   update,
-  delete: deleteUtilityReading,
+  remove,
 };

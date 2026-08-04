@@ -5,9 +5,9 @@ import * as contractService from "../../../../services/contractService";
 import * as apartmentService from "../../../../services/apartmentService";
 import * as buildingService from "../../../../services/buildingService";
 import * as tenantService from "../../../../services/tenantService";
-import { createReview } from "../../../../services/reviewService";
 import { toast } from "sonner";
 import type { TenantOccupant } from "../../../../types";
+import { reviewService } from "../../../../services";
 
 function parseJwt(token: string) {
   try {
@@ -67,14 +67,14 @@ export function useDashboardTenant() {
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartmentsPage(),
+    queryFn: () => apartmentService.getAllPage(),
     enabled: !!userId,
     select: (res) => res.data,
   });
 
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     enabled: !!userId,
     select: (res) => res.data,
   });
@@ -127,7 +127,7 @@ export function useDashboardTenant() {
   }, [endedContract, activeContract]);
 
   const reviewMutation = useMutation({
-    mutationFn: (data: { apartment_id: number; rating: number; comment: string }) => createReview(data),
+    mutationFn: (data: { apartment_id: number; rating: number; comment: string }) => reviewService.create(data),
     onSuccess: () => {
       toast.success("Cảm ơn bạn đã gửi đánh giá cho căn hộ!");
       if (endedContract) {

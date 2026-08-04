@@ -33,7 +33,7 @@ export function useUtilityCreate({
 }: UseUtilityCreateProps) {
   const queryClient = useQueryClient();
   const createMutation = useMutation({
-    mutationFn: (data: Parameters<typeof utilityService.createUtilityReading>[0]) => utilityService.createUtilityReading(data),
+    mutationFn: (data: Parameters<typeof utilityService.create>[0]) => utilityService.create(data),
     onSuccess: () => {
       toast.success("Thêm chỉ số điện nước thành công");
       setElectricOld("");
@@ -96,7 +96,7 @@ export function useUtilityCreate({
     setElectricOld("");
     setWaterOld("");
 
-    utilityService.getAllUtilityReadings({
+    utilityService.getAll({
       apartment_id: Number(apartmentId),
       month: previousMonth,
       year: previousYear,

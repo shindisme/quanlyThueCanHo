@@ -42,14 +42,6 @@ export async function complete(id: number, data?: { charge_tenant: boolean; repa
   return res.data.data;
 }
 
-export const getAllMaintenanceRequests = getAll;
-export const getMaintenanceRequestById = getById;
-export const createMaintenanceRequest = create;
-export const cancelMaintenanceRequest = cancel;
-export const confirmMaintenanceRequest = confirm;
-export const unableMaintenanceRequest = unable;
-export const completeMaintenanceRequest = complete;
-
 export const maintenanceService = {
   getAll,
   getById,

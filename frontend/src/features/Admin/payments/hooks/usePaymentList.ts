@@ -29,13 +29,13 @@ export function usePaymentList() {
 
   const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data,
   });
 
   const { data: apartments = [] } = useQuery({
     queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartmentsPage(),
+    queryFn: () => apartmentService.getAllPage(),
     select: (res) => res.data,
   });
 
@@ -54,7 +54,7 @@ export function usePaymentList() {
   const { data: paymentsRes, isLoading, refetch } = useQuery({
     queryKey: ["payments", statusFilter, methodFilter, buildingFilter, debouncedSearch],
     queryFn: () =>
-      paymentService.getAllPayments({
+      paymentService.getAll({
         status: statusFilter || undefined,
         payment_method: methodFilter || undefined,
         building_id: buildingFilter,
@@ -103,7 +103,7 @@ export function usePaymentList() {
   // Tạo 
   const handleUpdateStatusPayment = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
-      paymentService.updatePaymentStatus(id, status),
+      paymentService.updateStatus(id, status),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["payments"] });
       queryClient.invalidateQueries({ queryKey: ["invoices"] });

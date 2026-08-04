@@ -39,22 +39,15 @@ export async function update(id: number, data: FormData | UpdateApartmentRequest
   return res.data.data || (res.data as unknown as ApartmentData);
 }
 
-export async function deleteApartment(id: number): Promise<unknown> {
+export async function remove(id: number): Promise<unknown> {
   const res = await api.delete(`${APARTMENT_API}/${id}`);
   return res.data.data || res.data;
 }
-
-export const getAllApartments = getAll;
-export const getAllApartmentsPage = getAllPage;
-export const getApartmentById = getById;
-export const createApartment = create;
-export const updateApartment = update;
-
 export const apartmentService = {
   getAll,
   getAllPage,
   getById,
   create,
   update,
-  delete: deleteApartment,
+  remove,
 };

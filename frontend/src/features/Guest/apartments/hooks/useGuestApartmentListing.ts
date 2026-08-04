@@ -23,7 +23,7 @@ async function getGuestApartments(buildingId?: number) {
   let totalPages = 1;
 
   do {
-    const res = await apartmentService.getAllApartments({
+    const res = await apartmentService.getAll({
       building_id: buildingId,
       limit: 100,
       page,
@@ -60,7 +60,7 @@ export function useGuestApartmentListing() {
 
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data,
   });
 

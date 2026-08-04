@@ -87,7 +87,7 @@ export function useProfile() {
 
   const { data: apartments = [] } = useQuery({
     queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartmentsPage(),
+    queryFn: () => apartmentService.getAllPage(),
     enabled: !!userContract,
     select: (res) => res.data,
   });
@@ -98,7 +98,7 @@ export function useProfile() {
 
   const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     enabled: !!apartmentInfo,
     select: (res) => res.data,
   });
@@ -109,7 +109,7 @@ export function useProfile() {
 
   const { data: staffRes } = useQuery({
     queryKey: ["staffProfile"],
-    queryFn: () => staffService.getAllStaffs(),
+    queryFn: () => staffService.getAll(),
     enabled: (role === "MANAGER" || role === "STAFF") && !!userId,
   });
   const currentStaff = userId && staffRes?.data
@@ -150,7 +150,7 @@ export function useProfile() {
     try {
       if (role === "TENANT") {
         if (userContract?.tenant?.id) {
-          await tenantService.updateTenant(userContract.tenant.id, {
+          await tenantService.update(userContract.tenant.id, {
             full_name: editFullName.trim(),
             phone: editPhone.trim() || undefined,
           });
@@ -158,7 +158,7 @@ export function useProfile() {
         }
       } else if (role === "MANAGER" || role === "STAFF") {
         if (currentStaff?.id) {
-          await staffService.updateStaff(currentStaff.id, {
+          await staffService.update(currentStaff.id, {
             full_name: editFullName.trim(),
             phone: editPhone.trim() || undefined,
           });

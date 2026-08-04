@@ -51,7 +51,7 @@ export function useInvoiceList() {
   // Lấy danh sách chi nhánh để lọc và chọn
   const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data,
   });
 
@@ -59,7 +59,7 @@ export function useInvoiceList() {
   const { data: invoicesRes, isLoading, refetch } = useQuery({
     queryKey: ["invoices", role, managedBuildingId, statusFilter, buildingFilter, monthFilter, yearFilter, debouncedSearch],
     queryFn: async () => {
-      const res = await invoiceService.getAllInvoicesPage({
+      const res = await invoiceService.getAllPage({
         status: statusFilter || undefined,
         building_id: buildingFilter,
         month: monthFilter,
@@ -75,7 +75,7 @@ export function useInvoiceList() {
 
       try {
         const [paymentsRes, reservationsRes] = await Promise.all([
-          paymentService.getAllPaymentsPage().catch(() => ({ data: [] })),
+          paymentService.getAllPage().catch(() => ({ data: [] })),
           reservationService.getReservations({ limit: 100 }).catch(() => ({ data: [] })),
         ]);
 

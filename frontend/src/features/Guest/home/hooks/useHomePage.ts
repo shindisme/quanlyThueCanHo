@@ -31,13 +31,13 @@ export function useHomePage() {
 
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data,
   });
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments-landing", "AVAILABLE"],
-    queryFn: () => apartmentService.getAllApartmentsPage({ status: "AVAILABLE" }),
+    queryFn: () => apartmentService.getAllPage({ status: "AVAILABLE" }),
     select: (res) => res.data,
   });
 

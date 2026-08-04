@@ -21,12 +21,13 @@ export function useNotificationCenter() {
     queryKey: ["notifications", isReadFilter, debouncedSearch],
     queryFn: () => {
       const isReadVal = isReadFilter === "true" ? true : isReadFilter === "false" ? false : undefined;
-      return notificationService.getAllNotifications({
+      return notificationService.getAll({
         is_read: isReadVal,
         search: debouncedSearch || undefined,
         limit: 100,
       });
     },
+    select: (res) => res.data,
   });
 
   // Sort 
@@ -72,7 +73,7 @@ export function useNotificationCenter() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => notificationService.deleteNotification(id),
+    mutationFn: (id: number) => notificationService.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       toast.success("Đã xóa thông báo");

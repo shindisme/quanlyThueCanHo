@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -25,9 +25,7 @@ interface UseContractCreateOptions {
 
 export function useContractCreate({
   isOpen,
-  onClose: _onClose,
   onSuccess,
-  currentUser: _currentUser,
   role,
   managerBuildingId,
   initialTenantId,
@@ -42,7 +40,7 @@ export function useContractCreate({
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     reset,
     formState: { errors },
   } = useForm<ContractFormValues>({
@@ -60,19 +58,19 @@ export function useContractCreate({
     },
   });
 
-  const tenantIdValue = watch("tenant_id");
-  const buildingIdValue = watch("building_id");
-  const floorValue = watch("floor");
-  const apartmentIdValue = watch("apartment_id");
-  const startDateValue = watch("start_date");
-  const endDateValue = watch("end_date");
-  const actualOccupantsValue = watch("actual_occupants");
-  const monthlyRentValue = watch("monthly_rent");
+  const tenantIdValue = useWatch({ control, name: "tenant_id" });
+  const buildingIdValue = useWatch({ control, name: "building_id" });
+  const floorValue = useWatch({ control, name: "floor" });
+  const apartmentIdValue = useWatch({ control, name: "apartment_id" });
+  const startDateValue = useWatch({ control, name: "start_date" });
+  const endDateValue = useWatch({ control, name: "end_date" });
+  const actualOccupantsValue = useWatch({ control, name: "actual_occupants" });
+  const monthlyRentValue = useWatch({ control, name: "monthly_rent" });
 
   // Fetch apartments for the selected building
   const { data: buildingApartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments", "building", buildingIdValue],
-    queryFn: () => apartmentService.getAllApartmentsPage({ building_id: buildingIdValue }),
+    queryFn: () => apartmentService.getAllPage({ building_id: buildingIdValue }),
     select: (res) => res.data as unknown as Apartment[],
     enabled: !!buildingIdValue,
   });

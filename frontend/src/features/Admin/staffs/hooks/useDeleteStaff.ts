@@ -1,12 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
-import { deleteStaff } from "../../../../services/staffService";
+import { staffService } from "../../../../services";
 
 export function useDeleteStaff() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: deleteStaff,
+    mutationFn: staffService.remove,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.STAFF });
     },

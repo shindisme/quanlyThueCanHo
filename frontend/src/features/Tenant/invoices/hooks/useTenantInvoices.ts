@@ -20,7 +20,7 @@ export function useTenantInvoices() {
   const { data: invoicesRes, isLoading } = useQuery({
     queryKey: ["tenant-invoices", statusFilter, debouncedSearch],
     queryFn: () =>
-      invoiceService.getAllInvoicesPage({
+      invoiceService.getAllPage({
         status: statusFilter || undefined,
         search: debouncedSearch || undefined,
       }),

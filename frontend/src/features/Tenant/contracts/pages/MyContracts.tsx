@@ -15,8 +15,8 @@ import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS, type ContractStatus } from "../../../../constants/enums";
 import type { RentalContract } from "../../../../types";
 import { useState } from "react";
-import { createMaintenanceRequest } from "../../../../services/maintenanceService";
 import { toast } from "sonner";
+import { maintenanceService } from "../../../../services";
 
 export default function MyContracts() {
   const {
@@ -631,7 +631,7 @@ export default function MyContracts() {
                 try {
                   const todayStr = new Date().toLocaleDateString("vi-VN");
                   const chosenStr = new Date(checkoutDate).toLocaleDateString("vi-VN");
-                  await createMaintenanceRequest({
+                  await maintenanceService.create({
                     apartment_id: selectedRequestContract.apartment_id,
                     title: `[Yêu cầu trả phòng] Hợp đồng HD-${String(selectedRequestContract.id).padStart(5, "0")}`,
                     description: `Khách gửi yêu cầu trả phòng sớm.\n- Ngày báo yêu cầu: ${todayStr}\n- Ngày đề xuất trả phòng: ${chosenStr}\n- Lý do: ${checkoutReason.trim()}`,

@@ -32,11 +32,6 @@ export async function updateStatus(id: number, status: string): Promise<Invoice>
   return res.data.data;
 }
 
-export const getAllInvoices = getAll;
-export const getAllInvoicesPage = getAllPage;
-export const getInvoiceById = getById;
-export const updateInvoiceStatus = updateStatus;
-
 export const invoiceService = {
   getAll,
   getAllPage,

@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { getAllUsersPage } from "../../../../services/authService";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { authService } from "../../../../services";
 
 export function useUsers() {
   return useQuery({
     queryKey: QUERY_KEYS.USERS,
-    queryFn: () => getAllUsersPage(),
+    queryFn: () => authService.getAllPage(),
   });
 }

@@ -54,7 +54,7 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
   } = useQuery({
     queryKey: ["available-apartments-for-deposit", role, managedBuildingId],
     queryFn: () =>
-      apartmentService.getAllApartmentsPage({
+      apartmentService.getAllPage({
         status: "AVAILABLE",
         building_id: role === "MANAGER" ? managedBuildingId || undefined : undefined,
       }),

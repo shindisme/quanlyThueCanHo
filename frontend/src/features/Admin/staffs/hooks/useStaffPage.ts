@@ -30,12 +30,12 @@ export function useStaffPage() {
 
   const { data: staffRes, isLoading: loadingStaff, refetch: fetchStaff } = useQuery({
     queryKey: QUERY_KEYS.STAFF,
-    queryFn: () => staffService.getAllStaffsPage(),
+    queryFn: () => staffService.getAllPage(),
   });
 
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: QUERY_KEYS.BUILDINGS,
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data as unknown as Building[],
   });
 

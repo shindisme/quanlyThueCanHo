@@ -16,13 +16,13 @@ export function useDashboardAdmin() {
 
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data,
   });
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartmentsPage(),
+    queryFn: () => apartmentService.getAllPage(),
     select: (res) => res.data,
   });
 
@@ -34,7 +34,7 @@ export function useDashboardAdmin() {
 
   const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
     queryKey: ["invoices"],
-    queryFn: () => invoiceService.getAllInvoicesPage(),
+    queryFn: () => invoiceService.getAllPage(),
     select: (res) => res.data,
   });
 

@@ -34,11 +34,11 @@ export async function getAll(params?: ContractQuery): Promise<{ data: RentalCont
     pagination?: ApiPagination;
   }>(CONTRACT_API, {
     params: {
-      building_id: params?.buildingId,
+      building_id: params?.buildingId ?? params?.building_id,
       status: params?.status,
       search: params?.search,
-      tenant_id: params?.tenantId,
-      apartment_id: params?.apartmentId,
+      tenant_id: params?.tenantId ?? params?.tenant_id,
+      apartment_id: params?.apartmentId ?? params?.apartment_id,
       page: params?.page,
       limit: params?.limit,
     },

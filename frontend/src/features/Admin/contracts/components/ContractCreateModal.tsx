@@ -19,6 +19,12 @@ interface ContractCreateModalProps {
   currentUser: { id: number };
   role: string | null;
   managerBuildingId?: number;
+  initialData?: {
+    tenantId?: number;
+    buildingId?: number;
+    apartmentId?: number;
+    floor?: number;
+  };
   initialTenantId?: number;
   initialBuildingId?: number;
   initialApartmentId?: number;
@@ -35,11 +41,17 @@ export default function ContractCreateModal({
   currentUser,
   role,
   managerBuildingId,
+  initialData,
   initialTenantId,
   initialBuildingId,
   initialApartmentId,
   initialFloor,
 }: ContractCreateModalProps) {
+  const resolvedTenantId = initialData?.tenantId ?? initialTenantId;
+  const resolvedBuildingId = initialData?.buildingId ?? initialBuildingId;
+  const resolvedApartmentId = initialData?.apartmentId ?? initialApartmentId;
+  const resolvedFloor = initialData?.floor ?? initialFloor;
+
   const {
     register,
     handleFormSubmit,
@@ -66,10 +78,10 @@ export default function ContractCreateModal({
     currentUser: currentUser || { id: 1 },
     role,
     managerBuildingId,
-    initialTenantId,
-    initialBuildingId,
-    initialApartmentId,
-    initialFloor,
+    initialTenantId: resolvedTenantId,
+    initialBuildingId: resolvedBuildingId,
+    initialApartmentId: resolvedApartmentId,
+    initialFloor: resolvedFloor,
     apartments,
   });
 

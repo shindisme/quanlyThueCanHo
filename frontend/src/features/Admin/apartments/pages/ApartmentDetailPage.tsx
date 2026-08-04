@@ -8,6 +8,7 @@ import ApartmentModifyModal from "../components/ApartmentModifyModal";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay, maskCCCD } from "../../../../utils/string";
+import { formatCurrency } from "../../../../utils/currency";
 import { useApartmentDetailPage } from "../hooks/useApartmentDetailPage";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS, type ApartmentStatus } from "../../../../constants/enums";
 import { useDepositInvoice } from "../../invoices/hooks/useDepositInvoice";
@@ -80,9 +81,7 @@ export default function ApartmentDetailPage() {
     );
   }
 
-  function formatPrice(price: number) {
-    return new Intl.NumberFormat("vi-VN").format(price) + " đ";
-  }
+
 
   function getStatusBadge(status: ApartmentStatus) {
     const label = APARTMENT_STATUS_LABELS[status] || status;
@@ -169,7 +168,7 @@ export default function ApartmentDetailPage() {
           </div>
 
           <p className="text-2xl font-bold text-primary-600 mb-4">
-            {formatPrice(apartment.rental_price)}
+            {formatCurrency(Number(apartment.rental_price))}
             <span className="text-sm text-gray-400 font-normal">/tháng</span>
           </p>
 
@@ -197,7 +196,7 @@ export default function ApartmentDetailPage() {
             </div>
             <div className="bg-gray-50 rounded-xl p-3 text-center">
               <DollarSign size={18} className="text-success-600 mx-auto mb-1" />
-              <p className="text-sm font-semibold text-gray-800">{formatPrice(apartment.rental_price)}</p>
+              <p className="text-sm font-semibold text-gray-800">{formatCurrency(Number(apartment.rental_price))}</p>
               <p className="text-xs text-gray-400">Giá thuê</p>
             </div>
           </div>
@@ -359,7 +358,7 @@ export default function ApartmentDetailPage() {
                       <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 pt-1">
                         <p>Họ và tên: <span className="font-bold text-gray-900">{reservedTenant?.full_name || activeReservation?.tenant?.full_name || "Khách cọc"}</span></p>
                         <p>SĐT: <span className="font-medium">{reservedTenant?.phone || activeReservation?.tenant?.phone || "-"}</span></p>
-                        <p>Số tiền cọc: <span className="font-bold text-emerald-600">{formatPrice(Number(activeReservation?.deposit_amount || apartment.rental_price))}</span></p>
+                        <p>Số tiền cọc: <span className="font-bold text-emerald-600">{formatCurrency(Number(activeReservation?.deposit_amount || apartment.rental_price))}</span></p>
                         <p>Hạn cọc giữ phòng: <span className="font-bold text-amber-700">{activeReservation?.expires_at ? formatDate(activeReservation.expires_at) : "3 ngày"}</span></p>
                       </div>
                       <div className="pt-2 border-t border-amber-200/60 text-right">
@@ -382,7 +381,7 @@ export default function ApartmentDetailPage() {
                 ) : (
                   <div className="text-center py-6">
                     <p className="text-sm text-gray-400 mb-4 font-sans">Căn hộ hiện đang trống</p>
-                    {role !== "TENANT" && (apartment.status === "AVAILABLE" || apartment.status === "RESERVED") && (
+                    {role !== "TENANT" && (apartment.status === "AVAILABLE" || (apartment.status as string) === "RESERVED") && (
                       <div className="flex flex-wrap justify-center gap-2">
                         {apartment.status === "AVAILABLE" && (
                           <Button type="button" size="sm" variant="outline" onClick={() => depositModal.openModal(apartment)}>
