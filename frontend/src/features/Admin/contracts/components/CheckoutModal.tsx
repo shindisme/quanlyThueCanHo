@@ -272,12 +272,12 @@ export default function CheckoutModal({
                         <div className="h-0.5 w-12 bg-gray-200 flex-1 mx-2" />
                         <div className="flex items-center gap-6">
                             <span className={`flex items-center justify-center w-8 h-8 rounded-full font-bold ${step >= 3 ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-500"}`}>3</span>
-                            <span className="text-xs font-semibold text-gray-700">Đối trừ hoàn cọc</span>
+                            <span className="text-xs font-semibold text-gray-700">Đối trừ & Hoàn cọc</span>
                         </div>
                         <div className="h-0.5 w-12 bg-gray-200 flex-1 mx-2" />
                         <div className="flex items-center gap-6">
                             <span className={`flex items-center justify-center w-8 h-8 rounded-full font-bold ${step >= 4 ? "bg-red-600 text-white" : "bg-gray-100 text-gray-500"}`}>4</span>
-                            <span className="text-xs font-semibold text-gray-700">Trả phòng</span>
+                            <span className="text-xs font-semibold text-gray-700">Hoàn tất</span>
                         </div>
                     </div>
 
@@ -414,7 +414,7 @@ export default function CheckoutModal({
                                             value={damageReason}
                                             onChange={(e) => setDamageReason(e.target.value)}
                                             placeholder="Ví dụ: Làm hỏng vòi nước, bẩn tường..."
-                                            className="w-full rounded-lg border-gray-300 p-2 text-xs focus:ring-primary-500 focus:border-primary-500 min-h-[60px]"
+                                            className="w-full rounded-lg border-gray-300 p-2 text-xs focus:ring-primary-500 focus:border-primary-500 min-h-15"
                                         />
                                     </div>
                                 </div>

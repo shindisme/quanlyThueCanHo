@@ -5,9 +5,9 @@ import {
   type ApartmentFormValues,
 } from "../../../../schemas/apartment.schema";
 
+// khởi tạo form quản lý thông tin căn hộ
 export function useApartmentForm(defaultValues?: Partial<ApartmentFormValues>) {
   return useForm<ApartmentFormValues>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(apartmentSchema) as any,
     defaultValues: {
       room_number: "",

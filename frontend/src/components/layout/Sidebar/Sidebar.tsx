@@ -19,7 +19,7 @@ export function Sidebar() {
         className={cn(
           "hidden lg:flex flex-col bg-white border-r border-gray-200 sticky top-0 h-screen",
           "transition-[width] duration-300 ease-in-out shrink-0 z-20",
-          isOpen ? "w-72" : "w-[80px]"
+          isOpen ? "w-72" : "w-20"
         )}
         style={{ boxShadow: "var(--shadow-sidebar, 0 4px 20px rgba(0,0,0,0.03))", willChange: "width" }}
       >

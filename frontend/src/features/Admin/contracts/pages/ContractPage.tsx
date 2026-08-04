@@ -8,7 +8,7 @@ import Combobox from "../../../../components/ui/Combobox";
 import Modal from "../../../../components/ui/Modal";
 import { DatePicker } from "../../../../components/ui/DatePicker";
 import ConfirmDialog from "../../../../components/ui/ConfirmDialog";
-import { toast } from "sonner";
+import EmptyState from "../../../../components/ui/EmptyState";
 import { useAuthStore } from "../../../../stores/auth.store";
 
 import { useContractPage } from "../hooks/useContractPage";
@@ -187,11 +187,11 @@ export default function Contract() {
 
             {/* Table list */}
             {paginatedContracts.length === 0 ? (
-                <div className="text-center py-16 text-gray-500 bg-white border border-gray-200 shadow-lg">
-                    <FileText size={48} className="mx-auto mb-3 text-gray-300" />
-                    <p className="font-medium">Không tìm thấy hợp đồng nào</p>
-                    <p className="text-sm text-gray-400 mt-1">Thử tìm kiếm với từ khóa khác</p>
-                </div>
+                <EmptyState
+                    icon={<FileText size={48} />}
+                    title="Không tìm thấy hợp đồng nào"
+                    description="Thử tìm kiếm với từ khóa khác"
+                />
             ) : (
                 <div className="space-y-4">
                     <ContractList

@@ -33,10 +33,10 @@ export const emptyDepositForm = (): DepositForm => ({
   deposit_amount: 0,
 });
 
-interface UseDepositInvoiceOptions {
+export interface UseDepositInvoiceOptions {
+  fixedApartment?: Apartment;
   role?: string | null;
-  managedBuildingId?: number | null;
-  fixedApartment?: Apartment | null;
+  managedBuildingId?: number;
   onSuccessCallback?: () => void;
 }
 

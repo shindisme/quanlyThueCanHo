@@ -97,8 +97,10 @@ export function useLogin() {
           navigate("/admin/dashboard")
           break
         case "MANAGER":
-        case "STAFF":
           navigate("/manager/dashboard")
+          break
+        case "STAFF":
+          navigate("/staff/dashboard")
           break
         case "TENANT":
           navigate("/tenant/home")

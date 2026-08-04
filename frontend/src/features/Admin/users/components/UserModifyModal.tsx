@@ -102,6 +102,15 @@ export default function UserModifyModal({
 
   const isSaving = saving || updatingProfile;
 
+  const onInvalid = (fieldErrors: Record<string, unknown>) => {
+    const first = Object.values(fieldErrors)[0] as { message?: string } | undefined;
+    if (first?.message) {
+      toast.error(first.message);
+    } else {
+      toast.error("Vui lòng kiểm tra và điền đầy đủ các thông tin tài khoản!");
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -110,11 +119,11 @@ export default function UserModifyModal({
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={isSaving}>Hủy</Button>
-          <Button onClick={handleSubmit(onSubmit)} isLoading={isSaving}>Lưu thay đổi</Button>
+          <Button onClick={handleSubmit(onSubmit, onInvalid)} isLoading={isSaving}>Lưu thay đổi</Button>
         </>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12">
             <Input

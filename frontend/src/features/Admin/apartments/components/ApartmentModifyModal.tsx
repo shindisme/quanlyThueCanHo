@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
-import { Controller } from "react-hook-form";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
-import Combobox from "../../../../components/ui/Combobox";
-import Input from "../../../../components/ui/Input";
+import ApartmentFormFields from "./ApartmentFormFields";
 import { useApartmentForm } from "../hooks/useApartmentForm";
 import { useUpdateApartment } from "../hooks/useUpdateApartment";
 import type { Building } from "../../../../types";
@@ -32,7 +30,7 @@ export default function ApartmentModifyModal({
   activeContractId,
 }: ApartmentModifyModalProps) {
   const form = useApartmentForm();
-  const { register, control, handleSubmit, reset, formState: { errors } } = form;
+  const { handleSubmit, reset } = form;
 
   const updateMutation = useUpdateApartment();
   const saving = updateMutation.isPending;
@@ -230,189 +228,18 @@ export default function ApartmentModifyModal({
       }
     >
       <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
-        <div className="grid grid-cols-12 gap-6">
-          <div className="col-span-12 sm:col-span-6">
-            <Input
-              label="Số phòng *"
-              type="text"
-              placeholder="Nhập số phòng"
-              className="rounded-md"
-              error={errors.room_number?.message}
-              {...register("room_number")}
-            />
-          </div>
-          <div className="col-span-12 sm:col-span-6">
-            <Controller
-              control={control}
-              name="building_id"
-              render={({ field, fieldState: { error } }) => (
-                <Combobox
-                  label="Chi nhánh *"
-                  options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
-                  value={field.value ? String(field.value) : ""}
-                  onChange={(val) => field.onChange(val ? Number(val) : 0)}
-                  disabled={role === "MANAGER"}
-                  placeholder="Chọn chi nhánh"
-                  searchPlaceholder="Tìm chi nhánh..."
-                  triggerClassName="rounded-md"
-                  clearable={false}
-                  error={error?.message}
-                />
-              )}
-            />
-          </div>
-
-          <div className="col-span-12 sm:col-span-4">
-            <Input
-              label="Tầng *"
-              type="number"
-              className="rounded-md"
-              error={errors.floor?.message}
-              {...register("floor", { valueAsNumber: true })}
-            />
-          </div>
-          <div className="col-span-12 sm:col-span-4">
-            <Input
-              label="Diện tích (m²)"
-              type="number"
-              step="any"
-              className="rounded-md"
-              error={errors.area?.message}
-              {...register("area", { valueAsNumber: true })}
-            />
-          </div>
-          <div className="col-span-12 sm:col-span-4">
-            <Input
-              label="Giá thuê (đ/tháng) *"
-              type="number"
-              className="rounded-md"
-              error={errors.rental_price?.message}
-              {...register("rental_price", { valueAsNumber: true })}
-            />
-          </div>
-
-          <div className="col-span-12 sm:col-span-6">
-            <Input
-              label="Số phòng ngủ *"
-              type="number"
-              className="rounded-md"
-              error={errors.bedrooms?.message}
-              {...register("bedrooms", { valueAsNumber: true })}
-            />
-          </div>
-          <div className="col-span-12 sm:col-span-6">
-            <Input
-              label="Số phòng vệ sinh *"
-              type="number"
-              className="rounded-md"
-              error={errors.bathrooms?.message}
-              {...register("bathrooms", { valueAsNumber: true })}
-            />
-          </div>
-
-          <div className="col-span-12">
-            <Controller
-              control={control}
-              name="status"
-              render={({ field, fieldState: { error } }) => (
-                <Combobox
-                  label="Trạng thái *"
-                  options={[
-                    { value: "AVAILABLE", label: "Còn trống" },
-                    { value: "RESERVED", label: "Đã cọc" },
-                    { value: "RENTED", label: "Đang thuê" },
-                    { value: "MAINTENANCE", label: "Bảo trì" }
-                  ]}
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="Chọn trạng thái"
-                  searchable={false}
-                  triggerClassName="rounded-md"
-                  clearable={false}
-                  error={error?.message}
-                />
-              )}
-            />
-          </div>
-
-          <div className="col-span-12">
-            <Input
-              label="Mô tả căn hộ"
-              type="text"
-              placeholder="Nhập mô tả chi tiết căn hộ"
-              error={errors.description?.message}
-              className="rounded-md"
-              {...register("description")}
-            />
-          </div>
-
-          {/* Upload ảnh bìa */}
-          <div className="col-span-12">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Ảnh bìa căn hộ (Thumbnail) *</label>
-            <div className="flex items-center gap-4">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleThumbnailChange}
-                className="hidden"
-                id="modify-apt-thumb"
-              />
-              <label
-                htmlFor="modify-apt-thumb"
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer shadow-sm"
-              >
-                Chọn ảnh bìa mới
-              </label>
-              {localThumbnail && (
-                <div className="flex items-center gap-2">
-                  <img src={localThumbnail} alt="Preview" className="w-16 h-16 object-cover rounded-lg border" />
-                  <Button variant="outline" size="sm" onClick={removeThumbnail} className="text-red-500">
-                    Xóa
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Upload ảnh chi tiết */}
-          <div className="col-span-12">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Ảnh chi tiết căn hộ (Tối đa 4 ảnh)</label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {[0, 1, 2, 3].map((index) => (
-                <div key={index} className="border border-dashed border-gray-300 rounded-xl p-3 flex flex-col items-center justify-center gap-2 min-h-24 bg-gray-50/50">
-                  {localImages[index] ? (
-                    <div className="relative w-full h-16">
-                      <img src={localImages[index]} alt="" className="w-full h-full object-cover rounded-lg" />
-                      <button
-                        type="button"
-                        onClick={() => removeDetailImage(index)}
-                        className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 shadow-sm cursor-pointer"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleDetailImageChange(e, index)}
-                        className="hidden"
-                        id={`modify-apt-detail-${index}`}
-                      />
-                      <label
-                        htmlFor={`modify-apt-detail-${index}`}
-                        className="text-xs text-primary-600 hover:underline font-semibold cursor-pointer"
-                      >
-                        Tải ảnh {index + 1}
-                      </label>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        <ApartmentFormFields
+          form={form}
+          buildings={buildings}
+          role={role}
+          localThumbnail={localThumbnail}
+          localImages={localImages}
+          handleThumbnailChange={handleThumbnailChange}
+          handleDetailImageChange={handleDetailImageChange}
+          removeThumbnail={removeThumbnail}
+          removeDetailImage={removeDetailImage}
+          isEdit={true}
+        />
       </form>
     </Modal>
   );

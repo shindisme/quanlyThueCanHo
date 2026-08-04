@@ -4,9 +4,9 @@ export type UserStatus = "ACTIVE" | "INACTIVE" | "BANNED";
 
 export type BuildingStatus = "ACTIVE" | "INACTIVE";
 
-export type ApartmentStatus = "AVAILABLE" | "RESERVED" | "RENTED" | "MAINTENANCE";
+export type ApartmentStatus = "AVAILABLE" | "RESERVED" | "RENTED" | "MAINTENANCE" | "SOON_AVAILABLE";
 
-export type ContractStatus = "ACTIVE" | "ENDED";
+export type ContractStatus = "ACTIVE" | "ENDED" | "FORCE_TERMINATED";
 
 export type InvoiceStatus = "PAID" | "UNPAID" | "OVERDUE";
 
@@ -18,7 +18,7 @@ export type Priority = "LOW" | "MEDIUM" | "HIGH";
 
 export type RequestStatus = "PENDING" | "PROCESSING" | "NEEDS_RESCHEDULE" | "DONE" | "CANCELLED";
 
-export type ScheduleStatus = "PENDING" | "CONFIRMED" | "DONE" | "CANCELLED";
+export type ScheduleStatus = "PENDING" | "CONFIRMED" | "DONE" | "CANCELLED" | "ATTENDED" | "NO_SHOW";
 
 export type NotificationType = "SYSTEM" | "INVOICE" | "MAINTENANCE" | "CHAT";
 

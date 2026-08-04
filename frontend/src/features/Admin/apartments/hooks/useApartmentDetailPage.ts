@@ -15,11 +15,13 @@ import { QUERY_KEYS } from "../../../../constants/queryKeys";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import { getApartmentById, updateApartment } from "../../../../services/apartmentService";
 
+// Hook quản lý dữ liệu chi tiết căn hộ, hợp đồng, cư dân và đánh giá
 export function useApartmentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const { role } = useUserRole();
 
+  // upload ảnh mới cho căn hộ
   const uploadMutation = useMutation({
     mutationFn: (formDataToSend: FormData) => updateApartment(Number(id), formDataToSend),
     onSuccess: () => {
@@ -38,7 +40,7 @@ export function useApartmentDetailPage() {
 
   const { data: buildings = [] } = useQuery({
     queryKey: QUERY_KEYS.BUILDINGS,
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAll(),
     select: (res) => res.data as unknown as Building[],
   });
 
@@ -180,6 +182,10 @@ export function useApartmentDetailPage() {
     toast.success("Đã xóa hình ảnh");
   }
 
+  const reservedTenant = activeReservation?.tenant_id
+    ? tenants.find((t) => t.id === activeReservation.tenant_id) || activeReservation.tenant
+    : activeReservation?.tenant;
+
   return {
     role,
     id,
@@ -202,6 +208,7 @@ export function useApartmentDetailPage() {
     activeTenant,
     activeTenantUser,
     activeReservation,
+    reservedTenant,
     tenantContracts,
     fetchData,
     handleImageUpload,

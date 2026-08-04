@@ -180,13 +180,23 @@ export const updateBuildingService = async (
 
     const {
         staff_id,
+        remove_thumbnail,
+        thumbnail_url: inputThumbnailUrl,
         ...scalarData
     } = data;
+
+    let targetThumbnailUrl: string | null | undefined = imageUrl;
+    if (imageUrl === undefined) {
+        if (remove_thumbnail === true || inputThumbnailUrl === null) {
+            targetThumbnailUrl = null;
+        }
+    }
+
     const updateData = {
         ...scalarData,
-        ...(imageUrl === undefined
+        ...(targetThumbnailUrl === undefined
             ? {}
-            : { thumbnail_url: imageUrl })
+            : { thumbnail_url: targetThumbnailUrl })
     };
 
     if (actor.role === Role.MANAGER) {

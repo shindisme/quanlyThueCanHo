@@ -71,20 +71,12 @@ export async function getById(id: number): Promise<BuildingData> {
 }
 
 export async function create(data: FormData | CreateBuildingRequest): Promise<BuildingData> {
-  const headers: Record<string, string> = {};
-  if (data instanceof FormData) {
-    headers["Content-Type"] = "multipart/form-data";
-  }
-  const res = await api.post<{ data: RawBuildingData }>(BUILDING_API, data, { headers });
+  const res = await api.post<{ data: RawBuildingData }>(BUILDING_API, data);
   return res.data.data || (res.data as unknown as BuildingData);
 }
 
 export async function update(id: number, data: FormData | UpdateBuildingRequest): Promise<BuildingData> {
-  const headers: Record<string, string> = {};
-  if (data instanceof FormData) {
-    headers["Content-Type"] = "multipart/form-data";
-  }
-  const res = await api.put<{ data: RawBuildingData }>(`${BUILDING_API}/${id}`, data, { headers });
+  const res = await api.put<{ data: RawBuildingData }>(`${BUILDING_API}/${id}`, data);
   return res.data.data || (res.data as unknown as BuildingData);
 }
 

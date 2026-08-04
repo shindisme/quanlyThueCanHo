@@ -84,7 +84,6 @@ function DataTableInner<T>({
 
   const getRowKey = (item: T, index: number): string | number => {
     if (rowKey) return rowKey(item);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (item as any).id ?? (item as any).key ?? index;
   };
 
@@ -118,7 +117,7 @@ function DataTableInner<T>({
               key={getRowKey(item, index)}
               onClick={() => onRowClick?.(item)}
               className={cn(
-                "bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3",
+                "bg-white p-4 border border-gray-200 shadow-sm space-y-3",
                 onRowClick && "cursor-pointer hover:bg-primary-50/10 transition-colors",
                 typeof rowClassName === "function" ? rowClassName(item) : rowClassName
               )}
@@ -147,7 +146,7 @@ function DataTableInner<T>({
                 ))}
               </div>
 
-              {/* Card Footer (Actions) */}
+              {/* Card Footer */}
               {actionsCol && (
                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
                   {actionsCol.render(item, index)}

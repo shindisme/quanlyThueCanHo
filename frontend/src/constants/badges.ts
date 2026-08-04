@@ -18,17 +18,18 @@ import {
   REQUEST_STATUS_LABELS,
 } from "./labels";
 
-// Map status to badge colors
 export const APARTMENT_STATUS_COLORS: Record<ApartmentStatus, BadgeVariant> = {
   AVAILABLE: "success",
   RESERVED: "warning",
   RENTED: "info",
   MAINTENANCE: "warning",
+  SOON_AVAILABLE: "warning",
 };
 
 export const CONTRACT_STATUS_COLORS: Record<ContractStatus, BadgeVariant> = {
   ACTIVE: "success",
   ENDED: "gray",
+  FORCE_TERMINATED: "danger",
 };
 
 export const INVOICE_STATUS_COLORS: Record<InvoiceStatus, BadgeVariant> = {
@@ -57,7 +58,6 @@ export const REQUEST_STATUS_COLORS: Record<RequestStatus, BadgeVariant> = {
   NEEDS_RESCHEDULE: "danger",
 };
 
-// Unified Status Config Objects
 export const USER_STATUS_CONFIG: Record<UserStatus, { label: string; badge: BadgeVariant }> = {
   ACTIVE: { label: USER_STATUS_LABELS.ACTIVE, badge: "success" },
   INACTIVE: { label: USER_STATUS_LABELS.INACTIVE, badge: "gray" },
@@ -69,11 +69,13 @@ export const APARTMENT_STATUS_CONFIG: Record<ApartmentStatus, { label: string; b
   RESERVED: { label: APARTMENT_STATUS_LABELS.RESERVED, badge: APARTMENT_STATUS_COLORS.RESERVED },
   RENTED: { label: APARTMENT_STATUS_LABELS.RENTED, badge: APARTMENT_STATUS_COLORS.RENTED },
   MAINTENANCE: { label: APARTMENT_STATUS_LABELS.MAINTENANCE, badge: APARTMENT_STATUS_COLORS.MAINTENANCE },
+  SOON_AVAILABLE: { label: APARTMENT_STATUS_LABELS.SOON_AVAILABLE, badge: APARTMENT_STATUS_COLORS.SOON_AVAILABLE },
 } as const;
 
 export const CONTRACT_STATUS_CONFIG: Record<ContractStatus, { label: string; badge: BadgeVariant }> = {
   ACTIVE: { label: CONTRACT_STATUS_LABELS.ACTIVE, badge: CONTRACT_STATUS_COLORS.ACTIVE },
   ENDED: { label: CONTRACT_STATUS_LABELS.ENDED, badge: CONTRACT_STATUS_COLORS.ENDED },
+  FORCE_TERMINATED: { label: CONTRACT_STATUS_LABELS.FORCE_TERMINATED, badge: CONTRACT_STATUS_COLORS.FORCE_TERMINATED },
 } as const;
 
 export const INVOICE_STATUS_CONFIG: Record<InvoiceStatus, { label: string; badge: BadgeVariant }> = {

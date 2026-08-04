@@ -32,12 +32,12 @@ export const ROUTES = {
     PROFILE: "/manager/profile",
   },
   STAFF: {
-    ROOT: "/manager",
-    DASHBOARD: "/manager/dashboard",
-    MAINTENANCE: "/manager/maintenance",
-    UTILITIES: "/manager/utilities",
-    NOTIFICATIONS: "/manager/notifications",
-    PROFILE: "/manager/profile",
+    ROOT: "/staff",
+    DASHBOARD: "/staff/dashboard",
+    MAINTENANCE: "/staff/maintenance",
+    UTILITIES: "/staff/utilities",
+    NOTIFICATIONS: "/staff/notifications",
+    PROFILE: "/staff/profile",
   },
   TENANT: {
     ROOT: "/tenant",

@@ -48,7 +48,7 @@ export default function DashboardAdmin() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <div className="flex flex-col items-center justify-center min-h-100">
         <LoadingSpinner size={32} />
         <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải...</span>
       </div>

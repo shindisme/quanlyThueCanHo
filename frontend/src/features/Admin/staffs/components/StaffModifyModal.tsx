@@ -138,6 +138,15 @@ export default function StaffModifyModal({
 
   const loading = loadingBuildings || loadingStaff || loadingUsers;
 
+  const onInvalid = (fieldErrors: Record<string, unknown>) => {
+    const first = Object.values(fieldErrors)[0] as { message?: string } | undefined;
+    if (first?.message) {
+      toast.error(first.message);
+    } else {
+      toast.error("Vui lòng kiểm tra và điền đầy đủ các thông tin nhân viên!");
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -147,7 +156,7 @@ export default function StaffModifyModal({
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={saving}>Hủy</Button>
-          <Button onClick={handleSubmit(onSubmit)} isLoading={saving} disabled={loading}>Cập nhật</Button>
+          <Button onClick={handleSubmit(onSubmit, onInvalid)} isLoading={saving} disabled={loading}>Cập nhật</Button>
         </>
       }
     >
@@ -157,7 +166,7 @@ export default function StaffModifyModal({
           <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải...</span>
         </div>
       ) : (
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
           <div className="grid grid-cols-12 gap-6">
             <div className="col-span-12 sm:col-span-6">
               <Input

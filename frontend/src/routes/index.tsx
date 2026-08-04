@@ -45,6 +45,7 @@ import GuestAbout from "../features/Guest/about/pages/About";
 import SettingsPage from "../features/Admin/settings/pages/SettingsPage";
 
 import PublicPaymentResultPage from "../features/Guest/payments/pages/PublicPaymentResultPage";
+import PublicDepositSuccessPage from "../features/Guest/payments/pages/PublicDepositSuccessPage";
 
 const router = createBrowserRouter([
   // Đăng nhập
@@ -72,6 +73,7 @@ const router = createBrowserRouter([
       { path: "about", element: <GuestAbout /> },
       { path: "contact", element: <GuestContact /> },
       { path: "payment-result", element: <PublicPaymentResultPage /> },
+      { path: "deposit-success", element: <PublicDepositSuccessPage /> },
     ],
   },
 
@@ -130,7 +132,25 @@ const router = createBrowserRouter([
       { path: "schedules", element: <RoleRoute allowedRoles={["MANAGER"]}><SchedulesPage /></RoleRoute> },
       { path: "utilities", element: <UtilitiesPage /> },
       { path: "notifications", element: <NotificationsPage /> },
-      // { path: "reports", element: <ReportDashboard /> },
+      { path: "profile", element: <ProfilePage /> },
+    ],
+  },
+
+  // Staff routes
+  {
+    path: "/staff",
+    element: (
+      <RoleRoute allowedRoles={["STAFF"]}>
+        <AdminLayout />
+      </RoleRoute>
+    ),
+    errorElement: <RouteErrorBoundary />,
+    children: [
+      { index: true, element: <Navigate to="dashboard" replace /> },
+      { path: "dashboard", element: <ManagerDashboard /> },
+      { path: "maintenance", element: <MaintenancePage /> },
+      { path: "utilities", element: <UtilitiesPage /> },
+      { path: "notifications", element: <NotificationsPage /> },
       { path: "profile", element: <ProfilePage /> },
     ],
   },

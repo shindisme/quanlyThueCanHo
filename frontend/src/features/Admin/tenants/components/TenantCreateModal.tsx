@@ -1,14 +1,11 @@
 import { useEffect } from "react";
 import { Controller } from "react-hook-form";
-import { useQuery } from "@tanstack/react-query";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
 import { DatePicker } from "../../../../components/ui/DatePicker";
 import { useTenantForm } from "../hooks/useTenantForm";
 import { useCreateTenant } from "../hooks/useCreateTenant";
-import * as tenantService from "../../../../services/tenantService";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
 import { toast } from "sonner";
 import type { TenantFormValues } from "../../../../schemas/tenant.schema";
 
@@ -17,6 +14,24 @@ interface TenantCreateModalProps {
   onClose: () => void;
   onSuccess: (newTenantId?: number) => void;
 }
+
+// Hàm get thông báo lỗi đầu tiên từ object errors
+function getFirstErrorMessage(errs: Record<string, any>): string | undefined {
+  for (const key of Object.keys(errs)) {
+    const err = errs[key];
+    if (!err) continue;
+    if (typeof err.message === "string") return err.message;
+    if (typeof err === "object") {
+      const nested = getFirstErrorMessage(err);
+      if (nested) return nested;
+    }
+  }
+  return undefined;
+}
+
+// Định dạng ngày Date sang chuỗi YYYY-MM-DD
+const formatDateToISO = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
 export default function TenantCreateModal({
   isOpen,
@@ -29,13 +44,12 @@ export default function TenantCreateModal({
   const createMutation = useCreateTenant();
   const loading = createMutation.isPending;
 
-  // Load existing tenants for duplicate checks
-  const { data: tenantsRes } = useQuery({
-    queryKey: QUERY_KEYS.TENANTS,
-    queryFn: () => tenantService.getAllTenants({ limit: 100 }),
-    enabled: isOpen,
-  });
-  const allTenants = tenantsRes?.data || [];
+  // Xử lý đóng modal và reset form sạch sẽ
+  const handleClose = () => {
+    if (loading) return;
+    reset();
+    onClose();
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -51,76 +65,55 @@ export default function TenantCreateModal({
   }, [isOpen, reset]);
 
   const onSubmit = (data: TenantFormValues) => {
-    const finalPhone = data.phone || null;
-    const finalEmail = data.email || null;
-    const cleanCitizenId = data.citizen_id;
+    const payload = {
+      full_name: data.full_name.trim(),
+      citizen_id: data.citizen_id.trim(),
+      date_of_birth: data.date_of_birth || null,
+      address: data.address?.trim() || null,
+      email: data.email?.trim() || null,
+      phone: data.phone?.trim() || null,
+    };
 
-    if (finalPhone) {
-      const dup = allTenants.find((t) => t.phone === finalPhone);
-      if (dup) {
-        toast.error("Số điện thoại này đã tồn tại trong hệ thống.");
-        return;
-      }
-    }
-
-    if (finalEmail) {
-      const dup = allTenants.find(
-        (t) => t.email && t.email.toLowerCase() === finalEmail.toLowerCase()
-      );
-      if (dup) {
-        toast.error("Email này đã tồn tại trong hệ thống.");
-        return;
-      }
-    }
-
-    if (cleanCitizenId) {
-      const dup = allTenants.find((t) => t.citizen_id === cleanCitizenId);
-      if (dup) {
-        toast.error("Số CCCD này đã tồn tại trong hệ thống.");
-        return;
-      }
-    }
-
-    createMutation.mutate(
-      {
-        full_name: data.full_name,
-        citizen_id: data.citizen_id,
-        date_of_birth: data.date_of_birth || null,
-        address: data.address || null,
-        email: finalEmail,
-        phone: finalPhone,
+    createMutation.mutate(payload, {
+      onSuccess: (newTenant) => {
+        const username = newTenant.user?.username ?? newTenant.full_name;
+        toast.success(
+          `Đã tự động tạo tài khoản "${username}" (mật khẩu mặc định: 123123) cho người thuê mới!`
+        );
+        handleClose();
+        onSuccess(newTenant.id);
       },
-      {
-        onSuccess: (newTenant) => {
-          const username = newTenant.user?.username || newTenant.full_name;
-          toast.success(
-            `Đã tự động tạo tài khoản "${username}" (mật khẩu mặc định: 123123) cho người thuê mới!`
-          );
-          onSuccess(newTenant.id);
-          onClose();
-        },
-        onError: (error: unknown) => {
-          const err = error as { message?: string; response?: { data?: { message?: string } } };
-          toast.error(err.message || err.response?.data?.message || "Không thể tạo người thuê");
-        },
-      }
-    );
+      onError: (error: unknown) => {
+        const err = error as { response?: { data?: { message?: string; error?: string } } };
+        const msg = err.response?.data?.message || err.response?.data?.error || "Không thể tạo người thuê";
+        toast.error(msg);
+      },
+    });
+  };
+
+  const onInvalid = (fieldErrors: Record<string, unknown>) => {
+    const firstMsg = getFirstErrorMessage(fieldErrors);
+    toast.error(firstMsg || "Vui lòng kiểm tra và điền đầy đủ các thông tin người thuê!");
   };
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={loading ? undefined : handleClose}
       title="Thêm người thuê mới"
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose} disabled={loading}>Hủy</Button>
-          <Button onClick={handleSubmit(onSubmit)} isLoading={loading}>Lưu thông tin</Button>
+          <Button variant="outline" onClick={handleClose} disabled={loading}>
+            Hủy
+          </Button>
+          <Button type="submit" form="tenant-create-form" isLoading={loading}>
+            Lưu thông tin
+          </Button>
         </>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form id="tenant-create-form" onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12">
             <Input
@@ -147,14 +140,7 @@ export default function TenantCreateModal({
                 <DatePicker
                   value={field.value ? new Date(field.value) : null}
                   onChange={(date) => {
-                    if (!date) {
-                      field.onChange("");
-                      return;
-                    }
-                    const y = date.getFullYear();
-                    const m = String(date.getMonth() + 1).padStart(2, "0");
-                    const d = String(date.getDate()).padStart(2, "0");
-                    field.onChange(`${y}-${m}-${d}`);
+                    field.onChange(date ? formatDateToISO(date) : "");
                   }}
                   placeholder="Chọn ngày sinh..."
                 />

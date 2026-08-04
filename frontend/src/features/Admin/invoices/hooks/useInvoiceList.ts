@@ -16,6 +16,7 @@ export function useInvoiceList() {
   const queryClient = useQueryClient();
   const { role, managedBuildingId } = useUserRole();
 
+  // Tự động kiểm tra và xoá các khoản cọc giữ phòng hết hạn
   useEffect(() => {
     reservationService.expireReservations().then((res) => {
       if (res.data?.expired_count && res.data.expired_count > 0) {
@@ -24,7 +25,7 @@ export function useInvoiceList() {
         queryClient.invalidateQueries({ queryKey: ["apartments"] });
       }
     }).catch(() => {
-      // Bỏ qua lỗi ngầm
+      /*empty*/
     });
   }, [queryClient]);
 

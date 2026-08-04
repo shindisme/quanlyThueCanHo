@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Home, Trash2, Plus, Star } from "lucide-react";
+import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Home, Trash2, Plus, Star, ArrowRight } from "lucide-react";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import Card from "../../../../components/ui/Card";
 import Badge from "../../../../components/ui/Badge";
@@ -33,6 +33,7 @@ export default function ApartmentDetailPage() {
     activeTenant,
     activeTenantUser,
     activeReservation,
+    reservedTenant,
     tenantContracts,
     fetchData,
     handleImageUpload,
@@ -57,7 +58,7 @@ export default function ApartmentDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <div className="flex flex-col items-center justify-center min-h-100">
         <LoadingSpinner size={36} />
         <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải chi tiết căn hộ...</span>
       </div>
@@ -68,13 +69,13 @@ export default function ApartmentDetailPage() {
     return (
       <div className="text-center py-16">
         <p className="text-gray-500 mb-4">Không tìm thấy căn hộ</p>
-        <button
-          type="button"
+        <Button
+          variant="link"
           onClick={handleBack}
-          className="text-primary-600 hover:underline text-sm cursor-pointer"
+          className="text-primary-600 text-sm"
         >
           Quay lại
-        </button>
+        </Button>
       </div>
     );
   }
@@ -92,13 +93,14 @@ export default function ApartmentDetailPage() {
 
   return (
     <div className="space-y-6">
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={handleBack}
-        className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 cursor-pointer"
+        className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 px-0 hover:bg-transparent"
       >
         <ArrowLeft size={16} /> Quay lại
-      </button>
+      </Button>
 
       {/* Thông tin chính */}
       <div className="flex flex-col lg:flex-row gap-6">
@@ -305,16 +307,31 @@ export default function ApartmentDetailPage() {
                 <h3 className="font-semibold text-gray-800 text-base">Thông tin người thuê</h3>
                 {activeContract && activeTenant ? (
                   <div className="space-y-4 text-sm font-sans">
-                    <div className="bg-primary-50/50 p-4 shadow-sm space-y-2">
-                      <p className="font-semibold text-gray-800 flex justify-between">
-                        <span>Chủ hợp đồng:</span>
-                        <span className="text-primary-700">{activeTenant.full_name}</span>
-                      </p>
-                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                    <div className="bg-primary-50/50 p-4 shadow-sm space-y-2 border border-primary-100 rounded-xl">
+                      <div className="flex justify-between items-center">
+                        <p className="font-semibold text-gray-800">
+                          Chủ hợp đồng: <span className="text-primary-700 font-bold ml-1">{activeTenant.full_name}</span>
+                        </p>
+                        {/* Hiển thị phân loại Hợp đồng ban đầu hay Hợp đồng đã gia hạn */}
+                        {activeContract.extended_at ? (
+                          <Badge variant="warning" showDot>
+                            Đã gia hạn ({formatDate(activeContract.extended_at)})
+                          </Badge>
+                        ) : (
+                          <Badge variant="info">
+                            Hợp đồng ban đầu
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 pt-1">
                         <p>Số CCCD: <span className="font-medium">{maskCCCD(activeTenant.citizen_id)}</span></p>
                         <p>SĐT: <span className="font-medium">{activeTenantUser?.phone || activeTenant.phone || "-"}</span></p>
                         <p>Email: <span className="font-medium">{activeTenantUser?.email || activeTenant.email || "-"}</span></p>
                         <p>Thời hạn thuê: <span className="font-medium">{formatDate(activeContract.start_date)} - {formatDate(activeContract.end_date)}</span></p>
+                      </div>
+                      <div className="pt-2 border-t border-primary-100 flex items-center justify-between text-xs">
+                        <span className="text-gray-500 font-medium">Tình trạng thanh toán:</span>
+                        <Badge variant="success" showDot>Lịch sử thanh toán</Badge>
                       </div>
                     </div>
                     {role !== "TENANT" && (
@@ -324,10 +341,43 @@ export default function ApartmentDetailPage() {
                           state={{ search: `HD-${String(activeContract.id).padStart(5, "0")}` }}
                           className="inline-flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-semibold"
                         >
-                          Đi tới trang quản lý hợp đồng
+                          Đi tới trang quản lý hợp đồng <ArrowRight size={12} />
                         </Link>
                       </div>
                     )}
+                  </div>
+                ) : apartment.status === "RESERVED" || activeReservation ? (
+                  /* Hiển thị thẻ thông tin khách đặt cọc */
+                  <div className="space-y-4 text-sm font-sans">
+                    <div className="bg-amber-50/70 p-4 shadow-sm space-y-2.5 border border-amber-200 rounded-xl">
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-bold text-amber-900 flex items-center gap-1.5">
+                          Khách Đã Đặt Cọc Phòng
+                        </h4>
+                        <Badge variant="warning" showDot>Đã giữ cọc</Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 pt-1">
+                        <p>Họ và tên: <span className="font-bold text-gray-900">{reservedTenant?.full_name || activeReservation?.tenant?.full_name || "Khách cọc"}</span></p>
+                        <p>SĐT: <span className="font-medium">{reservedTenant?.phone || activeReservation?.tenant?.phone || "-"}</span></p>
+                        <p>Số tiền cọc: <span className="font-bold text-emerald-600">{formatPrice(Number(activeReservation?.deposit_amount || apartment.rental_price))}</span></p>
+                        <p>Hạn cọc giữ phòng: <span className="font-bold text-amber-700">{activeReservation?.expires_at ? formatDate(activeReservation.expires_at) : "3 ngày"}</span></p>
+                      </div>
+                      <div className="pt-2 border-t border-amber-200/60 text-right">
+                        <Link
+                          to={role === "ADMIN" ? "/admin/contracts" : "/manager/contracts"}
+                          state={{
+                            openCreateModal: true,
+                            apartmentId: apartment.id,
+                            buildingId: apartment.building_id,
+                            floor: apartment.floor,
+                            tenantId: activeReservation?.tenant_id
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors cursor-pointer"
+                        >
+                          <Plus size={14} /> Tạo hợp đồng từ tiền cọc
+                        </Link>
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-6">
@@ -346,11 +396,10 @@ export default function ApartmentDetailPage() {
                             apartmentId: apartment.id,
                             buildingId: apartment.building_id,
                             floor: apartment.floor,
-                            tenantId: apartment.status === "RESERVED" ? activeReservation?.tenant_id : undefined
                           }}
                           className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
                         >
-                          <Plus size={14} /> {apartment.status === "RESERVED" ? "Tạo hợp đồng từ đặt cọc" : "Tạo hợp đồng thuê mới"}
+                          <Plus size={14} /> Tạo hợp đồng thuê mới
                         </Link>
                       </div>
                     )}

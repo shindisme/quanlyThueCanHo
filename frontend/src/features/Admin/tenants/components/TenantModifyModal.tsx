@@ -17,6 +17,24 @@ interface TenantModifyModalProps {
   editItem: Tenant | null;
 }
 
+// Hàm get thông báo lỗi đầu tiên từ object errors
+function getFirstErrorMessage(errs: Record<string, any>): string | undefined {
+  for (const key of Object.keys(errs)) {
+    const err = errs[key];
+    if (!err) continue;
+    if (typeof err.message === "string") return err.message;
+    if (typeof err === "object") {
+      const nested = getFirstErrorMessage(err);
+      if (nested) return nested;
+    }
+  }
+  return undefined;
+}
+
+// Định dạng ngày Date sang chuỗi YYYY-MM-DD
+const formatDateToISO = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
 export default function TenantModifyModal({
   isOpen,
   onClose,
@@ -28,6 +46,12 @@ export default function TenantModifyModal({
 
   const updateMutation = useUpdateTenant();
   const loading = updateMutation.isPending;
+
+  const handleClose = () => {
+    if (loading) return;
+    reset();
+    onClose();
+  };
 
   useEffect(() => {
     if (editItem && isOpen) {
@@ -47,46 +71,58 @@ export default function TenantModifyModal({
   const onSubmit = (data: TenantFormValues) => {
     if (!editItem) return;
 
+    const payload = {
+      full_name: data.full_name.trim(),
+      citizen_id: data.citizen_id.trim(),
+      date_of_birth: data.date_of_birth || null,
+      address: data.address?.trim() || null,
+      email: data.email?.trim() || null,
+      phone: data.phone?.trim() || null,
+    };
+
     updateMutation.mutate(
       {
         id: editItem.id,
-        data: {
-          full_name: data.full_name,
-          citizen_id: data.citizen_id,
-          date_of_birth: data.date_of_birth ? data.date_of_birth : null,
-          address: data.address || null,
-          email: data.email?.trim() || null,
-          phone: data.phone?.trim() || null,
-        },
+        data: payload,
       },
       {
         onSuccess: () => {
           toast.success("Đã cập nhật thông tin người thuê thành công");
+          handleClose();
           onSuccess();
-          onClose();
         },
         onError: (error: unknown) => {
-          const err = error as { response?: { data?: { message?: string } } };
-          toast.error(err.response?.data?.message || "Cập nhật thất bại");
+          const err = error as { response?: { data?: { message?: string; error?: string } } };
+          const msg = err.response?.data?.message || err.response?.data?.error || "Cập nhật thất bại";
+          toast.error(msg);
         },
       }
     );
   };
 
+  const onInvalid = (fieldErrors: Record<string, unknown>) => {
+    const firstMsg = getFirstErrorMessage(fieldErrors);
+    toast.error(firstMsg || "Vui lòng kiểm tra và điền đầy đủ các thông tin người thuê!");
+  };
+
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={loading ? undefined : handleClose}
       title="Chỉnh sửa thông tin người thuê"
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose} disabled={loading}>Hủy</Button>
-          <Button onClick={handleSubmit(onSubmit)} isLoading={loading}>Cập nhật</Button>
+          <Button variant="outline" onClick={handleClose} disabled={loading}>
+            Hủy
+          </Button>
+          <Button type="submit" form="tenant-modify-form" isLoading={loading}>
+            Cập nhật
+          </Button>
         </>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form id="tenant-modify-form" onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12">
             <Input
@@ -113,14 +149,7 @@ export default function TenantModifyModal({
                 <DatePicker
                   value={field.value ? new Date(field.value) : null}
                   onChange={(date) => {
-                    if (!date) {
-                      field.onChange("");
-                      return;
-                    }
-                    const y = date.getFullYear();
-                    const m = String(date.getMonth() + 1).padStart(2, "0");
-                    const d = String(date.getDate()).padStart(2, "0");
-                    field.onChange(`${y}-${m}-${d}`);
+                    field.onChange(date ? formatDateToISO(date) : "");
                   }}
                   placeholder="Chọn ngày sinh..."
                 />

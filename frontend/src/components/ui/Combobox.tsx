@@ -30,6 +30,7 @@ export function Combobox({
   value = "",
   onChange,
   placeholder = "Chọn...",
+  searchPlaceholder = "Tìm kiếm...",
   label,
   error,
   className,
@@ -140,6 +141,22 @@ export function Combobox({
       {/* Dropdown Overlay */}
       {isOpen && (
         <div className="absolute z-50 mt-2 w-full rounded-xl border border-primary-500 bg-white shadow-xl shadow-gray-100/70 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+          {/* Ô tìm kiếm */}
+          {searchable && options.length > 5 && (
+            <div className="p-2 border-b border-gray-100 bg-gray-50/50">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={searchPlaceholder || "Tìm kiếm..."}
+                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  autoFocus
+                />
+                <ChevronDown size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 rotate-180" />
+              </div>
+            </div>
+          )}
           {/* Options List */}
           <div className="max-h-60 overflow-y-auto p-1.5 space-y-0.5">
             {/* options reset mặc định */}

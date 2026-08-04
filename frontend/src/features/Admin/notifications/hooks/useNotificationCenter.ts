@@ -16,8 +16,8 @@ export function useNotificationCenter() {
   const [isReadFilter, setIsReadFilter] = useState<string>("");
   const debouncedSearch = useDebounce(search, 300);
 
-  // Load received notifications (backend automatically returns items relevant to user's token session)
-  const { data: notificationsRes, isLoading, refetch } = useQuery({
+  // Lấy danh sách thông báo đã nhận
+  const { data: notifications = [], isLoading, refetch } = useQuery({
     queryKey: ["notifications", isReadFilter, debouncedSearch],
     queryFn: () => {
       const isReadVal = isReadFilter === "true" ? true : isReadFilter === "false" ? false : undefined;
@@ -28,9 +28,8 @@ export function useNotificationCenter() {
       });
     },
   });
-  const notifications = notificationsRes?.data || [];
 
-  // Sort
+  // Sort 
   const { items: sortedNotifications, requestSort, getSortIcon, sortConfig } = useSort<Notification>(notifications, {
     key: "created_at",
     direction: "desc",
@@ -46,7 +45,7 @@ export function useNotificationCenter() {
     return sortedNotifications.slice(startIdx, endIdx);
   }, [sortedNotifications, startIdx, endIdx]);
 
-  // Mutations
+  // Cập nhật trạng thái đã đọc của từng thông báo đơn lẻ
   const markReadMutation = useMutation({
     mutationFn: ({ id, isRead }: { id: number; isRead: boolean }) =>
       notificationService.markNotificationRead(id, isRead),
@@ -99,12 +98,11 @@ export function useNotificationCenter() {
     isReadFilter,
     setIsReadFilter,
 
-    // Actions
     markRead: (id: number, isRead: boolean = true) => markReadMutation.mutate({ id, isRead }),
     markAllRead: markAllReadMutation.mutate,
     deleteNotification: deleteMutation.mutate,
 
-    // Sorting & Pagination
+    // Sort và Pagination
     requestSort,
     getSortIcon,
     sortConfig,

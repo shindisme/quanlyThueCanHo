@@ -172,22 +172,6 @@ export default function MyMaintenance() {
           />
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-600">Mức độ khẩn cấp</label>
-            <Combobox
-              options={[
-                { value: "LOW", label: "Thấp (Có thể xử lý sau vài ngày)" },
-                { value: "MEDIUM", label: "Trung bình (Xử lý trong vòng 24-48h)" },
-                { value: "HIGH", label: "Khẩn cấp (Cần xử lý ngay trong ngày)" }
-              ]}
-              value={priority}
-              onChange={(val) => setPriority(val as "LOW" | "MEDIUM" | "HIGH")}
-              searchable={false}
-              className="w-full"
-              disabled={saving}
-            />
-          </div>
-
-          <div className="space-y-1">
             <label className="text-xs font-semibold text-gray-600">Mô tả chi tiết sự cố</label>
             <textarea
               className="w-full min-h-25 p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm transition-all"

@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   buildingSchema,
   buildingModifySchema,
+  DEFAULT_BUILDING_FORM,
   type BuildingFormValues,
   type BuildingModifyFormValues,
 } from "../../../../schemas/building.schema";
@@ -10,13 +11,7 @@ import {
 export function useCreateBuildingForm() {
   return useForm<BuildingFormValues>({
     resolver: zodResolver(buildingSchema),
-    defaultValues: {
-      branch_name: "",
-      address: "",
-      total_floors: 0,
-      staff_id: null,
-      description: "",
-    },
+    defaultValues: DEFAULT_BUILDING_FORM,
   });
 }
 

@@ -89,8 +89,9 @@ export function useContractCreate({
   // Available apartments for selected floor
   const formApartments = useMemo(() => {
     const apts = buildingIdValue ? buildingApartments : apartments;
+    if (!floorValue && floorValue !== 0) return apts;
     return apts.filter(
-      (a: Apartment) => a.floor === floorValue && a.status === "RESERVED"
+      (a: Apartment) => Number(a.floor) === Number(floorValue) && (a.status === "AVAILABLE" || a.status === "RESERVED")
     );
   }, [buildingApartments, apartments, buildingIdValue, floorValue]);
 
@@ -140,7 +141,7 @@ export function useContractCreate({
       start_date: data.start_date,
       end_date: data.end_date,
       monthly_rent: data.monthly_rent,
-    }),    onSuccess: () => {
+    }), onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CONTRACTS });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APARTMENTS });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TENANTS });
@@ -158,10 +159,20 @@ export function useContractCreate({
     },
   });
 
-  const handleFormSubmit = handleSubmit((data) => {
-    setSaving(true);
-    createMutation.mutate(data);
-  });
+  const handleFormSubmit = handleSubmit(
+    (data) => {
+      setSaving(true);
+      createMutation.mutate(data);
+    },
+    (errors) => {
+      const firstError = Object.values(errors)[0];
+      if (firstError?.message) {
+        toast.error(String(firstError.message));
+      } else {
+        toast.error("Vui lòng kiểm tra và điền đầy đủ các thông tin bắt buộc!");
+      }
+    }
+  );
 
   return {
     register,
