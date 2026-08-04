@@ -14,6 +14,7 @@ import type { ApartmentImage, TenantOccupant } from "../../../../types";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import { getApartmentById, updateApartment } from "../../../../services/apartmentService";
+import { getApiErrorMessage } from "../../../../utils/apiError";
 
 // Hook quản lý dữ liệu chi tiết căn hộ, hợp đồng, cư dân và đánh giá
 export function useApartmentDetailPage() {
@@ -28,76 +29,37 @@ export function useApartmentDetailPage() {
       toast.success("Tải ảnh lên thành công");
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.APARTMENTS[0], id] });
     },
-    onError: () => {
-      toast.error("Không thể tải ảnh lên");
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, "Không thể tải ảnh lên"));
     },
   });
 
-  const uploading = uploadMutation.isPending;
+  // cập nhật căn hộ 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: FormData | object }) => updateApartment(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.APARTMENTS[0], id] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APARTMENTS });
+    },
+  });
+
+  const uploading = uploadMutation.isPending || updateMutation.isPending;
+
   const [showModifyModal, setShowModifyModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<"tenant" | "tenantHistory" | "reviews">("tenant");
+  const [activeTab, setActiveTab] = useState<"general" | "contract" | "tenants" | "reviews">("general");
+
   const [images, setImages] = useState<ApartmentImage[]>([]);
 
-  const { data: buildings = [] } = useQuery({
-    queryKey: QUERY_KEYS.BUILDINGS,
-    queryFn: () => buildingService.getAll(),
-    select: (res) => res.data as unknown as Building[],
-  });
-
-  const { data: apartment, isLoading: loadingApartment, refetch: fetchApartment } = useQuery({
+  // Lấy chi tiết căn hộ
+  const {
+    data: apartment,
+    isLoading: loadingApartment,
+    refetch: fetchApartment,
+  } = useQuery({
     queryKey: [QUERY_KEYS.APARTMENTS[0], id],
     queryFn: () => getApartmentById(Number(id)),
-    enabled: !!id,
+    enabled: Boolean(id) && !isNaN(Number(id)),
   });
-
-  const { data: contracts = [], isLoading: loadingContracts } = useQuery({
-    queryKey: [QUERY_KEYS.CONTRACTS[0], "apartment", id],
-    queryFn: () =>
-      contractService.getAllContractsPage({ apartmentId: Number(id) }).catch(() => ({ data: [] })),
-    select: (res) => res.data,
-  });
-
-  const { data: activeReservation = null, isLoading: loadingReservation } = useQuery({
-    queryKey: ["reservations", "apartment", id, "ACTIVE"],
-    queryFn: () =>
-      reservationService.getReservations({
-        apartment_id: Number(id),
-        status: "ACTIVE",
-        page: 1,
-        limit: 1,
-      }).catch(() => ({ data: [] })),
-    select: (res) => res.data[0] || null,
-    enabled: !!id && apartment?.status === "RESERVED",
-  });
-  const { data: tenantsRes, isLoading: loadingTenants } = useQuery({
-    queryKey: QUERY_KEYS.TENANTS,
-    queryFn: () => tenantService.getAllTenantsPage().catch(() => ({ data: [] })),
-    select: (res) => res.data,
-  });
-  const tenants = tenantsRes || [];
-
-  const { data: users = [], isLoading: loadingUsers } = useQuery({
-    queryKey: QUERY_KEYS.USERS,
-    queryFn: () => authService.getAllUsersPage().catch(() => ({ data: [] })),
-    select: (res) => res.data,
-  });
-
-  const { data: reviewsRes, isLoading: loadingReviews } = useQuery({
-    queryKey: ["reviews", id],
-    queryFn: () =>
-      getApartmentReviews(Number(id)).catch(() => ({
-        data: [],
-        meta: { averageRating: 0, totalReviews: 0, currentPage: 1, totalPages: 1 },
-      })),
-    enabled: !!id,
-  });
-  const reviews = reviewsRes?.data || [];
-  const reviewMeta = reviewsRes?.meta || {
-    averageRating: 0,
-    totalReviews: 0,
-    currentPage: 1,
-    totalPages: 1,
-  };
 
   useEffect(() => {
     if (apartment?.images) {
@@ -105,18 +67,70 @@ export function useApartmentDetailPage() {
     }
   }, [apartment]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const apartmentContracts = (apartment as unknown as { contracts: any[] })?.contracts || [];
-  const activeContract =
-    apartmentContracts.find((contract) => contract.status === "ACTIVE") ||
-    contracts.find((contract) => contract.apartment_id === Number(id) && contract.status === "ACTIVE");
-  const activeTenant = activeContract
-    ? activeContract.tenant ?? tenants.find((tenant) => tenant.id === activeContract.tenant_id)
-    : null;
-  const activeTenantUser = activeTenant
-    ? activeTenant.user ?? users.find((user) => user.id === activeTenant.user_id)
-    : null;
+  // Danh sách hợp đồng
+  const { data: contracts = [], isLoading: loadingContracts } = useQuery({
+    queryKey: QUERY_KEYS.CONTRACTS,
+    queryFn: () => contractService.getAllContractsPage({ apartment_id: Number(id) }),
+    select: (res) => res.data,
+    enabled: Boolean(id) && !isNaN(Number(id)),
+  });
 
+  // Danh sách hợp đồng cũ
+  const apartmentContracts = useMemo(() => {
+    return (apartment as unknown as { contracts?: any[] })?.contracts || [];
+  }, [apartment]);
+
+  // Đặt phòng cọc
+  const { data: activeReservation, isLoading: loadingReservation } = useQuery({
+    queryKey: ["reservation", "apartment", id],
+    queryFn: async () => {
+      const res = await reservationService.getAllReservationsPage({ apartment_id: Number(id), status: "DEPOSITED" });
+      return res.data?.[0] || null;
+    },
+    enabled: Boolean(id) && !isNaN(Number(id)),
+  });
+
+  // Tìm hợp đồng ACTIVE
+  const activeContract = useMemo(() => {
+    const all = contracts.length > 0 ? contracts : apartmentContracts;
+    return all.find((c) => c.status === "ACTIVE") || null;
+  }, [contracts, apartmentContracts]);
+
+  // Người thuê
+  const { data: tenants = [], isLoading: loadingTenants } = useQuery({
+    queryKey: QUERY_KEYS.TENANTS,
+    queryFn: () => tenantService.getAllTenantsPage(),
+    select: (res) => res.data,
+  });
+
+  const activeTenant = useMemo(() => {
+    if (!activeContract) return null;
+    return tenants.find((t) => t.id === activeContract.tenant_id) || activeContract.tenant || null;
+  }, [activeContract, tenants]);
+
+  // Người dùng
+  const { data: users = [], isLoading: loadingUsers } = useQuery({
+    queryKey: ["users"],
+    queryFn: () => authService.getAllUsersPage(),
+    select: (res) => res.data,
+  });
+
+  const activeTenantUser = useMemo(() => {
+    if (!activeTenant) return null;
+    return users.find((u) => u.id === activeTenant.user_id) || null;
+  }, [activeTenant, users]);
+
+  // Đánh giá
+  const { data: reviewRes, isLoading: loadingReviews } = useQuery({
+    queryKey: ["reviews", "apartment", id],
+    queryFn: () => getApartmentReviews(Number(id)),
+    enabled: Boolean(id) && !isNaN(Number(id)),
+  });
+
+  const reviews = useMemo(() => reviewRes?.data || [], [reviewRes]);
+  const reviewMeta = useMemo(() => reviewRes?.meta || null, [reviewRes]);
+
+  // Chi tiết người thuê
   const { data: activeTenantDetail, isLoading: loadingOccupants } = useQuery({
     queryKey: ["tenant", activeTenant?.id, "occupants"],
     queryFn: () => tenantService.getTenantById(activeTenant!.id),
@@ -165,26 +179,75 @@ export function useApartmentDetailPage() {
   }
 
   function handleSetThumbnail(imgId: number) {
+    if (!apartment) return;
+    const targetImage = images.find((img) => img.id === imgId);
+    if (!targetImage) return;
+
     const updated = images.map((img) => ({
       ...img,
       is_thumbnail: img.id === imgId,
     }));
     setImages(updated);
-    toast.success("Đã đặt làm ảnh đại diện");
+
+    const fd = new FormData();
+    images.forEach((img) => {
+      fd.append("existing_image_urls", img.image_url);
+    });
+    fd.append("thumbnail_image_url", targetImage.image_url);
+
+    updateMutation.mutate(
+      { id: apartment.id, data: fd },
+      {
+        onSuccess: () => {
+          toast.success("Đã đặt làm ảnh đại diện");
+          fetchApartment();
+        },
+        onError: (error: unknown) => {
+          toast.error(getApiErrorMessage(error, "Không thể cập nhật ảnh đại diện"));
+          fetchApartment();
+        },
+      }
+    );
   }
 
   function handleDeleteImage(imgId: number) {
-    const updated = images.filter((img) => img.id !== imgId);
-    if (images.find((img) => img.id === imgId)?.is_thumbnail && updated.length > 0) {
-      updated[0].is_thumbnail = true;
+    if (!apartment) return;
+    const remainingImages = images.filter((img) => img.id !== imgId);
+    setImages(remainingImages);
+
+    const fd = new FormData();
+    if (remainingImages.length > 0) {
+      remainingImages.forEach((img) => {
+        fd.append("existing_image_urls", img.image_url);
+      });
+    } else {
+      fd.append("existing_image_urls", JSON.stringify([]));
     }
-    setImages(updated);
-    toast.success("Đã xóa hình ảnh");
+
+    updateMutation.mutate(
+      { id: apartment.id, data: fd },
+      {
+        onSuccess: () => {
+          toast.success("Đã xóa hình ảnh");
+          fetchApartment();
+        },
+        onError: (error: unknown) => {
+          toast.error(getApiErrorMessage(error, "Không thể xóa hình ảnh"));
+          fetchApartment();
+        },
+      }
+    );
   }
 
   const reservedTenant = activeReservation?.tenant_id
     ? tenants.find((t) => t.id === activeReservation.tenant_id) || activeReservation.tenant
     : activeReservation?.tenant;
+
+  const { data: buildings = [] } = useQuery({
+    queryKey: QUERY_KEYS.BUILDINGS,
+    queryFn: () => buildingService.getAllPage(),
+    select: (res) => res.data as unknown as Building[],
+  });
 
   return {
     role,

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Controller, type UseFormReturn } from "react-hook-form";
 import Input from "../../../../components/ui/Input";
 import Combobox from "../../../../components/ui/Combobox";
@@ -29,7 +30,23 @@ export default function ApartmentFormFields({
   removeDetailImage,
   isEdit = false,
 }: ApartmentFormFieldsProps) {
-  const { register, control, formState: { errors } } = form;
+  const { register, control, watch, formState: { errors } } = form;
+
+  const selectedBuildingId = watch("building_id");
+  const selectedBuilding = useMemo(
+    () => buildings.find((b) => Number(b.id) === Number(selectedBuildingId)),
+    [buildings, selectedBuildingId]
+  );
+
+  const totalFloors = selectedBuilding?.total_floors || 10;
+  const floorOptions = useMemo(
+    () =>
+      Array.from({ length: totalFloors }, (_, i) => ({
+        value: String(i + 1),
+        label: `Tầng ${i + 1}`,
+      })),
+    [totalFloors]
+  );
 
   return (
     <div className="grid grid-cols-12 gap-6">
@@ -37,7 +54,7 @@ export default function ApartmentFormFields({
         <Input
           label="Số phòng *"
           type="text"
-          placeholder="Nhập số phòng"
+          placeholder="Nhập số phòng. VD: 01, 02,..."
           className="rounded-md"
           error={errors.room_number?.message as string | undefined}
           {...register("room_number")}
@@ -66,12 +83,23 @@ export default function ApartmentFormFields({
       </div>
 
       <div className="col-span-12 sm:col-span-4">
-        <Input
-          label="Tầng *"
-          type="number"
-          className="rounded-md"
-          error={errors.floor?.message as string | undefined}
-          {...register("floor", { valueAsNumber: true })}
+        <Controller
+          control={control}
+          name="floor"
+          render={({ field, fieldState: { error } }) => (
+            <Combobox
+              label="Tầng *"
+              options={floorOptions}
+              value={field.value ? String(field.value) : "1"}
+              onChange={(val) => field.onChange(val ? Number(val) : 1)}
+              placeholder="Chọn tầng"
+              searchable={totalFloors > 5}
+              searchPlaceholder="Tìm tầng..."
+              triggerClassName="rounded-md"
+              clearable={false}
+              error={error?.message}
+            />
+          )}
         />
       </div>
 

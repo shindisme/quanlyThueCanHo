@@ -154,6 +154,10 @@ export default function ApartmentModifyModal({
       }
     });
 
+    if (localThumbnail && !localThumbnail.startsWith("blob:")) {
+      formDataToSend.append("thumbnail_image_url", localThumbnail);
+    }
+
     if (existingKeepUrls.length > 0) {
       existingKeepUrls.forEach((url) => {
         formDataToSend.append("existing_image_urls", url);

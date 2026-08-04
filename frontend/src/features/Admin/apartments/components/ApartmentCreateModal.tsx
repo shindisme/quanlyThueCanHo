@@ -4,9 +4,12 @@ import Button from "../../../../components/ui/Button";
 import ApartmentFormFields from "./ApartmentFormFields";
 import { useApartmentForm } from "../hooks/useApartmentForm";
 import { useCreateApartment } from "../hooks/useCreateApartment";
+import * as apartmentService from "../../../../services/apartmentService";
 import type { Building } from "../../../../types";
 import type { ApartmentFormValues } from "../../../../schemas/apartment.schema";
 import { isValidImageFile } from "../../../../utils/file";
+import { getApiErrorMessage } from "../../../../utils/apiError";
+import { validateSequentialRoom } from "../../../../utils/string";
 import { toast } from "sonner";
 
 interface ApartmentCreateModalProps {
@@ -16,6 +19,8 @@ interface ApartmentCreateModalProps {
   buildings: Building[];
   role: string | null;
   managerBuildingId?: number;
+  defaultBuildingId?: number;
+  defaultFloor?: number;
 }
 
 export default function ApartmentCreateModal({
@@ -25,12 +30,17 @@ export default function ApartmentCreateModal({
   buildings,
   role,
   managerBuildingId,
+  defaultBuildingId,
+  defaultFloor,
 }: ApartmentCreateModalProps) {
-  const defaultBuildingId =
-    role === "MANAGER" && managerBuildingId ? managerBuildingId : (buildings[0]?.id || 0);
+  const initialBuildingId =
+    defaultBuildingId ??
+    (role === "MANAGER" && managerBuildingId ? managerBuildingId : (buildings[0]?.id || 0));
+  const initialFloor = defaultFloor ?? 1;
 
   const form = useApartmentForm({
-    building_id: defaultBuildingId,
+    building_id: initialBuildingId,
+    floor: initialFloor,
   });
   const { handleSubmit, reset } = form;
 
@@ -46,8 +56,8 @@ export default function ApartmentCreateModal({
     if (isOpen) {
       reset({
         room_number: "",
-        building_id: defaultBuildingId,
-        floor: 1,
+        building_id: initialBuildingId,
+        floor: initialFloor,
         area: 0,
         bedrooms: 1,
         bathrooms: 1,
@@ -60,7 +70,7 @@ export default function ApartmentCreateModal({
       setThumbnailFile(null);
       setDetailFiles([null, null, null, null]);
     }
-  }, [isOpen, defaultBuildingId, reset]);
+  }, [isOpen, initialBuildingId, initialFloor, reset]);
 
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -115,7 +125,7 @@ export default function ApartmentCreateModal({
     });
   };
 
-  const onSubmit = (data: ApartmentFormValues) => {
+  const onSubmit = async (data: ApartmentFormValues) => {
     const selectedBuilding = buildings.find((b) => b.id === data.building_id);
     if (selectedBuilding) {
       if (data.floor <= 0 || data.floor > selectedBuilding.total_floors) {
@@ -124,15 +134,27 @@ export default function ApartmentCreateModal({
       }
     }
 
+    // Kiểm tra tuần tự số phòng ở tầng hiện tại
+    try {
+      const res = await apartmentService.getAllApartmentsPage({ building_id: data.building_id });
+      const floorApts = (res.data || []).filter((a) => a.floor === data.floor);
+      const seqCheck = validateSequentialRoom(data.room_number, data.floor, floorApts);
+      if (!seqCheck.valid) {
+        toast.error(seqCheck.error);
+        return;
+      }
+    } catch { /*empty*/
+    }
+
     const formDataToSend = new FormData();
-    formDataToSend.append("room_number", data.room_number);
+    formDataToSend.append("room_number", data.room_number.trim());
     formDataToSend.append("building_id", String(data.building_id));
     formDataToSend.append("floor", String(data.floor));
     formDataToSend.append("area", String(data.area));
     formDataToSend.append("bedrooms", String(data.bedrooms));
     formDataToSend.append("bathrooms", String(data.bathrooms));
     formDataToSend.append("rental_price", String(data.rental_price));
-    formDataToSend.append("description", data.description || "");
+    formDataToSend.append("description", data.description?.trim() || "");
     formDataToSend.append("status", data.status);
 
     if (thumbnailFile) {
@@ -152,8 +174,7 @@ export default function ApartmentCreateModal({
         onClose();
       },
       onError: (error: unknown) => {
-        const err = error as { response?: { data?: { error?: string } } };
-        toast.error(err.response?.data?.error || "Thao tác thất bại");
+        toast.error(getApiErrorMessage(error, "Không thể thêm căn hộ"));
       },
     });
   };
@@ -193,11 +214,11 @@ export default function ApartmentCreateModal({
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={saving}>Hủy</Button>
-          <Button onClick={handleSubmit(onSubmit, onInvalid)} isLoading={saving}>Thêm mới</Button>
+          <Button type="submit" form="apartment-create-form" isLoading={saving}>Thêm mới</Button>
         </>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
+      <form id="apartment-create-form" onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
         <ApartmentFormFields
           form={form}
           buildings={buildings}

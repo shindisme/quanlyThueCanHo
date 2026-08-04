@@ -10,6 +10,7 @@ import { getAllBuildingsPage } from "../../../../services/buildingService";
 import type { Building } from "../../../../types";
 import { toast } from "sonner";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { getApiErrorMessage } from "../../../../utils/apiError";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -73,9 +74,12 @@ export function useBuildingPage() {
         setDeleteItem(null);
       },
       onError: (error: unknown) => {
-        const err = error as { response?: { data?: { error?: string; message?: string } } };
-        const msg = err.response?.data?.message || err.response?.data?.error;
-        toast.error(msg || "Xóa tòa nhà thất bại");
+        toast.error(
+          getApiErrorMessage(
+            error,
+            `Không thể xóa. Tòa nhà này hiện đang có căn hộ!`
+          )
+        );
       },
     });
   };

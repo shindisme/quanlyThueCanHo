@@ -65,6 +65,7 @@ export const updateApartmentRequestSchema = z.object({
         rental_price: apartmentFields.rental_price.optional(),
         description: apartmentFields.description,
         status: apartmentFields.status.optional(),
+        thumbnail_image_url: z.string().optional(),
         existing_image_urls: z.preprocess((val) => {
             if (val === undefined || val === null || val === "") return [];
             if (typeof val === "string") {

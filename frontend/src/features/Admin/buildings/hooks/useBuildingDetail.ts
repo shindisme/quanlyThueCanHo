@@ -12,9 +12,11 @@ export function useBuildingDetail() {
   const buildingId = Number(id);
   const { role } = useUserRole();
   const [showModifyModal, setShowModifyModal] = useState(false);
+  const [showCreateApartmentModal, setShowCreateApartmentModal] = useState(false);
   const [selectedFloor, setSelectedFloor] = useState(1);
 
   const baseRoute = role === "MANAGER" ? "/manager" : "/admin";
+  const canEdit = role === "ADMIN" || role === "MANAGER";
 
   // Get info building
   const {
@@ -103,6 +105,7 @@ export function useBuildingDetail() {
   return {
     id,
     role,
+    canEdit,
     baseRoute,
     building,
     apartments,
@@ -114,6 +117,8 @@ export function useBuildingDetail() {
     isError,
     showModifyModal,
     setShowModifyModal,
+    showCreateApartmentModal,
+    setShowCreateApartmentModal,
     selectedFloor,
     setSelectedFloor,
     refetch,

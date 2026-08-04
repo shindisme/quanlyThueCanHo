@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, MapPin, Layers, Building2, Home, Pencil, BedDouble, Bath, User } from "lucide-react";
+import { ArrowLeft, MapPin, Layers, Building2, Home, Pencil, BedDouble, Bath, User, Plus } from "lucide-react";
 import Badge from "../../../../components/ui/Badge";
 import Button from "../../../../components/ui/Button";
 import Card from "../../../../components/ui/Card";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 
 import BuildingModifyModal from "../components/BuildingModifyModal";
+import ApartmentCreateModal from "../../apartments/components/ApartmentCreateModal";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import { formatCurrency } from "../../../../utils/currency";
 import { getApartmentThumbnail } from "../../../../utils/file";
@@ -17,6 +18,7 @@ import { cn } from "../../../../lib/utils";
 export default function BuildingDetailPage() {
   const {
     role,
+    canEdit,
     baseRoute,
     building,
     apartments,
@@ -28,6 +30,8 @@ export default function BuildingDetailPage() {
     isError,
     showModifyModal,
     setShowModifyModal,
+    showCreateApartmentModal,
+    setShowCreateApartmentModal,
     selectedFloor,
     setSelectedFloor,
     refetch,
@@ -152,11 +156,13 @@ export default function BuildingDetailPage() {
 
       {/* Danh sách căn hộ */}
       <div>
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4 gap-3">
-          <h3 className="text-lg font-semibold text-gray-800">
-            Danh sách căn hộ - Tầng {selectedFloor} ({selectedFloorApartments.length})
-          </h3>
-          <span className="text-sm text-gray-500 font-medium">Tổng số căn hộ: {apartments.length}</span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800">
+              Danh sách căn hộ - Tầng {selectedFloor} ({selectedFloorApartments.length})
+            </h3>
+            <span className="text-xs text-gray-500 font-medium">Tổng số căn hộ tòa nhà: {apartments.length}</span>
+          </div>
         </div>
 
         {/* Bộ lọc tầng */}
@@ -223,9 +229,15 @@ export default function BuildingDetailPage() {
             );
           })}
           {selectedFloorApartments.length === 0 && (
-            <div className="col-span-12 text-center py-12 text-gray-500 bg-white rounded-2xl border border-gray-200">
+            <div className="col-span-12 text-center py-12 text-gray-500 bg-white rounded-2xl border border-gray-200 flex flex-col items-center justify-center">
               <Home size={40} className="mx-auto mb-3 text-gray-300" />
-              Không có căn hộ nào ở tầng này
+              <p className="font-medium text-gray-700 mb-1">Tầng {selectedFloor} chưa có căn hộ nào</p>
+              <p className="text-sm text-gray-400 mb-4">Bạn có thể tạo nhanh căn hộ trực tiếp cho tầng này</p>
+              {canEdit && (
+                <Button size="sm" onClick={() => setShowCreateApartmentModal(true)}>
+                  <Plus size={16} /> Thêm nhanh căn hộ tầng {selectedFloor}
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -238,6 +250,18 @@ export default function BuildingDetailPage() {
         onSuccess={refetch}
         editItem={building}
       />
+
+      {building && (
+        <ApartmentCreateModal
+          isOpen={showCreateApartmentModal}
+          onClose={() => setShowCreateApartmentModal(false)}
+          onSuccess={refetch}
+          buildings={[building]}
+          role={role}
+          defaultBuildingId={building.id}
+          defaultFloor={selectedFloor}
+        />
+      )}
     </div>
   );
 }

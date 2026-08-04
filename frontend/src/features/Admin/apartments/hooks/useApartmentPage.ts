@@ -13,6 +13,7 @@ import { useUserRole } from "../../../../hooks/useUserRole";
 import { useSort } from "../../../../hooks/useSort";
 import { removeVietnameseTones } from "../../../../utils/string";
 import { useDeleteApartment } from "./useDeleteApartment";
+import { getApiErrorMessage } from "../../../../utils/apiError";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
 
 export function useApartmentPage() {
@@ -135,8 +136,12 @@ export function useApartmentPage() {
         setDeleteItem(null);
       },
       onError: (error: unknown) => {
-        const err = error as { response?: { data?: { error?: string } } };
-        toast.error(err.response?.data?.error || "Xóa thất bại");
+        toast.error(
+          getApiErrorMessage(
+            error,
+            `Không thể xóa căn hộ P.${deleteItem.floor}${deleteItem.room_number}. Căn hộ này hiện đang có hợp đồng!`
+          )
+        );
       },
     });
   }
