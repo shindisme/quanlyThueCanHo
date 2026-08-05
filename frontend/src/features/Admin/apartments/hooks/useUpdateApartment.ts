@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
-import { updateApartment } from "../../../../services/apartmentService";
+import { apartmentService } from "../../../../services";
+
 
 interface UpdateApartmentParams {
   id: number;
@@ -11,7 +12,7 @@ export function useUpdateApartment() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: UpdateApartmentParams) => updateApartment(id, data),
+    mutationFn: ({ id, data }: UpdateApartmentParams) => apartmentService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APARTMENTS });
     },

@@ -3,9 +3,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import * as buildingService from "../../../../services/buildingService";
 import * as apartmentService from "../../../../services/apartmentService";
 import * as contractService from "../../../../services/contractService";
-import { createReview } from "../../../../services/reviewService";
 import { toast } from "sonner";
 import type { RentalContract } from "../../../../types";
+import { reviewService } from "../../../../services";
 
 export function useTenantContracts() {
   const queryClient = useQueryClient();
@@ -20,13 +20,13 @@ export function useTenantContracts() {
 
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data,
   });
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartmentsPage(),
+    queryFn: () => apartmentService.getAllPage(),
     select: (res) => res.data,
   });
 
@@ -44,7 +44,7 @@ export function useTenantContracts() {
 
   const reviewMutation = useMutation({
     mutationFn: ({ apartmentId, rating, comment }: { apartmentId: number; rating: number; comment: string }) =>
-      createReview({ apartment_id: apartmentId, rating, comment }),
+      reviewService.create({ apartment_id: apartmentId, rating, comment }),
     onSuccess: () => {
       toast.success("Cảm ơn bạn đã gửi đánh giá cho căn hộ!");
       setReviewContractItem(null);

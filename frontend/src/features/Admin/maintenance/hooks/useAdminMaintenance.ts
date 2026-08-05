@@ -34,7 +34,7 @@ export function useAdminMaintenance() {
   const { data: requestsRes, isLoading: loadingRequests } = useQuery({
     queryKey: ["adminMaintenanceRequests", statusFilter, priorityFilter, buildingFilter, role, managedBuildingId],
     queryFn: () => {
-      const params: Parameters<typeof maintenanceService.getAllMaintenanceRequests>[0] = {};
+      const params: Parameters<typeof maintenanceService.getAll>[0] = {};
       if (statusFilter) params.status = statusFilter;
       if (priorityFilter) params.priority = priorityFilter;
 
@@ -43,7 +43,7 @@ export function useAdminMaintenance() {
       } else if (buildingFilter) {
         params.building_id = Number(buildingFilter);
       }
-      return maintenanceService.getAllMaintenanceRequests(params);
+      return maintenanceService.getAll(params);
     },
     enabled: !!token,
   });
@@ -52,14 +52,14 @@ export function useAdminMaintenance() {
   // Fetch buildings
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     enabled: role === "ADMIN",
     select: (res) => res.data,
   });
 
   const { data: apartments = [] } = useQuery({
     queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartmentsPage(),
+    queryFn: () => apartmentService.getAllPage(),
     select: (res) => res.data,
   });
 
@@ -90,7 +90,7 @@ export function useAdminMaintenance() {
   // Xác nhận và phân công 
   const confirmMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: { assigned_staff_id: number; scheduled_at: string } }) =>
-      maintenanceService.confirmMaintenanceRequest(id, data),
+      maintenanceService.confirm(id, data),
     onSuccess: () => {
       toast.success("Phân công nhân viên xử lý thành công");
       setShowAssignModal(false);
@@ -113,7 +113,7 @@ export function useAdminMaintenance() {
   // Đánh dấu hoàn thành
   const completeMutation = useMutation({
     mutationFn: ({ id, charge_tenant, repair_fee }: { id: number; charge_tenant: boolean; repair_fee?: number }) =>
-      maintenanceService.completeMaintenanceRequest(id, { charge_tenant, repair_fee }),
+      maintenanceService.complete(id, { charge_tenant, repair_fee }),
     onSuccess: () => {
       toast.success("Đã đánh dấu hoàn thành sửa chữa thành công");
       setShowCompleteModal(false);
@@ -132,7 +132,7 @@ export function useAdminMaintenance() {
   // Báo cáo không thể sửa 
   const unableMutation = useMutation({
     mutationFn: ({ id, reason }: { id: number; reason: string }) =>
-      maintenanceService.unableMaintenanceRequest(id, { reason }),
+      maintenanceService.unable(id, { reason }),
     onSuccess: () => {
       toast.success("Đã báo cáo không thể sửa chữa thành công");
       setShowUnableModal(false);

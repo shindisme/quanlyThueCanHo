@@ -92,7 +92,8 @@ const contractBodySchema = z.object({
     start_date: strictDateSchema,
     end_date: strictDateSchema,
     monthly_rent: positiveAmountSchema,
-    signed_at: strictDateSchema,
+    deposit_amount: positiveAmountSchema.optional(),
+    signed_at: strictDateSchema.optional(),
     contract_file: z.string().trim().min(1).max(2000)
         .nullable().optional()
 }).strict().superRefine((body, context) => {

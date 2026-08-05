@@ -30,27 +30,27 @@ export async function logout(token: string): Promise<LogoutResponse> {
   return res.data.data;
 }
 
-export async function getAllUsers(): Promise<UserData[]> {
+export async function getAll(): Promise<UserData[]> {
   const res = await api.get<{ data: UserData[] }>(`${AUTH_API}/users`);
   return res.data.data;
 }
 
-export async function getAllUsersPage(): Promise<{ data: UserData[] }> {
-  const users = await getAllUsers();
+export async function getAllPage(): Promise<{ data: UserData[] }> {
+  const users = await getAll();
   return { data: users };
 }
 
-export async function createUser(data: CreateUserRequest): Promise<CreateUserResponse> {
+export async function create(data: CreateUserRequest): Promise<CreateUserResponse> {
   const res = await api.post<{ data: CreateUserResponse }>(`${AUTH_API}/create-user`, data);
   return res.data.data;
 }
 
-export async function updateUser(id: number, data: UpdateUserRequest): Promise<UserData> {
+export async function update(id: number, data: UpdateUserRequest): Promise<UserData> {
   const res = await api.put<{ data: UserData }>(`${AUTH_API}/users/${id}`, data);
   return res.data.data;
 }
 
-export async function deleteUser(id: number): Promise<UserData> {
+export async function remove(id: number): Promise<UserData> {
   const res = await api.delete<{ data: UserData }>(`${AUTH_API}/delete-user/${id}`);
   return res.data.data;
 }
@@ -68,11 +68,11 @@ export async function changePassword(oldPass: string, newPass: string): Promise<
 export const authService = {
   login,
   logout,
-  getAllUsers,
-  getAllUsersPage,
-  createUser,
-  updateUser,
-  deleteUser,
+  getAll,
+  getAllPage,
+  create,
+  update,
+  remove,
   resetPassword,
   changePassword,
 };

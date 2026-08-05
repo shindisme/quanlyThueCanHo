@@ -17,6 +17,8 @@ import ContractDetailModal from "../components/ContractDetailModal";
 import ContractDocModal from "../components/ContractDocModal";
 import ContractCreateModal from "../components/ContractCreateModal";
 import CheckoutModal from "../components/CheckoutModal";
+import { toast } from "sonner";
+import { formatDate } from "../../../../utils/date";
 
 export default function Contract() {
     const {
@@ -64,6 +66,9 @@ export default function Contract() {
         terminateItem,
         setTerminateItem,
         handleTerminateContract,
+        cancelContractItem,
+        setCancelContractItem,
+        handleConfirmCancelContract,
         terminating,
         fetchContracts,
         setIsNewTenantFromNavigation,
@@ -205,14 +210,7 @@ export default function Contract() {
                         setSelectedExtendContract={setSelectedExtendContract}
                         setExtendEndDate={setExtendEndDate}
                         setTerminateItem={setTerminateItem}
-                        onRenewContract={(c) => {
-                            const apt = apartments.find((a) => a.id === c.apartment_id);
-                            setInitialTenantId(c.tenant_id);
-                            setInitialBuildingId(apt?.building_id);
-                            setInitialApartmentId(c.apartment_id);
-                            setInitialFloor(apt?.floor);
-                            createContractModal.onOpen();
-                        }}
+                        setCancelContractItem={setCancelContractItem}
                     />
                 </div>
             )}
@@ -321,6 +319,18 @@ export default function Contract() {
                 confirmText="Hủy tạo & Xóa"
                 cancelText="Quay lại"
                 isLoading={deletingTenant}
+            />
+
+            <ConfirmDialog
+                isOpen={cancelContractItem !== null}
+                onClose={() => setCancelContractItem(null)}
+                onConfirm={handleConfirmCancelContract}
+                title="Xác nhận Hủy hợp đồng (Chưa nhận phòng)"
+                message={`Hợp đồng HD-${String(cancelContractItem?.id || 0).padStart(5, "0")} chưa đến ngày nhận phòng (${cancelContractItem?.start_date ? formatDate(cancelContractItem.start_date) : ""}). Bạn có chắc chắn muốn HỦY hợp đồng này không? Căn hộ sẽ lập tức được trả về trạng thái sẵn sàng cho thuê (AVAILABLE).`}
+                variant="danger"
+                confirmText="Hủy hợp đồng"
+                cancelText="Quay lại"
+                isLoading={terminating}
             />
         </div>
     );

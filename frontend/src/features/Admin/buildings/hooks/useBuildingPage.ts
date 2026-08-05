@@ -6,11 +6,11 @@ import { useSort } from "../../../../hooks/useSort";
 import { useOnOff } from "../../../../hooks/useOnOff";
 import { usePagination } from "../../../../hooks/usePagination";
 import { useDeleteBuilding } from "./useDeleteBuilding";
-import { getAllBuildingsPage } from "../../../../services/buildingService";
 import type { Building } from "../../../../types";
 import { toast } from "sonner";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
 import { getApiErrorMessage } from "../../../../utils/apiError";
+import { buildingService } from "../../../../services";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -28,7 +28,7 @@ export function useBuildingPage() {
   // Lấy toàn bộ danh sách tòa nhà 
   const { data: buildings = [], isLoading: loading } = useQuery({
     queryKey: QUERY_KEYS.BUILDINGS,
-    queryFn: () => getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data,
   });
 
@@ -64,11 +64,11 @@ export function useBuildingPage() {
   );
 
   // Hook xóa tòa nhà
-  const { mutate: deleteBuilding, isPending: deleting } = useDeleteBuilding();
+  const { mutate: removeBuilding, isPending: deleting } = useDeleteBuilding();
 
   const handleDelete = () => {
     if (!deleteItem) return;
-    deleteBuilding(deleteItem.id, {
+    removeBuilding(deleteItem.id, {
       onSuccess: () => {
         toast.success(`Đã xóa tòa nhà "${deleteItem.branch_name}"`);
         setDeleteItem(null);

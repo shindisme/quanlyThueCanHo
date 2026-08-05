@@ -20,18 +20,14 @@ export async function update(id: number, payload: Partial<CreateOccupantPayload>
   return res.data;
 }
 
-export async function deleteOccupant(id: number): Promise<{ success: boolean }> {
+export async function remove(id: number): Promise<{ success: boolean }> {
   const res = await api.delete<{ success: boolean }>(`${OCCUPANT_API}/${id}`);
   return res.data;
 }
-
-export const getOccupants = getAll;
-export const createOccupant = create;
-export const updateOccupant = update;
 
 export const occupantService = {
   getAll,
   create,
   update,
-  delete: deleteOccupant,
+  remove,
 };

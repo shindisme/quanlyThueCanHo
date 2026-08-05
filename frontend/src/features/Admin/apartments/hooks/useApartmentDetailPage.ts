@@ -8,13 +8,11 @@ import * as tenantService from "../../../../services/tenantService";
 import * as authService from "../../../../services/authService";
 import * as reservationService from "../../../../services/reservationService";
 import { getApartmentReviews } from "../../../../services/reviewService";
-import type { Apartment } from "../../../../types";
-import type { Building } from "../../../../types";
-import type { ApartmentImage, TenantOccupant } from "../../../../types";
+import type { Apartment, Building, ApartmentImage, TenantOccupant, RentalContract } from "../../../../types";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
 import { useUserRole } from "../../../../hooks/useUserRole";
-import { getApartmentById, updateApartment } from "../../../../services/apartmentService";
 import { getApiErrorMessage } from "../../../../utils/apiError";
+import { apartmentService } from "../../../../services";
 
 // Hook quản lý dữ liệu chi tiết căn hộ, hợp đồng, cư dân và đánh giá
 export function useApartmentDetailPage() {
@@ -24,7 +22,7 @@ export function useApartmentDetailPage() {
 
   // upload ảnh mới cho căn hộ
   const uploadMutation = useMutation({
-    mutationFn: (formDataToSend: FormData) => updateApartment(Number(id), formDataToSend),
+    mutationFn: (formDataToSend: FormData) => apartmentService.update(Number(id), formDataToSend),
     onSuccess: () => {
       toast.success("Tải ảnh lên thành công");
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.APARTMENTS[0], id] });
@@ -36,7 +34,7 @@ export function useApartmentDetailPage() {
 
   // cập nhật căn hộ 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: FormData | object }) => updateApartment(id, data),
+    mutationFn: ({ id, data }: { id: number; data: FormData | object }) => apartmentService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.APARTMENTS[0], id] });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APARTMENTS });
@@ -44,9 +42,8 @@ export function useApartmentDetailPage() {
   });
 
   const uploading = uploadMutation.isPending || updateMutation.isPending;
-
   const [showModifyModal, setShowModifyModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<"general" | "contract" | "tenants" | "reviews">("general");
+  const [activeTab, setActiveTab] = useState<"tenant" | "tenantHistory" | "reviews">("tenant");
 
   const [images, setImages] = useState<ApartmentImage[]>([]);
 
@@ -57,7 +54,7 @@ export function useApartmentDetailPage() {
     refetch: fetchApartment,
   } = useQuery({
     queryKey: [QUERY_KEYS.APARTMENTS[0], id],
-    queryFn: () => getApartmentById(Number(id)),
+    queryFn: () => apartmentService.getById(Number(id)),
     enabled: Boolean(id) && !isNaN(Number(id)),
   });
 
@@ -67,24 +64,24 @@ export function useApartmentDetailPage() {
     }
   }, [apartment]);
 
-  // Danh sách hợp đồng
+  // Danh sách hợp đồng của căn hộ hiện tại
   const { data: contracts = [], isLoading: loadingContracts } = useQuery({
-    queryKey: QUERY_KEYS.CONTRACTS,
-    queryFn: () => contractService.getAllContractsPage({ apartment_id: Number(id) }),
+    queryKey: [...QUERY_KEYS.CONTRACTS, "apartment", id],
+    queryFn: () => contractService.getAllPage({ apartment_id: Number(id) }),
     select: (res) => res.data,
     enabled: Boolean(id) && !isNaN(Number(id)),
   });
 
   // Danh sách hợp đồng cũ
   const apartmentContracts = useMemo(() => {
-    return (apartment as unknown as { contracts?: any[] })?.contracts || [];
+    return (apartment as unknown as { contracts?: RentalContract[] })?.contracts || [];
   }, [apartment]);
 
   // Đặt phòng cọc
   const { data: activeReservation, isLoading: loadingReservation } = useQuery({
     queryKey: ["reservation", "apartment", id],
     queryFn: async () => {
-      const res = await reservationService.getAllReservationsPage({ apartment_id: Number(id), status: "DEPOSITED" });
+      const res = await reservationService.getReservations({ apartment_id: Number(id), status: "DEPOSITED" });
       return res.data?.[0] || null;
     },
     enabled: Boolean(id) && !isNaN(Number(id)),
@@ -99,7 +96,7 @@ export function useApartmentDetailPage() {
   // Người thuê
   const { data: tenants = [], isLoading: loadingTenants } = useQuery({
     queryKey: QUERY_KEYS.TENANTS,
-    queryFn: () => tenantService.getAllTenantsPage(),
+    queryFn: () => tenantService.getAll(),
     select: (res) => res.data,
   });
 
@@ -111,8 +108,7 @@ export function useApartmentDetailPage() {
   // Người dùng
   const { data: users = [], isLoading: loadingUsers } = useQuery({
     queryKey: ["users"],
-    queryFn: () => authService.getAllUsersPage(),
-    select: (res) => res.data,
+    queryFn: () => authService.getAll(),
   });
 
   const activeTenantUser = useMemo(() => {
@@ -133,7 +129,7 @@ export function useApartmentDetailPage() {
   // Chi tiết người thuê
   const { data: activeTenantDetail, isLoading: loadingOccupants } = useQuery({
     queryKey: ["tenant", activeTenant?.id, "occupants"],
-    queryFn: () => tenantService.getTenantById(activeTenant!.id),
+    queryFn: () => tenantService.getById(activeTenant!.id),
     enabled: !!activeTenant?.id,
   });
 

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Home, Trash2, Plus, Star, ArrowRight } from "lucide-react";
+import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Trash2, Plus, Star, ArrowRight } from "lucide-react";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import Card from "../../../../components/ui/Card";
 import Badge from "../../../../components/ui/Badge";
@@ -8,6 +8,8 @@ import ApartmentModifyModal from "../components/ApartmentModifyModal";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay, maskCCCD } from "../../../../utils/string";
+import { formatCurrency } from "../../../../utils/currency";
+import { DEFAULT_APARTMENT_IMAGE } from "../../../../utils/file";
 import { useApartmentDetailPage } from "../hooks/useApartmentDetailPage";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS, type ApartmentStatus } from "../../../../constants/enums";
 import { useDepositInvoice } from "../../invoices/hooks/useDepositInvoice";
@@ -80,9 +82,7 @@ export default function ApartmentDetailPage() {
     );
   }
 
-  function formatPrice(price: number) {
-    return new Intl.NumberFormat("vi-VN").format(price) + " đ";
-  }
+
 
   function getStatusBadge(status: ApartmentStatus) {
     const label = APARTMENT_STATUS_LABELS[status] || status;
@@ -104,35 +104,29 @@ export default function ApartmentDetailPage() {
 
       {/* Thông tin chính */}
       <div className="flex flex-col lg:flex-row gap-6">
-        {images.length > 0 ? (
-          <div className="w-full lg:w-96 shrink-0 flex flex-col gap-2">
-            <div className="w-full h-64 rounded-2xl overflow-hidden border border-gray-200 shadow-xl">
-              <img
-                src={images.find((img) => img.is_thumbnail)?.image_url || images[0].image_url}
-                className="w-full h-full object-cover"
-                alt="Ảnh căn hộ"
-              />
+        <div className="w-full lg:w-96 shrink-0 flex flex-col gap-2">
+          <div className="w-full h-64 rounded-2xl overflow-hidden border border-gray-200 shadow-xl bg-gray-50">
+            <img
+              src={images.length > 0 ? (images.find((img) => img.is_thumbnail)?.image_url || images[0].image_url) : DEFAULT_APARTMENT_IMAGE}
+              className="w-full h-full object-cover"
+              alt="Ảnh căn hộ"
+            />
+          </div>
+          {images.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto py-1">
+              {images.map((img) => (
+                <button
+                  key={img.id}
+                  onClick={() => handleSetThumbnail(img.id)}
+                  className={`w-16 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${img.is_thumbnail ? "border-primary-500 scale-102" : "border-gray-200 hover:border-gray-300"
+                    }`}
+                >
+                  <img src={img.image_url} className="w-full h-full object-cover" alt="" />
+                </button>
+              ))}
             </div>
-            {images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto py-1">
-                {images.map((img) => (
-                  <button
-                    key={img.id}
-                    onClick={() => handleSetThumbnail(img.id)}
-                    className={`w-16 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${img.is_thumbnail ? "border-primary-500 scale-102" : "border-gray-200 hover:border-gray-300"
-                      }`}
-                  >
-                    <img src={img.image_url} className="w-full h-full object-cover" alt="" />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="w-full lg:w-96 h-64 bg-gray-100 rounded-2xl flex items-center justify-center shrink-0 border border-gray-200">
-            <Home size={48} className="text-gray-300" />
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="flex-1">
           <div className="flex items-start justify-between mb-3">
@@ -169,7 +163,7 @@ export default function ApartmentDetailPage() {
           </div>
 
           <p className="text-2xl font-bold text-primary-600 mb-4">
-            {formatPrice(apartment.rental_price)}
+            {formatCurrency(Number(apartment.rental_price))}
             <span className="text-sm text-gray-400 font-normal">/tháng</span>
           </p>
 
@@ -197,7 +191,7 @@ export default function ApartmentDetailPage() {
             </div>
             <div className="bg-gray-50 rounded-xl p-3 text-center">
               <DollarSign size={18} className="text-success-600 mx-auto mb-1" />
-              <p className="text-sm font-semibold text-gray-800">{formatPrice(apartment.rental_price)}</p>
+              <p className="text-sm font-semibold text-gray-800">{formatCurrency(Number(apartment.rental_price))}</p>
               <p className="text-xs text-gray-400">Giá thuê</p>
             </div>
           </div>
@@ -313,9 +307,9 @@ export default function ApartmentDetailPage() {
                           Chủ hợp đồng: <span className="text-primary-700 font-bold ml-1">{activeTenant.full_name}</span>
                         </p>
                         {/* Hiển thị phân loại Hợp đồng ban đầu hay Hợp đồng đã gia hạn */}
-                        {activeContract.extended_at ? (
+                        {(activeContract as unknown as { extended_at?: string }).extended_at ? (
                           <Badge variant="warning" showDot>
-                            Đã gia hạn ({formatDate(activeContract.extended_at)})
+                            Đã gia hạn ({formatDate((activeContract as unknown as { extended_at: string }).extended_at)})
                           </Badge>
                         ) : (
                           <Badge variant="info">
@@ -325,8 +319,8 @@ export default function ApartmentDetailPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 pt-1">
                         <p>Số CCCD: <span className="font-medium">{maskCCCD(activeTenant.citizen_id)}</span></p>
-                        <p>SĐT: <span className="font-medium">{activeTenantUser?.phone || activeTenant.phone || "-"}</span></p>
-                        <p>Email: <span className="font-medium">{activeTenantUser?.email || activeTenant.email || "-"}</span></p>
+                        <p>SĐT: <span className="font-medium">{(activeTenantUser as unknown as { phone?: string })?.phone || activeTenant.phone || "-"}</span></p>
+                        <p>Email: <span className="font-medium">{(activeTenantUser as unknown as { email?: string })?.email || activeTenant.email || "-"}</span></p>
                         <p>Thời hạn thuê: <span className="font-medium">{formatDate(activeContract.start_date)} - {formatDate(activeContract.end_date)}</span></p>
                       </div>
                       <div className="pt-2 border-t border-primary-100 flex items-center justify-between text-xs">
@@ -359,7 +353,7 @@ export default function ApartmentDetailPage() {
                       <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 pt-1">
                         <p>Họ và tên: <span className="font-bold text-gray-900">{reservedTenant?.full_name || activeReservation?.tenant?.full_name || "Khách cọc"}</span></p>
                         <p>SĐT: <span className="font-medium">{reservedTenant?.phone || activeReservation?.tenant?.phone || "-"}</span></p>
-                        <p>Số tiền cọc: <span className="font-bold text-emerald-600">{formatPrice(Number(activeReservation?.deposit_amount || apartment.rental_price))}</span></p>
+                        <p>Số tiền cọc: <span className="font-bold text-emerald-600">{formatCurrency(Number(activeReservation?.deposit_amount || apartment.rental_price))}</span></p>
                         <p>Hạn cọc giữ phòng: <span className="font-bold text-amber-700">{activeReservation?.expires_at ? formatDate(activeReservation.expires_at) : "3 ngày"}</span></p>
                       </div>
                       <div className="pt-2 border-t border-amber-200/60 text-right">
@@ -382,7 +376,7 @@ export default function ApartmentDetailPage() {
                 ) : (
                   <div className="text-center py-6">
                     <p className="text-sm text-gray-400 mb-4 font-sans">Căn hộ hiện đang trống</p>
-                    {role !== "TENANT" && (apartment.status === "AVAILABLE" || apartment.status === "RESERVED") && (
+                    {role !== "TENANT" && (apartment.status === "AVAILABLE" || (apartment.status as string) === "RESERVED") && (
                       <div className="flex flex-wrap justify-center gap-2">
                         {apartment.status === "AVAILABLE" && (
                           <Button type="button" size="sm" variant="outline" onClick={() => depositModal.openModal(apartment)}>
@@ -558,13 +552,8 @@ export default function ApartmentDetailPage() {
       </Card>
 
       <DepositInvoiceModal
-        isOpen={depositModal.isOpen}
-        onClose={depositModal.closeModal}
-        form={depositModal.form}
-        setForm={depositModal.setForm}
+        controller={depositModal}
         fixedApartment={apartment}
-        onSubmit={depositModal.handleSubmit}
-        isPending={depositModal.isPending}
       />
       <ApartmentModifyModal
         isOpen={showModifyModal}

@@ -49,6 +49,7 @@ export function useContractPage() {
   const [selectedDocContract, setSelectedDocContract] = useState<RentalContract | null>(null);
   const [selectedExtendContract, setSelectedExtendContract] = useState<RentalContract | null>(null);
   const [terminateItem, setTerminateItem] = useState<RentalContract | null>(null);
+  const [cancelContractItem, setCancelContractItem] = useState<RentalContract | null>(null);
   const [extendEndDate, setExtendEndDate] = useState("");
   const [initialTenantId, setInitialTenantId] = useState<number | undefined>();
   const [initialApartmentId, setInitialApartmentId] = useState<number | undefined>();
@@ -63,26 +64,26 @@ export function useContractPage() {
 
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: QUERY_KEYS.BUILDINGS,
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data as unknown as Building[],
   });
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: QUERY_KEYS.APARTMENTS,
-    queryFn: () => apartmentService.getAllApartmentsPage(),
+    queryFn: () => apartmentService.getAllPage(),
     select: (res) => res.data as unknown as Apartment[],
   });
 
   const { data: tenantsRes, isLoading: loadingTenants } = useQuery({
     queryKey: QUERY_KEYS.TENANTS,
-    queryFn: () => tenantService.getAllTenantsPage(),
+    queryFn: () => tenantService.getAllPage(),
     select: (res) => res.data,
   });
   const tenants = (tenantsRes as unknown as Tenant[]) || [];
 
   const { data: users = [], isLoading: loadingUsers } = useQuery({
     queryKey: QUERY_KEYS.USERS,
-    queryFn: () => authService.getAllUsersPage(),
+    queryFn: () => authService.getAllPage(),
     select: (res) => res.data as unknown as User[],
   });
 
@@ -132,7 +133,7 @@ export function useContractPage() {
   };
 
   const handleCancelCreateTenant = useMutation({
-    mutationFn: (id: number) => tenantService.deleteTenant(id),
+    mutationFn: (id: number) => tenantService.remove(id),
     onSuccess: () => {
       toast.success("Đã hủy tạo người thuê mới và xóa thông tin khỏi hệ thống.");
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TENANTS });
@@ -277,8 +278,27 @@ export function useContractPage() {
       { id: terminateItem.id },
       {
         onSuccess: () => {
-          toast.success("Hủy/thanh lý hợp đồng thành công!");
+          toast.success("Thanh lý hợp đồng thành công!");
           setTerminateItem(null);
+        },
+        onError: (error: unknown) => {
+          const err = error as { response?: { data?: { error?: string; message?: string } } };
+          toast.error(
+            err.response?.data?.error || err.response?.data?.message || "Hủy hợp đồng thất bại!"
+          );
+        },
+      }
+    );
+  }
+
+  function handleConfirmCancelContract() {
+    if (!cancelContractItem) return;
+    terminateMutation.mutate(
+      { id: cancelContractItem.id },
+      {
+        onSuccess: () => {
+          toast.success("Hủy hợp đồng chưa nhận phòng thành công!");
+          setCancelContractItem(null);
         },
         onError: (error: unknown) => {
           const err = error as { response?: { data?: { error?: string; message?: string } } };
@@ -338,6 +358,9 @@ export function useContractPage() {
     terminateItem,
     setTerminateItem,
     handleTerminateContract,
+    cancelContractItem,
+    setCancelContractItem,
+    handleConfirmCancelContract,
     terminating: terminateMutation.isPending,
     fetchContracts,
     isNewTenantFromNavigation,

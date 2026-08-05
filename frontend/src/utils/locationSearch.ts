@@ -30,15 +30,13 @@ type FetchLike = (input: string) => Promise<{
   json: () => Promise<unknown>;
 }>;
 
-// Tọa độ trung tâm và bán kính khung giới hạn TP.HCM
+// Tọa độ trung tâm TP.HCM
 const HCMC_PROXIMITY = "106.700981,10.776889";
-const HCMC_BBOX = "106.45,10.6,107.05,11.05";
 
-// Cache tọa độ địa chỉ tòa nhà để không gọi Mapbox API trùng lặp
 const buildingCoordsCache = new Map<string, Coordinates>();
 
 // Chuẩn hóa chuỗi văn bản loại bỏ dấu và ký tự đặc biệt
-function normalizeLocationText(value: string): string {
+export function normalizeLocationText(value: string): string {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -51,6 +49,37 @@ function normalizeLocationText(value: string): string {
 
 function toRadians(value: number): number {
   return (value * Math.PI) / 180;
+}
+
+// Ranh giới địa lý TP.HCM
+export function isCoordinatesInHCMC(coords: Coordinates): boolean {
+  const { latitude, longitude } = coords;
+  return (
+    latitude >= 10.35 &&
+    latitude <= 11.20 &&
+    longitude >= 106.35 &&
+    longitude <= 107.10
+  );
+}
+
+// Từ khóa các tỉnh/thành phố ngoài TP.HCM
+const NON_HCMC_KEYWORDS = [
+  "dong thap", "ha noi", "hanoi", "da nang", "can tho", "haiphong", "hai phong",
+  "nha trang", "da lat", "dalat", "phu quoc", "vung tau", "ba ria",
+  "binh duong", "dong nai", "bien hoa", "long an", "tien giang",
+  "ben tre", "vinh long", "tra vinh", "an giang", "kien giang",
+  "ca mau", "bac lieu", "soc trang", "hau giang", "phan thiet",
+  "quy nhon", "hue", "quang nam", "quang ngai", "thanh hoa",
+  "nghe an", "ha tinh", "quang binh", "quang tri", "ninh binh",
+  "nam dinh", "thai binh", "hung yen", "hai duong", "bac ninh",
+  "bac giang", "vinh phuc", "phu tho", "thai nguyen", "tuyen quang",
+  "lao cai", "yen bai", "son la", "dien bien", "lai chau", "ha giang",
+  "cao bang", "lang son", "quang ninh"
+];
+
+export function isNonHCMCQuery(query: string): boolean {
+  const normalized = normalizeLocationText(query);
+  return NON_HCMC_KEYWORDS.some((kw) => normalized.includes(kw));
 }
 
 // Tính khoảng cách theo công thức Haversine 
@@ -176,13 +205,21 @@ export function findNearestBuilding<T extends BuildingLocationCandidate>(
   };
 }
 
-// Tạo câu thông báo gợi ý khu vực với bán kính 15km
-export function getLocationSuggestionMessage(search: string, distanceKm?: number, isWithinRange: boolean = true): string {
+// Tạo câu thông báo gợi ý khu vực với giới hạn TP.HCM
+export function getLocationSuggestionMessage(
+  search: string,
+  distanceKm?: number,
+  isWithinRange: boolean = true,
+  isOutsideHCMC: boolean = false
+): string {
   const target = search.trim();
-  if (!isWithinRange && distanceKm) {
-    return `Không tìm thấy căn hộ nào ở ${target}. Đây là các căn hộ ở khu vực lân cận.`;
+  if (isOutsideHCMC) {
+    return `Hệ thống hiện tại chỉ hỗ trợ tìm kiếm căn hộ tại khu vực Thành phố Hồ Chí Minh..`;
   }
-  return `Không tìm thấy căn hộ nào ở ${target}. Đây là các căn hộ ở khu vực lân cận.`;
+  if (!isWithinRange && distanceKm) {
+    return `Không tìm thấy căn hộ trực tiếp tại "${target}". Dưới đây là danh sách các căn hộ tại khu vực lân cận ở TP.HCM.`;
+  }
+  return `Không tìm thấy căn hộ trực tiếp tại "${target}". Dưới đây là danh sách các căn hộ tại khu vực lân cận ở TP.HCM.`;
 }
 
 function getFirstCoordinates(value: unknown): Coordinates | null {
@@ -228,7 +265,6 @@ export async function geocodeSearchText(
       language: "vi",
       limit: "1",
       proximity: HCMC_PROXIMITY,
-      bbox: HCMC_BBOX,
       access_token: token,
     };
 

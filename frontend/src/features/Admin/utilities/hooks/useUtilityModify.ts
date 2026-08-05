@@ -28,7 +28,7 @@ export function useUtilityModify({
 }: UseUtilityModifyProps) {
   const queryClient = useQueryClient();
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<utilityService.UtilityReadingData> }) => utilityService.updateUtilityReading(id, data),
+    mutationFn: ({ id, data }: { id: number; data: Partial<utilityService.UtilityReadingData> }) => utilityService.update(id, data),
     onSuccess: () => {
       toast.success("Cập nhật chỉ số điện nước thành công");
       queryClient.invalidateQueries({ queryKey: ["utilityReadings"] });

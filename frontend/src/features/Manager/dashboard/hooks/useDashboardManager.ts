@@ -36,7 +36,7 @@ export function useDashboardManager() {
   // Query staff
   const { data: staffRes, isLoading: loadingStaff } = useQuery({
     queryKey: ["staff"],
-    queryFn: () => staffService.getAllStaffs(),
+    queryFn: () => staffService.getAll(),
     enabled: !!userId,
   });
   const currentStaff = userId && staffRes?.data
@@ -48,7 +48,7 @@ export function useDashboardManager() {
   // Query buildings if staff has building_id
   const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     enabled: !!currentStaff?.building_id && (!managedBuildingId || !managedBuildingName),
     select: (res) => res.data,
   });
@@ -66,7 +66,7 @@ export function useDashboardManager() {
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments", activeBuildingId],
-    queryFn: () => apartmentService.getAllApartmentsPage({
+    queryFn: () => apartmentService.getAllPage({
       building_id: activeBuildingId || undefined
     }),
     select: (res) => res.data,
@@ -74,7 +74,7 @@ export function useDashboardManager() {
 
   const { data: tenants = [], isLoading: loadingTenants } = useQuery({
     queryKey: ["tenants"],
-    queryFn: () => tenantService.getAllTenantsPage(),
+    queryFn: () => tenantService.getAllPage(),
     select: (res) => res.data,
   });
 
@@ -88,13 +88,13 @@ export function useDashboardManager() {
 
   const { data: schedules = [], isLoading: loadingSchedules } = useQuery({
     queryKey: ["schedules"],
-    queryFn: () => scheduleService.getAllSchedulesPage(),
+    queryFn: () => scheduleService.getAllPage(),
     select: (res) => res.data,
   });
 
   const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
     queryKey: ["invoices", activeBuildingId],
-    queryFn: () => invoiceService.getAllInvoicesPage({
+    queryFn: () => invoiceService.getAllPage({
       building_id: activeBuildingId || undefined,
     }),
     select: (res) => res.data,
@@ -102,7 +102,7 @@ export function useDashboardManager() {
 
   const { data: maintenanceData, isLoading: loadingMaintenance } = useQuery({
     queryKey: ["maintenanceRequests", activeBuildingId],
-    queryFn: () => maintenanceService.getAllMaintenanceRequests({
+    queryFn: () => maintenanceService.getAll({
       building_id: activeBuildingId || undefined,
       limit: 100
     }),

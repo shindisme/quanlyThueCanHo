@@ -93,14 +93,14 @@ export function useTenantPayments() {
   // Fetch unpaid invoices for payment selection
   const { data: unpaidInvoicesRes, isLoading: loadingInvoices } = useQuery({
     queryKey: ["tenant-unpaid-invoices"],
-    queryFn: () => invoiceService.getAllInvoicesPage({ status: "UNPAID" }),
+    queryFn: () => invoiceService.getAllPage({ status: "UNPAID" }),
   });
   const unpaidInvoices = unpaidInvoicesRes?.data || [];
 
   // Fetch payment transactions history
   const { data: paymentsRes, isLoading: loadingPayments } = useQuery({
     queryKey: ["tenant-payments"],
-    queryFn: () => paymentService.getAllPayments({ limit: 100 }),
+    queryFn: () => paymentService.getAll({ limit: 100 }),
   });
   const payments = paymentsRes?.data || [];
 
@@ -145,7 +145,7 @@ export function useTenantPayments() {
 
   const payManualMutation = useMutation({
     mutationFn: (payload: paymentService.CreatePaymentPayload) =>
-      paymentService.createPayment(payload),
+      paymentService.create(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tenant-payments"] });
       queryClient.invalidateQueries({ queryKey: ["tenant-unpaid-invoices"] });

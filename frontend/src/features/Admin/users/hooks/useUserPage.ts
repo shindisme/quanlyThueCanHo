@@ -39,14 +39,14 @@ export function useUserPage() {
 
   const { data: tenantsRes, isLoading: loadingTenants } = useQuery({
     queryKey: QUERY_KEYS.TENANTS,
-    queryFn: () => tenantService.getAllTenantsPage(),
+    queryFn: () => tenantService.getAllPage(),
     select: (res) => res.data,
   });
   const tenants = tenantsRes || [];
 
   const { data: staffRes, isLoading: loadingStaff } = useQuery({
     queryKey: QUERY_KEYS.STAFF,
-    queryFn: () => staffService.getAllStaffsPage(),
+    queryFn: () => staffService.getAllPage(),
     select: (res) => res.data,
   });
   const staff = staffRes || [];
@@ -59,13 +59,13 @@ export function useUserPage() {
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: QUERY_KEYS.APARTMENTS,
-    queryFn: () => apartmentService.getAllApartmentsPage(),
+    queryFn: () => apartmentService.getAllPage(),
     select: (res) => res.data,
   });
 
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: QUERY_KEYS.BUILDINGS,
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data,
   });
 

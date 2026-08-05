@@ -1,5 +1,5 @@
 import api from "../lib/api";
-import { getAllStaffs } from "./staffService";
+import { staffService } from "./staffService";
 import type { BuildingData, RawBuildingData, BuildingQuery, CreateBuildingRequest, UpdateBuildingRequest, ApiPagination, Staff } from "../types";
 export type { BuildingData, RawBuildingData, BuildingQuery, CreateBuildingRequest, UpdateBuildingRequest };
 import { fetchAllPages } from "./apiHelper";
@@ -38,7 +38,7 @@ export async function getAll(params?: BuildingQuery): Promise<{ data: BuildingDa
   const role = getRole();
   const staffListRes = (role === "TENANT" || role === "STAFF")
     ? { data: [] }
-    : await getAllStaffs().catch(() => ({ data: [] }));
+    : await staffService.getAll().catch(() => ({ data: [] }));
   const staffList = staffListRes.data || [];
 
   const mappedData = rawData.map((b: RawBuildingData) => {
@@ -62,7 +62,7 @@ export async function getById(id: number): Promise<BuildingData> {
   const role = getRole();
   const staffListRes = (role === "TENANT" || role === "STAFF")
     ? { data: [] }
-    : await getAllStaffs({ building_id: id }).catch(() => ({ data: [] }));
+    : await staffService.getAll({ building_id: id }).catch(() => ({ data: [] }));
   const staff = staffListRes.data.find(
     (s) => s.position === "Quản lý" || s.user?.role === "MANAGER"
   );
@@ -80,16 +80,10 @@ export async function update(id: number, data: FormData | UpdateBuildingRequest)
   return res.data.data || (res.data as unknown as BuildingData);
 }
 
-export async function deleteBuilding(id: number): Promise<unknown> {
+export async function remove(id: number): Promise<unknown> {
   const res = await api.delete(`${BUILDING_API}/${id}`);
   return res.data.data || res.data;
 }
-
-export const getAllBuildings = getAll;
-export const getAllBuildingsPage = getAllPage;
-export const getBuildingById = getById;
-export const createBuilding = create;
-export const updateBuilding = update;
 
 export const buildingService = {
   getAll,
@@ -97,5 +91,5 @@ export const buildingService = {
   getById,
   create,
   update,
-  delete: deleteBuilding,
+  remove,
 };

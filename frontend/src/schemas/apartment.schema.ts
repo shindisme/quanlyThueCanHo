@@ -25,7 +25,8 @@ export const apartmentSchema = z.object({
     .positive({ message: "Số phòng vệ sinh phải từ 1 trở lên" }),
   rental_price: z
     .coerce.number()
-    .positive({ message: "Giá thuê phải lớn hơn 0" }),
+    .positive({ message: "Giá thuê phải lớn hơn 0" })
+    .max(1000000000000, { message: "Giá thuê tối đa 1.000 tỷ đồng" }),
   description: z
     .string()
     .max(5000, { message: "Mô tả tối đa 5000 ký tự" })

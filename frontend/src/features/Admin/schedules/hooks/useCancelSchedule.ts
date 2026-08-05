@@ -1,12 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
-import { cancelSchedule } from "../../../../services/scheduleService";
+import { scheduleService } from "../../../../services";
 
 export function useCancelSchedule() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: cancelSchedule,
+    mutationFn: scheduleService.cancel,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SCHEDULES });
     },

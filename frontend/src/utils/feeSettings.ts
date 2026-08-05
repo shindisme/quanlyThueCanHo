@@ -54,6 +54,18 @@ export const readFeeSettings = (): FeeSettings => {
   }
 };
 
+export const saveFeeSettings = (settings: Partial<FeeSettings>) => {
+  try {
+    const current = readFeeSettings();
+    const updated = { ...current, ...settings };
+    localStorage.setItem("system_fee_settings", JSON.stringify(updated));
+  } catch (err) {
+    if (import.meta.env.DEV) console.error("Lỗi lưu fee settings:", err);
+  }
+};
+
+export const writeFeeSettings = saveFeeSettings;
+
 const roundMoney = (value: number) => Math.round(value * 100) / 100;
 
 const normalizeOccupantCount = (value?: number) =>

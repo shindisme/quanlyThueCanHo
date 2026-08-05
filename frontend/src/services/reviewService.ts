@@ -21,8 +21,6 @@ export async function create(data: CreateReviewRequest): Promise<unknown> {
   return res.data;
 }
 
-export const createReview = create;
-
 export const reviewService = {
   getApartmentReviews,
   create,

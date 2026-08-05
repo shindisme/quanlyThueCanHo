@@ -3,6 +3,7 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import { formatDate } from "../../../../utils/date";
+import { formatCurrency } from "../../../../utils/currency";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import { getInvoicePeriod } from "../../../../utils/invoicePeriod";
 import { getDisplayItemAmount, getDisplayTierDetails } from "../../../../utils/feeSettings";
@@ -24,10 +25,6 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
     };
     const s = statusMap[status] || { label: status, variant: "gray" };
     return <Badge variant={s.variant}>{s.label}</Badge>;
-  }
-
-  function formatCurrency(amount: number) {
-    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
   }
 
   function formatNumber(value: number) {

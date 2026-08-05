@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as buildingService from "../../../../services/buildingService";
 import * as reservationService from "../../../../services/reservationService";
-import { getAllApartmentsPage } from "../../../../services/apartmentService";
 import type { Apartment } from "../../../../types";
 import type { Building } from "../../../../types";
 import { useDebounce } from "../../../../hooks/useDebounce";
@@ -11,10 +10,12 @@ import { useOnOff } from "../../../../hooks/useOnOff";
 import { usePagination } from "../../../../hooks/usePagination";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import { useSort } from "../../../../hooks/useSort";
-import { removeVietnameseTones } from "../../../../utils/string";
+import { removeVietnameseTones, formatApartmentDisplay } from "../../../../utils/string";
+import { formatCurrency } from "../../../../utils/currency";
 import { useDeleteApartment } from "./useDeleteApartment";
 import { getApiErrorMessage } from "../../../../utils/apiError";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { apartmentService } from "../../../../services";
 
 export function useApartmentPage() {
   const queryClient = useQueryClient();
@@ -23,13 +24,10 @@ export function useApartmentPage() {
   // Tự động kiểm tra và giải phóng các khoản cọc giữ phòng hết hạn
   useEffect(() => {
     reservationService.expireReservations().then((res) => {
-      if (res.data?.expired_count && res.data.expired_count > 0) {
-        toast.info(`Đã tự động hủy giữ phòng & gửi Email thông báo cho ${res.data.expired_count} cọc quá hạn dọn vào.`);
-        queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.APARTMENTS] });
+      if (res && res.count > 0) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APARTMENTS });
       }
-    }).catch(() => {
-      /*empty*/
-    });
+    }).catch(() => { });
   }, [queryClient]);
 
   const [search, setSearch] = useState("");
@@ -62,7 +60,7 @@ export function useApartmentPage() {
   // Lấy danh sách căn hộ
   const { data: apartments = [], isLoading: loading } = useQuery({
     queryKey: [QUERY_KEYS.APARTMENTS[0], filterBuilding],
-    queryFn: () => getAllApartmentsPage({
+    queryFn: () => apartmentService.getAllPage({
       building_id: filterBuilding,
     }),
     select: (res) => res.data,
@@ -77,14 +75,41 @@ export function useApartmentPage() {
   const filtered: Apartment[] = useMemo(() => {
     return apartments.filter((apt) => {
       if (debouncedSearch) {
-        const s = removeVietnameseTones(debouncedSearch.toLowerCase());
-        const roomMatch = removeVietnameseTones(apt.room_number.toLowerCase()).includes(s);
+        const rawSearch = debouncedSearch.trim().toLowerCase();
+        const s = removeVietnameseTones(rawSearch);
+        const searchDigits = rawSearch.replace(/\D/g, "");
+
+        // 1. Khớp số phòng (hỗ trợ "101", "p.101", "p101", "01", "P.01")
+        const rawRoom = removeVietnameseTones(apt.room_number.toLowerCase());
+        const displayRoom = removeVietnameseTones(
+          formatApartmentDisplay(apt.room_number, apt.floor).toLowerCase()
+        );
+        const roomMatch =
+          rawRoom.includes(s) ||
+          displayRoom.includes(s) ||
+          displayRoom.replace(/\./g, "").includes(s.replace(/\./g, "")) ||
+          (searchDigits !== "" && (rawRoom.includes(searchDigits) || displayRoom.includes(searchDigits)));
+
+        // Khớp giá thuê
+        const rawPriceStr = String(apt.rental_price || 0);
+        const formattedPriceStr = removeVietnameseTones(
+          formatCurrency(Number(apt.rental_price || 0)).toLowerCase()
+        );
+        const priceMatch =
+          rawPriceStr.includes(s) ||
+          formattedPriceStr.includes(s) ||
+          (searchDigits !== "" && rawPriceStr.includes(searchDigits));
+
+        // Khớp tên chi nhánh
+        const buildingName = apt.building?.branch_name || buildingMap.get(apt.building_id)?.branch_name || "";
+        const buildingMatch = removeVietnameseTones(buildingName.toLowerCase()).includes(s);
+
+        // Khớp số tầng
         const floorMatch =
           removeVietnameseTones(`tầng ${apt.floor}`.toLowerCase()).includes(s) ||
-          String(apt.floor).includes(s);
-        const buildingName = buildingMap.get(apt.building_id)?.branch_name.toLowerCase() || "";
-        const buildingMatch = removeVietnameseTones(buildingName).includes(s);
-        if (!roomMatch && !floorMatch && !buildingMatch) {
+          String(apt.floor) === s;
+
+        if (!roomMatch && !priceMatch && !buildingMatch && !floorMatch) {
           return false;
         }
       }
@@ -148,34 +173,34 @@ export function useApartmentPage() {
 
   return {
     role,
-    managedBuildingId,
     search,
     setSearch,
-    filterStatus,
-    setFilterStatus,
-    filterFloor,
-    setFilterFloor,
-    availableFloors,
-    filterBuilding,
-    setFilterBuilding,
+    currentPage,
+    setCurrentPage,
+    startIdx,
     createModal,
     modifyModal,
     editItem,
     setEditItem,
     deleteItem,
     setDeleteItem,
-    buildings,
     loading,
+    totalCount: filtered.length,
+    totalPages,
     filtered,
-    sortedApartments,
+    paginatedApartments,
+    sortedApartments: paginatedApartments,
     requestSort,
     getSortIcon,
-    currentPage,
-    setCurrentPage,
-    totalPages,
-    startIdx,
-    paginatedApartments,
     handleDelete,
+    filterBuilding,
+    setFilterBuilding,
+    filterFloor,
+    setFilterFloor,
+    filterStatus,
+    setFilterStatus,
+    availableFloors,
+    buildings,
     deleting: deleteMutation.isPending,
   };
 }

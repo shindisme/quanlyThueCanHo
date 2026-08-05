@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
 import type { Tenant } from "../../../../types";
-import { updateTenant } from "../../../../services/tenantService";
+import { tenantService } from "../../../../services";
 
 interface UpdateTenantParams {
   id: number;
@@ -12,7 +12,7 @@ export function useUpdateTenant() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: UpdateTenantParams) => updateTenant(id, data),
+    mutationFn: ({ id, data }: UpdateTenantParams) => tenantService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TENANTS });
     },

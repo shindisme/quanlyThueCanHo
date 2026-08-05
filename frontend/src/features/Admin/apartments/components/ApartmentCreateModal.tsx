@@ -136,14 +136,15 @@ export default function ApartmentCreateModal({
 
     // Kiểm tra tuần tự số phòng ở tầng hiện tại
     try {
-      const res = await apartmentService.getAllApartmentsPage({ building_id: data.building_id });
+      const res = await apartmentService.getAllPage({ building_id: data.building_id });
       const floorApts = (res.data || []).filter((a) => a.floor === data.floor);
       const seqCheck = validateSequentialRoom(data.room_number, data.floor, floorApts);
       if (!seqCheck.valid) {
         toast.error(seqCheck.error);
         return;
       }
-    } catch { /*empty*/
+    } catch (err) {
+      console.error("Lỗi khi kiểm tra thứ tự phòng:", err);
     }
 
     const formDataToSend = new FormData();

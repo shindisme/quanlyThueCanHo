@@ -34,6 +34,7 @@ export default function InvoicePage() {
     currentPage,
     setCurrentPage,
     totalPages,
+    startIdx,
     selectedInvoice,
     detailsModal,
     handleOpenDetails,
@@ -193,6 +194,7 @@ export default function InvoicePage() {
             onOpenDetails={handleOpenDetails}
             onToggleStatus={handleToggleStatus}
             onPrint={printInvoiceHelper}
+            startIdx={startIdx}
           />
 
           <div className="pt-2">
@@ -213,22 +215,7 @@ export default function InvoicePage() {
         managedBuildingId={managedBuildingId}
       />
 
-      <DepositInvoiceModal
-        isOpen={depositModal.isOpen}
-        onClose={depositModal.closeModal}
-        form={depositModal.form}
-        setForm={depositModal.setForm}
-        selectedApartment={depositModal.selectedApartment}
-        isLoadingAvailableApartments={depositModal.isLoadingAvailableApartments}
-        buildingOptions={depositModal.buildingOptions}
-        floorOptions={depositModal.floorOptions}
-        apartmentOptions={depositModal.apartmentOptions}
-        onBuildingChange={depositModal.handleBuildingChange}
-        onFloorChange={depositModal.handleFloorChange}
-        onApartmentChange={depositModal.handleApartmentChange}
-        onSubmit={depositModal.handleSubmit}
-        isPending={depositModal.isPending}
-      />
+      <DepositInvoiceModal controller={depositModal} />
     </div>
   );
 }

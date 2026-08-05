@@ -21,7 +21,7 @@ export function useUtilityList() {
   // Fallback fetching building assignment via maintenance requests if building ID not saved in local storage yet
   const { data: maintenanceData } = useQuery({
     queryKey: ["maintenanceRequestsFallback"],
-    queryFn: () => maintenanceService.getAllMaintenanceRequests({ limit: 50 }),
+    queryFn: () => maintenanceService.getAll({ limit: 50 }),
     enabled: (role === "MANAGER" || role === "STAFF") && !managedBuildingId,
   });
 
@@ -64,21 +64,21 @@ export function useUtilityList() {
     : filterBuilding
       ? Number(filterBuilding)
       : undefined;
-  const readingsParams: Parameters<typeof utilityService.getAllUtilityReadingsPage>[0] = {};
+  const readingsParams: Parameters<typeof utilityService.getAllPage>[0] = {};
   if (selectedMonth !== undefined) readingsParams.month = selectedMonth;
   if (selectedYear !== undefined) readingsParams.year = selectedYear;
   if (selectedBuildingId !== undefined) readingsParams.building_id = selectedBuildingId;
 
   const { data: readingsRes, isLoading: loadingReadings, refetch: refetchReadings } = useQuery({
     queryKey: ["utilityReadings", role, managedBuildingId, filterBuilding, filterMonth, filterYear],
-    queryFn: () => utilityService.getAllUtilityReadingsPage(readingsParams),
+    queryFn: () => utilityService.getAllPage(readingsParams),
     select: (res) => res.data,
   });
   const readings = readingsRes || [];
 
   const { data: buildings = [], isLoading: loadingBuildings, refetch: refetchBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data,
   });
 
@@ -89,7 +89,7 @@ export function useUtilityList() {
 
   const { data: apartments = [], isLoading: loadingApartments, refetch: refetchApartments } = useQuery({
     queryKey: ["apartments", role, managedBuildingId],
-    queryFn: () => apartmentService.getAllApartmentsPage(aptParams),
+    queryFn: () => apartmentService.getAllPage(aptParams),
     select: (res) => res.data,
   });
 
@@ -133,7 +133,7 @@ export function useUtilityList() {
 
   // Confirm delete handler
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => utilityService.deleteUtilityReading(id),
+    mutationFn: (id: number) => utilityService.remove(id),
     onSuccess: () => {
       toast.success("Xóa chỉ số điện nước thành công");
       setDeleteItem(null);

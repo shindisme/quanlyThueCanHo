@@ -29,20 +29,14 @@ export async function update(
   return res.data.data || (res.data as unknown as Staff);
 }
 
-export async function deleteStaff(id: number): Promise<void> {
+export async function remove(id: number): Promise<void> {
   await api.delete(`${STAFF_API}/${id}`);
 }
-
-// Backward compatibility mappings
-export const getAllStaffs = getAll;
-export const getAllStaffsPage = getAllPage;
-export const createStaff = create;
-export const updateStaff = update;
 
 export const staffService = {
   getAll,
   getAllPage,
   create,
   update,
-  delete: deleteStaff,
+  remove,
 };

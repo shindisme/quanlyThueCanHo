@@ -31,7 +31,7 @@ export default function BuildingFormFields({
         <Input
           label="Tên chi nhánh *"
           type="text"
-          placeholder="Nhập tên chi nhánh"
+          placeholder="VD: YukiHouse + Tên chi nhánh"
           error={errors.branch_name?.message as string | undefined}
           className="rounded-md"
           {...register("branch_name")}

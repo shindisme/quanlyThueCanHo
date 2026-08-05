@@ -36,14 +36,14 @@ export function useDashboardStaff() {
   // Query staff
   const { data: staffRes, isLoading: loadingStaff } = useQuery({
     queryKey: ["staff"],
-    queryFn: () => staffService.getAllStaffs(),
+    queryFn: () => staffService.getAll(),
     enabled: !!userId && !!role && role !== "STAFF",
   });
 
   // Query maintenance
   const { data: maintenanceData, isLoading: loadingMaintenance } = useQuery({
     queryKey: ["maintenanceRequests", managedBuildingId],
-    queryFn: () => maintenanceService.getAllMaintenanceRequests({
+    queryFn: () => maintenanceService.getAll({
       building_id: managedBuildingId || undefined,
       limit: 100
     }),
@@ -63,7 +63,7 @@ export function useDashboardStaff() {
   // Query buildings if staff has building_id
   const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     enabled: !!role && role !== "STAFF" && !!currentStaff?.building_id && (!managedBuildingId || !managedBuildingName),
     select: (res) => res.data,
   });
@@ -79,7 +79,7 @@ export function useDashboardStaff() {
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments", activeBuildingId],
-    queryFn: () => apartmentService.getAllApartmentsPage({
+    queryFn: () => apartmentService.getAllPage({
       building_id: activeBuildingId || undefined
     }),
     enabled: !!role && role !== "STAFF",
@@ -88,7 +88,7 @@ export function useDashboardStaff() {
 
   const { data: tenants = [], isLoading: loadingTenants } = useQuery({
     queryKey: ["tenants"],
-    queryFn: () => tenantService.getAllTenantsPage(),
+    queryFn: () => tenantService.getAllPage(),
     enabled: !!role && role !== "STAFF",
     select: (res) => res.data,
   });
@@ -104,7 +104,7 @@ export function useDashboardStaff() {
 
   const { data: schedules = [], isLoading: loadingSchedules } = useQuery({
     queryKey: ["schedules"],
-    queryFn: () => scheduleService.getAllSchedulesPage(),
+    queryFn: () => scheduleService.getAllPage(),
     enabled: !!role && role !== "STAFF",
     select: (res) => res.data,
   });
@@ -117,7 +117,7 @@ export function useDashboardStaff() {
 
   const startMutation = useMutation({
     mutationFn: ({ id, staffId }: { id: number; staffId: number }) =>
-      maintenanceService.confirmMaintenanceRequest(id, {
+      maintenanceService.confirm(id, {
         assigned_staff_id: staffId,
         scheduled_at: new Date().toISOString(),
       }),
@@ -132,7 +132,7 @@ export function useDashboardStaff() {
 
   const completeMutation = useMutation({
     mutationFn: ({ id, charge_tenant, repair_fee }: { id: number; charge_tenant: boolean; repair_fee?: number }) =>
-      maintenanceService.completeMaintenanceRequest(id, { charge_tenant, repair_fee }),
+      maintenanceService.complete(id, { charge_tenant, repair_fee }),
     onSuccess: () => {
       toast.success("Đã hoàn thành sửa chữa sự cố");
       queryClient.invalidateQueries({ queryKey: ["maintenanceRequests"] });
@@ -144,7 +144,7 @@ export function useDashboardStaff() {
 
   const unableMutation = useMutation({
     mutationFn: ({ id, reason }: { id: number; reason: string }) =>
-      maintenanceService.unableMaintenanceRequest(id, { reason }),
+      maintenanceService.unable(id, { reason }),
     onSuccess: () => {
       toast.success("Đã báo cáo không thể sửa chữa thành công");
       queryClient.invalidateQueries({ queryKey: ["maintenanceRequests"] });

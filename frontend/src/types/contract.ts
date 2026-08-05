@@ -43,10 +43,13 @@ export interface RawContract {
 
 export interface ContractQuery {
   buildingId?: number;
+  building_id?: number;
   status?: string;
   search?: string;
   tenantId?: number;
+  tenant_id?: number;
   apartmentId?: number;
+  apartment_id?: number;
   page?: number;
   limit?: number;
 }

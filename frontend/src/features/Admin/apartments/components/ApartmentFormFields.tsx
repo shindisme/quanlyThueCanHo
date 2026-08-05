@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Controller, type UseFormReturn } from "react-hook-form";
 import Input from "../../../../components/ui/Input";
 import Combobox from "../../../../components/ui/Combobox";
+import CurrencyInput from "../../../../components/ui/CurrencyInput";
 import Button from "../../../../components/ui/Button";
 import type { Building } from "../../../../types";
 
@@ -115,12 +116,17 @@ export default function ApartmentFormFields({
       </div>
 
       <div className="col-span-12 sm:col-span-4">
-        <Input
-          label="Giá thuê (đ/tháng) *"
-          type="number"
-          className="rounded-md"
-          error={errors.rental_price?.message as string | undefined}
-          {...register("rental_price", { valueAsNumber: true })}
+        <Controller
+          control={control}
+          name="rental_price"
+          render={({ field, fieldState: { error } }) => (
+            <CurrencyInput
+              label="Giá thuê (đ/tháng) *"
+              value={field.value}
+              onChange={field.onChange}
+              error={error?.message}
+            />
+          )}
         />
       </div>
 

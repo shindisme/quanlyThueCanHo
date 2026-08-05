@@ -9,6 +9,7 @@ interface DatePickerProps {
   onChange?: (date: Date | null) => void;
   placeholder?: string;
   showTime?: boolean;
+  disabled?: boolean;
 }
 
 const monthWordNames = [
@@ -82,6 +83,7 @@ export function DatePicker({
   onChange,
   placeholder,
   showTime = false,
+  disabled = false,
 }: DatePickerProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(() => parseValueToDate(value));
   const [inputValue, setInputValue] = useState("");
@@ -270,17 +272,21 @@ export function DatePicker({
           value={inputValue}
           onChange={handleInputChange}
           onBlur={handleInputBlur}
-          onFocus={() => setIsOpen(true)}
+          onFocus={() => !disabled && setIsOpen(true)}
+          disabled={disabled}
           placeholder={placeholder || (showTime ? "DD/MM/YYYY HH:mm" : "DD/MM/YYYY")}
           className={cn(
-            "h-10 w-full rounded-md border border-gray-200 bg-white pl-3 pr-10 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all shadow-sm font-sans",
+            "h-10 w-full rounded-md border border-gray-200 bg-white pl-3 pr-10 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all shadow-sm font-sans disabled:bg-gray-100 disabled:cursor-not-allowed",
             className
           )}
         />
         <CalendarIcon
           size={16}
-          className="absolute right-3 text-gray-400 hover:text-gray-600 cursor-pointer"
-          onClick={() => setIsOpen(!isOpen)}
+          className={cn(
+            "absolute right-3 text-gray-400 transition-colors",
+            disabled ? "cursor-not-allowed opacity-50" : "hover:text-gray-600 cursor-pointer"
+          )}
+          onClick={() => !disabled && setIsOpen(!isOpen)}
         />
       </div>
 
@@ -416,7 +422,7 @@ export function DatePicker({
                       type="button"
                       onClick={() => selectDate(cell.day, cell.monthOffset)}
                       className={cn(
-                        "h-[28px] w-full text-xs font-medium rounded transition-all cursor-pointer",
+                        "h-7 w-full text-xs font-medium rounded transition-all cursor-pointer",
                         !cell.isCurrentMonth && "text-gray-300",
                         cell.isCurrentMonth && !isSelected && "text-gray-700 hover:bg-primary-50 hover:text-primary-600",
                         isSelected && "bg-primary-600 text-white font-semibold"
@@ -432,7 +438,7 @@ export function DatePicker({
 
           {/* Time Picker Panel (Optional) */}
           {showTime && (
-            <div className="border-l border-gray-100 flex p-3 w-[130px] flex-col justify-between bg-gray-50/50">
+            <div className="border-l border-gray-100 flex p-3 w-32.5 flex-col justify-between bg-gray-50/50">
               <div className="h-full flex flex-col justify-between space-y-2">
                 <div className="text-center font-bold text-xs text-gray-800 pb-2 border-b border-gray-100">
                   Thời gian
@@ -440,7 +446,7 @@ export function DatePicker({
 
                 <div className="flex gap-2 justify-center flex-1 min-h-0 overflow-y-auto">
                   {/* Hours */}
-                  <div className="flex flex-col overflow-y-auto max-h-[160px] scrollbar-none pr-1">
+                  <div className="flex flex-col overflow-y-auto max-h-40 scrollbar-none pr-1">
                     {hours.map((h) => (
                       <button
                         key={h}
@@ -458,7 +464,7 @@ export function DatePicker({
                     ))}
                   </div>
                   {/* Minutes */}
-                  <div className="flex flex-col overflow-y-auto max-h-[160px] scrollbar-none pl-1">
+                  <div className="flex flex-col overflow-y-auto max-h-40 scrollbar-none pl-1">
                     {minutes.filter(m => m % 5 === 0).map((m) => (
                       <button
                         key={m}

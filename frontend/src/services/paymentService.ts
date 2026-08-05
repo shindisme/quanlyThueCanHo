@@ -65,12 +65,6 @@ export async function getPaymentMethods(): Promise<string[]> {
   return res.data.data || [];
 }
 
-export const getAllPayments = getAll;
-export const getAllPaymentsPage = getAllPage;
-export const getPaymentById = getById;
-export const createPayment = create;
-export const updatePaymentStatus = updateStatus;
-
 export const paymentService = {
   getAll,
   getAllPage,

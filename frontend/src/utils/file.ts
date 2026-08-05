@@ -39,12 +39,17 @@ export function isValidImageFile(
   return { valid: true };
 }
 
+export const DEFAULT_APARTMENT_IMAGE =
+  "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80";
+
 // Lấy ảnh đại diện/thumbnail của căn hộ
-export function getApartmentThumbnail(apt: { images?: { is_thumbnail?: boolean; image_url: string }[] }): string {
+export function getApartmentThumbnail(
+  apt?: { images?: { is_thumbnail?: boolean; image_url: string }[] } | null
+): string {
   if (apt && apt.images && Array.isArray(apt.images) && apt.images.length > 0) {
     const thumb = apt.images.find((img) => img.is_thumbnail);
-    if (thumb) return thumb.image_url;
-    return apt.images[0].image_url;
+    if (thumb && thumb.image_url) return thumb.image_url;
+    if (apt.images[0]?.image_url) return apt.images[0].image_url;
   }
-  return "";
+  return DEFAULT_APARTMENT_IMAGE;
 }

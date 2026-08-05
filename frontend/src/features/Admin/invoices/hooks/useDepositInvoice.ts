@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import * as apartmentService from "../../../../services/apartmentService";
 import * as reservationService from "../../../../services/reservationService";
 import type { Apartment } from "../../../../types";
+import { depositFormSchema } from "../../../../schemas/invoice.schema";
 
 export type DepositForm = {
   building_id: string;
@@ -33,6 +34,20 @@ export const emptyDepositForm = (): DepositForm => ({
   deposit_amount: 0,
 });
 
+export const getPresetForm = (apt: Apartment): DepositForm => ({
+  ...emptyDepositForm(),
+  building_id: String(apt.building_id),
+  floor: String(apt.floor),
+  apartment_id: String(apt.id),
+  deposit_amount: apt.rental_price || 0,
+});
+
+export const availableApartmentKeys = {
+  all: ["available-apartments-for-deposit"] as const,
+  list: (role?: string | null, managedBuildingId?: number) =>
+    [...availableApartmentKeys.all, role, managedBuildingId] as const,
+};
+
 export interface UseDepositInvoiceOptions {
   fixedApartment?: Apartment;
   role?: string | null;
@@ -52,9 +67,9 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
     isLoading: isLoadingAvailableApartments,
     refetch: refetchAvailableApartments,
   } = useQuery({
-    queryKey: ["available-apartments-for-deposit", role, managedBuildingId],
+    queryKey: availableApartmentKeys.list(role, managedBuildingId),
     queryFn: () =>
-      apartmentService.getAllApartmentsPage({
+      apartmentService.getAllPage({
         status: "AVAILABLE",
         building_id: role === "MANAGER" ? managedBuildingId || undefined : undefined,
       }),
@@ -122,7 +137,7 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
       toast.success("Đã lập hóa đơn cọc phòng");
       setIsOpen(false);
       void queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      void queryClient.invalidateQueries({ queryKey: ["available-apartments-for-deposit"] });
+      void queryClient.invalidateQueries({ queryKey: availableApartmentKeys.all });
       if (onSuccessCallback) onSuccessCallback();
     },
     onError: (error: unknown) => {
@@ -134,13 +149,7 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
   const openModal = (presetApartment?: Apartment) => {
     const targetApt = presetApartment || fixedApartment;
     if (targetApt) {
-      setForm({
-        ...emptyDepositForm(),
-        building_id: String(targetApt.building_id),
-        floor: String(targetApt.floor),
-        apartment_id: String(targetApt.id),
-        deposit_amount: targetApt.rental_price || 0,
-      });
+      setForm(getPresetForm(targetApt));
     } else {
       setForm(emptyDepositForm());
       void refetchAvailableApartments();
@@ -181,44 +190,25 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
     }));
   };
 
+  const validateForm = (): boolean => {
+    const targetAptId = fixedApartment ? String(fixedApartment.id) : form.apartment_id;
+    const result = depositFormSchema.safeParse({
+      ...form,
+      apartment_id: targetAptId,
+      deposit_amount: Number(form.deposit_amount),
+    });
+
+    if (!result.success) {
+      const firstError = result.error.issues[0];
+      toast.error(firstError.message);
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const aptId = fixedApartment ? fixedApartment.id : Number(form.apartment_id);
-    if (!aptId) {
-      toast.error("Căn hộ: Vui lòng chọn căn hộ đặt cọc");
-      return;
-    }
-    if (!form.full_name.trim()) {
-      toast.error("Họ tên: Vui lòng nhập họ tên người thuê");
-      return;
-    }
-    if (!form.phone.trim()) {
-      toast.error("Số điện thoại: Vui lòng nhập số điện thoại người thuê");
-      return;
-    }
-    if (!form.email.trim()) {
-      toast.error("Email: Vui lòng nhập địa chỉ email người thuê");
-      return;
-    }
-    if (!form.citizen_id.trim()) {
-      toast.error("CCCD: Vui lòng nhập số CCCD người thuê");
-      return;
-    }
-    if (!form.move_in_date) {
-      toast.error("Ngày dọn vào: Vui lòng chọn ngày dọn vào");
-      return;
-    }
-    const moveInDateObj = new Date(form.move_in_date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (isNaN(moveInDateObj.getTime()) || moveInDateObj < today) {
-      toast.error("Ngày dọn vào: Ngày dọn vào không được ở trong quá khứ");
-      return;
-    }
-    if (!Number.isFinite(Number(form.deposit_amount)) || Number(form.deposit_amount) <= 0) {
-      toast.error("Số tiền cọc: Số tiền cọc phải lớn hơn 0");
-      return;
-    }
+    if (!validateForm()) return;
     depositMutation.mutate();
   };
 
@@ -241,3 +231,5 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
     isPending: depositMutation.isPending,
   };
 }
+
+export type DepositInvoiceController = ReturnType<typeof useDepositInvoice>;

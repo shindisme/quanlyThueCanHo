@@ -41,7 +41,7 @@ export function useTenantMaintenance() {
   // Fetch maintenance request
   const { data: requestsRes, isLoading: loadingRequests } = useQuery({
     queryKey: ["maintenanceRequests", role],
-    queryFn: () => maintenanceService.getAllMaintenanceRequests(),
+    queryFn: () => maintenanceService.getAll(),
     enabled: !!token,
   });
   const requests = requestsRes?.data || [];
@@ -62,7 +62,7 @@ export function useTenantMaintenance() {
         ? await uploadService.uploadImages([selectedImage])
         : [];
 
-      return maintenanceService.createMaintenanceRequest({
+      return maintenanceService.create({
         ...payload,
         ...(imageUrls[0] ? { image_url: imageUrls[0] } : {}),
       });
@@ -83,7 +83,7 @@ export function useTenantMaintenance() {
     },
   });
   const cancelMutation = useMutation({
-    mutationFn: (id: number) => maintenanceService.cancelMaintenanceRequest(id),
+    mutationFn: (id: number) => maintenanceService.cancel(id),
     onSuccess: () => {
       toast.success("Đã hủy yêu cầu sửa chữa");
       queryClient.invalidateQueries({ queryKey: ["maintenanceRequests"] });

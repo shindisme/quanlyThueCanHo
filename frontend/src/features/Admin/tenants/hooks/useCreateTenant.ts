@@ -1,12 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
-import { createTenant } from "../../../../services/tenantService";
+import { tenantService } from "../../../../services";
 
 export function useCreateTenant() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createTenant,
+    mutationFn: tenantService.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TENANTS });
     },

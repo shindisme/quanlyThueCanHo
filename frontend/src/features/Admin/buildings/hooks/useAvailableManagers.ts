@@ -6,7 +6,7 @@ import { QUERY_KEYS } from "../../../../constants/queryKeys";
 export function useAvailableManagers(enabled = true, currentBuildingId?: number) {
   const { data: staffList = [], isLoading: loadingStaff } = useQuery({
     queryKey: QUERY_KEYS.STAFF,
-    queryFn: () => staffService.getAllStaffsPage(),
+    queryFn: () => staffService.getAllPage(),
     enabled,
     select: (res) => res.data,
   });

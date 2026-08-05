@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as authService from "../../../../services/authService";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
-import { updateStaff } from "../../../../services/staffService";
+import { staffService } from "../../../../services";
 
 interface UpdateStaffParams {
   id: number;
@@ -39,7 +39,7 @@ export function useUpdateStaff() {
         const isManager = position === "Quản lý";
         const roleToCreate = isManager ? "MANAGER" : "STAFF";
 
-        const res = await authService.createUser({
+        const res = await authService.create({
           username: nextUsername,
           role: roleToCreate,
         });
@@ -50,14 +50,14 @@ export function useUpdateStaff() {
       // Nếu đã có tài khoản từ trước nhưng chức vụ mới không cần tài khoản
       if (hasUser && userId && !isActor) {
         try {
-          await authService.deleteUser(userId);
+          await authService.remove(userId);
           deletedAccount = true;
         } catch (e) {
           console.error("Không thể xóa tài khoản nhân viên", e);
         }
       }
 
-      await updateStaff(id, {
+      await staffService.update(id, {
         full_name: fullName,
         phone: phone || null,
         position,

@@ -30,13 +30,13 @@ export function useSchedulePage() {
 
   const { data: schedules = [], isLoading: loadingSchedules, refetch: fetchSchedules } = useQuery({
     queryKey: QUERY_KEYS.SCHEDULES,
-    queryFn: () => scheduleService.getAllSchedulesPage(),
+    queryFn: () => scheduleService.getAllPage(),
     select: (res) => res.data as unknown as ViewingSchedule[],
   });
 
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: QUERY_KEYS.BUILDINGS,
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data as unknown as Building[],
   });
   const loading = loadingSchedules || loadingBuildings;

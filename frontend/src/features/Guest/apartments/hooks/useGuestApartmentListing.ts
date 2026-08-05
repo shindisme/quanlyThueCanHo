@@ -9,6 +9,8 @@ import {
   findNearestBuildingAsync,
   geocodeSearchText,
   getLocationSuggestionMessage,
+  isCoordinatesInHCMC,
+  isNonHCMCQuery,
 } from "../../../../utils/locationSearch";
 
 type LocationSuggestion = {
@@ -23,7 +25,7 @@ async function getGuestApartments(buildingId?: number) {
   let totalPages: number;
 
   do {
-    const res = await apartmentService.getAllApartments({
+    const res = await apartmentService.getAll({
       building_id: buildingId,
       limit: 100,
       page,
@@ -60,7 +62,7 @@ export function useGuestApartmentListing() {
 
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data,
   });
 
@@ -136,10 +138,31 @@ export function useGuestApartmentListing() {
       return;
     }
 
+    // Nếu tìm kiếm chứa từ khóa tỉnh thành ngoài TP.HCM
+    if (isNonHCMCQuery(searchText)) {
+      setLocationSearching(false);
+      setLocationSuggestion({
+        search: searchText,
+        buildingId: 0,
+        message: getLocationSuggestionMessage(searchText, undefined, true, true),
+      });
+      return;
+    }
+
     setLocationSearching(true);
     geocodeSearchText(searchText, import.meta.env.VITE_MAPBOX_ACCESS_TOKEN)
       .then(async (coordinates) => {
-        if (cancelled || !coordinates) return;
+        if (cancelled) return;
+
+        // Nếu tọa độ trả về nằm ngoài phạm vi địa lý TP.HCM
+        if (!coordinates || !isCoordinatesInHCMC(coordinates)) {
+          setLocationSuggestion({
+            search: searchText,
+            buildingId: 0,
+            message: getLocationSuggestionMessage(searchText, undefined, true, true),
+          });
+          return;
+        }
 
         const result = await findNearestBuildingAsync(
           coordinates,
@@ -168,15 +191,18 @@ export function useGuestApartmentListing() {
     locationSuggestion?.search === debouncedSearch.trim()
       ? locationSuggestion
       : null;
-  const suggestedFiltered = activeLocationSuggestion
+
+  const suggestedFiltered = (activeLocationSuggestion && activeLocationSuggestion.buildingId > 0)
     ? filteredByControls.filter(
       (apartment) => apartment.building_id === activeLocationSuggestion.buildingId
     )
     : [];
+
   const isUsingLocationSuggestion =
     !!activeLocationSuggestion &&
     exactFiltered.length === 0 &&
     suggestedFiltered.length > 0;
+
   const filtered = isUsingLocationSuggestion ? suggestedFiltered : exactFiltered;
 
   return {
@@ -195,7 +221,7 @@ export function useGuestApartmentListing() {
     floors,
     filtered,
     locationSearching,
-    locationSuggestionMessage: isUsingLocationSuggestion
+    locationSuggestionMessage: activeLocationSuggestion
       ? activeLocationSuggestion.message
       : "",
   };

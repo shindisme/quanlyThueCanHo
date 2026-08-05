@@ -16,13 +16,13 @@ export function useDashboardAdmin() {
 
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllBuildingsPage(),
+    queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data,
   });
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllApartmentsPage(),
+    queryFn: () => apartmentService.getAllPage(),
     select: (res) => res.data,
   });
 
@@ -34,7 +34,7 @@ export function useDashboardAdmin() {
 
   const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
     queryKey: ["invoices"],
-    queryFn: () => invoiceService.getAllInvoicesPage(),
+    queryFn: () => invoiceService.getAllPage(),
     select: (res) => res.data,
   });
 
@@ -55,9 +55,11 @@ export function useDashboardAdmin() {
     ? invoices.filter((inv) => inv.contract?.apartment?.building_id === branchId)
     : invoices;
 
-  // Tính tổng số lượng căn hộ, cư dân và doanh thu thực nhận tháng hiện tại
+  // Tổng số lượng tòa nhà và căn hộ
   const totalBuildingsCount = filteredBuildings.length;
-  const totalApartmentsCount = filteredBuildings.reduce((sum: number, b) => sum + (b.total_apartments || b._count?.apartments || 0), 0);
+  const totalApartmentsCount = filteredApartments.length > 0
+    ? filteredApartments.length
+    : filteredBuildings.reduce((sum: number, b) => sum + (b.total_apartments || b._count?.apartments || 0), 0);
 
   const activeContractsForExpiration = contracts.filter((c) => {
     return !branchId || filteredApartments.some((a) => a.id === c.apartment_id);
@@ -71,7 +73,7 @@ export function useDashboardAdmin() {
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
-  // Lọc các hóa đơn PAID trong tháng, năm hiện tại để tính doanh thu
+  // Doanh thu thực nhận tháng hiện tại
   const currentMonthPaidInvoices = filteredInvoices.filter((inv) => {
     if (inv.status !== "PAID") return false;
     const date = new Date(inv.paid_at || inv.created_at);
@@ -80,17 +82,58 @@ export function useDashboardAdmin() {
 
   const monthlyRevenue = currentMonthPaidInvoices.reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
 
-  // Tổng hợp dữ liệu doanh thu 12 tháng
+  // Tiền chưa thu vs số hóa đơn chưa thanh toán
+  const unpaidInvoices = filteredInvoices.filter((inv) => inv.status === "UNPAID");
+  const unpaidRevenue = unpaidInvoices.reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
+  const unpaidInvoicesCount = unpaidInvoices.length;
+
+  // Tỷ lệ lấp đầy
+  const rentedCount = filteredApartments.filter((a) => a.status === "RENTED").length;
+  const availableCount = filteredApartments.filter((a) => a.status === "AVAILABLE").length;
+  const maintenanceCount = filteredApartments.filter((a) => a.status === "MAINTENANCE").length;
+
+  const occupancyRate = totalApartmentsCount > 0
+    ? Number(((rentedCount / totalApartmentsCount) * 100).toFixed(1))
+    : 0;
+
+  // Thống kê xu hướng tăng giảm doanh thu so với tháng trước
+  const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+  const lastMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+
+  const previousMonthPaidInvoices = filteredInvoices.filter((inv) => {
+    if (inv.status !== "PAID") return false;
+    const date = new Date(inv.paid_at || inv.created_at);
+    return date.getMonth() + 1 === lastMonth && date.getFullYear() === lastMonthYear;
+  });
+
+  const previousMonthRevenue = previousMonthPaidInvoices.reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
+
+  let revenueTrend: "up" | "down" | undefined = undefined;
+  let revenueTrendValue: string | undefined = undefined;
+
+  if (previousMonthRevenue > 0) {
+    const diff = monthlyRevenue - previousMonthRevenue;
+    const pct = Math.abs(Number(((diff / previousMonthRevenue) * 100).toFixed(1)));
+    revenueTrend = diff >= 0 ? "up" : "down";
+    revenueTrendValue = `${diff >= 0 ? "+" : "-"}${pct}% so với tháng trước`;
+  } else if (monthlyRevenue > 0) {
+    revenueTrend = "up";
+    revenueTrendValue = "+100% so với tháng trước";
+  }
+
+  // Dữ liệu biểu đồ doanh thu 12 tháng
   const months = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
   const monthlyRevenueData = months.map((m, index) => {
     const monthVal = index + 1;
-    const revenue = filteredInvoices.filter((inv) => {
+    const monthPaidInvoices = filteredInvoices.filter((inv) => {
       if (inv.status !== "PAID") return false;
       const date = new Date(inv.paid_at || inv.created_at);
       return date.getMonth() + 1 === monthVal && date.getFullYear() === currentYear;
-    }).reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
+    });
 
-    const lastYear = filteredInvoices.filter((inv) => {
+    const revenue = monthPaidInvoices.reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
+
+    const lastYearRevenue = filteredInvoices.filter((inv) => {
       if (inv.status !== "PAID") return false;
       const date = new Date(inv.paid_at || inv.created_at);
       return date.getMonth() + 1 === monthVal && date.getFullYear() === currentYear - 1;
@@ -99,33 +142,49 @@ export function useDashboardAdmin() {
     return {
       name: m,
       "Doanh thu": revenue,
-      "Năm trước": lastYear,
+      "Năm trước": lastYearRevenue,
+      invoiceCount: monthPaidInvoices.length,
     };
   });
 
-  const yearlyRevenueData = [currentYear - 2, currentYear - 1, currentYear].map(yr => {
-    const revenue = filteredInvoices.filter((inv) => {
+  const yearlyRevenueData = [currentYear - 2, currentYear - 1, currentYear].map((yr) => {
+    const yrPaidInvoices = filteredInvoices.filter((inv) => {
       if (inv.status !== "PAID") return false;
       const date = new Date(inv.paid_at || inv.created_at);
       return date.getFullYear() === yr;
-    }).reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
+    });
+
+    const revenue = yrPaidInvoices.reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
 
     return {
       name: String(yr),
       "Doanh thu": revenue,
+      invoiceCount: yrPaidInvoices.length,
     };
   });
 
   const chartData = timeFrame === "month" ? monthlyRevenueData : yearlyRevenueData;
 
-  const rentedCount = filteredApartments.filter((a) => a.status === "RENTED").length;
-  const availableCount = filteredApartments.filter((a) => a.status === "AVAILABLE").length;
-  const maintenanceCount = filteredApartments.filter((a) => a.status === "MAINTENANCE").length;
-
+  // Dữ liệu trạng thái căn hộ
   const roomStatusData = [
-    { name: "Đang thuê", value: rentedCount, color: "#10B981" },
-    { name: "Trống", value: availableCount, color: "#3B82F6" },
-    { name: "Bảo trì", value: maintenanceCount, color: "#F59E0B" },
+    {
+      name: "Đang thuê",
+      value: rentedCount,
+      percentage: totalApartmentsCount > 0 ? Math.round((rentedCount / totalApartmentsCount) * 100) : 0,
+      color: "#10B981",
+    },
+    {
+      name: "Trống",
+      value: availableCount,
+      percentage: totalApartmentsCount > 0 ? Math.round((availableCount / totalApartmentsCount) * 100) : 0,
+      color: "#3B82F6",
+    },
+    {
+      name: "Bảo trì",
+      value: maintenanceCount,
+      percentage: totalApartmentsCount > 0 ? Math.round((maintenanceCount / totalApartmentsCount) * 100) : 0,
+      color: "#F59E0B",
+    },
   ];
 
   const now = new Date();
@@ -165,8 +224,8 @@ export function useDashboardAdmin() {
     { value: "", label: "Tất cả chi nhánh" },
     ...buildings.map((b) => ({
       value: String(b.id),
-      label: b.branch_name
-    }))
+      label: b.branch_name,
+    })),
   ];
 
   return {
@@ -183,6 +242,14 @@ export function useDashboardAdmin() {
     totalApartmentsCount,
     activeTenantsCount,
     monthlyRevenue,
+    unpaidRevenue,
+    unpaidInvoicesCount,
+    occupancyRate,
+    revenueTrend,
+    revenueTrendValue,
+    rentedCount,
+    availableCount,
+    maintenanceCount,
     chartData,
     roomStatusData,
     expiredContractsCount,
@@ -190,6 +257,6 @@ export function useDashboardAdmin() {
     expiring60DaysCount,
     expiring90DaysCount,
     branchOptions,
-    currentYear
+    currentYear,
   };
 }
