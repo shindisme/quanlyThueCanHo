@@ -104,8 +104,8 @@ export default function UtilityModifyModal({
               label="Chỉ số điện cũ"
               type="number"
               value={electricOld}
-              onChange={(e) => setElectricOld(e.target.value)}
-              disabled={isViewOnly}
+              disabled={true}
+              readOnly={true}
             />
             <Input
               label="Chỉ số điện mới *"
@@ -127,8 +127,8 @@ export default function UtilityModifyModal({
               label="Chỉ số nước cũ"
               type="number"
               value={waterOld}
-              onChange={(e) => setWaterOld(e.target.value)}
-              disabled={isViewOnly}
+              disabled={true}
+              readOnly={true}
             />
             <Input
               label="Chỉ số nước mới *"

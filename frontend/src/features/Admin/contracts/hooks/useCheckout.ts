@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { RentalContract } from "../../../../types";
+import type { RentalContract, Invoice } from "../../../../types";
 import { invoiceService, utilityService } from "../../../../services";
 import { generateMonthlyInvoices } from "../../../../services/invoiceService";
 import { useAuthStore } from "../../../../stores/auth.store";
@@ -68,9 +68,9 @@ function isInvoiceAlreadyExistsError(err: unknown): boolean {
 
 // Hàm lấy dữ liệu khởi tạo điện nước và công nợ ban đầu
 async function fetchCheckoutInitialData(contract: RentalContract | null, currentMonth: number, currentYear: number) {
-  if (!contract) return { electricOld: 0, waterOld: 0, electricNew: 0, waterNew: 0, unpaidAmount: 0, existingReading: null };
+  if (!contract) return { electricOld: 0, waterOld: 0, electricNew: 0, waterNew: 0, unpaidAmount: 0, unpaidInvoices: [], existingReading: null };
 
-  const [readingsRes, invoicesRes] = await Promise.all([
+  const [readingsRes, invoicesTenantRes, invoicesContractRes] = await Promise.all([
     utilityService.getAll({
       apartment_id: contract.apartment_id,
       limit: 20,
@@ -82,7 +82,14 @@ async function fetchCheckoutInitialData(contract: RentalContract | null, current
       tenant_id: contract.tenant_id,
       status: "UNPAID",
     }).catch((err) => {
-      if (import.meta.env.DEV) console.error("Lỗi khi lấy hóa đơn chưa trả:", err);
+      if (import.meta.env.DEV) console.error("Lỗi khi lấy hóa đơn chưa trả theo tenant:", err);
+      return { data: [] };
+    }),
+    invoiceService.getAllPage({
+      contract_id: contract.id,
+      status: "UNPAID",
+    }).catch((err) => {
+      if (import.meta.env.DEV) console.error("Lỗi khi lấy hóa đơn chưa trả theo contract:", err);
       return { data: [] };
     }),
   ]);
@@ -117,7 +124,12 @@ async function fetchCheckoutInitialData(contract: RentalContract | null, current
     waterNew = waterOld;
   }
 
-  const unpaidInvoices = invoicesRes.data || [];
+  // Gộp tất cả các loại hóa đơn UNPAID
+  const allUnpaidMap = new Map<number, Invoice>();
+  (invoicesTenantRes.data || []).forEach((inv) => allUnpaidMap.set(inv.id, inv as unknown as Invoice));
+  (invoicesContractRes.data || []).forEach((inv) => allUnpaidMap.set(inv.id, inv as unknown as Invoice));
+
+  const unpaidInvoices = Array.from(allUnpaidMap.values());
   const unpaidAmount = unpaidInvoices.reduce(
     (sum: number, inv) => sum + Number(inv.total_amount),
     0
@@ -130,6 +142,7 @@ async function fetchCheckoutInitialData(contract: RentalContract | null, current
     waterNew,
     existingReading: currentReading || null,
     unpaidAmount,
+    unpaidInvoices,
   };
 }
 
@@ -201,7 +214,7 @@ export function useCheckout({
     }
   }, [isOpen, contract, role, resetState]);
 
-  // Query lấy dữ liệu điện nước và công nợ ban đầu
+  // Query lấy dữ liệu điện nước và toàn bộ hóa đơn chưa trả ban đầu
   const { data: initialData, isLoading: loadingData } = useQuery({
     queryKey: ["checkout-initial-data", contract?.id],
     queryFn: () => fetchCheckoutInitialData(contract, currentMonth, currentYear),
@@ -238,6 +251,7 @@ export function useCheckout({
   }, [utilityInputs.waterNew, waterOld, initialData?.waterNew]);
 
   const unpaidAmount = initialData?.unpaidAmount ?? 0;
+  const unpaidInvoices = initialData?.unpaidInvoices ?? [];
 
   const electricConsumption = useMemo(
     () => calculateConsumption(electricOld, electricNew),
@@ -288,10 +302,10 @@ export function useCheckout({
         water_new: waterNew,
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success(initialData?.existingReading ? "Cập nhật chỉ số điện nước thành công!" : "Chốt điện nước phòng thành công!");
       setCheckoutMeta((prev) => ({ ...prev, utilitySaved: true }));
-      queryClient.invalidateQueries({ queryKey: ["checkout-initial-data", contract?.id] });
+      await queryClient.refetchQueries({ queryKey: ["checkout-initial-data", contract?.id] });
       setStep(CheckoutStep.INVOICE);
     },
     onError: (err: unknown) => {
@@ -312,17 +326,17 @@ export function useCheckout({
         notify: true,
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Khởi tạo hóa đơn tháng thành công!");
       setCheckoutMeta((prev) => ({ ...prev, hasGeneratedInvoice: true, hasSkippedInvoice: false }));
-      queryClient.invalidateQueries({ queryKey: ["checkout-initial-data", contract?.id] });
+      await queryClient.refetchQueries({ queryKey: ["checkout-initial-data", contract?.id] });
       setStep(CheckoutStep.DEPOSIT);
     },
-    onError: (err: unknown) => {
+    onError: async (err: unknown) => {
       if (isInvoiceAlreadyExistsError(err)) {
         toast.info("Đã có hóa đơn cho tháng này.");
         setCheckoutMeta((prev) => ({ ...prev, hasGeneratedInvoice: true, hasSkippedInvoice: false }));
-        queryClient.invalidateQueries({ queryKey: ["checkout-initial-data", contract?.id] });
+        await queryClient.refetchQueries({ queryKey: ["checkout-initial-data", contract?.id] });
         setStep(CheckoutStep.DEPOSIT);
       } else {
         const error = err as { response?: { data?: { message?: string } }; message?: string };
@@ -344,11 +358,12 @@ export function useCheckout({
   }, [contract, isUtilityValid, electricConsumption, waterConsumption, saveUtilityMutation]);
 
   // Thực hiện bỏ qua tạo hóa đơn
-  const handleSkipInvoice = useCallback(() => {
+  const handleSkipInvoice = useCallback(async () => {
     setCheckoutMeta((prev) => ({ ...prev, hasSkippedInvoice: true }));
     setDialogs((prev) => ({ ...prev, skipInvoice: false }));
+    await queryClient.refetchQueries({ queryKey: ["checkout-initial-data", contract?.id] });
     setStep(CheckoutStep.DEPOSIT);
-  }, []);
+  }, [contract?.id, queryClient]);
 
   // Tính toán tiền hoàn trả cọc và công nợ
   const deposit = Number(contract?.deposit_amount || 0);
@@ -384,6 +399,7 @@ export function useCheckout({
     financial: {
       deposit,
       unpaidAmount,
+      unpaidInvoices,
       totalDeductions,
       netRefund,
     },

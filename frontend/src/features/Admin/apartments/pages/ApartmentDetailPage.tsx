@@ -552,13 +552,8 @@ export default function ApartmentDetailPage() {
       </Card>
 
       <DepositInvoiceModal
-        isOpen={depositModal.isOpen}
-        onClose={depositModal.closeModal}
-        form={depositModal.form}
-        setForm={depositModal.setForm}
+        controller={depositModal}
         fixedApartment={apartment}
-        onSubmit={depositModal.handleSubmit}
-        isPending={depositModal.isPending}
       />
       <ApartmentModifyModal
         isOpen={showModifyModal}

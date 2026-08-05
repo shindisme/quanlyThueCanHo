@@ -90,17 +90,19 @@ export function useContractCreate({
   // Danh sách tầng thuộc tòa nhà
   const formFloors = useMemo(() => {
     const apts = buildingIdValue ? buildingApartments : apartments;
-    return Array.from(new Set(apts.map((a: Apartment) => a.floor))).sort(
+    const reservedApts = apts.filter((a: Apartment) => a.status === "RESERVED");
+    const targetApts = reservedApts.length > 0 ? reservedApts : apts;
+    return Array.from(new Set(targetApts.map((a: Apartment) => a.floor))).sort(
       (a: number, b: number) => a - b
     );
   }, [buildingApartments, apartments, buildingIdValue]);
 
-  // Danh sách căn hộ theo tầng
+  // Danh sách căn hộ đã đặt cọc theo tầng
   const formApartments = useMemo(() => {
     const apts = buildingIdValue ? buildingApartments : apartments;
-    if (!floorValue && floorValue !== 0) return apts;
+    if (!floorValue && floorValue !== 0) return apts.filter((a: Apartment) => a.status === "RESERVED");
     return apts.filter(
-      (a: Apartment) => Number(a.floor) === Number(floorValue) && (a.status === "AVAILABLE" || a.status === "RESERVED")
+      (a: Apartment) => Number(a.floor) === Number(floorValue) && a.status === "RESERVED"
     );
   }, [buildingApartments, apartments, buildingIdValue, floorValue]);
 

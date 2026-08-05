@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from "react";
-import { Eye, FileText, Calendar as CalendarIcon, XCircle } from "lucide-react";
+import { Eye, FileText, Calendar as CalendarIcon, XCircle, Ban } from "lucide-react";
 import Badge from "../../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS, type ContractStatus } from "../../../../constants/enums";
@@ -21,7 +21,7 @@ interface ContractListProps {
   setSelectedExtendContract: (c: RentalContract) => void;
   setExtendEndDate: (date: string) => void;
   setTerminateItem: (c: RentalContract) => void;
-  onRenewContract?: (c: RentalContract) => void;
+  setCancelContractItem?: (c: RentalContract) => void;
 }
 
 export default function ContractList({
@@ -35,7 +35,7 @@ export default function ContractList({
   setSelectedExtendContract,
   setExtendEndDate,
   setTerminateItem,
-  onRenewContract,
+  setCancelContractItem,
 }: ContractListProps) {
   const tenantMap = useMemo(() => new Map(tenants.map((t) => [t.id, t])), [tenants]);
   const apartmentMap = useMemo(() => new Map(apartments.map((a) => [a.id, a])), [apartments]);
@@ -141,45 +141,48 @@ export default function ContractList({
             >
               <FileText size={16} />
             </button>
-            {c.status === "ENDED" ? (
+            {c.status === "ACTIVE" && (
               <button
-                onClick={() => onRenewContract?.(c)}
+                onClick={() => {
+                  setSelectedExtendContract(c);
+                  setExtendEndDate("");
+                }}
                 className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer"
-                title="Ký lại hợp đồng"
+                title="Gia hạn hợp đồng"
               >
                 <CalendarIcon size={16} />
               </button>
-            ) : (
-              c.status === "ACTIVE" && (
+            )}
+            {c.status === "ACTIVE" && (role === "ADMIN" || role === "MANAGER") && (() => {
+              const isFutureContract = new Date(c.start_date) > new Date();
+              return (
                 <button
+                  disabled={role === "ADMIN"}
                   onClick={() => {
-                    setSelectedExtendContract(c);
-                    setExtendEndDate("");
+                    if (isFutureContract) {
+                      setCancelContractItem?.(c);
+                    } else {
+                      setTerminateItem(c);
+                    }
                   }}
-                  className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer"
-                  title="Gia hạn hợp đồng"
+                  className={`p-2 rounded-lg transition-colors ${role === "ADMIN"
+                    ? "text-gray-400 opacity-60 cursor-not-allowed"
+                    : isFutureContract
+                      ? "text-amber-500 hover:text-amber-700 hover:bg-amber-50 cursor-pointer"
+                      : "text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                    }`}
+                  title={
+                    role === "ADMIN"
+                      ? "Chức năng do Quản lý tòa nhà thực hiện"
+                      : isFutureContract
+                        ? "Hủy hợp đồng (Chưa nhận phòng)"
+                        : "Trả phòng (Thanh lý hợp đồng)"
+                  }
                 >
-                  <CalendarIcon size={16} />
+                  {isFutureContract ? <Ban size={16} /> : <XCircle size={16} />}
                 </button>
-              )
-            )}
-            {c.status === "ACTIVE" && (role === "ADMIN" || role === "MANAGER") && (
-              <button
-                disabled={role === "ADMIN"}
-                onClick={() => setTerminateItem(c)}
-                className={`p-2 rounded-lg transition-colors ${role === "ADMIN"
-                  ? "text-gray-400 opacity-60 cursor-not-allowed"
-                  : "text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
-                  }`}
-                title={
-                  role === "ADMIN"
-                    ? "Chức năng thanh lý hợp đồng do Quản lý tòa nhà thực hiện"
-                    : "Thanh lý hợp đồng"
-                }
-              >
-                <XCircle size={16} />
-              </button>
-            )}
+              );
+            })()}
           </div>
         ),
       },
@@ -188,8 +191,8 @@ export default function ContractList({
       contractApartment,
       contractBuilding,
       getStatusBadge,
-      onRenewContract,
       role,
+      setCancelContractItem,
       setExtendEndDate,
       setSelectedDetailContract,
       setSelectedDocContract,

@@ -52,6 +52,8 @@ export default function CheckoutModal({
         financial: {
             deposit,
             unpaidAmount,
+            unpaidInvoices,
+            totalDeductions,
             netRefund,
         },
         dialogs: {
@@ -229,14 +231,15 @@ export default function CheckoutModal({
                                             Chỉ số Điện (kWh)
                                         </div>
                                         <div>
-                                            <label className="text-xs text-slate-600 block mb-1">Chỉ số cũ gần nhất *</label>
+                                            <label className="text-xs text-slate-600 block mb-1">Chỉ số cũ gần nhất (không thể sửa)</label>
                                             <Input
                                                 type="number"
                                                 min={0}
                                                 max={99999}
                                                 value={electricOldInput ?? electricOld}
-                                                onChange={(e) => setElectricOldInput(e.target.value)}
-                                                className="font-bold text-slate-800"
+                                                disabled={true}
+                                                readOnly={true}
+                                                className="font-bold text-slate-500 bg-slate-100 cursor-not-allowed"
                                             />
                                         </div>
                                         <div>
@@ -267,14 +270,15 @@ export default function CheckoutModal({
                                             Chỉ số Nước (m³)
                                         </div>
                                         <div>
-                                            <label className="text-xs text-slate-600 block mb-1">Chỉ số cũ gần nhất *</label>
+                                            <label className="text-xs text-slate-600 block mb-1">Chỉ số cũ gần nhất (không thể sửa)</label>
                                             <Input
                                                 type="number"
                                                 min={0}
                                                 max={99999}
                                                 value={waterOldInput ?? waterOld}
-                                                onChange={(e) => setWaterOldInput(e.target.value)}
-                                                className="font-bold text-slate-800"
+                                                disabled={true}
+                                                readOnly={true}
+                                                className="font-bold text-slate-500 bg-slate-100 cursor-not-allowed"
                                             />
                                         </div>
                                         <div>
@@ -347,23 +351,50 @@ export default function CheckoutModal({
                             <div className="space-y-4">
                                 <div className="bg-slate-50 border border-slate-200 p-4 space-y-1">
                                     <h4 className="font-bold text-slate-800 text-sm">Tính toán đối trừ công nợ & hoàn cọc</h4>
-                                    <p className="text-xs text-slate-600">
-                                        Số tiền đặt cọc ban đầu của khách sẽ được đối trừ với tổng hóa đơn chưa thanh toán.
-                                    </p>
+                                </div>
+
+                                {/* Danh sách tất cả các hóa đơn chưa thanh toán */}
+                                <div className="border border-slate-200 p-3 bg-white space-y-2">
+                                    <h5 className="font-bold text-slate-800 text-xs uppercase tracking-wider">
+                                        Danh sách hóa đơn chưa thanh toán ({unpaidInvoices.length} HĐ):
+                                    </h5>
+                                    {unpaidInvoices.length === 0 ? (
+                                        <p className="text-xs text-emerald-600 italic">Không có hóa đơn chưa thanh toán nào tồn đọng.</p>
+                                    ) : (
+                                        <div className="divide-y divide-slate-100 max-h-40 overflow-y-auto">
+                                            {unpaidInvoices.map((inv) => (
+                                                <div key={inv.id} className="py-2 flex justify-between items-center text-xs">
+                                                    <div>
+                                                        <span className="font-bold text-slate-800">{inv.invoice_code}</span>
+                                                        <span className="text-slate-500 ml-2">
+                                                            ({inv.type === "MONTHLY"
+                                                                ? "Hóa đơn tháng"
+                                                                : inv.type === "FIRST_RENT"
+                                                                    ? "Tiền nhà đầu kỳ"
+                                                                    : inv.type === "MAINTENANCE"
+                                                                        ? "Chi phí sửa chữa"
+                                                                        : "Hóa đơn dịch vụ"})
+                                                        </span>
+                                                    </div>
+                                                    <span className="font-bold text-rose-600">-{formatCurrency(Number(inv.total_amount))}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Bảng chi tiết phép tính đối trừ tài chính */}
                                 <div className="border border-slate-200 text-xs bg-white">
                                     <div className="p-3 bg-slate-100 font-bold text-slate-700 flex justify-between border-b border-slate-200">
-                                        <span>Chi tiết phép tính tài chính</span>
+                                        <span>Chi tiết phép tính tài chính đối trừ</span>
                                         <span>Số tiền (VNĐ)</span>
                                     </div>
                                     <div className="p-3 flex justify-between border-b border-slate-100">
-                                        <span className="text-slate-600 font-medium">Tiền đặt cọc</span>
+                                        <span className="text-slate-600 font-medium">Tiền đặt cọc ban đầu</span>
                                         <span className="font-bold text-slate-800">{formatCurrency(deposit)}</span>
                                     </div>
-                                    <div className="p-3 flex justify-between border-b border-slate-200">
-                                        <span className="text-red-600 font-medium">- Tổng hóa đơn chưa thanh toán</span>
+                                    <div className="p-3 flex justify-between border-b border-slate-100">
+                                        <span className="text-red-600 font-medium">- Tổng hóa đơn chưa thanh toán ({unpaidInvoices.length} HĐ)</span>
                                         <span className="font-bold text-red-600">-{formatCurrency(unpaidAmount)}</span>
                                     </div>
                                     <div className={`p-4 flex justify-between items-center font-bold text-sm ${netRefund >= 0 ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800"}`}>

@@ -49,6 +49,7 @@ export function useContractPage() {
   const [selectedDocContract, setSelectedDocContract] = useState<RentalContract | null>(null);
   const [selectedExtendContract, setSelectedExtendContract] = useState<RentalContract | null>(null);
   const [terminateItem, setTerminateItem] = useState<RentalContract | null>(null);
+  const [cancelContractItem, setCancelContractItem] = useState<RentalContract | null>(null);
   const [extendEndDate, setExtendEndDate] = useState("");
   const [initialTenantId, setInitialTenantId] = useState<number | undefined>();
   const [initialApartmentId, setInitialApartmentId] = useState<number | undefined>();
@@ -290,6 +291,25 @@ export function useContractPage() {
     );
   }
 
+  function handleConfirmCancelContract() {
+    if (!cancelContractItem) return;
+    terminateMutation.mutate(
+      { id: cancelContractItem.id },
+      {
+        onSuccess: () => {
+          toast.success("Hủy hợp đồng chưa nhận phòng thành công!");
+          setCancelContractItem(null);
+        },
+        onError: (error: unknown) => {
+          const err = error as { response?: { data?: { error?: string; message?: string } } };
+          toast.error(
+            err.response?.data?.error || err.response?.data?.message || "Hủy hợp đồng thất bại!"
+          );
+        },
+      }
+    );
+  }
+
   return {
     role,
     managedBuildingId,
@@ -338,6 +358,9 @@ export function useContractPage() {
     terminateItem,
     setTerminateItem,
     handleTerminateContract,
+    cancelContractItem,
+    setCancelContractItem,
+    handleConfirmCancelContract,
     terminating: terminateMutation.isPending,
     fetchContracts,
     isNewTenantFromNavigation,

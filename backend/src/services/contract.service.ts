@@ -483,11 +483,11 @@ export const createContractService = async (
                 );
             }
 
-            if (apartment.status !== ApartmentStatus.RESERVED && apartment.status !== ApartmentStatus.AVAILABLE) {
+            if (apartment.status !== ApartmentStatus.RESERVED) {
                 throw new AppError(
                     409,
-                    "APARTMENT_NOT_AVAILABLE",
-                    "Căn hộ không ở trạng thái sẵn sàng hoặc đã được đặt cọc"
+                    "RESERVATION_REQUIRED",
+                    "Chỉ có thể lập hợp đồng từ căn hộ đã được đặt cọc"
                 );
             }
 
@@ -513,15 +513,19 @@ export const createContractService = async (
                 select: { id: true, deposit_amount: true }
             });
 
-            let depositAmount = input.deposit_amount ? Number(input.deposit_amount) : Number(input.monthly_rent);
-
-            if (reservation) {
-                depositAmount = Number(reservation.deposit_amount);
-                await transaction.reservation.update({
-                    where: { id: reservation.id },
-                    data: { status: ReservationStatus.CONVERTED }
-                });
+            if (!reservation) {
+                throw new AppError(
+                    409,
+                    "RESERVATION_NOT_FOUND",
+                    "Căn hộ đã được giữ chỗ cho người thuê khác hoặc chưa có đặt cọc"
+                );
             }
+
+            const depositAmount = Number(reservation.deposit_amount);
+            await transaction.reservation.update({
+                where: { id: reservation.id },
+                data: { status: ReservationStatus.CONVERTED }
+            });
 
             assertPositiveMoney(depositAmount, "deposit_amount");
 

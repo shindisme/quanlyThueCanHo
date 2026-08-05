@@ -383,11 +383,11 @@ const uniqueNumbers = (values: number[]) => [
     ...new Set(values)
 ];
 
-const getExistingInvoiceCodes = async (
+const getExistingInvoicesMap = async (
     invoiceCodes: string[]
 ) => {
     if (invoiceCodes.length === 0) {
-        return new Set<string>();
+        return new Map<string, { id: number; status: string }>();
     }
 
     const existingInvoices = await prisma.invoice.findMany({
@@ -397,13 +397,13 @@ const getExistingInvoiceCodes = async (
             }
         },
         select: {
-            invoice_code: true
+            id: true,
+            invoice_code: true,
+            status: true
         }
     });
 
-    return new Set(existingInvoices.map(
-        (invoice) => invoice.invoice_code
-    ));
+    return new Map(existingInvoices.map((inv) => [inv.invoice_code, inv]));
 };
 
 const getUtilityReadingMap = async (
@@ -861,7 +861,7 @@ export const generateMonthlyInvoicesService = async (
         contract.id,
         buildMonthlyInvoiceCode(contract.id, month, year)
     ]));
-    const existingInvoiceCodes = await getExistingInvoiceCodes([
+    const existingInvoicesMap = await getExistingInvoicesMap([
         ...invoiceCodesByContractId.values()
     ]);
     const firstChargeableContractIds = await getFirstChargeableContractIds(
@@ -883,11 +883,12 @@ export const generateMonthlyInvoicesService = async (
             ?? buildMonthlyInvoiceCode(contract.id, month, year);
         const firstRentalMonth = firstChargeableContractIds.has(contract.id);
 
-        if (existingInvoiceCodes.has(invoiceCode)) {
+        const existingInvoice = existingInvoicesMap.get(invoiceCode);
+        if (existingInvoice && existingInvoice.status !== InvoiceStatus.UNPAID) {
             skipped.push({
                 contract_id: contract.id,
                 invoice_code: invoiceCode,
-                reason: "Hóa đơn tháng này đã tồn tại."
+                reason: "Hóa đơn tháng này đã được thanh toán."
             });
             continue;
         }
@@ -973,6 +974,43 @@ export const generateMonthlyInvoicesService = async (
     } of plannedInvoices) {
         try {
             const invoice = await prisma.$transaction(async (tx) => {
+                const existing = await tx.invoice.findFirst({
+                    where: { invoice_code: invoiceCode },
+                    select: { id: true, status: true }
+                });
+
+                if (existing) {
+                    if (existing.status === InvoiceStatus.UNPAID) {
+                        await tx.invoiceItem.deleteMany({
+                            where: { invoice_id: existing.id }
+                        });
+                        const updated = await tx.invoice.update({
+                            where: { id: existing.id },
+                            data: {
+                                due_date: dueDate,
+                                total_amount: totalAmount,
+                                items: {
+                                    create: items
+                                }
+                            },
+                            include: invoiceInclude
+                        });
+
+                        if (notify) {
+                            await createInvoiceNotification(
+                                tx,
+                                updated,
+                                "Cập nhật hóa đơn",
+                                `Hóa đơn ${invoiceCode} đã được cập nhật chỉ số điện nước mới với tổng tiền ${totalAmount}.`,
+                                "INVOICE_CREATED"
+                            );
+                        }
+
+                        return updated;
+                    }
+                    return null;
+                }
+
                 const invoiceData = {
                     invoice_code: invoiceCode,
                     due_date: dueDate,
@@ -1015,7 +1053,9 @@ export const generateMonthlyInvoicesService = async (
                 return newInvoice;
             });
 
-            created.push(invoice);
+            if (invoice) {
+                created.push(invoice);
+            }
         } catch (error) {
             if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
                 skipped.push({
