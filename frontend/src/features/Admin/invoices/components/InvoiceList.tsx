@@ -1,10 +1,10 @@
 import { Eye, Printer, CheckCircle, XCircle } from "lucide-react";
 import Badge from "../../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
-import { INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS, type InvoiceStatus } from "../../../../constants/enums";
+import { INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS } from "../../../../constants/enums";
 import { getInvoicePeriod, getInvoicePeriodSortValue } from "../../../../utils/invoicePeriod";
 import { getInvoiceRoomDisplay, getInvoiceTenant } from "../../../../utils/invoiceDisplay";
-import type { Invoice } from "../../../../types";
+import type { Invoice, InvoiceStatus } from "../../../../types";
 
 interface InvoiceListProps {
   invoices: Invoice[];
@@ -12,6 +12,7 @@ interface InvoiceListProps {
   onOpenDetails: (invoice: Invoice) => void;
   onToggleStatus: (invoice: Invoice) => void;
   onPrint: (invoice: Invoice) => void;
+  startIdx: number;
 }
 
 export default function InvoiceList({
@@ -20,6 +21,7 @@ export default function InvoiceList({
   onOpenDetails,
   onToggleStatus,
   onPrint,
+  startIdx,
 }: InvoiceListProps) {
   function getStatusBadge(status: InvoiceStatus) {
     const label = INVOICE_STATUS_LABELS[status] || status;
@@ -37,7 +39,9 @@ export default function InvoiceList({
       key: "index",
       label: "STT",
       className: "w-4",
-      render: (_, index: number) => <span className="font-semibold text-gray-800 w-2">{index + 1}</span>,
+      render: (_, index: number) => (
+        <span className="font-semibold text-gray-800">{startIdx + index + 1}</span>
+      ),
     },
     {
       key: "invoice_code",
@@ -54,7 +58,7 @@ export default function InvoiceList({
         return (
           <div className="flex flex-col">
             <span className="font-semibold text-gray-800">{room}</span>
-            {role === "ADMIN" && branch && <span className="text-[10px] font-semibold text-primary-600">{branch}</span>}
+            {(role === "ADMIN" || role === "MANAGER") && branch && <span className="text-[10px] font-semibold text-primary-600">{branch}</span>}
           </div>
         );
       }

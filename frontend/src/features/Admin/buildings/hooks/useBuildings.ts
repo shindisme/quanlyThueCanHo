@@ -6,5 +6,6 @@ export function useBuildings() {
   return useQuery({
     queryKey: QUERY_KEYS.BUILDINGS,
     queryFn: () => getAllBuildingsPage(),
+    select: (res) => res.data,
   });
 }

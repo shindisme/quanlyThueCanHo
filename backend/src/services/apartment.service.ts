@@ -315,6 +315,7 @@ export const updateApartmentService = async (
     const {
         building_id: requestedBuildingId,
         existing_image_urls,
+        thumbnail_image_url,
         ...adminData
     } = data;
     let where: Prisma.ApartmentWhereUniqueInput = { id };
@@ -363,17 +364,28 @@ export const updateApartmentService = async (
         });
 
         if (allImages.length > 0) {
-            const hasThumbnail = allImages.some((img) => img.is_thumbnail);
-            if (!hasThumbnail) {
-                await transaction.apartmentImage.updateMany({
-                    where: { apartment_id: id },
-                    data: { is_thumbnail: false }
-                });
-                await transaction.apartmentImage.update({
-                    where: { id: allImages[0].id },
-                    data: { is_thumbnail: true }
-                });
+            let targetThumbnailId = allImages[0].id;
+
+            if (thumbnail_image_url) {
+                const matched = allImages.find((img) => img.image_url === thumbnail_image_url);
+                if (matched) {
+                    targetThumbnailId = matched.id;
+                }
+            } else {
+                const currentThumb = allImages.find((img) => img.is_thumbnail);
+                if (currentThumb) {
+                    targetThumbnailId = currentThumb.id;
+                }
             }
+
+            await transaction.apartmentImage.updateMany({
+                where: { apartment_id: id },
+                data: { is_thumbnail: false }
+            });
+            await transaction.apartmentImage.update({
+                where: { id: targetThumbnailId },
+                data: { is_thumbnail: true }
+            });
         }
 
         return transaction.apartment.update({

@@ -1,5 +1,5 @@
 import { Receipt, Zap, Droplet } from "lucide-react";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import { useTenantUtilities } from "../hooks/useTenantUtilities";
 import { formatDate } from "../../../../utils/date";
@@ -19,7 +19,7 @@ export default function MyUtilities() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <div className="flex flex-col items-center justify-center min-h-100">
         <LoadingSpinner size={36} />
         <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải lịch sử chỉ số điện nước...</span>
       </div>
@@ -95,11 +95,9 @@ export default function MyUtilities() {
   return (
     <div className="space-y-6 font-sans">
       <PageHeader
-        icon={Zap}
-        title="Chỉ số điện nước"
-        subtitle="Lịch sử ghi nhận điện nước của căn hộ bạn đang thuê"
+        title="Điện & Nước"
+        subtitle="Theo dõi chỉ số và lịch sử tiêu thụ điện nước"
         count={sortedReadings.length}
-        iconColor="linear-gradient(135deg, #10B981, #34D399)"
       />
 
       {/* Apartment Header Card */}

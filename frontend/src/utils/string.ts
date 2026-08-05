@@ -73,3 +73,43 @@ export function parseGuestName(fullName: string): { name: string; note: string }
     note: "",
   };
 }
+
+// Kiểm tra xem phòng trước đó đã được tạo ở cùng tầng chưa.
+export function validateSequentialRoom(
+  newRoomNumberStr: string,
+  floor: number,
+  existingApartmentsOnFloor: { room_number: string }[]
+): { valid: boolean; error?: string } {
+  const match = newRoomNumberStr.match(/(\d+)/);
+  if (!match) {
+    return { valid: true };
+  }
+
+  const rawNumStr = match[1];
+  const num = parseInt(rawNumStr, 10);
+
+  // Nếu là phòng 1 hoặc 0 không cần kiểm tra phòng trước đó
+  if (num <= 1) {
+    return { valid: true };
+  }
+
+  const prevNum = num - 1;
+  const padLength = rawNumStr.length;
+  const prevNumStrFormatted = String(prevNum).padStart(padLength, "0");
+
+  const hasPreviousRoom = existingApartmentsOnFloor.some((apt) => {
+    const aptMatch = apt.room_number.match(/(\d+)/);
+    if (!aptMatch) return false;
+    const aptNum = parseInt(aptMatch[1], 10);
+    return aptNum === prevNum;
+  });
+
+  if (!hasPreviousRoom) {
+    return {
+      valid: false,
+      error: `Phòng ${prevNumStrFormatted} ở tầng ${floor} chưa được tạo. Vui lòng tạo phòng theo thứ tự!`,
+    };
+  }
+
+  return { valid: true };
+}

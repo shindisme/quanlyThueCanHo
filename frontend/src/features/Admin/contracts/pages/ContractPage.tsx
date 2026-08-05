@@ -1,5 +1,5 @@
 import { FileText } from "lucide-react";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import Button from "../../../../components/ui/Button";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Pagination from "../../../../components/ui/Pagination";
@@ -8,7 +8,7 @@ import Combobox from "../../../../components/ui/Combobox";
 import Modal from "../../../../components/ui/Modal";
 import { DatePicker } from "../../../../components/ui/DatePicker";
 import ConfirmDialog from "../../../../components/ui/ConfirmDialog";
-import { toast } from "sonner";
+import EmptyState from "../../../../components/ui/EmptyState";
 import { useAuthStore } from "../../../../stores/auth.store";
 
 import { useContractPage } from "../hooks/useContractPage";
@@ -79,7 +79,7 @@ export default function Contract() {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[400px]">
+            <div className="flex flex-col items-center justify-center min-h-100">
                 <LoadingSpinner size={36} />
                 <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải danh sách hợp đồng...</span>
             </div>
@@ -89,11 +89,9 @@ export default function Contract() {
     return (
         <div className="space-y-6">
             <PageHeader
-                icon={FileText}
                 title="Hợp đồng thuê"
                 subtitle="Quản lý thông tin hợp đồng thuê căn hộ"
                 count={filteredContracts.length}
-                iconColor="linear-gradient(135deg, #EF4444, #F87171)"
                 actions={
                     <>
                         <SearchInput
@@ -168,7 +166,7 @@ export default function Contract() {
                 <div className="col-span-12 sm:col-span-6 md:col-span-3">
                     <Combobox
                         options={
-                            (contracts.length > 0 
+                            (contracts.length > 0
                                 ? Array.from(new Set(contracts.map((c) => new Date(c.start_date).getFullYear()))).sort((a, b) => b - a)
                                 : [new Date().getFullYear()]
                             ).map((y) => ({ value: String(y), label: `Năm ${y}` }))
@@ -189,11 +187,11 @@ export default function Contract() {
 
             {/* Table list */}
             {paginatedContracts.length === 0 ? (
-                <div className="text-center py-16 text-gray-500 bg-white border border-gray-200 shadow-lg">
-                    <FileText size={48} className="mx-auto mb-3 text-gray-300" />
-                    <p className="font-medium">Không tìm thấy hợp đồng nào</p>
-                    <p className="text-sm text-gray-400 mt-1">Thử tìm kiếm với từ khóa khác</p>
-                </div>
+                <EmptyState
+                    icon={<FileText size={48} />}
+                    title="Không tìm thấy hợp đồng nào"
+                    description="Thử tìm kiếm với từ khóa khác"
+                />
             ) : (
                 <div className="space-y-4">
                     <ContractList

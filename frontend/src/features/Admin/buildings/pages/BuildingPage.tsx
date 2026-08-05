@@ -1,23 +1,26 @@
 import { Plus, Building2 } from "lucide-react";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import Button from "../../../../components/ui/Button";
-import SearchInput from "../../../../components/ui/SearchInput";
 import Pagination from "../../../../components/ui/Pagination";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
+import EmptyState from "../../../../components/ui/EmptyState";
 
+import BuildingFilterBar from "../components/BuildingFilterBar";
 import BuildingCreateModal from "../components/BuildingCreateModal";
 import BuildingModifyModal from "../components/BuildingModifyModal";
 import BuildingDeleteModal from "../components/BuildingDeleteModal";
 import BuildingList from "../components/BuildingList";
-import { useBuildingList } from "../hooks/useBuildingList";
+import { useBuildingPage } from "../hooks/useBuildingPage";
 
 export default function BuildingPage() {
   const {
     role,
+    canEdit,
     search,
     setSearch,
     currentPage,
     setCurrentPage,
+    startIdx,
     createModal,
     modifyModal,
     editItem,
@@ -30,9 +33,8 @@ export default function BuildingPage() {
     filtered,
     sortedBuildings,
     handleDelete,
-    fetchBuildings,
     deleting,
-  } = useBuildingList();
+  } = useBuildingPage();
 
   if (loading) {
     return (
@@ -47,20 +49,18 @@ export default function BuildingPage() {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
-        icon={Building2}
         title="Tòa nhà"
         subtitle="Quản lý danh sách tòa nhà"
         count={role === "MANAGER" ? filtered.length : totalCount}
         actions={
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <SearchInput
-              value={search}
-              onChange={(v) => { setSearch(v); setCurrentPage(1); }}
-              placeholder="Tìm kiếm theo tên, địa chỉ..."
-              className="w-64 sm:w-80 flex-1 min-w-0"
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+            <BuildingFilterBar
+              search={search}
+              onSearchChange={setSearch}
+              onResetPage={() => setCurrentPage(1)}
             />
-            {role === "ADMIN" && (
-              <Button onClick={createModal.onOpen}>
+            {canEdit && (
+              <Button onClick={createModal.onOpen} className="shrink-0 whitespace-nowrap justify-center">
                 <Plus size={18} /> Thêm tòa nhà
               </Button>
             )}
@@ -68,17 +68,18 @@ export default function BuildingPage() {
         }
       />
 
-      {/* Danh sách */}
+      {/* Bảng data list */}
       {filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 bg-white rounded-lg border border-gray-200">
-          <Building2 size={48} className="mx-auto mb-3 text-gray-300" />
-          <p className="font-medium">Không tìm thấy tòa nhà nào</p>
-          <p className="text-sm text-gray-400 mt-1">Thử tìm kiếm với từ khóa khác</p>
-        </div>
+        <EmptyState
+          icon={<Building2 size={48} />}
+          title="Không tìm thấy tòa nhà nào"
+          description="Thử tìm kiếm với từ khóa khác"
+        />
       ) : (
         <BuildingList
           sortedBuildings={sortedBuildings}
           role={role}
+          startIdx={startIdx}
           setEditItem={setEditItem}
           setShowModifyModal={modifyModal.onOpen}
           setDeleteItem={setDeleteItem}
@@ -94,13 +95,13 @@ export default function BuildingPage() {
       <BuildingCreateModal
         isOpen={createModal.isOpen}
         onClose={createModal.onClose}
-        onSuccess={fetchBuildings}
+        onSuccess={() => { }}
       />
 
       <BuildingModifyModal
         isOpen={modifyModal.isOpen}
         onClose={() => { modifyModal.onClose(); setEditItem(null); }}
-        onSuccess={fetchBuildings}
+        onSuccess={() => { }}
         editItem={editItem}
       />
 

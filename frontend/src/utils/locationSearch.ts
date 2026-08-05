@@ -6,10 +6,9 @@ export type Coordinates = {
 export type BuildingLocationCandidate = {
   id: number;
   branch_name: string;
-};
-
-type BranchLocation = Coordinates & {
-  aliases: string[];
+  address?: string;
+  latitude?: number;
+  longitude?: number;
 };
 
 type MapboxFeatureCollection = {
@@ -31,37 +30,14 @@ type FetchLike = (input: string) => Promise<{
   json: () => Promise<unknown>;
 }>;
 
+// Tọa độ trung tâm và bán kính khung giới hạn TP.HCM
 const HCMC_PROXIMITY = "106.700981,10.776889";
 const HCMC_BBOX = "106.45,10.6,107.05,11.05";
 
-const BRANCH_LOCATIONS: BranchLocation[] = [
-  {
-    latitude: 10.776889,
-    longitude: 106.700981,
-    aliases: ["Quận 1", "Q1", "Q.1", "District 1"],
-  },
-  {
-    latitude: 10.7292,
-    longitude: 106.7219,
-    aliases: ["Quận 7", "Q7", "Q.7", "District 7"],
-  },
-  {
-    latitude: 10.738,
-    longitude: 106.678,
-    aliases: ["Quận 8", "Q8", "Q.8", "District 8"],
-  },
-  {
-    latitude: 10.7945,
-    longitude: 106.722,
-    aliases: ["Bình Thạnh", "Binh Thanh"],
-  },
-  {
-    latitude: 10.842,
-    longitude: 106.83,
-    aliases: ["Thủ Đức", "Thu Duc", "Quận 9", "Q9", "Q.9"],
-  },
-];
+// Cache tọa độ địa chỉ tòa nhà để không gọi Mapbox API trùng lặp
+const buildingCoordsCache = new Map<string, Coordinates>();
 
+// Chuẩn hóa chuỗi văn bản loại bỏ dấu và ký tự đặc biệt
 function normalizeLocationText(value: string): string {
   return value
     .normalize("NFD")
@@ -73,30 +49,12 @@ function normalizeLocationText(value: string): string {
     .trim();
 }
 
-function compact(value: string): string {
-  return normalizeLocationText(value).replace(/\s+/g, "");
-}
-
-function getBranchLocation(branchName: string): BranchLocation | null {
-  const normalizedBranch = normalizeLocationText(branchName);
-  const compactBranch = compact(branchName);
-
-  return BRANCH_LOCATIONS.find((location) =>
-    location.aliases.some((alias) => {
-      const normalizedAlias = normalizeLocationText(alias);
-      return (
-        normalizedBranch.includes(normalizedAlias) ||
-        compactBranch.includes(compact(alias))
-      );
-    })
-  ) ?? null;
-}
-
 function toRadians(value: number): number {
-  return value * Math.PI / 180;
+  return (value * Math.PI) / 180;
 }
 
-function getDistanceKm(from: Coordinates, to: Coordinates): number {
+// Tính khoảng cách theo công thức Haversine 
+export function getDistanceKm(from: Coordinates, to: Coordinates): number {
   const earthRadiusKm = 6371;
   const dLat = toRadians(to.latitude - from.latitude);
   const dLon = toRadians(to.longitude - from.longitude);
@@ -109,10 +67,12 @@ function getDistanceKm(from: Coordinates, to: Coordinates): number {
   return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// Kiểm tra xem Mapbox Access Token có hợp lệ không
 export function hasMapboxToken(token: string | undefined): token is string {
   return typeof token === "string" && token.trim().startsWith("pk.");
 }
 
+// Làm sạch chuỗi từ khóa tìm kiếm vị trí
 export function getLocationSearchText(query: string): string {
   return query
     .replace(/([A-Za-z])(\d)/g, "$1 $2")
@@ -125,28 +85,104 @@ export function getLocationSearchText(query: string): string {
     .trim();
 }
 
-export function findNearestBuilding<T extends BuildingLocationCandidate>(
+export type NearestBuildingResult<T> = {
+  building: T;
+  distanceKm: number;
+  isWithinRange: boolean;
+};
+
+// Giải mã động địa chỉ tòa nhà qua Mapbox API
+export async function getBuildingCoordinatesDynamic<T extends BuildingLocationCandidate>(
+  building: T,
+  token?: string
+): Promise<Coordinates | null> {
+  if (typeof building.latitude === "number" && typeof building.longitude === "number") {
+    return { latitude: building.latitude, longitude: building.longitude };
+  }
+
+  const queryText = `${building.address || building.branch_name}, TP.HCM`;
+  const cacheKey = normalizeLocationText(queryText);
+  if (buildingCoordsCache.has(cacheKey)) {
+    return buildingCoordsCache.get(cacheKey)!;
+  }
+
+  if (hasMapboxToken(token)) {
+    const coords = await geocodeSearchText(queryText, token);
+    if (coords) {
+      buildingCoordsCache.set(cacheKey, coords);
+      return coords;
+    }
+  }
+
+  return null;
+}
+
+// Tìm tòa nhà gần nhất và kiểm tra bán kính giới hạn 15km
+export async function findNearestBuildingAsync<T extends BuildingLocationCandidate>(
   location: Coordinates,
-  buildings: T[]
-): T | null {
+  buildings: T[],
+  token?: string,
+  maxDistanceKm: number = 15
+): Promise<NearestBuildingResult<T> | null> {
   let nearest: { building: T; distanceKm: number } | null = null;
 
   for (const building of buildings) {
-    const branchLocation = getBranchLocation(building.branch_name);
-    if (!branchLocation) continue;
+    const coords = await getBuildingCoordinatesDynamic(building, token);
+    if (!coords) continue;
 
-    const distanceKm = getDistanceKm(location, branchLocation);
+    const distanceKm = getDistanceKm(location, coords);
     if (!nearest || distanceKm < nearest.distanceKm) {
       nearest = { building, distanceKm };
     }
   }
 
-  return nearest?.building ?? null;
+  if (!nearest) return null;
+
+  return {
+    building: nearest.building,
+    distanceKm: Math.round(nearest.distanceKm * 10) / 10,
+    isWithinRange: nearest.distanceKm <= maxDistanceKm,
+  };
 }
 
-export function getLocationSuggestionMessage(search: string): string {
+// Đồng bộ hóa tương thích ngược
+export function findNearestBuilding<T extends BuildingLocationCandidate>(
+  location: Coordinates,
+  buildings: T[],
+  maxDistanceKm: number = 15
+): NearestBuildingResult<T> | null {
+  let nearest: { building: T; distanceKm: number } | null = null;
+
+  for (const building of buildings) {
+    const coords: Coordinates | null =
+      typeof building.latitude === "number" && typeof building.longitude === "number"
+        ? { latitude: building.latitude, longitude: building.longitude }
+        : buildingCoordsCache.get(normalizeLocationText(`${building.address || building.branch_name}, TP.HCM`)) || null;
+
+    if (!coords) continue;
+
+    const distanceKm = getDistanceKm(location, coords);
+    if (!nearest || distanceKm < nearest.distanceKm) {
+      nearest = { building, distanceKm };
+    }
+  }
+
+  if (!nearest) return null;
+
+  return {
+    building: nearest.building,
+    distanceKm: Math.round(nearest.distanceKm * 10) / 10,
+    isWithinRange: nearest.distanceKm <= maxDistanceKm,
+  };
+}
+
+// Tạo câu thông báo gợi ý khu vực với bán kính 15km
+export function getLocationSuggestionMessage(search: string, distanceKm?: number, isWithinRange: boolean = true): string {
   const target = search.trim();
-  return `Không có căn hộ nào ở khu vực ${target}, đây là danh sách các căn hộ ở khu vực gần ${target}.`;
+  if (!isWithinRange && distanceKm) {
+    return `Không tìm thấy căn hộ nào ở ${target}. Đây là các căn hộ ở khu vực lân cận.`;
+  }
+  return `Không tìm thấy căn hộ nào ở ${target}. Đây là các căn hộ ở khu vực lân cận.`;
 }
 
 function getFirstCoordinates(value: unknown): Coordinates | null {
@@ -175,6 +211,7 @@ async function requestJson(url: string, fetcher: FetchLike): Promise<unknown | n
   return response.json();
 }
 
+// Chuyển đổi tên vị trí tìm kiếm thành tọa độ (Latitude, Longitude) qua Mapbox Search Box API
 export async function geocodeSearchText(
   query: string,
   token: string | undefined,

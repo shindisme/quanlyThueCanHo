@@ -5,20 +5,17 @@ import {
   Phone,
   Pencil,
   Lock,
-  FileText,
   Eye,
   EyeOff,
   Home,
   ArrowRight,
   CheckCircle2,
-  AlertCircle
 } from "lucide-react";
 import Button from "../../../../components/ui/Button";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import Modal from "../../../../components/ui/Modal";
 import Input from "../../../../components/ui/Input";
-import { formatCurrency } from "../../../../utils/currency";
-import { formatApartmentDisplay, maskPhone, maskCCCD } from "../../../../utils/string";
+import { formatApartmentDisplay } from "../../../../utils/string";
 import { useProfile } from "../hooks/useProfile";
 
 export default function ProfilePage() {
@@ -71,10 +68,8 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6 max-w-5xl font-sans p-2">
       <PageHeader
-        icon={User}
-        title="Hồ sơ tài khoản"
-        subtitle="Quản lý thông tin cá nhân, cài đặt bảo mật và thông tin hợp đồng thuê"
-        iconColor="linear-gradient(135deg, #6366F1, #8B5CF6)"
+        title="Hồ sơ cá nhân"
+        subtitle="Quản lý thông tin tài khoản và thông tin cá nhân của bạn"
       />
 
       {/* Hero Profile Banner */}
@@ -331,7 +326,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => setShowConfirmPass(!showConfirmPass)}
-                className="absolute right-3 top-[34px] text-gray-400 hover:text-gray-600 cursor-pointer"
+                className="absolute right-3 top-8.5 text-gray-400 hover:text-gray-600 cursor-pointer"
               >
                 {showConfirmPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>

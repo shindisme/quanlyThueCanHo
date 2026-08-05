@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { CreditCard, ClipboardList } from "lucide-react";
-import PageHeader from "../../../../components/PageHeader";
+import { ClipboardList } from "lucide-react";
+import PageHeader from "../../../../components/layout/PageHeader";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Combobox from "../../../../components/ui/Combobox";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
@@ -42,11 +42,9 @@ export default function PaymentPage() {
   return (
     <div className="space-y-6 font-sans">
       <PageHeader
-        icon={CreditCard}
         title="Quản lý giao dịch"
         subtitle="Theo dõi lịch sử thanh toán hóa đơn, kiểm tra mã đối chiếu và phê duyệt các giao dịch chuyển khoản thủ công"
         count={rawPaymentsCount}
-        iconColor="linear-gradient(135deg, #8B5CF6, #EC4899)"
         actions={
           <SearchInput
             value={search}

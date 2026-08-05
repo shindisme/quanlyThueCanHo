@@ -22,7 +22,7 @@ export default function BuildingDeleteModal({
       onClose={onClose}
       onConfirm={onConfirm}
       title="Xóa tòa nhà"
-      message={`Bạn chắc chắn muốn xóa tòa nhà "${building?.branch_name || building?.branch_name}"? Hành động này không thể hoàn tác.`}
+      message={`Bạn chắc chắn muốn xóa tòa nhà "${building?.branch_name ?? ""}"? Hành động này không thể hoàn tác.`}
       confirmText="Xóa"
       isLoading={loading}
     />

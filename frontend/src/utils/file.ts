@@ -13,7 +13,7 @@ export function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
-//Check file hợp lệ
+// Check file hợp lệ
 export function isValidImageFile(
   file: File,
   maxSizeMB = 5
@@ -37,4 +37,14 @@ export function isValidImageFile(
   }
 
   return { valid: true };
+}
+
+// Lấy ảnh đại diện/thumbnail của căn hộ
+export function getApartmentThumbnail(apt: { images?: { is_thumbnail?: boolean; image_url: string }[] }): string {
+  if (apt && apt.images && Array.isArray(apt.images) && apt.images.length > 0) {
+    const thumb = apt.images.find((img) => img.is_thumbnail);
+    if (thumb) return thumb.image_url;
+    return apt.images[0].image_url;
+  }
+  return "";
 }

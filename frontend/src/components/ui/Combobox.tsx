@@ -30,6 +30,7 @@ export function Combobox({
   value = "",
   onChange,
   placeholder = "Chọn...",
+  searchPlaceholder = "Tìm kiếm...",
   label,
   error,
   className,
@@ -44,7 +45,9 @@ export function Combobox({
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  //Đóng dropdown khi click ra ngoài
+  const safeOptions = Array.isArray(options) ? options.filter(Boolean) : []
+
+  // Đóng dropdown khi click ra ngoài
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -57,14 +60,14 @@ export function Combobox({
     }
   }, [])
 
-  //Reset ô tìm kiếm khi đóng dropdown
+  // Reset ô tìm kiếm khi đóng dropdown
   useEffect(() => {
     if (!isOpen) {
       setSearchQuery("")
     }
   }, [isOpen])
 
-  const selectedOption = options.find((opt) => String(opt.value) === String(value))
+  const selectedOption = safeOptions.find((opt) => String(opt?.value ?? "") === String(value ?? ""))
 
   const handleSelect = (val: string, disabledOption?: boolean) => {
     if (disabledOption) return
@@ -78,9 +81,9 @@ export function Combobox({
     setSearchQuery("")
   }
 
-  const filteredOptions = options.filter((opt) => {
-    const term = removeVietnameseTones(searchQuery.toLowerCase())
-    const labelNorm = removeVietnameseTones(opt.label.toLowerCase())
+  const filteredOptions = safeOptions.filter((opt) => {
+    const term = removeVietnameseTones((searchQuery || "").toLowerCase())
+    const labelNorm = removeVietnameseTones((opt?.label || "").toLowerCase())
     return labelNorm.includes(term)
   })
 
@@ -140,6 +143,22 @@ export function Combobox({
       {/* Dropdown Overlay */}
       {isOpen && (
         <div className="absolute z-50 mt-2 w-full rounded-xl border border-primary-500 bg-white shadow-xl shadow-gray-100/70 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
+          {/* Ô tìm kiếm */}
+          {searchable && safeOptions.length > 5 && (
+            <div className="p-2 border-b border-gray-100 bg-gray-50/50">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={searchPlaceholder || "Tìm kiếm..."}
+                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  autoFocus
+                />
+                <ChevronDown size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 rotate-180" />
+              </div>
+            </div>
+          )}
           {/* Options List */}
           <div className="max-h-60 overflow-y-auto p-1.5 space-y-0.5">
             {/* options reset mặc định */}
@@ -157,11 +176,12 @@ export function Combobox({
             )}
             {filteredOptions.length > 0 ? (
               filteredOptions.map((opt) => {
-                const isSelected = String(opt.value) === String(value)
+                const optValStr = String(opt?.value ?? "")
+                const isSelected = optValStr === String(value ?? "")
                 return (
                   <div
-                    key={opt.value}
-                    onClick={() => handleSelect(opt.value, opt.disabled)}
+                    key={optValStr}
+                    onClick={() => handleSelect(optValStr, opt.disabled)}
                     className={cn(
                       "flex items-center justify-between px-2.5 py-2 text-sm text-gray-750 cursor-pointer rounded-lg hover:bg-gray-200 hover:text-gray-800 transition-colors",
                       isSelected && "bg-gray-200 text-primary-500 font-semibold",

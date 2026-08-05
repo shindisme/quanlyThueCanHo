@@ -1,7 +1,7 @@
-import { Camera, Wrench, Plus, X } from "lucide-react";
+import { Camera, Plus, X } from "lucide-react";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import SearchInput from "../../../../components/ui/SearchInput";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
@@ -126,7 +126,7 @@ export default function MyMaintenance() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <div className="flex flex-col items-center justify-center min-h-100">
         <LoadingSpinner size={36} />
         <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải danh sách yêu cầu...</span>
       </div>
@@ -136,14 +136,12 @@ export default function MyMaintenance() {
   return (
     <div className="space-y-6 font-sans">
       <PageHeader
-        icon={Wrench}
         title="Yêu cầu sửa chữa"
-        subtitle="Gửi và quản lý các yêu cầu bảo trì, sửa chữa cơ sở vật chất phòng thuê của bạn"
+        subtitle="Gửi yêu cầu và theo dõi tiến độ xử lý sự cố thiết bị"
         count={myRequests.length}
-        iconColor="linear-gradient(135deg, #EC4899, #F472B6)"
         actions={
-          <Button onClick={createModal.onOpen} disabled={loading || !activeContract}>
-            <Plus size={18} /> Gửi yêu cầu mới
+          <Button onClick={createModal.onOpen} disabled={loading || !activeContract} className="gap-2 shadow-xs cursor-pointer">
+            <Plus size={16} /> Tạo yêu cầu mới
           </Button>
         }
       />
@@ -174,25 +172,9 @@ export default function MyMaintenance() {
           />
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-600">Mức độ khẩn cấp</label>
-            <Combobox
-              options={[
-                { value: "LOW", label: "Thấp (Có thể xử lý sau vài ngày)" },
-                { value: "MEDIUM", label: "Trung bình (Xử lý trong vòng 24-48h)" },
-                { value: "HIGH", label: "Khẩn cấp (Cần xử lý ngay trong ngày)" }
-              ]}
-              value={priority}
-              onChange={(val) => setPriority(val as "LOW" | "MEDIUM" | "HIGH")}
-              searchable={false}
-              className="w-full"
-              disabled={saving}
-            />
-          </div>
-
-          <div className="space-y-1">
             <label className="text-xs font-semibold text-gray-600">Mô tả chi tiết sự cố</label>
             <textarea
-              className="w-full min-h-[100px] p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm transition-all"
+              className="w-full min-h-25 p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm transition-all"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               required

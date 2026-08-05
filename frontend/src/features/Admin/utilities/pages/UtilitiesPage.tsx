@@ -1,5 +1,4 @@
-import { Zap } from "lucide-react";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Combobox from "../../../../components/ui/Combobox";
 import Pagination from "../../../../components/ui/Pagination";
@@ -58,7 +57,7 @@ export default function UtilitiesPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <div className="flex flex-col items-center justify-center min-h-100">
         <LoadingSpinner size={36} />
         <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải danh sách chỉ số điện nước...</span>
       </div>
@@ -68,11 +67,9 @@ export default function UtilitiesPage() {
   return (
     <div className="space-y-6 font-sans">
       <PageHeader
-        icon={Zap}
         title="Điện nước"
         subtitle="Quản lý và ghi chỉ số tiêu thụ điện nước"
         count={filteredRentedApartments.length}
-        iconColor="linear-gradient(135deg, #10B981, #34D399)"
         actions={
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <SearchInput

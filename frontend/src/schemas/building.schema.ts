@@ -19,8 +19,17 @@ export const buildingSchema = z.object({
 
 export type BuildingFormValues = z.infer<typeof buildingSchema>;
 
+export const DEFAULT_BUILDING_FORM: BuildingFormValues = {
+  branch_name: "",
+  address: "",
+  total_floors: 1,
+  staff_id: null,
+  description: "",
+};
+
 export const buildingModifySchema = buildingSchema.extend({
   status: z.string().optional(),
+  remove_thumbnail: z.boolean().optional(),
 });
 
 export type BuildingModifyFormValues = z.infer<typeof buildingModifySchema>;

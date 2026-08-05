@@ -71,7 +71,7 @@ export function useSchedulePage() {
     return matchesSearch && matchesStatus && matchesDay && matchesMonth && matchesYear;
   });
 
-  const { items: sortedSchedules, requestSort, getSortIcon } = useSort(filtered, null, {
+  const { items: sortedSchedules, requestSort, getSortIcon } = useSort(filtered, { key: "schedule_time", direction: "asc" }, {
     apartment_id: (s) => s.apartment?.room_number || String(s.apartment_id),
     schedule_time: (s) => new Date(s.schedule_time).getTime(),
   });
@@ -96,6 +96,30 @@ export function useSchedulePage() {
       onError: (error: unknown) => {
         const err = error as { response?: { data?: { error?: string } } };
         toast.error(err.response?.data?.error || "Xác nhận thất bại");
+      },
+    });
+  }
+
+  function handleMarkAttended(id: number) {
+    confirmMutation.mutate(id, {
+      onSuccess: () => {
+        toast.success("Xác nhận khách đã đến xem phòng thành công!");
+      },
+      onError: (error: unknown) => {
+        const err = error as { response?: { data?: { error?: string } } };
+        toast.error(err.response?.data?.error || "Cập nhật thất bại");
+      },
+    });
+  }
+
+  function handleMarkNoShow(id: number) {
+    cancelMutation.mutate(id, {
+      onSuccess: () => {
+        toast.info("Đã ghi nhận khách vắng mặt (No-show)");
+      },
+      onError: (error: unknown) => {
+        const err = error as { response?: { data?: { error?: string } } };
+        toast.error(err.response?.data?.error || "Cập nhật thất bại");
       },
     });
   }
@@ -154,6 +178,8 @@ export function useSchedulePage() {
     totalPages,
     paginatedSchedules,
     handleConfirm,
+    handleMarkAttended,
+    handleMarkNoShow,
     handleCancel,
     handleDelete,
     fetchSchedules,

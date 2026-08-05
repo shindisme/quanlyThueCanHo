@@ -1,6 +1,6 @@
-import { FileText, ClipboardList, Wallet } from "lucide-react";
+import { ClipboardList, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Combobox from "../../../../components/ui/Combobox";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
@@ -14,7 +14,6 @@ export default function MyInvoices() {
   const navigate = useNavigate();
   const {
     invoices,
-    rawInvoicesCount,
     isLoading,
     search,
     setSearch,
@@ -36,11 +35,9 @@ export default function MyInvoices() {
   return (
     <div className="space-y-6 font-sans">
       <PageHeader
-        icon={FileText}
-        title="Hóa đơn của tôi"
-        subtitle="Theo dõi lịch sử hóa đơn dịch vụ, tiền nhà hàng tháng và các khoản đã thanh toán"
-        count={rawInvoicesCount}
-        iconColor="linear-gradient(135deg, #3B82F6, #1D4ED8)"
+        title="Hóa đơn dịch vụ"
+        subtitle="Danh sách hóa đơn tiền thuê phòng và phí dịch vụ hàng tháng"
+        count={invoices.length}
       />
 
       {/* Filters bar */}
@@ -70,7 +67,7 @@ export default function MyInvoices() {
 
       {/* Main Table Content */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center min-h-[300px]">
+        <div className="flex flex-col items-center justify-center min-h-75">
           <LoadingSpinner size={36} />
           <span className="text-sm text-gray-400 mt-2">Đang tải hóa đơn...</span>
         </div>

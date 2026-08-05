@@ -1,11 +1,13 @@
 import { Plus, Trash2, RotateCcw, UserCog, Eye, Pencil } from "lucide-react";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import Button from "../../../../components/ui/Button";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import Combobox from "../../../../components/ui/Combobox";
+import EmptyState from "../../../../components/ui/EmptyState";
 import Pagination from "../../../../components/ui/Pagination";
+
 import { useUserPage } from "../hooks/useUserPage";
 import type { User, Tenant, Staff } from "../../../../types";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
@@ -163,7 +165,7 @@ export default function UserPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <div className="flex flex-col items-center justify-center min-h-100">
         <LoadingSpinner size={36} />
         <span className="text-sm text-gray-400 mt-2 font-sans">
           Đang tải danh sách tài khoản...
@@ -176,11 +178,9 @@ export default function UserPage() {
     <div className="space-y-6">
       {/* Header */}
       <PageHeader
-        icon={UserCog}
         title="Tài khoản"
         subtitle="Quản lý tài khoản người dùng"
         count={users.length}
-        iconColor="linear-gradient(135deg, #F59E0B, #FBBF24)"
         actions={
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <SearchInput
@@ -248,11 +248,11 @@ export default function UserPage() {
 
       {/* Bảng */}
       {filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 bg-white rounded-xl border border-gray-200">
-          <UserCog size={48} className="mx-auto mb-3 text-gray-300" />
-          <p className="font-medium">Không tìm thấy tài khoản nào</p>
-          <p className="text-sm text-gray-400 mt-1">Thử tìm kiếm với từ khóa khác</p>
-        </div>
+        <EmptyState
+          icon={<UserCog size={48} />}
+          title="Không tìm thấy tài khoản nào"
+          description="Thử tìm kiếm với từ khóa khác"
+        />
       ) : (
         <div className="space-y-4">
           <DataTable columns={columns} data={sortedUsers as User[]} />

@@ -100,8 +100,9 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
       note: bookingForm.note,
     };
     const result = scheduleSchema.safeParse(payload);
-    if (!result.success) {
-      toast.error(result.error.issues[0].message);
+    const todayStr = new Date().toISOString().split("T")[0];
+    if (selectedDate < todayStr) {
+      toast.error("Không thể đặt lịch xem phòng ở ngày trong quá khứ!");
       return;
     }
 

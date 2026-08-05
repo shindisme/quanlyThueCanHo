@@ -44,7 +44,6 @@ export default function DepositInvoiceModal({
   onSubmit,
   isPending,
 }: DepositInvoiceModalProps) {
-  const today = new Date().toISOString().split("T")[0];
   const targetApartment = fixedApartment || selectedApartment;
 
   return (

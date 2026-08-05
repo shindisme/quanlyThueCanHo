@@ -180,18 +180,18 @@ export function useContractPage() {
 
   const filteredContracts = displayContracts.filter((c) => {
     const apt = c.apartment ?? apartments.find((a) => a.id === c.apartment_id);
-    
-    // Building filter
+
+    // Lọc theo tòa nhà được chọn
     if (filterBuilding && apt?.building_id !== filterBuilding) {
       return false;
     }
 
-    // Status filter
+    // Lọc theo trạng thái 
     if (filterStatus && c.status !== filterStatus) {
       return false;
     }
 
-    // Month filter
+    // Lọc theo tháng bắt đầu
     if (filterMonth) {
       const start = new Date(c.start_date);
       if (start.getMonth() + 1 !== filterMonth) {
@@ -199,7 +199,7 @@ export function useContractPage() {
       }
     }
 
-    // Year filter
+    // Lọc theo năm bắt đầu ký
     if (filterYear) {
       const start = new Date(c.start_date);
       if (start.getFullYear() !== filterYear) {
@@ -220,7 +220,7 @@ export function useContractPage() {
     );
   });
 
-  // Sorting
+  // Lọc
   const { items: sortedContracts, requestSort, getSortIcon } = useSort(
     filteredContracts,
     null,

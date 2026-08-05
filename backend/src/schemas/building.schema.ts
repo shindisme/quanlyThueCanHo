@@ -60,7 +60,9 @@ export const updateBuildingRequestSchema = z.object({
         description: buildingFields.description,
         status: buildingFields.status.optional(),
         total_floors: buildingFields.total_floors.optional(),
-        staff_id: buildingFields.staff_id
+        staff_id: buildingFields.staff_id,
+        remove_thumbnail: z.coerce.boolean().optional(),
+        thumbnail_url: z.string().nullable().optional()
     }).strict()
 }).strict();
 

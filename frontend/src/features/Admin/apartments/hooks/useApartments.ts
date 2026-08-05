@@ -6,5 +6,6 @@ export function useApartments() {
   return useQuery({
     queryKey: QUERY_KEYS.APARTMENTS,
     queryFn: () => getAllApartmentsPage(),
+    select: (res) => res.data,
   });
 }

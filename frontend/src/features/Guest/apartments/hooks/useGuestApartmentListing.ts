@@ -6,7 +6,7 @@ import * as apartmentService from "../../../../services/apartmentService";
 import { useDebounce } from "../../../../hooks/useDebounce";
 import { removeVietnameseTones } from "../../../../utils/string";
 import {
-  findNearestBuilding,
+  findNearestBuildingAsync,
   geocodeSearchText,
   getLocationSuggestionMessage,
 } from "../../../../utils/locationSearch";
@@ -138,16 +138,21 @@ export function useGuestApartmentListing() {
 
     setLocationSearching(true);
     geocodeSearchText(searchText, import.meta.env.VITE_MAPBOX_ACCESS_TOKEN)
-      .then((coordinates) => {
+      .then(async (coordinates) => {
         if (cancelled || !coordinates) return;
 
-        const nearestBuilding = findNearestBuilding(coordinates, buildings);
-        if (!nearestBuilding) return;
+        const result = await findNearestBuildingAsync(
+          coordinates,
+          buildings,
+          import.meta.env.VITE_MAPBOX_ACCESS_TOKEN,
+          15
+        );
+        if (!result) return;
 
         setLocationSuggestion({
           search: searchText,
-          buildingId: nearestBuilding.id,
-          message: getLocationSuggestionMessage(searchText),
+          buildingId: result.building.id,
+          message: getLocationSuggestionMessage(searchText, result.distanceKm, result.isWithinRange),
         });
       })
       .finally(() => {

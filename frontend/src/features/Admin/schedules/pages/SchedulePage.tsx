@@ -1,6 +1,6 @@
-import { CalendarDays, Eye, Check, X, Trash2 } from "lucide-react";
+import { Eye, Check, X, Trash2, UserCheck, UserX } from "lucide-react";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Badge from "../../../../components/ui/Badge";
 import Combobox from "../../../../components/ui/Combobox";
@@ -46,7 +46,7 @@ export default function SchedulePage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
+      <div className="flex flex-col items-center justify-center min-h-100">
         <LoadingSpinner size={36} />
         <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải lịch hẹn...</span>
       </div>
@@ -141,7 +141,7 @@ export default function SchedulePage() {
               <button
                 onClick={() => handleConfirm(s.id)}
                 className="p-2 rounded-lg text-green-655 hover:text-green-600 hover:bg-green-50 cursor-pointer"
-                title="Xác nhận"
+                title="Xác nhận lịch hẹn"
               >
                 <Check size={16} />
               </button>
@@ -151,6 +151,23 @@ export default function SchedulePage() {
                 title="Hủy lịch"
               >
                 <X size={16} />
+              </button>
+            </>
+          ) : s.status === "CONFIRMED" ? (
+            <>
+              <button
+                onClick={() => handleMarkAttended(s.id)}
+                className="px-2 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg font-medium text-xs flex items-center gap-1 cursor-pointer border border-emerald-200"
+                title="Xác nhận khách đã đến xem phòng"
+              >
+                <UserCheck size={14} /> Đã đến
+              </button>
+              <button
+                onClick={() => handleMarkNoShow(s.id)}
+                className="px-2 py-1 bg-red-50 text-red-700 hover:bg-red-100 rounded-lg font-medium text-xs flex items-center gap-1 cursor-pointer border border-red-200"
+                title="Ghi nhận khách không đến"
+              >
+                <UserX size={14} /> Vắng mặt
               </button>
             </>
           ) : (
@@ -170,11 +187,9 @@ export default function SchedulePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        icon={CalendarDays}
         title="Lịch xem phòng"
         subtitle="Quản lý các lượt hẹn xem phòng của khách hàng"
         count={schedules.length}
-        iconColor="linear-gradient(135deg, #3B82F6, #60A5FA)"
         actions={
           <SearchInput
             value={search}

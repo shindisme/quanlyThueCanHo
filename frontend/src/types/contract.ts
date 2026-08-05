@@ -36,6 +36,7 @@ export interface RawContract {
   signed_at?: string | null;
   created_by?: number | null;
   created_at: string;
+  max_occupants?: number;
   tenant?: Tenant;
   apartment?: Apartment;
 }

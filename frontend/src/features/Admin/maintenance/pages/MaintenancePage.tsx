@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Wrench, ClipboardList } from "lucide-react";
+import { ClipboardList } from "lucide-react";
 import SearchInput from "../../../../components/ui/SearchInput";
-import PageHeader from "../../../../components/PageHeader";
+import PageHeader from "../../../../components/layout/PageHeader";
 import Combobox from "../../../../components/ui/Combobox";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import { removeVietnameseTones } from "../../../../utils/string";
@@ -85,18 +85,16 @@ export default function MaintenancePage() {
   const { items: sortedRequests } = useSort(filteredRequests);
 
   return loading ? (
-    <div className="flex flex-col items-center justify-center min-h-[400px]">
+    <div className="flex flex-col items-center justify-center min-h-100">
       <LoadingSpinner size={36} />
       <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải danh sách yêu cầu sửa chữa...</span>
     </div>
   ) : (
     <div className="space-y-6">
       <PageHeader
-        icon={Wrench}
         title="Quản lý sửa chữa"
         subtitle="Tiếp nhận, phân công nhân viên kỹ thuật và giám sát quá trình xử lý sự cố thiết bị"
         count={requests.length}
-        iconColor="linear-gradient(135deg, #EC4899, #F472B6)"
         actions={
           <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm..." className="w-64 sm:w-80 flex-1 min-w-0" />
         }

@@ -1,29 +1,25 @@
-import { format, formatDistanceToNow } from "date-fns";
-import { vi } from "date-fns/locale";
-
-export function formatDate(date: string | Date): string {
-  if (!date) return "-";
-  try {
-    return format(new Date(date), "dd/MM/yyyy");
-  } catch {
-    return "-";
-  }
-}
-export function formatDateTime(date: string | Date): string {
-  if (!date) return "-";
-  try {
-    return format(new Date(date), "dd/MM/yyyy HH:mm");
-  } catch {
-    return "-";
-  }
+export function formatDate(dateStr?: string | Date | null): string {
+  if (!dateStr) return "-";
+  const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
+  if (isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
-// Định dạng thời gian tương đối
-export function formatRelativeTime(date: string | Date): string {
-  if (!date) return "-";
-  try {
-    return formatDistanceToNow(new Date(date), { addSuffix: true, locale: vi });
-  } catch {
-    return "-";
-  }
+export function formatTimeAgo(dateStr: string): string {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMinutes < 1) return "Vừa xong";
+  if (diffMinutes < 60) return `${diffMinutes} phút trước`;
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  if (diffDays < 7) return `${diffDays} ngày trước`;
+  return date.toLocaleDateString("vi-VN");
 }

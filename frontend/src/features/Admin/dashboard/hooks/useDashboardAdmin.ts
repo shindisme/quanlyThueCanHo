@@ -55,8 +55,8 @@ export function useDashboardAdmin() {
     ? invoices.filter((inv) => inv.contract?.apartment?.building_id === branchId)
     : invoices;
 
+  // Tính tổng số lượng căn hộ, cư dân và doanh thu thực nhận tháng hiện tại
   const totalBuildingsCount = filteredBuildings.length;
-
   const totalApartmentsCount = filteredBuildings.reduce((sum: number, b) => sum + (b.total_apartments || b._count?.apartments || 0), 0);
 
   const activeContractsForExpiration = contracts.filter((c) => {
@@ -71,6 +71,7 @@ export function useDashboardAdmin() {
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
+  // Lọc các hóa đơn PAID trong tháng, năm hiện tại để tính doanh thu
   const currentMonthPaidInvoices = filteredInvoices.filter((inv) => {
     if (inv.status !== "PAID") return false;
     const date = new Date(inv.paid_at || inv.created_at);
@@ -79,6 +80,7 @@ export function useDashboardAdmin() {
 
   const monthlyRevenue = currentMonthPaidInvoices.reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
 
+  // Tổng hợp dữ liệu doanh thu 12 tháng
   const months = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
   const monthlyRevenueData = months.map((m, index) => {
     const monthVal = index + 1;

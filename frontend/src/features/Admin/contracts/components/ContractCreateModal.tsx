@@ -91,10 +91,11 @@ export default function ContractCreateModal({
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12">
             <Combobox
-              label="Người thuê đã đặt cọc *"
+              label="Người thuê *"
               options={tenants.map((t) => ({ value: String(t.id), label: `${t.full_name} (${t.citizen_id})` }))}
               value={tenantIdValue ? String(tenantIdValue) : ""}
               onChange={(val) => setValue("tenant_id", val ? Number(val) : null)}
+              disabled={!!initialTenantId}
               placeholder="Chọn người thuê"
               searchPlaceholder="Tìm kiếm người thuê..."
               triggerClassName="rounded-md"
@@ -112,7 +113,7 @@ export default function ContractCreateModal({
                   setValue("floor", undefined as unknown as number);
                   setValue("apartment_id", undefined as unknown as number);
                 }}
-                disabled={role === "MANAGER"}
+                disabled={role === "MANAGER" || !!initialBuildingId}
                 placeholder="Chọn chi nhánh"
                 searchPlaceholder="Tìm chi nhánh..."
                 triggerClassName="rounded-md"
@@ -125,14 +126,14 @@ export default function ContractCreateModal({
             <Combobox
               label="Tầng *"
               options={formFloors.map((floor) => ({ value: String(floor), label: `Tầng ${floor}` }))}
-              value={floorValue ? String(floorValue) : ""}
+              value={floorValue !== undefined && floorValue !== null ? String(floorValue) : ""}
               onChange={(val) => {
-                setValue("floor", val ? Number(val) : (undefined as unknown as number));
+                setValue("floor", val !== "" ? Number(val) : (undefined as unknown as number));
                 setValue("apartment_id", undefined as unknown as number);
               }}
-              disabled={!buildingIdValue || loadingApartments}
-              placeholder={loadingApartments ? "Đang tải căn hộ..." : "Chọn tầng"}
-              searchable={false}
+              disabled={loadingApartments || !buildingIdValue || !!initialFloor}
+              placeholder="Chọn tầng"
+              searchPlaceholder="Tìm tầng..."
               triggerClassName="rounded-md"
               error={errors.floor?.message}
             />

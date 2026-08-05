@@ -16,6 +16,11 @@ import { useUserRole } from "../../../../hooks/useUserRole";
 import { useDeleteTenant } from "./useDeleteTenant";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
 
+// lấy hợp đồng đang ACTIVE nếu không có thì lấy hợp đồng đầu tiên
+export function getTenantActiveContract(tenant: Tenant) {
+  return tenant.contracts?.find((c) => c.status === "ACTIVE") ?? tenant.contracts?.[0];
+}
+
 export function useTenantPage() {
   const { role, managedBuildingId } = useUserRole();
 

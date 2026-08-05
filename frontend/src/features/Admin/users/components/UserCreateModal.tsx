@@ -41,6 +41,15 @@ export default function UserCreateModal({ isOpen, onClose, onSuccess }: UserCrea
     });
   };
 
+  const onInvalid = (fieldErrors: Record<string, unknown>) => {
+    const first = Object.values(fieldErrors)[0] as { message?: string } | undefined;
+    if (first?.message) {
+      toast.error(first.message);
+    } else {
+      toast.error("Vui lòng kiểm tra và điền đầy đủ các thông tin tài khoản!");
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -49,11 +58,11 @@ export default function UserCreateModal({ isOpen, onClose, onSuccess }: UserCrea
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={saving}>Hủy</Button>
-          <Button onClick={handleSubmit(onSubmit)} isLoading={saving}>Tạo tài khoản</Button>
+          <Button onClick={handleSubmit(onSubmit, onInvalid)} isLoading={saving}>Tạo tài khoản</Button>
         </>
       }
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12">
             <Input

@@ -27,6 +27,7 @@ export interface InvoiceReservation {
 export interface Invoice {
   id: number;
   invoice_code: string;
+  type?: "RENTAL" | "DEPOSIT" | "MONTHLY" | string | null;
   contract_id: number | null;
   reservation_id?: number | null;
   tenant_id: number;

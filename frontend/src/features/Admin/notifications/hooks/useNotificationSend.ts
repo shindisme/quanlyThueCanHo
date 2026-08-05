@@ -23,7 +23,7 @@ export function useNotificationSend() {
 
   const broadcastModal = useOnOff();
 
-  // Fetch toà nhà
+  // Get danh sách tòa theo Admin
   const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
     queryFn: () => buildingService.getAllBuildingsPage(),
@@ -31,7 +31,7 @@ export function useNotificationSend() {
     select: (res) => res.data,
   });
 
-  // Fetch căn hộ
+  // Get danh sách căn hộ khi chọn chế độ gửi theo căn hộ chỉ định
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: ["apartments-for-target", buildingId],
     queryFn: () =>
@@ -42,18 +42,18 @@ export function useNotificationSend() {
     select: (res) => res.data,
   });
 
-  // Reset căn hộ nếu tòa nhà thay đổi
+  // Reset danh sách căn hộ đã chọn khi chuyển đổi tòa nhà
   useEffect(() => {
     setSelectedApartmentIds([]);
   }, [buildingId]);
 
-  // Phát thông báo
+  // Gọi API thông báo
   const sendNotification = useMutation({
     mutationFn: (payload: notificationService.SendBuildingNotificationPayload) =>
       notificationService.sendBuildingNotification(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      toast.success("Phát sóng thông báo thành công!");
+      toast.success("Phát thông báo thành công!");
       broadcastModal.onClose();
       setTitle("");
       setContent("");
@@ -61,7 +61,7 @@ export function useNotificationSend() {
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Phát sóng thông báo thất bại");
+      toast.error(err.response?.data?.message || "Phát thông báo thất bại");
     },
   });
 
@@ -90,7 +90,6 @@ export function useNotificationSend() {
       }
       payload.apartment_ids = selectedApartmentIds;
     }
-
     sendNotification.mutate(payload);
   };
 

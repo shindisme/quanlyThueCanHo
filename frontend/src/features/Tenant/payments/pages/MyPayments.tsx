@@ -1,5 +1,5 @@
-import { CreditCard, Wallet, QrCode, ArrowRight, ClipboardCheck, History } from "lucide-react";
-import PageHeader from "../../../../components/PageHeader";
+import { Wallet, QrCode, ArrowRight, ClipboardCheck, History } from "lucide-react";
+import PageHeader from "../../../../components/layout/PageHeader";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import DefaultPagination from "../../../../components/ui/Pagination";
 import Modal from "../../../../components/ui/Modal";
@@ -65,10 +65,8 @@ export default function MyPayments() {
   return (
     <div className="space-y-6 font-sans">
       <PageHeader
-        icon={CreditCard}
-        title="Thanh toán hóa đơn"
-        subtitle="Quản lý công nợ, thanh toán online qua cổng VNPay hoặc chuyển khoản ngân hàng thủ công"
-        iconColor="linear-gradient(135deg, #3B82F6, #8B5CF6)"
+        title="Lịch sử thanh toán"
+        subtitle="Quản lý lịch sử nộp tiền và theo dõi trạng thái giao dịch"
       />
 
       {isLoading ? (

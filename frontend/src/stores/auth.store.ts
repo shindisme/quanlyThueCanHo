@@ -1,15 +1,16 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { logout as logoutRequest } from "../services/authService";
+import type { Role } from "../constants/enums";
 
 interface AuthState {
   token: string;
-  role: string | null;
+  role: Role | null;
   email: string | null;
   managedBuildingId: number | null;
   managedBuildingName: string | null;
 
-  setAuth: (token: string, role: string, email: string, managedBuildingId?: number | null, managedBuildingName?: string | null) => void;
+  setAuth: (token: string, role: Role, email: string, managedBuildingId?: number | null, managedBuildingName?: string | null) => void;
   logout: () => Promise<void>;
 }
 
@@ -42,8 +43,7 @@ export const useAuthStore = create<AuthState>()(
           if (token) {
             await logoutRequest(token);
           }
-        } catch {
-        } finally {
+        } catch { /* empty */ } finally {
           set(emptyAuthState);
         }
       },

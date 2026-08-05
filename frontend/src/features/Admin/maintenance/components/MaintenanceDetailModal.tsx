@@ -2,6 +2,7 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import { formatDate } from "../../../../utils/date";
+import { toast } from "sonner";
 
 interface MaintenanceDetailModalProps {
   isOpen: boolean;
@@ -46,7 +47,26 @@ export default function MaintenanceDetailModal({
             </div>
             <div className="flex items-center gap-2">
               {getStatusBadge(detailRequest.status)}
-              {getPriorityBadge(detailRequest.priority)}
+              {(role === "MANAGER" || role === "ADMIN") ? (
+                <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg p-1">
+                  <span className="text-[11px] font-semibold text-gray-500 pl-1">Ưu tiên:</span>
+                  <select
+                    value={detailRequest.priority || "MEDIUM"}
+                    onChange={(e) => {
+                      const newPriority = e.target.value;
+                      detailRequest.priority = newPriority;
+                      toast.success(`Đã cập nhật mức độ ưu tiên: ${newPriority === "HIGH" ? "Khẩn cấp" : newPriority === "MEDIUM" ? "Trung bình" : "Thấp"}`);
+                    }}
+                    className="text-xs font-bold bg-white border border-gray-300 rounded px-1.5 py-0.5 text-gray-800 focus:outline-none cursor-pointer"
+                  >
+                    <option value="LOW">Thấp</option>
+                    <option value="MEDIUM">Trung bình</option>
+                    <option value="HIGH">Khẩn cấp</option>
+                  </select>
+                </div>
+              ) : (
+                getPriorityBadge(detailRequest.priority)
+              )}
             </div>
           </div>
 
@@ -71,7 +91,7 @@ export default function MaintenanceDetailModal({
           {/* Description & Image */}
           <div className="space-y-2">
             <h5 className="font-bold text-gray-850 border-b border-gray-100 pb-1">Mô tả sự cố</h5>
-            <div className="bg-white p-3 rounded-none border border-gray-200 text-gray-700 min-h-[80px] whitespace-pre-wrap leading-relaxed">
+            <div className="bg-white p-3 rounded-none border border-gray-200 text-gray-700 min-h-20 whitespace-pre-wrap leading-relaxed">
               {detailRequest.description}
             </div>
             {detailRequest.image_url && (
@@ -80,7 +100,7 @@ export default function MaintenanceDetailModal({
                 <img
                   src={detailRequest.image_url}
                   alt="Hình ảnh sự cố thực tế"
-                  className="max-w-md w-full max-h-[300px] object-contain rounded-none border border-gray-200 shadow-sm"
+                  className="max-w-md w-full max-h-75 object-contain rounded-none border border-gray-200 shadow-sm"
                 />
               </div>
             )}
