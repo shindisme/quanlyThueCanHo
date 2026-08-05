@@ -20,7 +20,7 @@ type LocationSuggestion = {
 async function getGuestApartments(buildingId?: number) {
   const apartments: apartmentService.ApartmentData[] = [];
   let page = 1;
-  let totalPages = 1;
+  let totalPages: number;
 
   do {
     const res = await apartmentService.getAllApartments({
