@@ -416,6 +416,17 @@ export const createContractService = async (
         ? getCurrentManagerAssignment(actor)
         : undefined;
 
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    if (new Date(input.start_date) < startOfToday) {
+        throw new AppError(
+            400,
+            "INVALID_DATE_RANGE",
+            "Ngày bắt đầu hợp đồng không thể nhỏ hơn ngày hiện tại"
+        );
+    }
+
     ensureNewEndDate(input.end_date);
 
     try {
@@ -472,11 +483,11 @@ export const createContractService = async (
                 );
             }
 
-            if (apartment.status !== ApartmentStatus.RESERVED) {
+            if (apartment.status !== ApartmentStatus.RESERVED && apartment.status !== ApartmentStatus.AVAILABLE) {
                 throw new AppError(
                     409,
-                    "RESERVATION_REQUIRED",
-                    "Chỉ có thể lập hợp đồng từ căn hộ đã được đặt cọc"
+                    "APARTMENT_NOT_AVAILABLE",
+                    "Căn hộ không ở trạng thái sẵn sàng hoặc đã được đặt cọc"
                 );
             }
 
@@ -502,15 +513,16 @@ export const createContractService = async (
                 select: { id: true, deposit_amount: true }
             });
 
-            if (!reservation) {
-                throw new AppError(
-                    409,
-                    "RESERVATION_NOT_FOUND",
-                    "Căn hộ đã được giữ chỗ cho người thuê khác hoặc chưa có đặt cọc"
-                );
+            let depositAmount = input.deposit_amount ? Number(input.deposit_amount) : Number(input.monthly_rent);
+
+            if (reservation) {
+                depositAmount = Number(reservation.deposit_amount);
+                await transaction.reservation.update({
+                    where: { id: reservation.id },
+                    data: { status: ReservationStatus.CONVERTED }
+                });
             }
 
-            const depositAmount = Number(reservation.deposit_amount);
             assertPositiveMoney(depositAmount, "deposit_amount");
 
             const apartmentConnect:
@@ -527,7 +539,8 @@ export const createContractService = async (
                             managerAssignment.assignmentWhere
                     }
                     : {})
-            };            const tenantConnect: Prisma.TenantWhereUniqueInput = {
+            };
+            const tenantConnect: Prisma.TenantWhereUniqueInput = {
                 ...(managerAssignment
                     ? getManagerTenantScope(actor)
                     : {}),
@@ -541,7 +554,7 @@ export const createContractService = async (
                     end_date: input.end_date,
                     deposit_amount: depositAmount,
                     monthly_rent: input.monthly_rent,
-                    signed_at: input.signed_at,
+                    signed_at: input.signed_at ?? input.start_date,
                     contract_file: input.contract_file,
                     status: ContractStatus.ACTIVE
                 }
@@ -754,14 +767,6 @@ export const endContractService = async (
             400,
             "INVALID_DATE_RANGE",
             "Hợp đồng không thể kết thúc ở tương lai"
-        );
-    }
-
-    if (startOfDay(endDate) < startOfDay(existing.start_date)) {
-        throw new AppError(
-            400,
-            "INVALID_DATE_RANGE",
-            "Hợp đồng không thể kết thúc trước ngày bắt đầu"
         );
     }
 

@@ -7,8 +7,8 @@ import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS, type ApartmentStatus } from "../../../../constants/enums";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import { formatCurrency } from "../../../../utils/currency";
-import type { Apartment } from "../../../../types";
-import type { Building } from "../../../../types";
+import { getApartmentThumbnail } from "../../../../utils/file";
+import type { Apartment, Building } from "../../../../types";
 import { useOnOff } from "../../../../hooks/useOnOff";
 
 interface ApartmentListProps {
@@ -61,17 +61,25 @@ export default function ApartmentList({
         render: (apt) => {
           const roomName = formatApartmentDisplay(apt.room_number, apt.floor);
           const branch = apt.building?.branch_name || buildingMap.get(apt.building_id);
+          const thumbnail = getApartmentThumbnail(apt);
           return (
             <Link
               to={`${basePath}/apartments/${apt.id}`}
-              className="font-semibold cursor-pointer hover:underline text-gray-900 hover:text-primary-600 block"
+              className="flex items-center gap-3 font-semibold cursor-pointer group"
             >
-              <span>{roomName}</span>
-              {role === "ADMIN" && branch && (
-                <span className="block text-[10px] font-semibold text-primary-600">
-                  {branch}
-                </span>
-              )}
+              <img
+                src={thumbnail}
+                alt={roomName}
+                className="w-12 h-10 rounded-lg object-cover border border-gray-200 group-hover:border-primary-500 transition-all shrink-0 bg-gray-50"
+              />
+              <div>
+                <span className="group-hover:underline text-gray-900 group-hover:text-primary-600 block">{roomName}</span>
+                {role === "ADMIN" && branch && (
+                  <span className="block text-[10px] font-semibold text-primary-600">
+                    {branch}
+                  </span>
+                )}
+              </div>
             </Link>
           );
         },

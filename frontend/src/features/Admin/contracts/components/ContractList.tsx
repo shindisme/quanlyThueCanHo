@@ -126,7 +126,7 @@ export default function ContractList({
         label: "Chức năng",
         className: "text-right",
         render: (c) => (
-          <div className="flex items-center justify-end gap-1">
+          <div className="flex items-center justify-start gap-1">
             <button
               onClick={() => setSelectedDetailContract(c)}
               className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
@@ -165,9 +165,17 @@ export default function ContractList({
             )}
             {c.status === "ACTIVE" && (role === "ADMIN" || role === "MANAGER") && (
               <button
+                disabled={role === "ADMIN"}
                 onClick={() => setTerminateItem(c)}
-                className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
-                title="Hủy/Thanh lý hợp đồng"
+                className={`p-2 rounded-lg transition-colors ${role === "ADMIN"
+                  ? "text-gray-400 opacity-60 cursor-not-allowed"
+                  : "text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
+                  }`}
+                title={
+                  role === "ADMIN"
+                    ? "Chức năng thanh lý hợp đồng do Quản lý tòa nhà thực hiện"
+                    : "Thanh lý hợp đồng"
+                }
               >
                 <XCircle size={16} />
               </button>

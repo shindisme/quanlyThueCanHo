@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Home, Trash2, Plus, Star, ArrowRight } from "lucide-react";
+import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Trash2, Plus, Star, ArrowRight } from "lucide-react";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import Card from "../../../../components/ui/Card";
 import Badge from "../../../../components/ui/Badge";
@@ -9,6 +9,7 @@ import { useUserRole } from "../../../../hooks/useUserRole";
 import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay, maskCCCD } from "../../../../utils/string";
 import { formatCurrency } from "../../../../utils/currency";
+import { DEFAULT_APARTMENT_IMAGE } from "../../../../utils/file";
 import { useApartmentDetailPage } from "../hooks/useApartmentDetailPage";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS, type ApartmentStatus } from "../../../../constants/enums";
 import { useDepositInvoice } from "../../invoices/hooks/useDepositInvoice";
@@ -103,35 +104,29 @@ export default function ApartmentDetailPage() {
 
       {/* Thông tin chính */}
       <div className="flex flex-col lg:flex-row gap-6">
-        {images.length > 0 ? (
-          <div className="w-full lg:w-96 shrink-0 flex flex-col gap-2">
-            <div className="w-full h-64 rounded-2xl overflow-hidden border border-gray-200 shadow-xl">
-              <img
-                src={images.find((img) => img.is_thumbnail)?.image_url || images[0].image_url}
-                className="w-full h-full object-cover"
-                alt="Ảnh căn hộ"
-              />
+        <div className="w-full lg:w-96 shrink-0 flex flex-col gap-2">
+          <div className="w-full h-64 rounded-2xl overflow-hidden border border-gray-200 shadow-xl bg-gray-50">
+            <img
+              src={images.length > 0 ? (images.find((img) => img.is_thumbnail)?.image_url || images[0].image_url) : DEFAULT_APARTMENT_IMAGE}
+              className="w-full h-full object-cover"
+              alt="Ảnh căn hộ"
+            />
+          </div>
+          {images.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto py-1">
+              {images.map((img) => (
+                <button
+                  key={img.id}
+                  onClick={() => handleSetThumbnail(img.id)}
+                  className={`w-16 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${img.is_thumbnail ? "border-primary-500 scale-102" : "border-gray-200 hover:border-gray-300"
+                    }`}
+                >
+                  <img src={img.image_url} className="w-full h-full object-cover" alt="" />
+                </button>
+              ))}
             </div>
-            {images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto py-1">
-                {images.map((img) => (
-                  <button
-                    key={img.id}
-                    onClick={() => handleSetThumbnail(img.id)}
-                    className={`w-16 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${img.is_thumbnail ? "border-primary-500 scale-102" : "border-gray-200 hover:border-gray-300"
-                      }`}
-                  >
-                    <img src={img.image_url} className="w-full h-full object-cover" alt="" />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="w-full lg:w-96 h-64 bg-gray-100 rounded-2xl flex items-center justify-center shrink-0 border border-gray-200">
-            <Home size={48} className="text-gray-300" />
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="flex-1">
           <div className="flex items-start justify-between mb-3">
@@ -312,9 +307,9 @@ export default function ApartmentDetailPage() {
                           Chủ hợp đồng: <span className="text-primary-700 font-bold ml-1">{activeTenant.full_name}</span>
                         </p>
                         {/* Hiển thị phân loại Hợp đồng ban đầu hay Hợp đồng đã gia hạn */}
-                        {activeContract.extended_at ? (
+                        {(activeContract as unknown as { extended_at?: string }).extended_at ? (
                           <Badge variant="warning" showDot>
-                            Đã gia hạn ({formatDate(activeContract.extended_at)})
+                            Đã gia hạn ({formatDate((activeContract as unknown as { extended_at: string }).extended_at)})
                           </Badge>
                         ) : (
                           <Badge variant="info">
@@ -324,8 +319,8 @@ export default function ApartmentDetailPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 pt-1">
                         <p>Số CCCD: <span className="font-medium">{maskCCCD(activeTenant.citizen_id)}</span></p>
-                        <p>SĐT: <span className="font-medium">{activeTenantUser?.phone || activeTenant.phone || "-"}</span></p>
-                        <p>Email: <span className="font-medium">{activeTenantUser?.email || activeTenant.email || "-"}</span></p>
+                        <p>SĐT: <span className="font-medium">{(activeTenantUser as unknown as { phone?: string })?.phone || activeTenant.phone || "-"}</span></p>
+                        <p>Email: <span className="font-medium">{(activeTenantUser as unknown as { email?: string })?.email || activeTenant.email || "-"}</span></p>
                         <p>Thời hạn thuê: <span className="font-medium">{formatDate(activeContract.start_date)} - {formatDate(activeContract.end_date)}</span></p>
                       </div>
                       <div className="pt-2 border-t border-primary-100 flex items-center justify-between text-xs">

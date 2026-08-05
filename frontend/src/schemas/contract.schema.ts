@@ -21,12 +21,33 @@ export const contractSchema = z.object({
   monthly_rent: z.number().positive({ message: "Tiền thuê phải lớn hơn 0" }),
 }).superRefine((data, ctx) => {
   if (data.start_date && data.end_date) {
-    if (new Date(data.end_date) <= new Date(data.start_date)) {
+    const startDate = new Date(data.start_date);
+    const endDate = new Date(data.end_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (startDate < today) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["start_date"],
+        message: "Ngày bắt đầu không được nhỏ hơn ngày hiện tại",
+      });
+    }
+
+    if (endDate <= startDate) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["end_date"],
         message: "Ngày kết thúc phải sau ngày bắt đầu",
-      })
+      });
+    }
+
+    if (endDate < today) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["end_date"],
+        message: "Ngày kết thúc không được nhỏ hơn ngày hiện tại",
+      });
     }
   }
 

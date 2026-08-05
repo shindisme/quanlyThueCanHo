@@ -277,7 +277,7 @@ export function useContractPage() {
       { id: terminateItem.id },
       {
         onSuccess: () => {
-          toast.success("Hủy/thanh lý hợp đồng thành công!");
+          toast.success("Thanh lý hợp đồng thành công!");
           setTerminateItem(null);
         },
         onError: (error: unknown) => {

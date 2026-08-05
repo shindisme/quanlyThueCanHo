@@ -125,7 +125,7 @@ export default function ContractCreateModal({
                   setValue("floor", undefined as unknown as number);
                   setValue("apartment_id", undefined as unknown as number);
                 }}
-                disabled={role === "MANAGER" || !!initialBuildingId}
+                disabled={role === "MANAGER"}
                 placeholder="Chọn chi nhánh"
                 searchPlaceholder="Tìm chi nhánh..."
                 triggerClassName="rounded-md"
@@ -143,7 +143,7 @@ export default function ContractCreateModal({
                 setValue("floor", val !== "" ? Number(val) : (undefined as unknown as number));
                 setValue("apartment_id", undefined as unknown as number);
               }}
-              disabled={loadingApartments || !buildingIdValue || !!initialFloor}
+              disabled={loadingApartments || !buildingIdValue}
               placeholder="Chọn tầng"
               searchPlaceholder="Tìm tầng..."
               triggerClassName="rounded-md"
@@ -206,7 +206,7 @@ export default function ContractCreateModal({
             )}
           </div>
 
-          <div className="col-span-12">
+          <div className="col-span-12 sm:col-span-6">
             <Input
               label={`Số lượng người ở thực tế ${apartmentIdValue ? `(Tối đa: ${maxOccupants} người)` : ""} *`}
               type="number"
