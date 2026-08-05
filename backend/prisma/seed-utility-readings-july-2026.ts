@@ -155,6 +155,7 @@ type ReadingPlan = {
     toCreate: PlannedReading[];
     skipped: PlannedReading[];
     conflicts: ReadingConflict[];
+    toUpdate: PlannedReading[];
 };
 
 const consumptionBands: Record<number, ConsumptionBand> = {
@@ -168,7 +169,7 @@ const consumptionBands: Record<number, ConsumptionBand> = {
     8: { minElectric: 700, maxElectric: 850, minWater: 32, maxWater: 40 }
 };
 
-const round1 = (value: number) => Math.round(value);
+const round1 = (value: number) => Math.round(value * 10) / 10;
 
 const clamp = (value: number, min: number, max: number) =>
     Math.min(Math.max(value, min), max);
@@ -274,9 +275,13 @@ const sortTargets = (left: TargetApartment, right: TargetApartment) =>
     || left.apartment.id - right.apartment.id;
 
 async function getTargetApartments(): Promise<TargetApartment[]> {
+    const periodStart = new Date(Date.UTC(TARGET_YEAR, TARGET_MONTH - 1, 1));
+    const periodEnd = new Date(Date.UTC(TARGET_YEAR, TARGET_MONTH, 1));
     const activeContracts = await prisma.rentalContract.findMany({
         where: {
-            status: ContractStatus.ACTIVE
+            status: ContractStatus.ACTIVE,
+            start_date: { lt: periodEnd },
+            end_date: { gte: periodStart }
         },
         select: activeContractSelect,
         orderBy: [
@@ -521,6 +526,7 @@ async function buildUtilityReadingPlan(): Promise<ReadingPlan> {
     const toCreate: PlannedReading[] = [];
     const skipped: PlannedReading[] = [];
     const conflicts: ReadingConflict[] = [];
+    const toUpdate: PlannedReading[] = [];
 
     for (const planned of plannedReadings) {
         const existing = existingByKey.get(readingKey(
@@ -539,6 +545,7 @@ async function buildUtilityReadingPlan(): Promise<ReadingPlan> {
             continue;
         }
 
+        toUpdate.push(planned);
         conflicts.push({
             apartment_id: planned.apartment.id,
             room: `P.${planned.apartment.room_number}`,
@@ -569,7 +576,8 @@ async function buildUtilityReadingPlan(): Promise<ReadingPlan> {
         plannedReadings,
         toCreate,
         skipped,
-        conflicts
+        conflicts,
+        toUpdate
     };
 }
 
@@ -605,6 +613,7 @@ function printPlanSummary(plan: ReadingPlan) {
     console.log(`Tạo mới: ${plan.toCreate.length}`);
     console.log(`Đã tồn tại và khớp: ${plan.skipped.length}`);
     console.log(`Conflict: ${plan.conflicts.length}`);
+    console.log("Cập nhật khi --force-update: " + plan.toUpdate.length);
 
     console.log("\nTheo tòa nhà:");
     for (const [building, count] of countBy(
@@ -702,7 +711,7 @@ async function validateAfterExecute(plan: ReadingPlan) {
         return !previous
             || !current
             || !sameNumber(previous.electric_new, current.electric_old)
-            || !sameNumber(previous.water_new, current.water_old);
+            || Math.round(toNumber(previous.water_new)) !== Math.round(toNumber(current.water_old));
     });
 
     console.log("\nValidation sau execute:");
@@ -726,11 +735,12 @@ async function runDryRun() {
 }
 
 async function runExecute() {
+    const forceUpdate = process.argv.includes("--force-update");
     const plan = await buildUtilityReadingPlan();
     printPlanSummary(plan);
 
-    if (plan.conflicts.length > 0) {
-        throw new Error("Có conflict tháng 07/2026, dừng để tránh ghi đè dữ liệu.");
+    if (plan.conflicts.length > 0 && !forceUpdate) {
+        throw new Error("Có conflict tháng 07/2026, chạy thêm --force-update nếu muốn cập nhật các row đã tồn tại khác dữ liệu dự kiến.");
     }
 
     for (const batch of chunkArray(plan.toCreate, BATCH_SIZE)) {
@@ -739,7 +749,29 @@ async function runExecute() {
         });
     }
 
-    console.log(`\nĐã tạo ${plan.toCreate.length} utility_readings tháng 07/2026.`);
+    if (forceUpdate) {
+        for (const reading of plan.toUpdate) {
+            await prisma.utilityReading.update({
+                where: {
+                    apartment_id_month_year: {
+                        apartment_id: reading.data.apartment_id,
+                        month: reading.data.month,
+                        year: reading.data.year
+                    }
+                },
+                data: {
+                    electric_old: reading.data.electric_old,
+                    electric_new: reading.data.electric_new,
+                    water_old: reading.data.water_old,
+                    water_new: reading.data.water_new,
+                    created_at: reading.data.created_at as Date,
+                    recorded_by: reading.data.recorded_by
+                }
+            });
+        }
+    }
+
+    console.log(`\nĐã tạo ${plan.toCreate.length} và cập nhật ${forceUpdate ? plan.toUpdate.length : 0} utility_readings tháng 07/2026.`);
     await validateAfterExecute(plan);
 }
 

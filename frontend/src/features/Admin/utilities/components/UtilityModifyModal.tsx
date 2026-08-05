@@ -30,11 +30,9 @@ export default function UtilityModifyModal({
   const {
     saving,
     electricOld,
-    setElectricOld,
     electricNew,
     setElectricNew,
     waterOld,
-    setWaterOld,
     waterNew,
     setWaterNew,
     handleUpdateUtilityReading,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -7,7 +7,8 @@ import * as apartmentService from "../../../../services/apartmentService";
 import * as tenantService from "../../../../services/tenantService";
 import * as authService from "../../../../services/authService";
 import * as contractService from "../../../../services/contractService";
-import type { RentalContract } from "../../../../types";
+import * as contractTerminationService from "../../../../services/contractTerminationService";
+import type { ContractTermination, OverdueTerminationCandidate, RentalContract } from "../../../../types";
 import type { Apartment } from "../../../../types";
 import type { Tenant } from "../../../../types";
 import type { Building } from "../../../../types";
@@ -18,7 +19,6 @@ import { useUserRole } from "../../../../hooks/useUserRole";
 import { useSort } from "../../../../hooks/useSort";
 import { removeVietnameseTones } from "../../../../utils/string";
 import { useExtendContract } from "./useExtendContract";
-import { useTerminateContract } from "./useTerminateContract";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
 
 interface LocationState {
@@ -49,6 +49,8 @@ export function useContractPage() {
   const [selectedDocContract, setSelectedDocContract] = useState<RentalContract | null>(null);
   const [selectedExtendContract, setSelectedExtendContract] = useState<RentalContract | null>(null);
   const [terminateItem, setTerminateItem] = useState<RentalContract | null>(null);
+  const [terminationItem, setTerminationItem] = useState<ContractTermination | null>(null);
+  const [selectedTerminationDetail, setSelectedTerminationDetail] = useState<ContractTermination | null>(null);
   const [cancelContractItem, setCancelContractItem] = useState<RentalContract | null>(null);
   const [extendEndDate, setExtendEndDate] = useState("");
   const [initialTenantId, setInitialTenantId] = useState<number | undefined>();
@@ -86,9 +88,21 @@ export function useContractPage() {
     queryFn: () => authService.getAllPage(),
     select: (res) => res.data as unknown as User[],
   });
+  const { data: terminations = [], isLoading: loadingTerminations } = useQuery({
+    queryKey: QUERY_KEYS.TERMINATIONS,
+    queryFn: () => contractTerminationService.getAllPage(),
+    select: (res) => res.data as ContractTermination[],
+  });
+
+  const { data: overdueCandidates = [], isLoading: loadingOverdueCandidates } = useQuery({
+    queryKey: [...QUERY_KEYS.TERMINATIONS, "overdue-candidates"],
+    queryFn: () => contractTerminationService.getOverdueCandidates(),
+    enabled: role === "ADMIN" || role === "MANAGER",
+    select: (res) => res as OverdueTerminationCandidate[],
+  });
 
   const loading =
-    loadingContracts || loadingBuildings || loadingApartments || loadingTenants || loadingUsers;
+    loadingContracts || loadingBuildings || loadingApartments || loadingTenants || loadingUsers || loadingTerminations || loadingOverdueCandidates;
 
   const [isNewTenantFromNavigation, setIsNewTenantFromNavigation] = useState(false);
   const [showConfirmCancelModal, setShowConfirmCancelModal] = useState(false);
@@ -179,6 +193,20 @@ export function useContractPage() {
     return contracts;
   })();
 
+
+  const openTerminationsByContractId = useMemo(() => {
+    const openStatuses = new Set(["PENDING", "APPROVED", "INSPECTION", "SETTLING"]);
+    return new Map(
+      terminations
+        .filter((termination) => openStatuses.has(termination.status))
+        .map((termination) => [termination.contract_id, termination])
+    );
+  }, [terminations]);
+
+  const overdueCandidateIds = useMemo(
+    () => new Set(overdueCandidates.map((candidate) => candidate.contract.id)),
+    [overdueCandidates]
+  );
   const filteredContracts = displayContracts.filter((c) => {
     const apt = c.apartment ?? apartments.find((a) => a.id === c.apartment_id);
 
@@ -269,45 +297,122 @@ export function useContractPage() {
       }
     );
   }
+  const invalidateTerminationFlow = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TERMINATIONS }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CONTRACTS }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APARTMENTS }),
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.INVOICES }),
+    ]);
+  };
 
-  const terminateMutation = useTerminateContract();
+  const approveTerminationMutation = useMutation({
+    mutationFn: (id: number) => contractTerminationService.approve(id),
+    onSuccess: async () => {
+      toast.success("Đã duyệt yêu cầu thanh lý.");
+      await invalidateTerminationFlow();
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
+      toast.error(err.response?.data?.error || err.response?.data?.message || err.message || "Không thể duyệt yêu cầu thanh lý.");
+    },
+  });
 
-  function handleTerminateContract() {
-    if (!terminateItem) return;
-    terminateMutation.mutate(
-      { id: terminateItem.id },
-      {
-        onSuccess: () => {
-          toast.success("Thanh lý hợp đồng thành công!");
-          setTerminateItem(null);
-        },
-        onError: (error: unknown) => {
-          const err = error as { response?: { data?: { error?: string; message?: string } } };
-          toast.error(
-            err.response?.data?.error || err.response?.data?.message || "Hủy hợp đồng thất bại!"
-          );
-        },
-      }
-    );
+  const rejectTerminationMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) => contractTerminationService.reject(id, reason),
+    onSuccess: async () => {
+      toast.success("Đã từ chối yêu cầu thanh lý.");
+      await invalidateTerminationFlow();
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
+      toast.error(err.response?.data?.error || err.response?.data?.message || err.message || "Không thể từ chối yêu cầu thanh lý.");
+    },
+  });
+  const cancelTerminationMutation = useMutation({
+    mutationFn: (id: number) => contractTerminationService.cancel(id),
+    onSuccess: async () => {
+      toast.success("Đã hủy thanh lý hợp đồng.");
+      setSelectedTerminationDetail(null);
+      setTerminateItem(null);
+      setTerminationItem(null);
+      await invalidateTerminationFlow();
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
+      toast.error(err.response?.data?.error || err.response?.data?.message || err.message || "Không thể hủy thanh lý hợp đồng.");
+    },
+  });
+
+  const createOverdueTerminationMutation = useMutation({
+    mutationFn: ({ contractId, reason }: { contractId: number; reason: string }) => contractTerminationService.createOverdue({
+      contract_id: contractId,
+      reason,
+    }),
+    onSuccess: async (termination) => {
+      toast.success("Đã tạo hồ sơ thanh lý hợp đồng.");
+      setTerminationItem(termination);
+      const contract = displayContracts.find((item) => item.id === termination.contract_id) || null;
+      setTerminateItem(contract);
+      await invalidateTerminationFlow();
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
+      toast.error(err.response?.data?.error || err.response?.data?.message || err.message || "Không thể tạo thanh lý hợp đồng.");
+    },
+  });
+
+  const startInspectionMutation = useMutation({
+    mutationFn: (id: number) => contractTerminationService.startInspection(id),
+    onSuccess: async (termination) => {
+      setTerminationItem(termination);
+      const contract = displayContracts.find((item) => item.id === termination.contract_id) || null;
+      setTerminateItem(contract);
+      await invalidateTerminationFlow();
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
+      toast.error(err.response?.data?.error || err.response?.data?.message || err.message || "Không thể bắt đầu kiểm tra phòng.");
+    },
+  });
+
+  function handleApproveTermination(termination: ContractTermination) {
+    approveTerminationMutation.mutate(termination.id);
+  }
+
+  function handleRejectTermination(termination: ContractTermination) {
+    const reason = window.prompt("Nhập lý do từ chối yêu cầu thanh lý:");
+    if (!reason?.trim()) return;
+    rejectTerminationMutation.mutate({ id: termination.id, reason: reason.trim() });
+  }
+  function handleCancelTermination(termination: ContractTermination) {
+    const ok = window.confirm("Bạn có chắc chắn muốn hủy thanh lý hợp đồng này không?");
+    if (!ok) return;
+    cancelTerminationMutation.mutate(termination.id);
+  }
+
+  function handleCreateOverdueTermination(contract: RentalContract) {
+    const reason = window.prompt("Nhập lý do quản lý chủ động thanh lý hợp đồng:");
+    if (!reason?.trim()) return;
+    createOverdueTerminationMutation.mutate({ contractId: contract.id, reason: reason.trim() });
+  }
+
+  function handleOpenTerminationCheckout(contract: RentalContract, termination: ContractTermination) {
+    if (termination.status === "PENDING") {
+      toast.info("Yêu cầu thanh lý cần được duyệt trước khi bàn giao.");
+      return;
+    }
+    if (termination.status === "APPROVED") {
+      startInspectionMutation.mutate(termination.id);
+      return;
+    }
+    setTerminationItem(termination);
+    setTerminateItem(contract);
   }
 
   function handleConfirmCancelContract() {
-    if (!cancelContractItem) return;
-    terminateMutation.mutate(
-      { id: cancelContractItem.id },
-      {
-        onSuccess: () => {
-          toast.success("Hủy hợp đồng chưa nhận phòng thành công!");
-          setCancelContractItem(null);
-        },
-        onError: (error: unknown) => {
-          const err = error as { response?: { data?: { error?: string; message?: string } } };
-          toast.error(
-            err.response?.data?.error || err.response?.data?.message || "Hủy hợp đồng thất bại!"
-          );
-        },
-      }
-    );
+    toast.error("Không thể kết thúc hợp đồng trực tiếp. Vui lòng dùng quy trình thanh lý hợp đồng.");
+    setCancelContractItem(null);
   }
 
   return {
@@ -357,11 +462,22 @@ export function useContractPage() {
     handleExtendContract,
     terminateItem,
     setTerminateItem,
-    handleTerminateContract,
+    terminationItem,
+    setTerminationItem,
+    selectedTerminationDetail,
+    setSelectedTerminationDetail,
+    terminations,
+    openTerminationsByContractId,
+    overdueCandidateIds,
+    handleApproveTermination,
+    handleRejectTermination,
+    handleCancelTermination,
+    handleCreateOverdueTermination,
+    handleOpenTerminationCheckout,
     cancelContractItem,
     setCancelContractItem,
     handleConfirmCancelContract,
-    terminating: terminateMutation.isPending,
+    terminating: approveTerminationMutation.isPending || rejectTerminationMutation.isPending || cancelTerminationMutation.isPending || createOverdueTerminationMutation.isPending || startInspectionMutation.isPending,
     fetchContracts,
     isNewTenantFromNavigation,
     setIsNewTenantFromNavigation,

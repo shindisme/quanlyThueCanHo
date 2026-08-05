@@ -12,6 +12,7 @@ import * as buildingService from "../../../../services/buildingService";
 import * as apartmentService from "../../../../services/apartmentService";
 import type { ApartmentData } from "../../../../services/apartmentService";
 import * as maintenanceService from "../../../../services/maintenanceService";
+import { isUtilityTrackedApartment } from "../utils/utilityApartment";
 
 export function useUtilityList() {
   const queryClient = useQueryClient();
@@ -159,7 +160,7 @@ export function useUtilityList() {
     const matchesSearch = roomNorm.includes(term) || buildingNorm.includes(term);
     const matchesBuilding = !filterBuilding || apt.building_id === Number(filterBuilding);
     const matchesFloor = !filterFloor || apt.floor === Number(filterFloor);
-    const isRented = apt.status === "RENTED";
+    const isRented = isUtilityTrackedApartment(apt.status);
 
     return matchesSearch && matchesBuilding && matchesFloor && isRented;
   });

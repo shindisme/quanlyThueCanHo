@@ -1,4 +1,4 @@
-import {
+﻿import {
     ContractStatus,
     InvoiceStatus,
     Prisma,
@@ -207,6 +207,13 @@ export const createMaintenanceRequestService = async (
 ) => {
     if (actor.tenantId === undefined) {
         throw forbidden();
+    }
+    if (input.title.trim().startsWith("[Yêu cầu trả phòng]")) {
+        throw new AppError(
+            400,
+            "MAINTENANCE_NOT_FOR_TERMINATION",
+            "Yêu cầu trả phòng phải tạo trong quy trình thanh lý hợp đồng, không phải bảo trì."
+        );
     }
 
     // Kiểm tra hợp đồng có hoạt động ko
@@ -638,3 +645,4 @@ export const completeMaintenanceRequestService = async (
 
     return updated;
 });
+

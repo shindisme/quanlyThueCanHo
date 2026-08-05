@@ -5,6 +5,7 @@ import { utilitySchema } from "../../../../schemas/utility.schema";
 import * as utilityService from "../../../../services/utilityService";
 import type { BuildingData } from "../../../../services/buildingService";
 import type { ApartmentData } from "../../../../services/apartmentService";
+import { isUtilityTrackedApartment } from "../utils/utilityApartment";
 
 interface UseUtilityCreateProps {
   isOpen: boolean;
@@ -182,7 +183,7 @@ export function useUtilityCreate({
     .filter((apt) => {
       const matchBuilding = !buildingId || apt.building_id === Number(buildingId);
       const matchFloor = !floor || apt.floor === Number(floor);
-      const isRented = apt.status === "RENTED";
+      const isRented = isUtilityTrackedApartment(apt.status);
       return matchBuilding && matchFloor && isRented;
     })
     .map((apt) => ({

@@ -6,6 +6,7 @@ import { useOnOff } from "../../../../hooks/useOnOff";
 import { usePagination } from "../../../../hooks/usePagination";
 import { useSort } from "../../../../hooks/useSort";
 import type { Invoice } from "../../../../types";
+import { getInvoiceRoomDisplay, hideInvoicesCoveredByFinalSettlement } from "../../../../utils/invoiceDisplay";
 
 export function useTenantInvoices() {
   const [search, setSearch] = useState("");
@@ -16,16 +17,26 @@ export function useTenantInvoices() {
   const detailsModal = useOnOff();
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
-  // Load tenant invoices 
+  // Load tenant invoices
   const { data: invoicesRes, isLoading } = useQuery({
-    queryKey: ["tenant-invoices", statusFilter, debouncedSearch],
-    queryFn: () =>
-      invoiceService.getAllPage({
-        status: statusFilter || undefined,
-        search: debouncedSearch || undefined,
-      }),
+    queryKey: ["tenant-invoices"],
+    queryFn: () => invoiceService.getAllPage(),
   });
-  const invoices = invoicesRes?.data || [];
+
+  const invoices = useMemo(() => {
+    const keyword = debouncedSearch.trim().toLowerCase();
+    return hideInvoicesCoveredByFinalSettlement(invoicesRes?.data || []).filter((invoice) => {
+      if (statusFilter && invoice.status !== statusFilter) return false;
+      if (!keyword) return true;
+
+      const room = getInvoiceRoomDisplay(invoice);
+      return [invoice.invoice_code, room.room, room.branch]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(keyword);
+    });
+  }, [debouncedSearch, invoicesRes?.data, statusFilter]);
 
   // Sorting
   const { items: sortedInvoices, requestSort, getSortIcon, sortConfig } = useSort<Invoice>(invoices, {

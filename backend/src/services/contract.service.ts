@@ -1,4 +1,4 @@
-import {
+﻿import {
     ApartmentStatus,
     ContractStatus,
     InvoiceType,
@@ -744,120 +744,13 @@ export const extendContractService = async (
 }, concurrentModification);
 
 export const endContractService = async (
-    id: number,
-    actor: Actor,
-    requestedEndDate?: Date
-) => runSerializableTransaction(async (transaction) => {
-    const scope = getContractScope(actor);
-    const endDate = requestedEndDate ?? new Date();
-    const existing = await transaction.rentalContract.findFirst({
-        where: {
-            id,
-            ...scope
-        },
-        include: contractInclude
-    });
-
-    if (!existing) {
-        throw notFound();
-    }
-
-    if (existing.status !== ContractStatus.ACTIVE) {
-        throw contractNotActive();
-    }
-
-    if (startOfDay(endDate) > startOfDay(new Date())) {
-        throw new AppError(
-            400,
-            "INVALID_DATE_RANGE",
-            "Hợp đồng không thể kết thúc ở tương lai"
-        );
-    }
-
-    const ended = await transaction.rentalContract.updateMany({
-        where: {
-            id,
-            ...scope,
-            status: ContractStatus.ACTIVE
-        },
-        data: {
-            status: ContractStatus.ENDED,
-            end_date: endDate
-        }
-    });
-
-    if (ended.count === 0) {
-        await throwContractMutationConflict(transaction, id, scope);
-    }
-
-    const remainingActiveContracts =
-        await transaction.rentalContract.count({
-            where: {
-                apartment_id: existing.apartment_id,
-                status: ContractStatus.ACTIVE,
-                id: { not: id }
-            }
-        });
-    let apartmentStatus = existing.apartment.status;
-
-    if (
-        remainingActiveContracts === 0
-        && apartmentStatus === ApartmentStatus.RENTED
-    ) {
-        const managerAssignment = actor.role === Role.MANAGER
-            ? getCurrentManagerAssignment(actor)
-            : undefined;
-
-        const apartmentScope: Prisma.ApartmentWhereInput = {
-            id: existing.apartment_id,
-            ...(managerAssignment
-                ? {
-                    building_id: managerAssignment.buildingId,
-                    building: managerAssignment.assignmentWhere
-                }
-                : {})
-        };
-        const released = await transaction.apartment.updateMany({
-            where: {
-                ...apartmentScope,
-                status: ApartmentStatus.RENTED
-            },
-            data: { status: ApartmentStatus.AVAILABLE }
-        });
-
-        if (released.count === 1) {
-            apartmentStatus = ApartmentStatus.AVAILABLE;
-        } else {
-            const apartment = await transaction.apartment.findFirst({
-                where: apartmentScope,
-                select: { status: true }
-            });
-
-            if (!apartment) {
-                throw notFound();
-            }
-
-            apartmentStatus = apartment.status;
-        }
-    }
-
-    const contract = await transaction.rentalContract.findFirst({
-        where: {
-            id,
-            ...scope
-        },
-        include: contractInclude
-    });
-
-    if (!contract) {
-        throw notFound();
-    }
-
-    return {
-        contract: normalizeContract(contract),
-        old_status: existing.status,
-        new_status: ContractStatus.ENDED,
-        ended_at: endDate,
-        apartment_status: apartmentStatus
-    };
-}, concurrentModification);
+    _id: number,
+    _actor: Actor,
+    _requestedEndDate?: Date
+): Promise<never> => {
+    throw new AppError(
+        410,
+        "TERMINATION_WORKFLOW_REQUIRED",
+        "Endpoint kết thúc hợp đồng trực tiếp đã ngừng dùng. Vui lòng sử dụng quy trình thanh lý hợp đồng."
+    );
+};

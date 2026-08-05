@@ -3,17 +3,17 @@ import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import ConfirmDialog from "../../../../components/ui/ConfirmDialog";
-import type { RentalContract } from "../../../../types";
+import type { ContractTermination, RentalContract } from "../../../../types";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatApartmentDisplay } from "../../../../utils/string";
-import { Check } from "lucide-react";
+import { Check, Plus, Trash2 } from "lucide-react";
 import { useCheckout, CheckoutStep } from "../hooks/useCheckout";
 
 interface CheckoutModalProps {
     isOpen: boolean;
     onClose: () => void;
     contract: RentalContract | null;
-    onConfirmCheckout: () => Promise<void> | void;
+    termination: ContractTermination | null;
     isLoading: boolean;
 }
 
@@ -21,7 +21,7 @@ export default function CheckoutModal({
     isOpen,
     onClose,
     contract,
-    onConfirmCheckout,
+    termination,
     isLoading: isTerminating,
 }: CheckoutModalProps) {
     const {
@@ -32,13 +32,11 @@ export default function CheckoutModal({
         utilityForm: {
             electricOld,
             electricOldInput,
-            setElectricOldInput,
             electricNew,
             electricNewInput,
             setElectricNewInput,
             waterOld,
             waterOldInput,
-            setWaterOldInput,
             waterNew,
             waterNewInput,
             setWaterNewInput,
@@ -53,8 +51,17 @@ export default function CheckoutModal({
             deposit,
             unpaidAmount,
             unpaidInvoices,
-            totalDeductions,
             netRefund,
+            settlementPreview,
+            depositPolicy,
+        },
+        damageForm: {
+            damageItems,
+            damageError,
+            setDamageDescription,
+            setDamageAmount,
+            addDamageItem,
+            removeDamageItem,
         },
         dialogs: {
             highConsumption,
@@ -64,6 +71,8 @@ export default function CheckoutModal({
             executeSaveUtility,
             handleSaveUtility,
             handleGenerateInvoice,
+            handleDepositPolicyChange,
+            handleCompleteHandover,
         },
         meta: {
             currentMonth,
@@ -71,15 +80,45 @@ export default function CheckoutModal({
             hasGeneratedInvoice,
             savingUtility,
             generatingInvoice,
+            completingHandover,
         },
     } = useCheckout({
         contract,
+        termination,
         isOpen,
         onClose,
-        onConfirmCheckout,
     });
 
     const isProcessing = isHookProcessing || isTerminating;
+    const finalRentAmount = Number(settlementPreview?.final_rent ?? 0);
+    const finalElectricityAmount = Number(settlementPreview?.final_electricity ?? 0);
+    const finalWaterAmount = Number(settlementPreview?.final_water ?? 0);
+    const finalServiceFeeAmount = Number(settlementPreview?.final_service_fee ?? 0);
+    const otherChargesAmount = Number(settlementPreview?.other_charges ?? 0);
+    const damageAmount = Number(settlementPreview?.damage_amount ?? 0);
+    const depositAppliedAmount = Number(settlementPreview?.deposit_applied ?? 0);
+
+    const renderMoneyRow = (
+        label: string,
+        amount: number,
+        tone: "charge" | "credit" | "neutral" | "held" = "charge"
+    ) => {
+        const sign = tone === "charge" ? "-" : tone === "credit" ? "+" : "";
+        const textClass = tone === "charge"
+            ? "text-red-600"
+            : tone === "credit"
+                ? "text-emerald-700"
+                : tone === "held"
+                    ? "text-amber-700"
+                    : "text-slate-800";
+
+        return (
+            <div className="p-3 flex justify-between gap-3 border-b border-slate-100">
+                <span className={`${textClass} font-medium`}>{label}</span>
+                <span className={`${textClass} font-bold text-right whitespace-nowrap`}>{sign}{formatCurrency(amount)}</span>
+            </div>
+        );
+    };
 
     const renderStepBadge = (stepNum: CheckoutStep, label: string) => {
         const isDone = step > stepNum;
@@ -145,10 +184,10 @@ export default function CheckoutModal({
                         {step === CheckoutStep.INVOICE && (
                             <Button
                                 onClick={handleGenerateInvoice}
-                                disabled={isProcessing}
+                                disabled={isProcessing || !!damageError}
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                             >
-                                {generatingInvoice ? "Đang tạo..." : `Tạo hóa đơn`}
+                                {generatingInvoice ? "Đang tính..." : "Tính quyết toán"}
                             </Button>
                         )}
                         {step === CheckoutStep.DEPOSIT && (
@@ -166,7 +205,7 @@ export default function CheckoutModal({
                                 disabled={isProcessing}
                                 className="bg-red-600 hover:bg-red-700 text-white font-bold"
                             >
-                                {isTerminating ? "Đang xử lý..." : "Hoàn tất trả phòng"}
+                                {completingHandover ? "Đang xử lý..." : "Hoàn tất trả phòng"}
                             </Button>
                         )}
                     </div>
@@ -183,7 +222,7 @@ export default function CheckoutModal({
                             <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] z-20 flex flex-col items-center justify-center">
                                 <LoadingSpinner size={36} />
                                 <span className="text-xs font-bold text-gray-700 mt-2">
-                                    {savingUtility ? "Đang lưu chỉ số..." : generatingInvoice ? "Đang tạo hóa đơn..." : "Đang xử lý kết thúc..."}
+                                    {savingUtility ? "Đang ghi nhận chỉ số..." : generatingInvoice ? "Đang tính quyết toán..." : "Đang xử lý kết thúc..."}
                                 </span>
                             </div>
                         )}
@@ -192,7 +231,7 @@ export default function CheckoutModal({
                         <div className="flex items-center justify-between border-b border-gray-100 pb-4 overflow-x-auto">
                             {renderStepBadge(1, "Chốt điện nước")}
                             {renderStepLine(1)}
-                            {renderStepBadge(2, "Hóa đơn tháng")}
+                            {renderStepBadge(2, "Quyết toán")}
                             {renderStepLine(2)}
                             {renderStepBadge(3, "Đối trừ cọc")}
                             {renderStepLine(3)}
@@ -311,13 +350,13 @@ export default function CheckoutModal({
                             <div className="space-y-4">
                                 <div className="bg-slate-50 border border-slate-200 p-4 space-y-1.5">
                                     <h4 className="font-bold text-slate-800 text-sm">
-                                        Khởi tạo hóa đơn cước tháng {currentMonth}/{currentYear}
+                                        Tính quyết toán thanh lý tháng {currentMonth}/{currentYear}
                                     </h4>
                                 </div>
 
                                 {/* Hóa đơn tháng cuối */}
                                 <div className="bg-white border border-slate-200 p-4 space-y-2">
-                                    <h5 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Hóa đơn tháng cuối sẽ bao gồm:</h5>
+                                    <h5 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Khoản quyết toán sẽ bao gồm:</h5>
                                     <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700">
                                         <li className="flex items-center gap-1.5 font-medium"><Check size={14} className="text-emerald-600 shrink-0" /> Tiền điện ({electricConsumption} kWh)</li>
                                         <li className="flex items-center gap-1.5 font-medium"><Check size={14} className="text-emerald-600 shrink-0" /> Tiền nước ({waterConsumption} m³)</li>
@@ -343,6 +382,50 @@ export default function CheckoutModal({
                                         </div>
                                     </div>
                                 </div>
+                                <div className="bg-white border border-slate-200 p-4 space-y-3">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <h5 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Cơ sở vật chất bị hư hại</h5>
+                                        <Button variant="outline" size="sm" onClick={addDamageItem} disabled={isProcessing}>
+                                            <Plus size={14} /> Thêm hư hại
+                                        </Button>
+                                    </div>
+
+                                    {damageItems.length === 0 ? (
+                                        <p className="text-xs text-slate-500 italic">Chưa ghi nhận cơ sở vật chất hư hại.</p>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {damageItems.map((item, index) => (
+                                                <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr_180px_40px] gap-2 items-start">
+                                                    <Input
+                                                        value={item.description}
+                                                        onChange={(e) => setDamageDescription(index, e.target.value)}
+                                                        placeholder="Tên cơ sở vật chất"
+                                                        disabled={isProcessing}
+                                                    />
+                                                    <Input
+                                                        type="number"
+                                                        min={0}
+                                                        value={item.amount || ""}
+                                                        onChange={(e) => setDamageAmount(index, e.target.value)}
+                                                        placeholder="Số tiền đền bù"
+                                                        disabled={isProcessing}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeDamageItem(index)}
+                                                        disabled={isProcessing}
+                                                        className="h-10 w-10 inline-flex items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-60"
+                                                        title="Xóa hư hại"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {damageError && <p className="text-xs font-semibold text-red-600">{damageError}</p>}
+                                </div>
                             </div>
                         )}
 
@@ -353,6 +436,27 @@ export default function CheckoutModal({
                                     <h4 className="font-bold text-slate-800 text-sm">Tính toán đối trừ công nợ & hoàn cọc</h4>
                                 </div>
 
+                                <div className="border border-slate-200 p-3 bg-white space-y-3">
+                                    <h5 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Chính sách đối trừ cọc</h5>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDepositPolicyChange("REFUNDABLE")}
+                                            disabled={isProcessing}
+                                            className={`h-11 rounded-lg border px-3 text-sm font-bold transition-colors ${depositPolicy === "REFUNDABLE" ? "border-emerald-600 bg-emerald-50 text-emerald-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                                        >
+                                            Hoàn cọc
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDepositPolicyChange("FORFEITED")}
+                                            disabled={isProcessing}
+                                            className={`h-11 rounded-lg border px-3 text-sm font-bold transition-colors ${depositPolicy === "FORFEITED" ? "border-red-600 bg-red-50 text-red-700" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                                        >
+                                            Không hoàn cọc
+                                        </button>
+                                    </div>
+                                </div>
                                 {/* Danh sách tất cả các hóa đơn chưa thanh toán */}
                                 <div className="border border-slate-200 p-3 bg-white space-y-2">
                                     <h5 className="font-bold text-slate-800 text-xs uppercase tracking-wider">
@@ -389,14 +493,16 @@ export default function CheckoutModal({
                                         <span>Chi tiết phép tính tài chính đối trừ</span>
                                         <span>Số tiền (VNĐ)</span>
                                     </div>
-                                    <div className="p-3 flex justify-between border-b border-slate-100">
-                                        <span className="text-slate-600 font-medium">Tiền đặt cọc ban đầu</span>
-                                        <span className="font-bold text-slate-800">{formatCurrency(deposit)}</span>
-                                    </div>
-                                    <div className="p-3 flex justify-between border-b border-slate-100">
-                                        <span className="text-red-600 font-medium">- Tổng hóa đơn chưa thanh toán ({unpaidInvoices.length} HĐ)</span>
-                                        <span className="font-bold text-red-600">-{formatCurrency(unpaidAmount)}</span>
-                                    </div>
+                                    {renderMoneyRow("Tiền đặt cọc ban đầu", deposit, "neutral")}
+                                    {depositPolicy === "FORFEITED" && renderMoneyRow("Tiền cọc bị giữ, không đối trừ công nợ", deposit, "held")}
+                                    {unpaidAmount > 0 && renderMoneyRow(`Tổng hóa đơn chưa thanh toán (${unpaidInvoices.length} HĐ)`, unpaidAmount)}
+                                    {finalElectricityAmount > 0 && renderMoneyRow(`Tiền điện chốt (${electricConsumption} kWh)`, finalElectricityAmount)}
+                                    {finalWaterAmount > 0 && renderMoneyRow(`Tiền nước chốt (${waterConsumption} m³)`, finalWaterAmount)}
+                                    {finalRentAmount > 0 && renderMoneyRow("Tiền thuê tháng cuối", finalRentAmount)}
+                                    {finalServiceFeeAmount > 0 && renderMoneyRow("Phí dịch vụ", finalServiceFeeAmount)}
+                                    {otherChargesAmount > 0 && renderMoneyRow("Khoản khác", otherChargesAmount)}
+                                    {damageAmount > 0 && renderMoneyRow("Cơ sở vật chất hư hại", damageAmount)}
+                                    {depositPolicy === "REFUNDABLE" && depositAppliedAmount > 0 && renderMoneyRow("Tiền cọc dùng đối trừ công nợ", depositAppliedAmount, "credit")}
                                     <div className={`p-4 flex justify-between items-center font-bold text-sm ${netRefund >= 0 ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800"}`}>
                                         <span>{netRefund >= 0 ? "Tiền cọc hoàn trả cho khách" : "Khách cần thanh toán thêm"}</span>
                                         <span className="text-lg font-extrabold">{formatCurrency(Math.abs(netRefund))}</span>
@@ -421,7 +527,7 @@ export default function CheckoutModal({
                                         <div>
                                             <span className="text-slate-500 block mb-0.5">Phòng & Chi nhánh</span>
                                             <span className="font-bold text-purple-700">
-                                                {formatApartmentDisplay(contract?.apartment?.room_number || "", contract?.apartment?.floor)}{" "}
+                                                {formatApartmentDisplay(contract?.apartment?.room_number || "", contract?.apartment?.floor || 0)}{" "}
                                                 {contract?.apartment?.building?.branch_name ? `(${contract.apartment.building.branch_name})` : ""}
                                             </span>
                                         </div>
@@ -435,9 +541,9 @@ export default function CheckoutModal({
                                         <div>
                                             <span className="text-slate-500 block mb-0.5">Trạng thái Hóa đơn tháng cuối</span>
                                             {hasGeneratedInvoice ? (
-                                                <span className="font-bold text-emerald-600">✓ Đã khởi tạo hóa đơn</span>
+                                                <span className="font-bold text-emerald-600">✓ Đã tính quyết toán</span>
                                             ) : (
-                                                <span className="font-semibold text-slate-500">Chưa khởi tạo</span>
+                                                <span className="font-semibold text-slate-500">Chưa tính</span>
                                             )}
                                         </div>
                                     </div>
@@ -457,6 +563,19 @@ export default function CheckoutModal({
                                         </div>
                                     </div>
 
+                                    {damageAmount > 0 && (
+                                        <div className="p-3.5 bg-red-50">
+                                            <span className="text-slate-500 block mb-1">Cơ sở vật chất hư hại</span>
+                                            <div className="space-y-1">
+                                                {damageItems.filter((item) => item.description.trim() || Number(item.amount) > 0).map((item, index) => (
+                                                    <div key={index} className="flex justify-between gap-3 text-xs">
+                                                        <span className="font-semibold text-slate-800">{item.description || "Chưa nhập tên"}</span>
+                                                        <span className="font-bold text-red-600">{formatCurrency(Number(item.amount || 0))}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                                         <span className="text-slate-600 font-medium">Kết quả đối trừ cuối cùng:</span>
                                         {netRefund >= 0 ? (
@@ -498,15 +617,18 @@ export default function CheckoutModal({
                 onClose={() => terminateConfirm.setIsOpen(false)}
                 onConfirm={async () => {
                     terminateConfirm.setIsOpen(false);
-                    await onConfirmCheckout();
+                    await handleCompleteHandover();
                 }}
                 title="Xác nhận Hoàn tất trả phòng"
                 message={`Hợp đồng HD-${String(contract?.id || 0).padStart(5, "0")} sẽ chính thức KẾT THÚC. Căn hộ P.${contract?.apartment?.floor || ""}${contract?.apartment?.room_number || ""} sẽ chuyển sang trạng thái SẴN SÀNG CHO THUÊ. Bạn có chắc chắn muốn hoàn tất?`}
                 variant="danger"
                 confirmText="Hoàn tất trả phòng"
                 cancelText="Quay lại"
-                isLoading={isTerminating}
+                isLoading={isTerminating || completingHandover}
             />
         </>
     );
 }
+
+
+

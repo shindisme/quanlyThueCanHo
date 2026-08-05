@@ -81,7 +81,7 @@ export function useApartmentDetailPage() {
   const { data: activeReservation, isLoading: loadingReservation } = useQuery({
     queryKey: ["reservation", "apartment", id],
     queryFn: async () => {
-      const res = await reservationService.getReservations({ apartment_id: Number(id), status: "DEPOSITED" });
+      const res = await reservationService.getReservations({ apartment_id: Number(id), status: "ACTIVE" });
       return res.data?.[0] || null;
     },
     enabled: Boolean(id) && !isNaN(Number(id)),

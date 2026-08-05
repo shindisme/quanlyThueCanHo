@@ -182,7 +182,7 @@ const waterSeasonFactor: Record<number, number> = {
 
 const pad2 = (value: number) => value.toString().padStart(2, "0");
 
-const round1 = (value: number) => Math.round(value);
+const round1 = (value: number) => Math.round(value * 10) / 10;
 
 const clamp = (value: number, min: number, max: number) =>
     Math.min(Math.max(value, min), max);

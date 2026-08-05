@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../../../../stores/auth.store";
 import { parseJwt } from "../../../../utils/jwt";
@@ -15,22 +14,14 @@ export interface HeaderUser {
 
 export function useHeaderUser(): HeaderUser {
   const { email, role, token, managedBuildingName: storeBuildingName } = useAuthStore();
-  const [managedBuildingName, setManagedBuildingName] = useState<string | null>(storeBuildingName);
-
   const decoded = token ? parseJwt(token) : null;
   const userId = decoded ? (decoded.userId ? Number(decoded.userId) : (decoded.sub ? Number(decoded.sub) : null)) : null;
-
-  useEffect(() => {
-    if (storeBuildingName) {
-      setManagedBuildingName(storeBuildingName);
-    }
-  }, [storeBuildingName]);
 
   const { data: staffData } = useQuery({
     queryKey: ["header-user-staff", userId],
     queryFn: async () => {
       if (!userId) return null;
-      const res = await staffService.getAllStaffs();
+      const res = await staffService.getAllPage();
       return res.data.find((s) => s.user_id === userId) || null;
     },
     enabled: !!token && !!userId && (role === "MANAGER" || role === "STAFF"),
@@ -64,20 +55,18 @@ export function useHeaderUser(): HeaderUser {
   } else if ((role === "MANAGER" || role === "STAFF") && staffData) {
     if (staffData.full_name) userFullName = staffData.full_name;
     if (staffData.user?.username) accountUsername = staffData.user.username;
-    if (staffData.building?.branch_name && !storeBuildingName) {
-      setManagedBuildingName(staffData.building.branch_name);
-    }
   } else if (role === "TENANT" && tenantContract) {
     if (tenantContract.tenant?.full_name) {
       userFullName = tenantContract.tenant.full_name;
     }
-    const branchName = tenantContract.apartment?.building?.branch_name;
-    if (branchName && !storeBuildingName) {
-      setManagedBuildingName(branchName);
-    }
   }
 
-  const activeBuildingName = storeBuildingName || managedBuildingName;
+  const queryBuildingName = role === "MANAGER" || role === "STAFF"
+    ? staffData?.building?.branch_name
+    : role === "TENANT"
+      ? tenantContract?.apartment?.building?.branch_name
+      : null;
+  const activeBuildingName = storeBuildingName || queryBuildingName || null;
 
   const roleLabel =
     role === "ADMIN" ? "Quản trị viên"

@@ -1,4 +1,4 @@
-import type { BadgeVariant } from "../components/ui/Badge";
+﻿import type { BadgeVariant } from "../components/ui/Badge";
 import type {
   UserStatus,
   ApartmentStatus,
@@ -23,7 +23,7 @@ export const APARTMENT_STATUS_COLORS: Record<ApartmentStatus, BadgeVariant> = {
   RESERVED: "warning",
   RENTED: "info",
   MAINTENANCE: "warning",
-  SOON_AVAILABLE: "warning",
+  VACATING_SOON: "warning",
 };
 
 export const CONTRACT_STATUS_COLORS: Record<ContractStatus, BadgeVariant> = {
@@ -69,7 +69,7 @@ export const APARTMENT_STATUS_CONFIG: Record<ApartmentStatus, { label: string; b
   RESERVED: { label: APARTMENT_STATUS_LABELS.RESERVED, badge: APARTMENT_STATUS_COLORS.RESERVED },
   RENTED: { label: APARTMENT_STATUS_LABELS.RENTED, badge: APARTMENT_STATUS_COLORS.RENTED },
   MAINTENANCE: { label: APARTMENT_STATUS_LABELS.MAINTENANCE, badge: APARTMENT_STATUS_COLORS.MAINTENANCE },
-  SOON_AVAILABLE: { label: APARTMENT_STATUS_LABELS.SOON_AVAILABLE, badge: APARTMENT_STATUS_COLORS.SOON_AVAILABLE },
+  VACATING_SOON: { label: APARTMENT_STATUS_LABELS.VACATING_SOON, badge: APARTMENT_STATUS_COLORS.VACATING_SOON },
 } as const;
 
 export const CONTRACT_STATUS_CONFIG: Record<ContractStatus, { label: string; badge: BadgeVariant }> = {
@@ -103,3 +103,4 @@ export const REQUEST_STATUS_CONFIG: Record<RequestStatus, { label: string; badge
   CANCELLED: { label: REQUEST_STATUS_LABELS.CANCELLED, badge: REQUEST_STATUS_COLORS.CANCELLED },
   NEEDS_RESCHEDULE: { label: REQUEST_STATUS_LABELS.NEEDS_RESCHEDULE, badge: REQUEST_STATUS_COLORS.NEEDS_RESCHEDULE },
 } as const;
+

@@ -1,4 +1,4 @@
-import React, {
+﻿import React, {
   useEffect,
   useRef,
   useState,
@@ -111,6 +111,11 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
     const contentRef = useRef<HTMLDivElement | null>(null)
     const previousFocusRef = useRef<HTMLElement | null>(null)
     const pointerDownOnOverlayRef = useRef<boolean>(false)
+    const onCloseRef = useRef(onClose)
+
+    useEffect(() => {
+      onCloseRef.current = onClose
+    }, [onClose])
 
     // Merge refs
     const setRefs = useCallback(
@@ -149,7 +154,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
 
       const unregisterEsc = registerEscCallback(() => {
         if (closeOnOutsideClick) {
-          onClose()
+          onCloseRef.current()
         }
       })
 
@@ -175,7 +180,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
           previousFocusRef.current.focus()
         }
       }
-    }, [shouldRender, onClose, closeOnOutsideClick])
+    }, [shouldRender, closeOnOutsideClick])
 
     // Focus Trap
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -221,8 +226,8 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
         pointerDownOnOverlayRef.current &&
         e.target === e.currentTarget
       ) {
-        onClose()
-      }
+        onCloseRef.current()
+        }
       pointerDownOnOverlayRef.current = false
     }
 
@@ -296,5 +301,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
 Modal.displayName = "Modal"
 
 export default Modal
+
+
 
 

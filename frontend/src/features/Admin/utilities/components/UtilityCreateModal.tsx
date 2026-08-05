@@ -6,6 +6,7 @@ import { formatApartmentDisplay } from "../../../../utils/string";
 import { useUtilityCreate } from "../hooks/useUtilityCreate";
 import type { BuildingData } from "../../../../services/buildingService";
 import type { ApartmentData } from "../../../../services/apartmentService";
+import { isUtilityTrackedApartment } from "../utils/utilityApartment";
 
 interface UtilityCreateModalProps {
   isOpen: boolean;
@@ -65,7 +66,7 @@ export default function UtilityCreateModal({
   const apartmentOptions = apartments
     .filter((apt) => {
       const matchBuilding = role !== "ADMIN" && managedBuildingId ? apt.building_id === managedBuildingId : true;
-      return matchBuilding && apt.status === "RENTED";
+      return matchBuilding && isUtilityTrackedApartment(apt.status);
     })
     .map((apt) => {
       const room = formatApartmentDisplay(apt.room_number, apt.floor);

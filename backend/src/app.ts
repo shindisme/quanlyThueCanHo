@@ -1,4 +1,4 @@
-﻿import "dotenv/config";
+import "dotenv/config";
 import type {} from "./types/express/index.js";
 import cors from "cors";
 import express from "express";
@@ -11,6 +11,7 @@ import authRouter from "./routes/auth.route.js";
 import buildingRouter from "./routes/building.route.js";
 import chatbotRouter from "./routes/chatbot.route.js";
 import contractRouter from "./routes/contract.routes.js";
+import contractTerminationRouter from "./routes/contract-termination.routes.js";
 import invoiceRouter from "./routes/invoice.routes.js";
 import maintenanceRouter from "./routes/maintenance.routes.js";
 import notificationRouter from "./routes/notification.routes.js";
@@ -51,6 +52,7 @@ export const ROUTE_MOUNTS = [
     ["/tenants", tenantRouter],
     ["/staff", staffRouter],
     ["/contracts", contractRouter],
+    ["/contract-terminations", contractTerminationRouter],
     ["/reviews", reviewRouter],
     ["/utility-readings", utilityReadingRouter],
     ["/invoices", invoiceRouter],

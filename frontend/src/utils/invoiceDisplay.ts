@@ -21,3 +21,19 @@ export function getInvoiceRoomDisplay(invoice: Invoice) {
     branch: apartment.building?.branch_name || "",
   };
 }
+
+export function hideInvoicesCoveredByFinalSettlement(invoices: Invoice[]) {
+  const settledContractIds = new Set(
+    invoices
+      .filter((invoice) => invoice.type === "FINAL_SETTLEMENT" && invoice.contract_id !== null)
+      .map((invoice) => invoice.contract_id)
+  );
+
+  if (settledContractIds.size === 0) return invoices;
+
+  return invoices.filter(
+    (invoice) => invoice.type === "FINAL_SETTLEMENT"
+      || invoice.contract_id === null
+      || !settledContractIds.has(invoice.contract_id)
+  );
+}

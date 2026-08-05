@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   UserStatus,
   BuildingStatus,
   ApartmentStatus,
@@ -22,13 +22,14 @@ export const APARTMENT_STATUS_LABELS: Record<ApartmentStatus, string> = {
   RESERVED: "Đã cọc",
   RENTED: "Đang thuê",
   MAINTENANCE: "Bảo trì",
-  SOON_AVAILABLE: "Sắp trống",
+  VACATING_SOON: "Sắp trống",
 };
 
 export const APARTMENT_STATUS_OPTIONS = [
   { value: "AVAILABLE", label: APARTMENT_STATUS_LABELS.AVAILABLE },
   { value: "RESERVED", label: APARTMENT_STATUS_LABELS.RESERVED },
   { value: "RENTED", label: APARTMENT_STATUS_LABELS.RENTED },
+  { value: "VACATING_SOON", label: APARTMENT_STATUS_LABELS.VACATING_SOON },
   { value: "MAINTENANCE", label: APARTMENT_STATUS_LABELS.MAINTENANCE },
 ];
 
@@ -83,3 +84,4 @@ export const SCHEDULE_STATUS_LABELS: Record<ScheduleStatus, string> = {
   ATTENDED: "Khách đã đến",
   NO_SHOW: "Vắng mặt",
 };
+

@@ -15,7 +15,7 @@ export interface CreateReservationPayload {
   };
 }
 
-export type ReservationStatus = "ACTIVE" | "CONVERTED" | "FORFEITED" | "CANCELLED" | "DEPOSITED";
+export type ReservationStatus = "ACTIVE" | "CONVERTED" | "FORFEITED" | "CANCELLED";
 
 export interface Reservation {
   id: number;

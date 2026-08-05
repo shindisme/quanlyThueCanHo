@@ -8,6 +8,7 @@ import { useOnOff } from "../../../../hooks/useOnOff";
 import { usePagination } from "../../../../hooks/usePagination";
 import { useSort } from "../../../../hooks/useSort";
 import type { Payment } from "../../../../types";
+import { hideInvoicesCoveredByFinalSettlement } from "../../../../utils/invoiceDisplay";
 
 export function useTenantPayments() {
   const queryClient = useQueryClient();
@@ -90,12 +91,16 @@ export function useTenantPayments() {
     manualTransferModal,
   ]);
 
-  // Fetch unpaid invoices for payment selection
+  // Fetch invoices for payment selection
   const { data: unpaidInvoicesRes, isLoading: loadingInvoices } = useQuery({
     queryKey: ["tenant-unpaid-invoices"],
-    queryFn: () => invoiceService.getAllPage({ status: "UNPAID" }),
+    queryFn: () => invoiceService.getAllPage(),
   });
-  const unpaidInvoices = unpaidInvoicesRes?.data || [];
+  const unpaidInvoices = useMemo(
+    () => hideInvoicesCoveredByFinalSettlement(unpaidInvoicesRes?.data || [])
+      .filter((invoice) => invoice.status === "UNPAID"),
+    [unpaidInvoicesRes?.data]
+  );
 
   // Fetch payment transactions history
   const { data: paymentsRes, isLoading: loadingPayments } = useQuery({

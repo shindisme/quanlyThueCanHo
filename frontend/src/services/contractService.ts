@@ -1,4 +1,4 @@
-import api from "../lib/api";
+﻿import api from "../lib/api";
 import type { RentalContract, RawContract, ContractQuery, CreateContractRequest, ApiPagination } from "../types";
 export type { RawContract, ContractQuery, CreateContractRequest };
 import type { ContractStatus } from "../constants/enums";
@@ -90,13 +90,8 @@ export async function extend(id: number, newEndDate: string): Promise<RentalCont
   return mapBackendToFrontend(updatedContract);
 }
 
-export async function terminate(id: number, endDate?: string): Promise<RentalContract> {
-  const res = await api.patch<{ success: boolean; data: RawContract }>(`${CONTRACT_API}/${id}/end`, {
-    end_date: endDate || undefined,
-  });
-
-  const updatedContract = res.data.data;
-  return mapBackendToFrontend(updatedContract);
+export async function terminate(_id: number, _endDate?: string): Promise<RentalContract> {
+  throw new Error("Endpoint kết thúc hợp đồng trực tiếp đã ngừng dùng. Vui lòng dùng quy trình thanh lý hợp đồng.");
 }
 
 export async function getAllContracts(params?: ContractQuery): Promise<RentalContract[]> {

@@ -1,12 +1,18 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { RentalContract, Invoice } from "../../../../types";
-import { invoiceService, utilityService } from "../../../../services";
-import { generateMonthlyInvoices } from "../../../../services/invoiceService";
-import { useAuthStore } from "../../../../stores/auth.store";
+import type {
+  ContractSettlement,
+  ContractTermination,
+  ContractTerminationDamage,
+  DepositPolicy,
+  Invoice,
+  RentalContract,
+  TerminationInspectionPayload,
+} from "../../../../types";
+import { contractTerminationService, invoiceService, utilityService } from "../../../../services";
+import { QUERY_KEYS } from "../../../../constants/queryKeys";
 
-// Giới hạn đồng hồ điện nước
 const MAX_METER_VALUE = 100000;
 const MAX_INPUT_METER = 99999;
 const ROLLOVER_LOWER_BOUND = 10000;
@@ -15,62 +21,41 @@ const HIGH_ELECTRIC_THRESHOLD = 1000;
 const HIGH_WATER_THRESHOLD = 100;
 
 export const CheckoutStep = {
-  UTILITY: 1, // Bước 1: Chốt điện nước
-  INVOICE: 2, // Bước 2: Tạo hóa đơn tháng cuối
-  DEPOSIT: 3, // Bước 3: Đối trừ công nợ và hoàn cọc
-  CONFIRM: 4, // Bước 4: Xác nhận hoàn tất trả phòng
+  UTILITY: 1,
+  INVOICE: 2,
+  DEPOSIT: 3,
+  CONFIRM: 4,
 } as const;
 
 export type CheckoutStep = (typeof CheckoutStep)[keyof typeof CheckoutStep];
 
 interface UseCheckoutOptions {
   contract: RentalContract | null;
+  termination: ContractTermination | null;
   isOpen: boolean;
   onClose: () => void;
-  onConfirmCheckout: () => Promise<void> | void;
 }
 
-// Lấy ngày hết hạn hóa đơn sau N ngày
-function getDueDateAfter(days: number): string {
-  const dueDate = new Date();
-  dueDate.setDate(dueDate.getDate() + days);
-  return dueDate.toISOString().split("T")[0];
-}
-
-// Tính sản lượng tiêu thụ điện nước
 function calculateConsumption(oldVal: number, newVal: number): number {
-  if (newVal >= oldVal) {
-    return newVal - oldVal;
-  }
+  if (newVal >= oldVal) return newVal - oldVal;
   if (oldVal > ROLLOVER_UPPER_BOUND && newVal < ROLLOVER_LOWER_BOUND) {
     return MAX_METER_VALUE - oldVal + newVal;
   }
   return 0;
 }
 
-// Sanitize giá trị nhập vào công tơ điện nước
 function sanitizeMeterInput(val: number): number {
-  if (isNaN(val) || val < 0) return 0;
+  if (Number.isNaN(val) || val < 0) return 0;
   if (val > MAX_INPUT_METER) return MAX_INPUT_METER;
   return Math.floor(val);
 }
 
-// Helper kiểm tra lỗi hóa đơn đã tồn tại từ API
-function isInvoiceAlreadyExistsError(err: unknown): boolean {
-  const error = err as { response?: { status?: number; data?: { message?: string } }; message?: string };
-  const errorMessage = error.response?.data?.message || error.message || "";
-  return (
-    error.response?.status === 400 ||
-    errorMessage.toLowerCase().includes("tồn tại") ||
-    errorMessage.toLowerCase().includes("already exists")
-  );
-}
-
-// Hàm lấy dữ liệu khởi tạo điện nước và công nợ ban đầu
 async function fetchCheckoutInitialData(contract: RentalContract | null, currentMonth: number, currentYear: number) {
-  if (!contract) return { electricOld: 0, waterOld: 0, electricNew: 0, waterNew: 0, unpaidAmount: 0, unpaidInvoices: [], existingReading: null };
+  if (!contract) {
+    return { electricOld: 0, waterOld: 0, electricNew: 0, waterNew: 0, unpaidAmount: 0, unpaidInvoices: [], existingReading: null };
+  }
 
-  const [readingsRes, invoicesTenantRes, invoicesContractRes] = await Promise.all([
+  const [readingsRes, invoicesContractRes] = await Promise.all([
     utilityService.getAll({
       apartment_id: contract.apartment_id,
       limit: 20,
@@ -79,33 +64,21 @@ async function fetchCheckoutInitialData(contract: RentalContract | null, current
       return { data: [] };
     }),
     invoiceService.getAllPage({
-      tenant_id: contract.tenant_id,
-      status: "UNPAID",
-    }).catch((err) => {
-      if (import.meta.env.DEV) console.error("Lỗi khi lấy hóa đơn chưa trả theo tenant:", err);
-      return { data: [] };
-    }),
-    invoiceService.getAllPage({
       contract_id: contract.id,
       status: "UNPAID",
     }).catch((err) => {
-      if (import.meta.env.DEV) console.error("Lỗi khi lấy hóa đơn chưa trả theo contract:", err);
+      if (import.meta.env.DEV) console.error("Lỗi khi lấy hóa đơn chưa trả theo hợp đồng:", err);
       return { data: [] };
     }),
   ]);
 
-  const rawReadings = readingsRes.data || [];
-  const readings = [...rawReadings].sort((a, b) => {
+  const readings = [...(readingsRes.data || [])].sort((a, b) => {
     if (b.year !== a.year) return b.year - a.year;
     return b.month - a.month;
   });
 
-  const currentReading = readings.find(
-    (r) => r.month === currentMonth && r.year === currentYear
-  );
-  const previousReading = readings.find(
-    (r) => !(r.month === currentMonth && r.year === currentYear)
-  );
+  const currentReading = readings.find((r) => r.month === currentMonth && r.year === currentYear);
+  const previousReading = readings.find((r) => !(r.month === currentMonth && r.year === currentYear));
 
   let electricOld = 0;
   let waterOld = 0;
@@ -124,16 +97,8 @@ async function fetchCheckoutInitialData(contract: RentalContract | null, current
     waterNew = waterOld;
   }
 
-  // Gộp tất cả các loại hóa đơn UNPAID
-  const allUnpaidMap = new Map<number, Invoice>();
-  (invoicesTenantRes.data || []).forEach((inv) => allUnpaidMap.set(inv.id, inv as unknown as Invoice));
-  (invoicesContractRes.data || []).forEach((inv) => allUnpaidMap.set(inv.id, inv as unknown as Invoice));
-
-  const unpaidInvoices = Array.from(allUnpaidMap.values());
-  const unpaidAmount = unpaidInvoices.reduce(
-    (sum: number, inv) => sum + Number(inv.total_amount),
-    0
-  );
+  const unpaidInvoices = (invoicesContractRes.data || []) as unknown as Invoice[];
+  const unpaidAmount = unpaidInvoices.reduce((sum, inv) => sum + Number(inv.total_amount), 0);
 
   return {
     electricOld,
@@ -146,13 +111,12 @@ async function fetchCheckoutInitialData(contract: RentalContract | null, current
   };
 }
 
-export function useCheckout({
-  contract,
-  isOpen,
-}: UseCheckoutOptions) {
+export function useCheckout({ contract, termination, isOpen, onClose }: UseCheckoutOptions) {
   const queryClient = useQueryClient();
-  const { role } = useAuthStore();
   const [step, setStep] = useState<CheckoutStep>(CheckoutStep.UTILITY);
+  const [settlementPreview, setSettlementPreview] = useState<ContractSettlement | null>(null);
+  const [damageItems, setDamageItems] = useState<ContractTerminationDamage[]>([]);
+  const [depositPolicy, setDepositPolicy] = useState<DepositPolicy>("REFUNDABLE");
 
   const [utilityInputs, setUtilityInputs] = useState<{
     electricOld: string | null;
@@ -184,85 +148,50 @@ export function useCheckout({
 
   const resetState = useCallback(() => {
     setStep(CheckoutStep.UTILITY);
-    setUtilityInputs({
-      electricOld: null,
-      electricNew: null,
-      waterOld: null,
-      waterNew: null,
-    });
-    setCheckoutMeta({
-      utilitySaved: false,
-      hasSkippedInvoice: false,
-      hasGeneratedInvoice: false,
-    });
-    setDialogs({
-      skipInvoice: false,
-      highConsumption: false,
-      terminateConfirm: false,
-    });
-  }, []);
+    setSettlementPreview(null);
+    setUtilityInputs({ electricOld: null, electricNew: null, waterOld: null, waterNew: null });
+    setDamageItems((termination?.damages ?? []).map((item) => ({
+      description: item.description,
+      amount: Number(item.amount || 0),
+      note: item.note ?? null,
+    })));
+    setDepositPolicy(termination?.deposit_policy ?? "REFUNDABLE");
+    setCheckoutMeta({ utilitySaved: false, hasSkippedInvoice: false, hasGeneratedInvoice: false });
+    setDialogs({ skipInvoice: false, highConsumption: false, terminateConfirm: false });
+  }, [termination]);
 
-  // Sync reset state và thông báo khi mở modal
   useEffect(() => {
-    if (isOpen) {
-      if (role === "ADMIN") {
-        toast.error("Tài khoản Admin không có hồ sơ nhân viên để chốt điện nước. Vui lòng sử dụng tài khoản Quản lý tòa nhà.");
-      } else if (contract && contract.status !== "ACTIVE") {
-        toast.error("Chỉ có thể trả phòng khi hợp đồng đang ở trạng thái Hiệu lực.");
-      }
-      resetState();
-    }
-  }, [isOpen, contract, role, resetState]);
+    if (isOpen) resetState();
+  }, [isOpen, resetState]);
 
-  // Query lấy dữ liệu điện nước và toàn bộ hóa đơn chưa trả ban đầu
   const { data: initialData, isLoading: loadingData } = useQuery({
     queryKey: ["checkout-initial-data", contract?.id],
     queryFn: () => fetchCheckoutInitialData(contract, currentMonth, currentYear),
     enabled: isOpen && !!contract,
   });
 
-  // Tính số điện nước từ đầu vào
   const electricOld = useMemo(() => {
-    if (utilityInputs.electricOld !== null) {
-      return utilityInputs.electricOld === "" ? 0 : sanitizeMeterInput(Number(utilityInputs.electricOld));
-    }
+    if (utilityInputs.electricOld !== null) return utilityInputs.electricOld === "" ? 0 : sanitizeMeterInput(Number(utilityInputs.electricOld));
     return initialData?.electricOld ?? 0;
   }, [utilityInputs.electricOld, initialData?.electricOld]);
 
   const waterOld = useMemo(() => {
-    if (utilityInputs.waterOld !== null) {
-      return utilityInputs.waterOld === "" ? 0 : sanitizeMeterInput(Number(utilityInputs.waterOld));
-    }
+    if (utilityInputs.waterOld !== null) return utilityInputs.waterOld === "" ? 0 : sanitizeMeterInput(Number(utilityInputs.waterOld));
     return initialData?.waterOld ?? 0;
   }, [utilityInputs.waterOld, initialData?.waterOld]);
 
   const electricNew = useMemo(() => {
-    if (utilityInputs.electricNew !== null) {
-      return utilityInputs.electricNew === "" ? 0 : sanitizeMeterInput(Number(utilityInputs.electricNew));
-    }
+    if (utilityInputs.electricNew !== null) return utilityInputs.electricNew === "" ? 0 : sanitizeMeterInput(Number(utilityInputs.electricNew));
     return Math.max(electricOld, initialData?.electricNew ?? 0);
   }, [utilityInputs.electricNew, electricOld, initialData?.electricNew]);
 
   const waterNew = useMemo(() => {
-    if (utilityInputs.waterNew !== null) {
-      return utilityInputs.waterNew === "" ? 0 : sanitizeMeterInput(Number(utilityInputs.waterNew));
-    }
+    if (utilityInputs.waterNew !== null) return utilityInputs.waterNew === "" ? 0 : sanitizeMeterInput(Number(utilityInputs.waterNew));
     return Math.max(waterOld, initialData?.waterNew ?? 0);
   }, [utilityInputs.waterNew, waterOld, initialData?.waterNew]);
 
-  const unpaidAmount = initialData?.unpaidAmount ?? 0;
-  const unpaidInvoices = initialData?.unpaidInvoices ?? [];
-
-  const electricConsumption = useMemo(
-    () => calculateConsumption(electricOld, electricNew),
-    [electricOld, electricNew]
-  );
-
-  const waterConsumption = useMemo(
-    () => calculateConsumption(waterOld, waterNew),
-    [waterOld, waterNew]
-  );
-
+  const electricConsumption = useMemo(() => calculateConsumption(electricOld, electricNew), [electricOld, electricNew]);
+  const waterConsumption = useMemo(() => calculateConsumption(waterOld, waterNew), [waterOld, waterNew]);
   const isElectricRollover = electricOld > ROLLOVER_UPPER_BOUND && electricNew < ROLLOVER_LOWER_BOUND;
   const isWaterRollover = waterOld > ROLLOVER_UPPER_BOUND && waterNew < ROLLOVER_LOWER_BOUND;
 
@@ -277,105 +206,134 @@ export function useCheckout({
   );
 
   const isUtilityValid = !electricError && !waterError;
+  const activeDamageItems = useMemo(
+    () => damageItems
+      .filter((item) => item.description.trim() || Number(item.amount) > 0)
+      .map((item) => ({
+        description: item.description.trim(),
+        amount: Number(item.amount || 0),
+        note: item.note ?? undefined,
+      })),
+    [damageItems]
+  );
 
-  const saveUtilityMutation = useMutation({
-    mutationFn: async () => {
-      if (!contract) return;
-      if (initialData?.existingReading) {
-        return utilityService.update(initialData.existingReading.id, {
-          apartment_id: contract.apartment_id,
-          month: currentMonth,
-          year: currentYear,
-          electric_old: electricOld,
-          electric_new: electricNew,
-          water_old: waterOld,
-          water_new: waterNew,
-        });
-      }
-      return utilityService.create({
-        apartment_id: contract.apartment_id,
-        month: currentMonth,
-        year: currentYear,
-        electric_old: electricOld,
-        electric_new: electricNew,
-        water_old: waterOld,
-        water_new: waterNew,
-      });
-    },
-    onSuccess: async () => {
-      toast.success(initialData?.existingReading ? "Cập nhật chỉ số điện nước thành công!" : "Chốt điện nước phòng thành công!");
-      setCheckoutMeta((prev) => ({ ...prev, utilitySaved: true }));
-      await queryClient.refetchQueries({ queryKey: ["checkout-initial-data", contract?.id] });
-      setStep(CheckoutStep.INVOICE);
-    },
-    onError: (err: unknown) => {
-      const error = err as { response?: { data?: { message?: string } }; message?: string };
-      toast.error(error.response?.data?.message || error.message || "Không thể lưu chỉ số điện nước.");
-    },
-  });
+  const damageError = useMemo(() => {
+    const invalid = damageItems.find((item) => {
+      const hasName = item.description.trim().length > 0;
+      const amount = Number(item.amount || 0);
+      return (hasName && amount <= 0) || (!hasName && amount > 0);
+    });
 
-  const generateInvoiceMutation = useMutation({
-    mutationFn: async () => {
-      if (!contract) return;
-      const dueDateString = getDueDateAfter(7);
-      return generateMonthlyInvoices({
-        month: currentMonth,
-        year: currentYear,
-        building_id: contract.apartment?.building_id || 0,
-        due_date: dueDateString,
-        notify: true,
-      });
+    if (!invalid) return null;
+    return "Vui lòng nhập đủ tên cơ sở vật chất và số tiền đền bù lớn hơn 0.";
+  }, [damageItems]);
+
+  const buildSettlementPayload = useCallback((policy = depositPolicy): TerminationInspectionPayload => ({
+    final_electricity_old: electricOld,
+    final_electricity_new: electricNew,
+    final_water_old: waterOld,
+    final_water_new: waterNew,
+    requires_maintenance: false,
+    deposit_policy: policy,
+    damage_items: activeDamageItems,
+  }), [activeDamageItems, depositPolicy, electricOld, electricNew, waterOld, waterNew]);
+
+  const markUtilityDone = useCallback(async () => {
+    setCheckoutMeta((prev) => ({ ...prev, utilitySaved: true }));
+    setStep(CheckoutStep.INVOICE);
+  }, []);
+
+  const previewMutation = useMutation({
+    mutationFn: async (policy?: DepositPolicy) => {
+      if (!termination) throw new Error("Không tìm thấy yêu cầu thanh lý để quyết toán.");
+      const payload = buildSettlementPayload(policy);
+      await contractTerminationService.updateInspection(termination.id, payload);
+      return contractTerminationService.previewSettlement(termination.id, payload);
     },
-    onSuccess: async () => {
-      toast.success("Khởi tạo hóa đơn tháng thành công!");
+    onSuccess: (settlement) => {
+      setSettlementPreview(settlement);
       setCheckoutMeta((prev) => ({ ...prev, hasGeneratedInvoice: true, hasSkippedInvoice: false }));
-      await queryClient.refetchQueries({ queryKey: ["checkout-initial-data", contract?.id] });
       setStep(CheckoutStep.DEPOSIT);
     },
-    onError: async (err: unknown) => {
-      if (isInvoiceAlreadyExistsError(err)) {
-        toast.info("Đã có hóa đơn cho tháng này.");
-        setCheckoutMeta((prev) => ({ ...prev, hasGeneratedInvoice: true, hasSkippedInvoice: false }));
-        await queryClient.refetchQueries({ queryKey: ["checkout-initial-data", contract?.id] });
-        setStep(CheckoutStep.DEPOSIT);
-      } else {
-        const error = err as { response?: { data?: { message?: string } }; message?: string };
-        toast.error(error.response?.data?.message || error.message || "Khởi tạo hóa đơn tháng cuối thất bại.");
-      }
+    onError: (err: unknown) => {
+      const error = err as { response?: { data?: { message?: string; error?: string } }; message?: string };
+      toast.error(error.response?.data?.message || error.response?.data?.error || error.message || "Không thể tính quyết toán.");
     },
   });
 
-  // Chốt điện nước
+  const completeMutation = useMutation({
+    mutationFn: async () => {
+      if (!termination) throw new Error("Không tìm thấy yêu cầu thanh lý để hoàn tất bàn giao.");
+      return contractTerminationService.completeHandover(termination.id, buildSettlementPayload());
+    },
+    onSuccess: async () => {
+      toast.success("Hoàn tất bàn giao và thanh lý hợp đồng thành công!");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TERMINATIONS }),
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CONTRACTS }),
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APARTMENTS }),
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.INVOICES }),
+      ]);
+      onClose();
+    },
+    onError: (err: unknown) => {
+      const error = err as { response?: { data?: { message?: string; error?: string } }; message?: string };
+      toast.error(error.response?.data?.message || error.response?.data?.error || error.message || "Không thể hoàn tất bàn giao.");
+    },
+  });
+
   const handleSaveUtility = useCallback(async () => {
     if (!contract || !isUtilityValid) return;
-
     if (electricConsumption > HIGH_ELECTRIC_THRESHOLD || waterConsumption > HIGH_WATER_THRESHOLD) {
       setDialogs((prev) => ({ ...prev, highConsumption: true }));
       return;
     }
+    await markUtilityDone();
+  }, [contract, isUtilityValid, electricConsumption, waterConsumption, markUtilityDone]);
 
-    await saveUtilityMutation.mutateAsync();
-  }, [contract, isUtilityValid, electricConsumption, waterConsumption, saveUtilityMutation]);
-
-  // Thực hiện bỏ qua tạo hóa đơn
   const handleSkipInvoice = useCallback(async () => {
     setCheckoutMeta((prev) => ({ ...prev, hasSkippedInvoice: true }));
     setDialogs((prev) => ({ ...prev, skipInvoice: false }));
-    await queryClient.refetchQueries({ queryKey: ["checkout-initial-data", contract?.id] });
     setStep(CheckoutStep.DEPOSIT);
-  }, [contract?.id, queryClient]);
+  }, []);
 
-  // Tính toán tiền hoàn trả cọc và công nợ
-  const deposit = Number(contract?.deposit_amount || 0);
-  const totalDeductions = unpaidAmount;
-  const netRefund = useMemo(() => deposit - totalDeductions, [deposit, totalDeductions]);
-  const isUtilitySaved = checkoutMeta.utilitySaved || !!initialData?.existingReading;
+  const setDamageDescription = useCallback((index: number, description: string) => {
+    setDamageItems((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, description } : item));
+  }, []);
+
+  const setDamageAmount = useCallback((index: number, amount: string) => {
+    const value = Math.max(Number(amount || 0), 0);
+    setDamageItems((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, amount: value } : item));
+  }, []);
+
+  const addDamageItem = useCallback(() => {
+    setDamageItems((prev) => [...prev, { description: "", amount: 0 }]);
+  }, []);
+
+  const removeDamageItem = useCallback((index: number) => {
+    setDamageItems((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
+  }, []);
+
+  const handleDepositPolicyChange = useCallback((policy: DepositPolicy) => {
+    setDepositPolicy(policy);
+    if (settlementPreview && termination) {
+      previewMutation.mutateAsync(policy).catch(() => undefined);
+    }
+  }, [previewMutation, settlementPreview, termination]);
+
+  const deposit = Number(settlementPreview?.deposit_paid ?? contract?.deposit_amount ?? 0);
+  const unpaidAmount = Number(settlementPreview?.outstanding_debt ?? initialData?.unpaidAmount ?? 0);
+  const unpaidInvoices = initialData?.unpaidInvoices ?? [];
+  const netRefund = settlementPreview
+    ? Number(settlementPreview.refund_amount) - Number(settlementPreview.additional_amount_due)
+    : deposit - unpaidAmount;
+  const totalDeductions = settlementPreview ? Math.max(deposit - netRefund, 0) : unpaidAmount;
 
   return {
     step,
     setStep,
     loadingData,
-    isProcessing: saveUtilityMutation.isPending || generateInvoiceMutation.isPending,
+    isProcessing: previewMutation.isPending || completeMutation.isPending,
     utilityForm: {
       electricOld,
       electricOldInput: utilityInputs.electricOld,
@@ -391,7 +349,7 @@ export function useCheckout({
       setWaterNewInput: (val: string | null) => setUtilityInputs((prev) => ({ ...prev, waterNew: val })),
       electricConsumption,
       waterConsumption,
-      isUtilitySaved,
+      isUtilitySaved: checkoutMeta.utilitySaved,
       electricError,
       waterError,
       isUtilityValid,
@@ -402,6 +360,16 @@ export function useCheckout({
       unpaidInvoices,
       totalDeductions,
       netRefund,
+      settlementPreview,
+      depositPolicy,
+    },
+    damageForm: {
+      damageItems,
+      damageError,
+      setDamageDescription,
+      setDamageAmount,
+      addDamageItem,
+      removeDamageItem,
     },
     dialogs: {
       skipInvoice: {
@@ -418,18 +386,21 @@ export function useCheckout({
       },
     },
     actions: {
-      executeSaveUtility: () => saveUtilityMutation.mutateAsync(),
+      executeSaveUtility: markUtilityDone,
       handleSaveUtility,
-      handleGenerateInvoice: () => generateInvoiceMutation.mutateAsync(),
+      handleGenerateInvoice: () => previewMutation.mutateAsync(depositPolicy),
       handleSkipInvoice,
+      handleDepositPolicyChange,
+      handleCompleteHandover: () => completeMutation.mutateAsync(),
     },
     meta: {
       currentMonth,
       currentYear,
       hasSkippedInvoice: checkoutMeta.hasSkippedInvoice,
       hasGeneratedInvoice: checkoutMeta.hasGeneratedInvoice,
-      savingUtility: saveUtilityMutation.isPending,
-      generatingInvoice: generateInvoiceMutation.isPending,
+      savingUtility: false,
+      generatingInvoice: previewMutation.isPending,
+      completingHandover: completeMutation.isPending,
     },
   };
 }

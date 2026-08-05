@@ -1,10 +1,10 @@
-export type Role = "ADMIN" | "MANAGER" | "STAFF" | "TENANT";
+﻿export type Role = "ADMIN" | "MANAGER" | "STAFF" | "TENANT";
 
 export type UserStatus = "ACTIVE" | "INACTIVE" | "BANNED";
 
 export type BuildingStatus = "ACTIVE" | "INACTIVE";
 
-export type ApartmentStatus = "AVAILABLE" | "RESERVED" | "RENTED" | "MAINTENANCE" | "SOON_AVAILABLE";
+export type ApartmentStatus = "AVAILABLE" | "RESERVED" | "RENTED" | "MAINTENANCE" | "VACATING_SOON";
 
 export type ContractStatus = "ACTIVE" | "ENDED" | "FORCE_TERMINATED";
 
@@ -26,3 +26,4 @@ export type SenderType = "USER" | "CHATBOT";
 
 export * from "./labels";
 export * from "./badges";
+

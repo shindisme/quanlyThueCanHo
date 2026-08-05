@@ -1,4 +1,4 @@
-import { FileText, Star, XCircle, AlertTriangle } from "lucide-react";
+﻿import { FileText, Star, XCircle, AlertTriangle } from "lucide-react";
 import Badge from "../../../../components/ui/Badge";
 import SearchInput from "../../../../components/ui/SearchInput";
 import PageHeader from "../../../../components/layout/PageHeader";
@@ -13,10 +13,9 @@ import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay, removeVietnameseTones } from "../../../../utils/string";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS, type ContractStatus } from "../../../../constants/enums";
-import type { RentalContract } from "../../../../types";
+import type { ContractTermination, RentalContract } from "../../../../types";
 import { useState } from "react";
 import { toast } from "sonner";
-import { maintenanceService } from "../../../../services";
 
 export default function MyContracts() {
   const {
@@ -33,17 +32,16 @@ export default function MyContracts() {
     buildings,
     apartments,
     myContracts,
+    terminations,
     submittingReview,
     submitReview,
+    submittingCheckoutRequest,
+    requestTermination,
     isLoading,
   } = useTenantContracts();
-
-  // Local state for Tenant checkout request
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedRequestContract, setSelectedRequestContract] = useState<any | null>(null);
+  const [selectedRequestContract, setSelectedRequestContract] = useState<RentalContract | null>(null);
   const [checkoutDate, setCheckoutDate] = useState("");
   const [checkoutReason, setCheckoutReason] = useState("");
-  const [submittingCheckoutRequest, setSubmittingCheckoutRequest] = useState(false);
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -55,6 +53,21 @@ export default function MyContracts() {
     return removeVietnameseTones(code).includes(term) || removeVietnameseTones(room).includes(term);
   });
 
+
+  const openTerminationStatuses = new Set(["PENDING", "APPROVED", "INSPECTION", "SETTLING"]);
+
+  function getOpenTermination(contractId: number) {
+    return terminations.find(
+      (item) => item.contract_id === contractId && openTerminationStatuses.has(item.status)
+    );
+  }
+
+  function getTerminationLabel(termination: ContractTermination) {
+    if (termination.status === "PENDING") return "Yêu cầu đang chờ duyệt";
+    if (termination.status === "APPROVED") return "Đã duyệt, chờ bàn giao";
+    if (termination.status === "INSPECTION") return "Đang kiểm tra phòng";
+    return "Đang quyết toán";
+  }
   function getStatusBadge(status: ContractStatus) {
     const label = CONTRACT_STATUS_LABELS[status] || status;
     const variant = CONTRACT_STATUS_COLORS[status] || "gray";
@@ -142,9 +155,14 @@ export default function MyContracts() {
             <button
               type="button"
               onClick={() => {
+                const openTermination = getOpenTermination(c.id);
+                if (openTermination) {
+                  toast.info(getTerminationLabel(openTermination));
+                  return;
+                }
                 setSelectedRequestContract(c);
                 const defaultDate = new Date();
-                defaultDate.setDate(defaultDate.getDate() + 30);
+                defaultDate.setDate(defaultDate.getDate() + 60);
                 setCheckoutDate(defaultDate.toISOString().split("T")[0]);
                 setCheckoutReason("");
               }}
@@ -615,11 +633,10 @@ export default function MyContracts() {
                   toast.error("Vui lòng chọn ngày đề xuất trả phòng!");
                   return;
                 }
-                const minDate = new Date();
-                minDate.setDate(minDate.getDate() + 30);
                 const chosenDate = new Date(checkoutDate);
-                if (chosenDate.setHours(0, 0, 0, 0) < minDate.setHours(0, 0, 0, 0)) {
-                  toast.error("Theo quy định, ngày trả phòng phải báo trước ít nhất 1 tháng (30 ngày)!");
+                const today = new Date();
+                if (chosenDate.setHours(0, 0, 0, 0) < today.setHours(0, 0, 0, 0)) {
+                  toast.error("Ngày trả phòng không được ở quá khứ!");
                   return;
                 }
                 if (!checkoutReason.trim()) {
@@ -627,23 +644,17 @@ export default function MyContracts() {
                   return;
                 }
 
-                setSubmittingCheckoutRequest(true);
                 try {
-                  const todayStr = new Date().toLocaleDateString("vi-VN");
-                  const chosenStr = new Date(checkoutDate).toLocaleDateString("vi-VN");
-                  await maintenanceService.create({
-                    apartment_id: selectedRequestContract.apartment_id,
-                    title: `[Yêu cầu trả phòng] Hợp đồng HD-${String(selectedRequestContract.id).padStart(5, "0")}`,
-                    description: `Khách gửi yêu cầu trả phòng sớm.\n- Ngày báo yêu cầu: ${todayStr}\n- Ngày đề xuất trả phòng: ${chosenStr}\n- Lý do: ${checkoutReason.trim()}`,
-                    priority: "HIGH",
+                  await requestTermination({
+                    contract_id: selectedRequestContract.id,
+                    requested_end_date: checkoutDate,
+                    reason: checkoutReason.trim(),
                   });
-                  toast.success("Gửi yêu cầu trả phòng thành công! Ban quản lý sẽ liên hệ làm việc với bạn.");
                   setSelectedRequestContract(null);
-                } catch (err) {
-                  const errorResponse = err as { response?: { data?: { message?: string } }; message?: string };
-                  toast.error(errorResponse.response?.data?.message || errorResponse.message || "Không thể gửi yêu cầu.");
-                } finally {
-                  setSubmittingCheckoutRequest(false);
+                  setCheckoutDate("");
+                  setCheckoutReason("");
+                } catch {
+                  // handled in hook
                 }
               }}
               disabled={submittingCheckoutRequest}
@@ -660,9 +671,7 @@ export default function MyContracts() {
               <AlertTriangle className="shrink-0 text-amber-600" size={20} />
               <div className="space-y-1">
                 <h4 className="font-bold text-amber-900 text-xs sm:text-sm">Quy định trả phòng sớm</h4>
-                <p className="text-xs text-amber-700 leading-normal">
-                  Theo quy định trong hợp đồng thuê, khách thuê khi muốn trả phòng hoặc hủy hợp đồng trước hạn phải thông báo cho Ban quản lý **trước ít nhất 1 tháng (30 ngày)**.
-                </p>
+                <p className="text-xs text-amber-700 leading-normal">Bạn có thể chọn ngày trả phòng mong muốn. Báo trước từ 60 ngày trở lên được áp dụng chính sách hoàn cọc; dưới 60 ngày hệ thống sẽ áp dụng chính sách cọc khi quản lý duyệt.</p>
               </div>
             </div>
 
@@ -712,3 +721,6 @@ export default function MyContracts() {
     </div>
   );
 }
+
+
+

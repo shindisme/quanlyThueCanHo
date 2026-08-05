@@ -1,9 +1,10 @@
-
+﻿
 export const QUERY_KEYS = {
   USERS: ["users"],
   TENANTS: ["tenants"],
   STAFF: ["staff"],
   CONTRACTS: ["contracts"],
+  TERMINATIONS: ["contract-terminations"],
   BUILDINGS: ["buildings"],
   APARTMENTS: ["apartments"],
   INVOICES: ["invoices"],
@@ -45,6 +46,11 @@ export const queryKeys = {
     list: (filters?: Record<string, unknown>) => ["contracts", "list", filters] as const,
     detail: (id: string | number) => ["contracts", "detail", id] as const,
   },
+  terminations: {
+    all: ["contract-terminations"] as const,
+    list: (filters?: Record<string, unknown>) => ["contract-terminations", "list", filters] as const,
+    detail: (id: string | number) => ["contract-terminations", "detail", id] as const,
+  },
   invoices: {
     all: ["invoices"] as const,
     list: (filters?: Record<string, unknown>) => ["invoices", "list", filters] as const,
@@ -76,3 +82,5 @@ export const queryKeys = {
     detail: (id: string | number) => ["notifications", "detail", id] as const,
   },
 } as const;
+
+
