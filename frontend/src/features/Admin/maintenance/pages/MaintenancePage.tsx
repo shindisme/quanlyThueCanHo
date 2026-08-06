@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ClipboardList } from "lucide-react";
 import SearchInput from "../../../../components/ui/SearchInput";
 import PageHeader from "../../../../components/layout/PageHeader";
@@ -6,22 +6,19 @@ import Combobox from "../../../../components/ui/Combobox";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import { removeVietnameseTones } from "../../../../utils/string";
 import { useSort } from "../../../../hooks/useSort";
-import { useAdminMaintenance } from "../hooks/useAdminMaintenance";
+import { useMaintenancePage } from "../hooks/useMaintenancePage";
+import { useMaintenanceDetail } from "../hooks/useMaintenanceDetail";
 import MaintenanceList from "../components/MaintenanceList";
 import MaintenanceAssignModal from "../components/MaintenanceAssignModal";
 import MaintenanceUnableModal from "../components/MaintenanceUnableModal";
 import MaintenanceCompleteModal from "../components/MaintenanceCompleteModal";
 import MaintenanceDetailModal from "../components/MaintenanceDetailModal";
 
-import type { MaintenanceRequest } from "../../../../types";
-
 export default function MaintenancePage() {
   const {
     requests,
     buildings,
     technicians,
-    search,
-    setSearch,
     statusFilter,
     setStatusFilter,
     priorityFilter,
@@ -33,54 +30,28 @@ export default function MaintenancePage() {
     availableFloors,
     loading,
     loadingStaff,
-    role,
-    showAssignModal,
-    setShowAssignModal,
-    assignedStaffId,
-    setAssignedStaffId,
-    scheduledAt,
-    setScheduledAt,
-    handleOpenAssign,
-    handleConfirm,
-    showUnableModal,
-    setShowUnableModal,
-    unableReason,
-    setUnableReason,
-    handleOpenUnable,
-    handleUnableSubmit,
-    showCompleteModal,
-    setShowCompleteModal,
-    chargeTenant,
-    setChargeTenant,
-    repairFee,
-    setRepairFee,
-    handleOpenComplete,
-    handleCompleteSubmit,
     saving,
-  } = useAdminMaintenance();
+    role,
+    assign,
+    complete,
+    unable,
+  } = useMaintenancePage();
 
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [detailRequest, setDetailRequest] = useState<MaintenanceRequest | null>(null);
+  const detail = useMaintenanceDetail();
+  const [search, setSearch] = useState("");
 
-  const handleOpenDetail = (req: MaintenanceRequest) => {
-    setDetailRequest(req);
-    setShowDetailModal(true);
-  };
+  const filteredRequests = useMemo(() => {
+    return requests.filter((r) => {
+      const term = removeVietnameseTones(search.toLowerCase());
+      const titleNorm = removeVietnameseTones(r.title.toLowerCase());
+      const tenantName = removeVietnameseTones(r.tenant?.full_name?.toLowerCase() || "");
+      const roomNorm = removeVietnameseTones(r.apartment?.room_number?.toLowerCase() || "");
+      const matchSearch = !search || titleNorm.includes(term) || tenantName.includes(term) || roomNorm.includes(term);
 
-  const filteredRequests = requests.filter((r) => {
-    const term = removeVietnameseTones(search.toLowerCase());
-    const titleNorm = removeVietnameseTones(r.title.toLowerCase());
-    const tenantName = removeVietnameseTones(r.tenant?.full_name?.toLowerCase() || "");
-    const roomNorm = removeVietnameseTones(r.apartment?.room_number?.toLowerCase() || "");
-    const matchSearch = !search || titleNorm.includes(term) || tenantName.includes(term) || roomNorm.includes(term);
-
-    const matchStatus = !statusFilter || r.status === statusFilter;
-    const matchPriority = !priorityFilter || r.priority === priorityFilter;
-    const matchBuilding = !buildingFilter || r.apartment?.building_id === Number(buildingFilter) || r.apartment?.building?.id === Number(buildingFilter);
-    const matchFloor = !floorFilter || r.apartment?.floor === Number(floorFilter);
-
-    return matchSearch && matchStatus && matchPriority && matchBuilding && matchFloor;
-  });
+      const matchFloor = !floorFilter || r.apartment?.floor === Number(floorFilter);
+      return matchSearch && matchFloor;
+    });
+  }, [requests, search, floorFilter]);
 
   const { items: sortedRequests } = useSort(filteredRequests);
 
@@ -90,7 +61,7 @@ export default function MaintenancePage() {
       <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải danh sách yêu cầu sửa chữa...</span>
     </div>
   ) : (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
       <PageHeader
         title="Quản lý sửa chữa"
         subtitle="Tiếp nhận, phân công nhân viên kỹ thuật và giám sát quá trình xử lý sự cố thiết bị"
@@ -100,7 +71,7 @@ export default function MaintenancePage() {
         }
       />
 
-      <div className="grid grid-cols-12 gap-4 font-sans">
+      <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 sm:col-span-3">
           <Combobox
             options={[
@@ -164,7 +135,7 @@ export default function MaintenancePage() {
       </div>
 
       {sortedRequests.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 bg-white border border-gray-200 shadow-md">
+        <div className="text-center py-16 text-gray-500 bg-white border border-gray-200 shadow-sm rounded-xl">
           <ClipboardList size={48} className="mx-auto mb-3 text-gray-300" />
           <p className="font-medium">Không tìm thấy yêu cầu sửa chữa nào</p>
         </div>
@@ -173,47 +144,53 @@ export default function MaintenancePage() {
           requests={sortedRequests}
           role={role}
           saving={saving}
-          onOpenDetail={handleOpenDetail}
-          onOpenAssign={handleOpenAssign}
-          onOpenUnable={handleOpenUnable}
-          onComplete={handleOpenComplete}
+          onOpenDetail={detail.openModal}
+          onOpenAssign={assign.openModal}
+          onOpenUnable={unable.openModal}
+          onComplete={complete.openModal}
         />
       )}
 
       <MaintenanceAssignModal
-        isOpen={showAssignModal}
-        onClose={() => setShowAssignModal(false)}
+        isOpen={assign.isOpen}
+        onClose={assign.closeModal}
         loadingStaff={loadingStaff}
         saving={saving}
         technicians={technicians}
-        assignedStaffId={assignedStaffId}
-        setAssignedStaffId={setAssignedStaffId}
-        scheduledAt={scheduledAt}
-        setScheduledAt={setScheduledAt}
-        onConfirm={handleConfirm}
+        assignedStaffId={assign.assignedStaffId}
+        setAssignedStaffId={assign.setAssignedStaffId}
+        scheduledAt={assign.scheduledAt}
+        setScheduledAt={assign.setScheduledAt}
+        onConfirm={assign.handleConfirm}
       />
 
       <MaintenanceUnableModal
-        isOpen={showUnableModal}
-        onClose={() => setShowUnableModal(false)}
+        isOpen={unable.isOpen}
+        onClose={unable.closeModal}
         saving={saving}
-        unableReason={unableReason}
-        setUnableReason={setUnableReason}
-        onUnableSubmit={handleUnableSubmit}
+        unableReason={unable.unableReason}
+        setUnableReason={unable.setUnableReason}
+        onUnableSubmit={unable.handleUnableSubmit}
       />
 
       <MaintenanceCompleteModal
-        isOpen={showCompleteModal}
-        onClose={() => setShowCompleteModal(false)}
+        isOpen={complete.isOpen}
+        onClose={complete.closeModal}
         saving={saving}
-        chargeTenant={chargeTenant}
-        setChargeTenant={setChargeTenant}
-        repairFee={repairFee}
-        setRepairFee={setRepairFee}
-        onCompleteSubmit={handleCompleteSubmit}
+        chargeTenant={complete.chargeTenant}
+        setChargeTenant={complete.setChargeTenant}
+        repairFee={complete.repairFee}
+        setRepairFee={complete.setRepairFee}
+        onCompleteSubmit={complete.handleCompleteSubmit}
       />
 
-      <MaintenanceDetailModal isOpen={showDetailModal} onClose={() => setShowDetailModal(false)} detailRequest={detailRequest} role={role} />
+      <MaintenanceDetailModal
+        isOpen={detail.isOpen}
+        onClose={detail.closeModal}
+        detailRequest={detail.detailRequest}
+        role={role}
+        onUpdatePriority={(_id, priority) => detail.updatePriority(priority)}
+      />
     </div>
   );
 }

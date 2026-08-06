@@ -135,13 +135,13 @@ export default function ContractList({
         );
       }
 
-      if (overdueCandidateIds.has(contract.id)) {
+      if (contract.status === "ACTIVE" || overdueCandidateIds.has(contract.id)) {
         return (
           <button
             disabled={isTerminationActionPending}
             onClick={() => onCreateOverdueTermination(contract)}
             className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer disabled:opacity-60"
-            title="Quản lý chủ động thanh lý hợp đồng"
+            title="Thanh lý hợp đồng"
           >
             <XCircle size={16} />
           </button>

@@ -204,6 +204,7 @@ export const PRIORITY_CONFIG: Record<Priority, { label: string; badge: BadgeVari
   HIGH: { label: PRIORITY_LABELS.HIGH, badge: PRIORITY_COLORS.HIGH },
 } as const;
 
+
 export const REQUEST_STATUS_CONFIG: Record<RequestStatus, { label: string; badge: BadgeVariant }> = {
   PENDING: { label: REQUEST_STATUS_LABELS.PENDING, badge: REQUEST_STATUS_COLORS.PENDING },
   PROCESSING: { label: REQUEST_STATUS_LABELS.PROCESSING, badge: REQUEST_STATUS_COLORS.PROCESSING },
@@ -211,6 +212,7 @@ export const REQUEST_STATUS_CONFIG: Record<RequestStatus, { label: string; badge
   CANCELLED: { label: REQUEST_STATUS_LABELS.CANCELLED, badge: REQUEST_STATUS_COLORS.CANCELLED },
   NEEDS_RESCHEDULE: { label: REQUEST_STATUS_LABELS.NEEDS_RESCHEDULE, badge: REQUEST_STATUS_COLORS.NEEDS_RESCHEDULE },
 } as const;
+
 
 export const SCHEDULE_STATUS_CONFIG: Record<ScheduleStatus, { label: string; badge: BadgeVariant }> = {
   PENDING: { label: SCHEDULE_STATUS_LABELS.PENDING, badge: SCHEDULE_STATUS_COLORS.PENDING },

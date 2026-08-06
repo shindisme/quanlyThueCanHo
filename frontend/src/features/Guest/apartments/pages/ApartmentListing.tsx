@@ -51,14 +51,20 @@ export default function GuestApartmentListing() {
 
         {/* Bo loc */}
         <div className="flex flex-col sm:flex-row gap-3 w-full mb-8">
-          <div className="relative flex-1 min-w-[200px] h-[42px]">
+          <div className="relative flex-1 min-w-50 h-10.5">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  e.currentTarget.blur();
+                }
+              }}
               placeholder="Tìm kiếm..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 h-[42px] bg-white text-gray-800"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 text-sm focus:outline-none focus:border-primary-500 h-10.5 bg-white text-gray-800"
             />
           </div>
 
@@ -72,7 +78,7 @@ export default function GuestApartmentListing() {
             onChange={(val) => setPriceFilter(val)}
             placeholder="Mức giá"
             searchable={false}
-            className="flex-1 min-w-[150px]"
+            className="flex-1 min-w-37.5"
             triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
             clearable={true}
           />
@@ -86,7 +92,7 @@ export default function GuestApartmentListing() {
             }}
             placeholder="Tất cả chi nhánh"
             searchPlaceholder="Tìm chi nhánh..."
-            className="flex-1 min-w-[160px]"
+            className="flex-1 min-w-40"
             triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
             clearable={true}
           />
@@ -98,7 +104,7 @@ export default function GuestApartmentListing() {
             disabled={!buildingFilter}
             placeholder="Tầng"
             searchPlaceholder="Tìm tầng..."
-            className="flex-1 min-w-[150px]"
+            className="flex-1 min-w-37.5"
             triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
             clearable={true}
           />
@@ -112,7 +118,7 @@ export default function GuestApartmentListing() {
             onChange={(val) => setStatusFilter(val)}
             placeholder="Tất cả trạng thái"
             searchable={false}
-            className="flex-1 min-w-[150px]"
+            className="flex-1 min-w-37.5"
             triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
             clearable={true}
           />

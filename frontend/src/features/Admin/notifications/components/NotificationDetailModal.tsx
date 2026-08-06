@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import type { Notification, Invoice } from "../../../../types";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatDate } from "../../../../utils/date";
-import { formatApartmentDisplay } from "../../../../utils/string";
+import { formatApartmentDisplay, extractInvoiceCode } from "../../../../utils/string";
 import { FileText, CreditCard, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../../stores/auth.store";
@@ -21,46 +22,22 @@ export default function NotificationDetailModal({
     onClose,
     notification,
 }: NotificationDetailModalProps) {
-    const [invoiceCode, setInvoiceCode] = useState<string | null>(null);
-    const [invoice, setInvoice] = useState<Invoice | null>(null);
-    const [loadingInvoice, setLoadingInvoice] = useState(false);
     const [showItems, setShowItems] = useState(true);
 
     const navigate = useNavigate();
     const { role } = useAuthStore();
 
-    useEffect(() => {
-        if (isOpen && notification) {
-            setInvoice(null);
-            setInvoiceCode(null);
+    const invoiceCode = useMemo(() => extractInvoiceCode(notification), [notification]);
 
-            // Match pattern like INV-202607-001 or INV-6-DEP or INV-something
-            const text = `${notification.title} ${notification.content}`;
-            const match = text.match(/INV-[A-Z0-9_-]+/i);
-            if (match) {
-                const code = match[0].toUpperCase();
-                setInvoiceCode(code);
-                loadInvoiceDetails(code);
-            }
-        }
-    }, [isOpen, notification]);
-
-    const loadInvoiceDetails = async (code: string) => {
-        setLoadingInvoice(true);
-        try {
-            const res = await invoiceService.getAll({ search: code });
-            if (res.data && res.data.length > 0) {
-                const exact = res.data.find(inv => inv.invoice_code.toUpperCase() === code);
-                if (exact) {
-                    setInvoice(exact);
-                }
-            }
-        } catch (err) {
-            console.error("Error loading invoice for notification:", err);
-        } finally {
-            setLoadingInvoice(false);
-        }
-    };
+    const { data: invoice = null, isLoading: loadingInvoice } = useQuery({
+        queryKey: ["invoiceByCode", invoiceCode],
+        queryFn: async () => {
+            if (!invoiceCode) return null;
+            const res = await invoiceService.getAll({ search: invoiceCode });
+            return res.data?.find((inv) => inv.invoice_code.toUpperCase() === invoiceCode) || null;
+        },
+        enabled: Boolean(isOpen && invoiceCode),
+    });
 
     if (!notification) return null;
 

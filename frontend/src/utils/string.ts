@@ -113,3 +113,10 @@ export function validateSequentialRoom(
 
   return { valid: true };
 }
+
+export function extractInvoiceCode(notification: { title?: string; content?: string } | null): string | null {
+  if (!notification) return null;
+  const text = `${notification.title || ""} ${notification.content || ""}`;
+  const match = text.match(/INV-[A-Z0-9_-]+/i);
+  return match ? match[0].toUpperCase() : null;
+}

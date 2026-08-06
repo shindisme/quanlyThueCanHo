@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Search, ArrowRight, Building2, Shield, Users, MapPin, Maximize2, Phone } from "lucide-react";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatApartmentDisplay } from "../../../../utils/string";
@@ -17,6 +17,7 @@ function getApartmentThumbnail(apt: ApartmentData): string {
 }
 
 export default function GuestHomePage() {
+  const navigate = useNavigate();
   const {
     searchQuery,
     setSearchQuery,
@@ -26,6 +27,10 @@ export default function GuestHomePage() {
     loading,
     availableApartments,
   } = useHomePage();
+
+  const handleSearchSubmit = () => {
+    navigate(`/apartments?search=${encodeURIComponent(searchQuery)}`);
+  };
 
   return (
     <div className="font-sans text-gray-900 bg-white">
@@ -55,6 +60,12 @@ export default function GuestHomePage() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSearchSubmit();
+                      }
+                    }}
                     placeholder="Tìm kiếm theo địa chỉ..."
                     className="w-full pl-10 pr-3 py-3 text-sm bg-transparent focus:outline-none text-gray-800"
                   />

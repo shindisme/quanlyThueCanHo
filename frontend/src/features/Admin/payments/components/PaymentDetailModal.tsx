@@ -2,6 +2,7 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import { formatDate } from "../../../../utils/date";
+import { formatCurrency } from "../../../../utils/currency";
 import { getInvoicePeriod } from "../../../../utils/invoicePeriod";
 import { getInvoiceApartment, getInvoiceRoomDisplay, getInvoiceTenant } from "../../../../utils/invoiceDisplay";
 import type { Payment } from "../../../../types";
@@ -31,10 +32,6 @@ export default function PaymentDetailModal({ isOpen, onClose, payment }: Payment
       CASH: "Tiền mặt",
     };
     return methodMap[method] || method;
-  }
-
-  function formatCurrency(amount: number) {
-    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
   }
 
   if (!payment) return null;

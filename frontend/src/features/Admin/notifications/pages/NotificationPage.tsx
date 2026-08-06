@@ -1,18 +1,16 @@
-import { useState, useEffect } from "react";
 import { Mail, CheckSquare, Plus } from "lucide-react";
-import { useLocation } from "react-router-dom";
 import PageHeader from "../../../../components/layout/PageHeader";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Combobox from "../../../../components/ui/Combobox";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import DefaultPagination from "../../../../components/ui/Pagination";
-import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
-import Input from "../../../../components/ui/Input";
 import NotificationList from "../components/NotificationList";
 import NotificationDetailModal from "../components/NotificationDetailModal";
+import NotificationBroadcastModal from "../components/NotificationBroadcastModal";
 import { useNotificationCenter } from "../hooks/useNotificationCenter";
 import { useNotificationSend } from "../hooks/useNotificationSend";
+import { useNotificationDetail } from "../hooks/useNotificationDetail";
 
 export default function NotificationPage() {
   const {
@@ -31,47 +29,9 @@ export default function NotificationPage() {
     setCurrentPage,
     totalPages,
   } = useNotificationCenter();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedNotif, setSelectedNotif] = useState<any>(null);
-  const location = useLocation();
 
-  useEffect(() => {
-    if (location.state?.selectedNotifId && notifications.length > 0) {
-      const found = notifications.find((n) => n.id === location.state.selectedNotifId);
-      if (found) {
-        setSelectedNotif(found);
-        window.history.replaceState({}, document.title);
-      }
-    }
-  }, [location.state, notifications]);
-
-  useEffect(() => {
-    if (selectedNotif && !selectedNotif.is_read) {
-      markRead(selectedNotif.id, true);
-      selectedNotif.is_read = true;
-    }
-  }, [selectedNotif, markRead]);
-
-  const {
-    buildings,
-    apartments,
-    loadingApartments,
-    title,
-    setTitle,
-    content,
-    setContent,
-    type,
-    setType,
-    buildingId,
-    setBuildingId,
-    targetType,
-    setTargetType,
-    selectedApartmentIds,
-    handleToggleApartment,
-    broadcastModal,
-    handleSendNotificationSubmit,
-    isSending,
-  } = useNotificationSend();
+  const sendModal = useNotificationSend();
+  const detail = useNotificationDetail({ notifications, markRead });
 
   const isOperator = role === "ADMIN" || role === "MANAGER";
 
@@ -90,7 +50,7 @@ export default function NotificationPage() {
               className="w-64 sm:w-80 flex-1 min-w-0"
             />
             {isOperator && (
-              <Button onClick={broadcastModal.onOpen} className="flex items-center gap-2 rounded-xl shrink-0 shadow-md font-semibold">
+              <Button onClick={sendModal.broadcastModal.onOpen} className="flex items-center gap-2 rounded-xl shrink-0 shadow-md font-semibold">
                 <Plus size={16} />
                 <span>Phát thông báo mới</span>
               </Button>
@@ -117,7 +77,11 @@ export default function NotificationPage() {
       </div>
 
       {unreadCount > 0 && (
-        <button type="button" onClick={() => markAllRead()} className="text-primary-600 hover:text-primary-700 font-semibold text-xs flex items-center gap-1.5 justify-center py-2.5 px-4 hover:bg-primary-50 transition-all duration-200 rounded-xl border border-primary-200 cursor-pointer">
+        <button
+          type="button"
+          onClick={() => markAllRead()}
+          className="text-primary-600 hover:text-primary-700 font-semibold text-xs flex items-center gap-1.5 justify-center py-2.5 px-4 hover:bg-primary-50 transition-all duration-200 rounded-xl border border-primary-200 cursor-pointer"
+        >
           <CheckSquare size={14} />
           <span>Đánh dấu tất cả đã đọc</span>
         </button>
@@ -135,118 +99,48 @@ export default function NotificationPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          <NotificationList notifications={notifications} markRead={markRead} deleteNotification={deleteNotification} onViewDetails={(notif) => setSelectedNotif(notif)} />
+          <NotificationList
+            notifications={notifications}
+            markRead={markRead}
+            deleteNotification={deleteNotification}
+            onViewDetails={detail.openModal}
+          />
           <div className="pt-2">
             <DefaultPagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
           </div>
         </div>
       )}
 
-      <Modal isOpen={broadcastModal.isOpen} onClose={broadcastModal.onClose} title="Phát Thông Báo">
-        <form onSubmit={handleSendNotificationSubmit} className="space-y-4 text-sm font-sans">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-semibold text-gray-650 block mb-1">Tòa nhà / Chi nhánh</label>
-              {role === "ADMIN" ? (
-                <Combobox
-                  options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
-                  value={buildingId ? String(buildingId) : ""}
-                  onChange={(val) => setBuildingId(val ? Number(val) : undefined)}
-                  placeholder="Chọn tòa nhà"
-                  clearable={false}
-                  triggerClassName="h-[42px] rounded-xl border-gray-200"
-                />
-              ) : (
-                <div className="h-10.5 flex items-center px-4 bg-gray-50 border border-gray-200 text-gray-600 rounded-xl font-bold">
-                  {buildings.find((b) => b.id === buildingId)?.branch_name || "Tòa nhà quản lý"}
-                </div>
-              )}
-            </div>
+      {isOperator && (
+        <NotificationBroadcastModal
+          isOpen={sendModal.broadcastModal.isOpen}
+          onClose={sendModal.broadcastModal.onClose}
+          role={role}
+          buildings={sendModal.buildings}
+          apartments={sendModal.apartments}
+          loadingApartments={sendModal.loadingApartments}
+          title={sendModal.title}
+          setTitle={sendModal.setTitle}
+          content={sendModal.content}
+          setContent={sendModal.setContent}
+          type={sendModal.type}
+          setType={sendModal.setType}
+          buildingId={sendModal.buildingId}
+          setBuildingId={sendModal.setBuildingId}
+          targetType={sendModal.targetType}
+          setTargetType={sendModal.setTargetType}
+          selectedApartmentIds={sendModal.selectedApartmentIds}
+          handleToggleApartment={sendModal.handleToggleApartment}
+          handleSendNotificationSubmit={sendModal.handleSendNotificationSubmit}
+          isSending={sendModal.isSending}
+        />
+      )}
 
-            <div>
-              <label className="text-xs font-semibold text-gray-650 block mb-1">Phân loại thông báo</label>
-              <Combobox
-                options={[
-                  { value: "GENERAL", label: "Thông tin chung" },
-                  { value: "INVOICE", label: "Tiền điện nước / Hóa đơn" },
-                  { value: "MAINTENANCE", label: "Sửa chữa / Bảo trì tòa nhà" },
-                  { value: "SYSTEM", label: "Cảnh báo hệ thống" },
-                ]}
-                value={type}
-                onChange={setType}
-                searchable={false}
-                clearable={false}
-                triggerClassName="h-[42px] rounded-xl border-gray-200"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-semibold text-gray-650 block">Đối tượng nhận thông báo</label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                <input type="radio" name="targetType" value="BUILDING" checked={targetType === "BUILDING"} onChange={() => setTargetType("BUILDING")} className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500" />
-                <span className="text-xs font-medium text-gray-800">Tất cả cư dân tòa nhà</span>
-              </label>
-
-              <label className="flex items-center gap-1.5 cursor-pointer select-none">
-                <input type="radio" name="targetType" value="APARTMENTS" checked={targetType === "APARTMENTS"} onChange={() => setTargetType("APARTMENTS")} className="w-4 h-4 text-primary-600 border-gray-300 focus:ring-primary-500" />
-                <span className="text-xs font-medium text-gray-800">Chọn căn hộ cụ thể</span>
-              </label>
-            </div>
-          </div>
-
-          {targetType === "APARTMENTS" && buildingId && (
-            <div className="space-y-2 border-t border-gray-100 pt-3">
-              <label className="text-xs font-semibold text-gray-600 block">
-                Chọn căn hộ nhận thông báo ({selectedApartmentIds.length} đã chọn):
-              </label>
-              {loadingApartments ? (
-                <div className="flex justify-center py-4">
-                  <LoadingSpinner size={20} />
-                </div>
-              ) : apartments.length === 0 ? (
-                <p className="text-xs text-gray-400 italic">Không có căn hộ nào được tìm thấy trong tòa nhà.</p>
-              ) : (
-                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5 max-h-40 overflow-y-auto border border-gray-100 p-2.5 bg-gray-50/50 rounded-xl">
-                  {apartments.map((apt) => {
-                    const isSelected = selectedApartmentIds.includes(apt.id);
-                    return (
-                      <button
-                        type="button"
-                        key={apt.id}
-                        onClick={() => handleToggleApartment(apt.id)}
-                        className={`py-1.5 text-center font-bold text-xs select-none border transition-all cursor-pointer rounded-lg ${isSelected ? "bg-primary-600 text-white border-primary-600 shadow-sm" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-100"}`}
-                      >
-                        P.{apt.room_number}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-650 block">Tiêu đề thông báo</label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Nhập tiêu đề thông báo" className="rounded-xl" />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-650 block">Nội dung</label>
-            <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Nhập nội dung thông báo" rows={4} className="w-full rounded-xl border border-gray-200 p-3 text-sm" />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="secondary" onClick={broadcastModal.onClose}>Hủy</Button>
-            <Button type="submit" disabled={isSending}>
-              {isSending ? "Đang phát..." : "Phát thông báo"}
-            </Button>
-          </div>
-        </form>
-      </Modal>
-
-      <NotificationDetailModal isOpen={Boolean(selectedNotif)} onClose={() => setSelectedNotif(null)} notification={selectedNotif} />
+      <NotificationDetailModal
+        isOpen={detail.isOpen}
+        onClose={detail.closeModal}
+        notification={detail.selectedNotif}
+      />
     </div>
   );
 }

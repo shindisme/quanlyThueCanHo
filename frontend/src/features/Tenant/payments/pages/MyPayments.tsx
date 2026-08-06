@@ -8,6 +8,7 @@ import Input from "../../../../components/ui/Input";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import { useTenantPayments } from "../hooks/useTenantPayments";
 import { formatDate } from "../../../../utils/date";
+import { formatCurrency } from "../../../../utils/currency";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import { getInvoicePeriod } from "../../../../utils/invoicePeriod";
 
@@ -36,10 +37,6 @@ export default function MyPayments() {
     setCurrentPage,
     totalPages,
   } = useTenantPayments();
-
-  function formatCurrency(amount: number) {
-    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
-  }
 
   function getPaymentStatusBadge(status: string) {
     const statusMap: Record<string, { label: string; variant: BadgeVariant }> = {

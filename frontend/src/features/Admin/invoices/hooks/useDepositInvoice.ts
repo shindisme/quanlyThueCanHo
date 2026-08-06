@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as apartmentService from "../../../../services/apartmentService";
@@ -41,6 +41,25 @@ export const getPresetForm = (apt: Apartment): DepositForm => ({
   apartment_id: String(apt.id),
   deposit_amount: apt.rental_price || 0,
 });
+
+export const createDepositForm = (presetApartment?: Apartment | null): DepositForm => {
+  if (presetApartment) return getPresetForm(presetApartment);
+  return emptyDepositForm();
+};
+
+export const validateDepositForm = (form: DepositForm, fixedApartment?: Apartment): string | null => {
+  const targetAptId = fixedApartment ? String(fixedApartment.id) : form.apartment_id;
+  const result = depositFormSchema.safeParse({
+    ...form,
+    apartment_id: targetAptId,
+    deposit_amount: Number(form.deposit_amount),
+  });
+
+  if (!result.success) {
+    return result.error.issues[0]?.message || "Thông tin không hợp lệ";
+  }
+  return null;
+};
 
 export const availableApartmentKeys = {
   all: ["available-apartments-for-deposit"] as const,
@@ -133,11 +152,13 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
           address: form.address.trim() || null,
         },
       }),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Đã lập hóa đơn cọc phòng");
       setIsOpen(false);
-      void queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      void queryClient.invalidateQueries({ queryKey: availableApartmentKeys.all });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["invoices"] }),
+        queryClient.invalidateQueries({ queryKey: availableApartmentKeys.all }),
+      ]);
       if (onSuccessCallback) onSuccessCallback();
     },
     onError: (error: unknown) => {
@@ -146,23 +167,21 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
     },
   });
 
-  const openModal = (presetApartment?: Apartment) => {
+  const openModal = useCallback((presetApartment?: Apartment) => {
     const targetApt = presetApartment || fixedApartment;
-    if (targetApt) {
-      setForm(getPresetForm(targetApt));
-    } else {
-      setForm(emptyDepositForm());
+    setForm(createDepositForm(targetApt));
+    if (!targetApt) {
       void refetchAvailableApartments();
     }
     setIsOpen(true);
-  };
+  }, [fixedApartment, refetchAvailableApartments]);
 
-  const closeModal = () => {
+  const closeModal = useCallback(() => {
     if (depositMutation.isPending) return;
     setIsOpen(false);
-  };
+  }, [depositMutation.isPending]);
 
-  const handleBuildingChange = (value: string) => {
+  const handleBuildingChange = useCallback((value: string) => {
     setForm((prev) => ({
       ...prev,
       building_id: value,
@@ -170,47 +189,35 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
       apartment_id: "",
       deposit_amount: 0,
     }));
-  };
+  }, []);
 
-  const handleFloorChange = (value: string) => {
+  const handleFloorChange = useCallback((value: string) => {
     setForm((prev) => ({
       ...prev,
       floor: value,
       apartment_id: "",
       deposit_amount: 0,
     }));
-  };
+  }, []);
 
-  const handleApartmentChange = (value: string) => {
+  const handleApartmentChange = useCallback((value: string) => {
     const selected = availableApartments.find((apt) => String(apt.id) === value);
     setForm((prev) => ({
       ...prev,
       apartment_id: value,
       deposit_amount: selected?.rental_price || 0,
     }));
-  };
+  }, [availableApartments]);
 
-  const validateForm = (): boolean => {
-    const targetAptId = fixedApartment ? String(fixedApartment.id) : form.apartment_id;
-    const result = depositFormSchema.safeParse({
-      ...form,
-      apartment_id: targetAptId,
-      deposit_amount: Number(form.deposit_amount),
-    });
-
-    if (!result.success) {
-      const firstError = result.error.issues[0];
-      toast.error(firstError.message);
-      return false;
-    }
-    return true;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    const error = validateDepositForm(form, fixedApartment);
+    if (error) {
+      toast.error(error);
+      return;
+    }
     depositMutation.mutate();
-  };
+  }, [form, fixedApartment, depositMutation]);
 
   return {
     isOpen,

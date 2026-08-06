@@ -508,7 +508,7 @@ export default function Contract() {
                 onClose={() => setShowConfirmCancelModal(false)}
                 onConfirm={handleConfirmCancelCreate}
                 title="Xác nhận hủy tạo người thuê"
-                message="Bạn có chắc chắn muốn hủy tạo hợp đồng? Người thuê mới vừa tạo sẽ bị xóa hoàn toàn khỏi cơ sở dữ liệu."
+                message="Bạn có chắc chắn muốn hủy tạo hợp đồng?."
                 variant="danger"
                 confirmText="Hủy tạo & Xóa"
                 cancelText="Quay lại"
@@ -520,7 +520,7 @@ export default function Contract() {
                 onClose={() => setCancelContractItem(null)}
                 onConfirm={handleConfirmCancelContract}
                 title="Xác nhận Hủy hợp đồng (Chưa nhận phòng)"
-                message={`Hợp đồng HD-${String(cancelContractItem?.id || 0).padStart(5, "0")} chưa đến ngày nhận phòng (${cancelContractItem?.start_date ? formatDate(cancelContractItem.start_date) : ""}). Bạn có chắc chắn muốn HỦY hợp đồng này không? Căn hộ sẽ lập tức được trả về trạng thái sẵn sàng cho thuê (AVAILABLE).`}
+                message={`Hợp đồng HD-${String(cancelContractItem?.id || 0).padStart(5, "0")} chưa đến ngày nhận phòng. Bạn có chắc chắn muốn HỦY hợp đồng này không? Căn hộ sẽ lập tức được trả về trạng thái sẵn sàng cho thuê.`}
                 variant="danger"
                 confirmText="Hủy hợp đồng"
                 cancelText="Quay lại"

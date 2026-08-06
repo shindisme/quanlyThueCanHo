@@ -25,6 +25,8 @@ export default function InvoicePage() {
     setSearch,
     statusFilter,
     setStatusFilter,
+    typeFilter,
+    setTypeFilter,
     buildingFilter,
     setBuildingFilter,
     monthFilter,
@@ -95,30 +97,44 @@ export default function InvoicePage() {
         subtitle="Theo dõi công nợ, tính tiền dịch vụ hằng tháng và kiểm soát trạng thái thanh toán"
         count={rawInvoicesCount}
         actions={
-          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-            <SearchInput
-              value={search}
-              onChange={setSearch}
-              placeholder="Tìm theo mã HD, số phòng, tên khách thuê..."
-              className="w-64 sm:w-80 flex-1 min-w-0"
-            />
+          <div className="grid grid-cols-12 gap-3 w-full lg:w-auto lg:flex lg:items-center">
+            <div className="col-span-12 lg:w-80">
+              <SearchInput
+                value={search}
+                onChange={setSearch}
+                placeholder="Tìm theo mã HD, số phòng, tên người thuê..."
+                className="w-full"
+              />
+            </div>
             {canManageDeposits && (
-              <Button type="button" variant="outline" onClick={() => depositModal.openModal()} className="rounded-xl shrink-0 shadow-md font-semibold">
-                <span>Lập hóa đơn đặt cọc</span>
-              </Button>
+              <div className="col-span-6 lg:w-auto flex">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => depositModal.openModal()}
+                  className="rounded-xl w-full justify-center shrink-0 shadow-md font-semibold text-xs sm:text-sm px-3"
+                >
+                  <span>Lập hóa đơn cọc</span>
+                </Button>
+              </div>
             )}
             {canManageDeposits && (
-              <Button onClick={generateModal.onOpen} className="flex items-center gap-2 rounded-xl shrink-0 shadow-md font-semibold">
-                <Plus size={16} />
-                <span>Tính tiền tháng này</span>
-              </Button>
+              <div className="col-span-6 lg:w-auto flex">
+                <Button
+                  onClick={generateModal.onOpen}
+                  className="flex items-center justify-center gap-1.5 rounded-xl w-full shrink-0 shadow-md font-semibold text-xs sm:text-sm px-3"
+                >
+                  <Plus size={16} />
+                  <span>Tính tiền tháng này</span>
+                </Button>
+              </div>
             )}
           </div>
         }
       />
 
       <div className="grid grid-cols-12 gap-3 w-full">
-        <div className="col-span-12 sm:col-span-6 md:col-span-3">
+        <div className="col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-3">
           <Combobox
             options={[
               { value: "PAID", label: "Đã thanh toán" },
@@ -130,12 +146,31 @@ export default function InvoicePage() {
             placeholder="Trạng thái"
             searchable={false}
             className="w-full"
-            triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
+            triggerClassName="h-[42px] border-gray-300 px-3 rounded-xl"
             clearable={true}
           />
         </div>
 
-        <div className="col-span-12 sm:col-span-6 md:col-span-3">
+        <div className="col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-3">
+          <Combobox
+            options={[
+              { value: "DEPOSIT", label: "Tiền cọc" },
+              { value: "FIRST_RENT", label: "Tiền thuê kỳ đầu" },
+              { value: "MONTHLY", label: "Hóa đơn hàng tháng" },
+              { value: "MAINTENANCE", label: "Phí sửa chữa" },
+              { value: "FINAL_SETTLEMENT", label: "Thanh lý hợp đồng" },
+            ]}
+            value={typeFilter}
+            onChange={setTypeFilter}
+            placeholder="Loại hóa đơn"
+            searchable={false}
+            className="w-full"
+            triggerClassName="h-[42px] border-gray-300 px-3 rounded-xl"
+            clearable={true}
+          />
+        </div>
+
+        <div className="col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-2">
           <Combobox
             options={monthOptions}
             value={monthFilter ? String(monthFilter) : ""}
@@ -143,12 +178,12 @@ export default function InvoicePage() {
             placeholder="Tháng"
             searchable={false}
             className="w-full"
-            triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
+            triggerClassName="h-[42px] border-gray-300 px-3 rounded-xl"
             clearable={true}
           />
         </div>
 
-        <div className="col-span-12 sm:col-span-6 md:col-span-3">
+        <div className="col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-2">
           <Combobox
             options={yearOptions}
             value={yearFilter ? String(yearFilter) : ""}
@@ -156,20 +191,20 @@ export default function InvoicePage() {
             placeholder="Năm"
             searchable={false}
             className="w-full"
-            triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
+            triggerClassName="h-[42px] border-gray-300 px-3 rounded-xl"
             clearable={true}
           />
         </div>
 
         {role === "ADMIN" && (
-          <div className="col-span-12 sm:col-span-6 md:col-span-3">
+          <div className="col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-2">
             <Combobox
               options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
               value={buildingFilter ? String(buildingFilter) : ""}
               onChange={(val) => setBuildingFilter(val ? Number(val) : undefined)}
-              placeholder="Tất cả chi nhánh"
+              placeholder="Chi nhánh"
               className="w-full"
-              triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
+              triggerClassName="h-[42px] border-gray-300 px-3 rounded-xl"
               clearable={true}
             />
           </div>

@@ -3,6 +3,7 @@ import Badge from "../../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS, PAYMENT_METHOD_LABELS, type PaymentStatus, type PaymentMethod } from "../../../../constants/enums";
 import { formatDate } from "../../../../utils/date";
+import { formatCurrency } from "../../../../utils/currency";
 import { getInvoiceRoomDisplay, getInvoiceTenant } from "../../../../utils/invoiceDisplay";
 import type { Payment } from "../../../../types";
 
@@ -23,10 +24,6 @@ export default function PaymentList({
   handleReject,
   onViewDetail,
 }: PaymentListProps) {
-  function formatCurrency(amount: number) {
-    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
-  }
-
   function getPaymentStatusBadge(status: PaymentStatus) {
     const label = PAYMENT_STATUS_LABELS[status] || status;
     const variant = PAYMENT_STATUS_COLORS[status] || "gray";

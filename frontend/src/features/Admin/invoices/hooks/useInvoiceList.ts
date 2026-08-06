@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as invoiceService from "../../../../services/invoiceService";
@@ -85,6 +85,7 @@ export function filterInvoices(
   invoices: Invoice[],
   filters: {
     statusFilter?: string;
+    typeFilter?: string;
     buildingFilter?: number;
     monthFilter?: number;
     yearFilter?: number;
@@ -95,6 +96,9 @@ export function filterInvoices(
 
   if (filters.statusFilter) {
     result = result.filter((inv) => inv.status === filters.statusFilter);
+  }
+  if (filters.typeFilter) {
+    result = result.filter((inv) => inv.type === filters.typeFilter);
   }
   if (filters.buildingFilter) {
     result = result.filter((inv) => {
@@ -154,6 +158,7 @@ export function useInvoiceList() {
   // State lọc
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
   const [buildingFilter, setBuildingFilter] = useState<number | undefined>(
     role === "MANAGER" ? (managedBuildingId || undefined) : undefined
   );
@@ -183,7 +188,11 @@ export function useInvoiceList() {
       search: debouncedSearch || undefined,
     });
 
-    const baseInvoices = res.data || [];
+    let baseInvoices = res.data || [];
+    if (typeFilter) {
+      baseInvoices = baseInvoices.filter((inv) => inv.type === typeFilter);
+    }
+
     if (role !== "MANAGER") {
       return { data: baseInvoices };
     }
@@ -212,6 +221,7 @@ export function useInvoiceList() {
 
       const combinedInvoices = filterInvoices(Array.from(allCombinedMap.values()), {
         statusFilter,
+        typeFilter,
         buildingFilter,
         monthFilter,
         yearFilter,
@@ -225,7 +235,7 @@ export function useInvoiceList() {
   };
 
   const { data: invoicesRes, isLoading, refetch } = useQuery({
-    queryKey: ["invoices", role, managedBuildingId, statusFilter, buildingFilter, monthFilter, yearFilter, debouncedSearch],
+    queryKey: ["invoices", role, managedBuildingId, statusFilter, typeFilter, buildingFilter, monthFilter, yearFilter, debouncedSearch],
     queryFn: loadInvoices,
     select: (res) => res.data,
   });
@@ -286,10 +296,12 @@ export function useInvoiceList() {
         throw err;
       }
     },
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["invoices"] });
-      void queryClient.invalidateQueries({ queryKey: ["payments"] });
-      void queryClient.invalidateQueries({ queryKey: ["reservations"] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["invoices"] }),
+        queryClient.invalidateQueries({ queryKey: ["payments"] }),
+        queryClient.invalidateQueries({ queryKey: ["reservations"] }),
+      ]);
       toast.success("Cập nhật trạng thái hóa đơn thành công!");
     },
     onError: (error: unknown) => {
@@ -298,15 +310,15 @@ export function useInvoiceList() {
     },
   });
 
-  const handleOpenDetails = (invoice: Invoice) => {
+  const handleOpenDetails = useCallback((invoice: Invoice) => {
     setSelectedInvoice(invoice);
     detailsModal.onOpen();
-  };
+  }, [detailsModal]);
 
-  const handleToggleStatus = (invoice: Invoice) => {
+  const handleToggleStatus = useCallback((invoice: Invoice) => {
     const nextStatus = invoice.status === "PAID" ? "UNPAID" : "PAID";
     handleUpdateStatusInvoice.mutate({ id: invoice.id, status: nextStatus, invoice });
-  };
+  }, [handleUpdateStatusInvoice]);
 
   return {
     role,
@@ -319,6 +331,8 @@ export function useInvoiceList() {
     setSearch,
     statusFilter,
     setStatusFilter,
+    typeFilter,
+    setTypeFilter,
     buildingFilter,
     setBuildingFilter,
     monthFilter,

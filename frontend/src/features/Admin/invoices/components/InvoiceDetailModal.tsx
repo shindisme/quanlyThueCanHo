@@ -3,7 +3,7 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Badge from "../../../../components/ui/Badge";
 import { formatDate } from "../../../../utils/date";
-import { formatCurrency } from "../../../../utils/currency";
+import { formatCurrency, formatNumber } from "../../../../utils/currency";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import { getInvoicePeriod } from "../../../../utils/invoicePeriod";
 import { getDisplayItemAmount, getDisplayTierDetails } from "../../../../utils/feeSettings";
@@ -16,6 +16,28 @@ import {
 } from "../../../../constants/enums";
 import type { Invoice } from "../../../../types";
 
+function getStatusBadge(status: string) {
+  const config = INVOICE_STATUS_CONFIG[status as InvoiceStatus];
+  return <Badge variant={config?.badge || "gray"}>{config?.label || status}</Badge>;
+}
+
+function getTypeBadge(type?: string | null) {
+  if (!type) return null;
+  const config = INVOICE_TYPE_CONFIG[type as InvoiceType];
+  if (!config) return null;
+  return <Badge variant={config.badge}>{config.label}</Badge>;
+}
+
+function getTierDetails(item: NonNullable<Invoice["items"]>[number], occupantCount?: number) {
+  return getDisplayTierDetails(item, occupantCount);
+}
+
+function getUtilityUnit(item: NonNullable<Invoice["items"]>[number]) {
+  if (item.utility_type === "WATER" || item.item_name.toLowerCase().includes("nước")) return "m³";
+  if (item.utility_type === "ELECTRIC" || item.item_name.toLowerCase().includes("điện")) return "kWh";
+  return "";
+}
+
 interface InvoiceDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -23,31 +45,6 @@ interface InvoiceDetailModalProps {
 }
 
 export default function InvoiceDetailModal({ isOpen, onClose, invoice }: InvoiceDetailModalProps) {
-  function getStatusBadge(status: string) {
-    const config = INVOICE_STATUS_CONFIG[status as InvoiceStatus];
-    return <Badge variant={config?.badge || "gray"}>{config?.label || status}</Badge>;
-  }
-
-  function getTypeBadge(type?: string | null) {
-    if (!type) return null;
-    const config = INVOICE_TYPE_CONFIG[type as InvoiceType];
-    if (!config) return null;
-    return <Badge variant={config.badge}>{config.label}</Badge>;
-  }
-
-  function formatNumber(value: number) {
-    return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 }).format(value);
-  }
-
-  function getTierDetails(item: NonNullable<Invoice["items"]>[number], occupantCount?: number) {
-    return getDisplayTierDetails(item, occupantCount);
-  }
-
-  function getUtilityUnit(item: NonNullable<Invoice["items"]>[number]) {
-    if (item.utility_type === "WATER" || item.item_name.toLowerCase().includes("nước")) return "m³";
-    if (item.utility_type === "ELECTRIC" || item.item_name.toLowerCase().includes("điện")) return "kWh";
-    return "";
-  }
   if (!invoice) return null;
 
   const apartment = getInvoiceApartment(invoice);
@@ -118,9 +115,9 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
 
         {/* Invoice Items Table */}
         <div className="space-y-2">
-          <h5 className="font-bold text-gray-850 border-b border-gray-100 pb-1 ">Chi tiết các dịch vụ</h5>
-          <div className="border border-gray-200 rounded-none overflow-hidden shadow-lg">
-            <table className="w-full text-left border-collapse">
+          <h5 className="font-bold text-gray-800 border-b border-gray-100 pb-1">Chi tiết các dịch vụ</h5>
+          <div className="border border-gray-200 rounded-xl overflow-x-auto shadow-sm bg-white">
+            <table className="w-full text-left border-collapse min-w-125">
               <thead>
                 <tr className="bg-gray-50 text-gray-600 font-bold border-b border-gray-200 text-xs">
                   <th className="p-3">Khoản mục</th>
