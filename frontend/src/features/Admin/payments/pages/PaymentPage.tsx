@@ -8,6 +8,7 @@ import DefaultPagination from "../../../../components/ui/Pagination";
 import PaymentList from "../components/PaymentList";
 import PaymentDetailModal from "../components/PaymentDetailModal";
 import { usePaymentList } from "../hooks/usePaymentList";
+import { PAYMENT_STATUS_OPTIONS, PAYMENT_METHOD_OPTIONS } from "../../../../constants/enums";
 import type { Payment } from "../../../../types";
 
 export default function PaymentPage() {
@@ -19,24 +20,15 @@ export default function PaymentPage() {
     buildings,
     isLoading,
     isUpdating,
-    search,
-    setSearch,
-    statusFilter,
-    setStatusFilter,
-    methodFilter,
-    setMethodFilter,
-    buildingFilter,
-    setBuildingFilter,
-    selectedFloor,
-    setSelectedFloor,
-    selectedMonth,
-    setSelectedMonth,
+    filters,
+    updateFilter,
     availableFloors,
     handleApprove,
     handleReject,
     currentPage,
     setCurrentPage,
     totalPages,
+    startIdx,
   } = usePaymentList();
 
   return (
@@ -47,8 +39,8 @@ export default function PaymentPage() {
         count={rawPaymentsCount}
         actions={
           <SearchInput
-            value={search}
-            onChange={setSearch}
+            value={filters.search}
+            onChange={(val) => updateFilter("search", val)}
             placeholder="Tìm theo mã giao dịch, mã hóa đơn, tên khách thuê..."
             className="w-64 sm:w-80 flex-1 min-w-0"
           />
@@ -58,33 +50,26 @@ export default function PaymentPage() {
       <div className="grid grid-cols-12 gap-3 w-full">
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Combobox
-            options={[
-              { value: "SUCCESS", label: "Thành công" },
-              { value: "PENDING", label: "Chưa thanh toán" },
-              { value: "FAILED", label: "Thất bại" },
-            ]}
-            value={statusFilter}
-            onChange={setStatusFilter}
+            options={PAYMENT_STATUS_OPTIONS}
+            value={filters.status}
+            onChange={(val) => updateFilter("status", val)}
             placeholder="Trạng thái"
             searchable={false}
             className="w-full"
-            triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
+            triggerClassName="h-[42px] rounded-xl border-gray-300 px-3"
             clearable={true}
           />
         </div>
 
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Combobox
-            options={[
-              { value: "BANK_TRANSFER", label: "Chuyển khoản" },
-              { value: "E_WALLET", label: "VNPay" },
-            ]}
-            value={methodFilter}
-            onChange={setMethodFilter}
+            options={PAYMENT_METHOD_OPTIONS}
+            value={filters.method}
+            onChange={(val) => updateFilter("method", val)}
             placeholder="Phương thức"
             searchable={false}
             className="w-full"
-            triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
+            triggerClassName="h-[42px] rounded-xl border-gray-300 px-3"
             clearable={true}
           />
         </div>
@@ -92,16 +77,15 @@ export default function PaymentPage() {
         {role === "ADMIN" && (
           <div className="col-span-12 sm:col-span-6 md:col-span-3">
             <Combobox
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              options={(buildings as any[]).map((b) => ({ value: String(b.id), label: b.branch_name }))}
-              value={buildingFilter ? String(buildingFilter) : ""}
+              options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
+              value={filters.buildingId ? String(filters.buildingId) : ""}
               onChange={(val) => {
-                setBuildingFilter(val ? Number(val) : undefined);
-                setSelectedFloor("");
+                updateFilter("buildingId", val ? Number(val) : undefined);
+                updateFilter("floor", "");
               }}
               placeholder="Tất cả tòa nhà"
               className="w-full"
-              triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
+              triggerClassName="h-[42px] rounded-xl border-gray-300 px-3"
               clearable={true}
             />
           </div>
@@ -111,11 +95,11 @@ export default function PaymentPage() {
           <div className="col-span-12 sm:col-span-6 md:col-span-3">
             <Combobox
               options={availableFloors.map((fl) => ({ value: String(fl), label: `Tầng ${fl}` }))}
-              value={selectedFloor}
-              onChange={setSelectedFloor}
+              value={filters.floor}
+              onChange={(val) => updateFilter("floor", val)}
               placeholder="Tất cả tầng"
               className="w-full"
-              triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
+              triggerClassName="h-[42px] rounded-xl border-gray-300 px-3"
               clearable={true}
             />
           </div>
@@ -138,11 +122,11 @@ export default function PaymentPage() {
                 { value: "11", label: "Tháng 11" },
                 { value: "12", label: "Tháng 12" },
               ]}
-              value={selectedMonth}
-              onChange={setSelectedMonth}
+              value={filters.month}
+              onChange={(val) => updateFilter("month", val)}
               placeholder="Tất cả tháng"
               className="w-full"
-              triggerClassName="h-[42px] rounded-none border-gray-300 px-3 rounded-xl"
+              triggerClassName="h-[42px] rounded-xl border-gray-300 px-3"
               clearable={true}
             />
           </div>
@@ -155,7 +139,7 @@ export default function PaymentPage() {
           <span className="text-sm text-gray-400 mt-2">Đang tải lịch sử giao dịch...</span>
         </div>
       ) : payments.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 bg-white border border-gray-200 shadow-md rounded-none">
+        <div className="text-center py-16 text-gray-500 bg-white border border-gray-200 shadow-sm rounded-xl">
           <ClipboardList size={48} className="mx-auto mb-3 text-gray-300" />
           <p className="font-medium">Không tìm thấy giao dịch nào</p>
         </div>
@@ -165,6 +149,7 @@ export default function PaymentPage() {
             payments={payments}
             role={role}
             isUpdating={isUpdating}
+            startIdx={startIdx}
             handleApprove={handleApprove}
             handleReject={handleReject}
             onViewDetail={(pmt) => setViewItem(pmt)}
@@ -176,7 +161,7 @@ export default function PaymentPage() {
       )}
 
       <PaymentDetailModal
-        isOpen={!!viewItem}
+        isOpen={Boolean(viewItem)}
         onClose={() => setViewItem(null)}
         payment={viewItem}
       />

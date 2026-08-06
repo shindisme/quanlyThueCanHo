@@ -161,6 +161,8 @@ export default function MaintenancePage() {
         setAssignedStaffId={assign.setAssignedStaffId}
         scheduledAt={assign.scheduledAt}
         setScheduledAt={assign.setScheduledAt}
+        priority={assign.priority}
+        setPriority={assign.setPriority}
         onConfirm={assign.handleConfirm}
       />
 

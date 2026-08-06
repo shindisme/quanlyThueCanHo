@@ -14,6 +14,9 @@ export interface MaintenanceRequest {
   assigned_staff_id?: number | null;
   scheduled_at?: string | null;
   unable_reason?: string | null;
+  charge_tenant?: boolean;
+  repair_fee?: number | null;
+  completed_at?: string | null;
   created_at: string;
   updated_at: string;
   tenant?: Tenant;

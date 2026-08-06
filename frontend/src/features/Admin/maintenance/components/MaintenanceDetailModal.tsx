@@ -1,6 +1,7 @@
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Badge from "../../../../components/ui/Badge";
+import { getImageUrl } from "../../../../utils/file";
 import { formatDate } from "../../../../utils/date";
 import {
   REQUEST_STATUS_CONFIG,
@@ -38,7 +39,7 @@ export default function MaintenanceDetailModal({
 }: MaintenanceDetailModalProps) {
   if (!detailRequest) return null;
 
-  const canManage = role === "ADMIN" || role === "MANAGER";
+  const canAssign = role === "ADMIN" || role === "MANAGER";
   const {
     id,
     title,
@@ -63,8 +64,8 @@ export default function MaintenanceDetailModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Chi Tiết Yêu Cầu Sửa Chữa" size="lg">
-      <div className="space-y-6 text-sm font-sans">
-        {/* Header*/}
+      <div className="space-y-6 text-sm font-sans text-left">
+        {/* Header */}
         <div className="flex flex-col md:flex-row justify-between gap-4 pb-4 border-b border-gray-100">
           <div>
             <h4 className="text-base font-bold text-gray-900">{title}</h4>
@@ -72,28 +73,13 @@ export default function MaintenanceDetailModal({
           </div>
           <div className="flex items-center gap-2">
             {getStatusBadge(status)}
-            {canManage && onUpdatePriority ? (
-              <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-xl p-1">
-                <span className="text-[11px] font-semibold text-gray-500 pl-1">Ưu tiên:</span>
-                <select
-                  value={priority}
-                  onChange={handlePrioritySelectChange}
-                  className="text-xs font-bold bg-white border border-gray-300 rounded-lg px-2 py-1 text-gray-800 focus:outline-none cursor-pointer"
-                >
-                  <option value="LOW">Thấp</option>
-                  <option value="MEDIUM">Trung bình</option>
-                  <option value="HIGH">Khẩn cấp</option>
-                </select>
-              </div>
-            ) : (
-              getPriorityBadge(priority)
-            )}
+            {getPriorityBadge(priority)}
           </div>
         </div>
 
         {/* Tenant info */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-200 space-y-2">
+        <div className="grid grid-cols-12 gap-4">
+          <div className="col-span-12 md:col-span-6 bg-gray-50/50 p-4 rounded-none border border-gray-200 space-y-2">
             <h5 className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Thông tin phòng thuê</h5>
             <p><span className="font-semibold text-gray-600">Căn hộ:</span> P.{apartment?.room_number || "Chưa rõ"}</p>
             <p><span className="font-semibold text-gray-600">Tầng:</span> Tầng {apartment?.floor || "Chưa rõ"}</p>
@@ -101,7 +87,7 @@ export default function MaintenanceDetailModal({
               <p><span className="font-semibold text-gray-600">Chi nhánh:</span> {apartment?.building?.branch_name || "Chưa rõ"}</p>
             )}
           </div>
-          <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-200 space-y-2">
+          <div className="col-span-12 md:col-span-6 bg-gray-50/50 p-4 rounded-none border border-gray-200 space-y-2">
             <h5 className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Người gửi yêu cầu</h5>
             <p><span className="font-semibold text-gray-600">Họ và tên:</span> {tenant?.full_name || "Chưa rõ"}</p>
             <p><span className="font-semibold text-gray-600">Số điện thoại:</span> {tenant?.phone || "-"}</p>
@@ -109,30 +95,35 @@ export default function MaintenanceDetailModal({
           </div>
         </div>
 
-        {/* Description Image */}
+        {/* Description */}
         <div className="space-y-2">
           <h5 className="font-bold text-gray-800 border-b border-gray-100 pb-1">Mô tả sự cố</h5>
-          <div className="bg-white p-3.5 rounded-xl border border-gray-200 text-gray-700 min-h-20 whitespace-pre-wrap leading-relaxed">
+          <div className="bg-white p-3.5 rounded-none border border-gray-200 text-gray-700 min-h-20 whitespace-pre-wrap leading-relaxed">
             {description}
           </div>
-          {image_url && (
-            <div className="mt-3">
-              <span className="block text-xs font-semibold text-gray-400 mb-1.5">Hình ảnh đính kèm:</span>
+        </div>
+
+        {/* Image - Full 12 columns centered */}
+        {image_url && (
+          <div className="col-span-12 w-full pt-2 flex flex-col items-center justify-center text-center">
+            <span className="block text-xs font-semibold text-gray-600 mb-2">Hình ảnh đính kèm chỗ hư hại</span>
+            <a href={getImageUrl(image_url)} target="_blank" rel="noreferrer" className="w-full flex flex-col items-center group cursor-pointer">
               <img
-                src={image_url}
+                src={getImageUrl(image_url)}
                 alt="Hình ảnh sự cố thực tế"
                 loading="lazy"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src = "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80";
                 }}
-                className="max-w-md w-full max-h-75 object-contain rounded-xl border border-gray-200 shadow-sm"
+                className="w-full max-w-2xl max-h-96 object-contain rounded-none border border-gray-300 shadow-xs mx-auto group-hover:opacity-90 transition-opacity"
               />
-            </div>
-          )}
-        </div>
+              <span className="text-xs text-primary-600 font-semibold mt-2 inline-block">Bấm để xem ảnh phóng to / tải ảnh gốc</span>
+            </a>
+          </div>
+        )}
 
-        {/* Assignment*/}
-        <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-200 space-y-2">
+        {/* Assignment */}
+        <div className="bg-gray-50/50 p-4 rounded-none border border-gray-200 space-y-2">
           <h5 className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Phân công xử lý</h5>
           {assigned_staff ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
@@ -145,15 +136,15 @@ export default function MaintenanceDetailModal({
           )}
           {unable_reason && (
             <div className="mt-3 pt-2.5 border-t border-gray-200">
-              <span className="font-semibold text-red-600 block text-xs">Lý do kỹ thuật / cản trở được báo cáo:</span>
-              <p className="text-red-600 italic bg-red-50 p-3 rounded-xl mt-1">{unable_reason}</p>
+              <span className="font-semibold text-red-600 block text-xs">Lý do không thể sửa chữa:</span>
+              <p className="text-red-600 italic bg-red-50 p-3 rounded-none mt-1">{unable_reason}</p>
             </div>
           )}
         </div>
 
         {/* Footer */}
         <div className="flex justify-end pt-3 border-t border-gray-100">
-          <Button type="button" onClick={onClose} className="rounded-xl">
+          <Button type="button" onClick={onClose} className="font-semibold">
             Đóng
           </Button>
         </div>

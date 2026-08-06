@@ -44,14 +44,6 @@ export const APARTMENT_STATUS_LABELS: Record<ApartmentStatus, string> = {
   VACATING_SOON: "Sắp trống",
 };
 
-export const APARTMENT_STATUS_OPTIONS = [
-  { value: "AVAILABLE", label: APARTMENT_STATUS_LABELS.AVAILABLE },
-  { value: "RESERVED", label: APARTMENT_STATUS_LABELS.RESERVED },
-  { value: "RENTED", label: APARTMENT_STATUS_LABELS.RENTED },
-  { value: "VACATING_SOON", label: APARTMENT_STATUS_LABELS.VACATING_SOON },
-  { value: "MAINTENANCE", label: APARTMENT_STATUS_LABELS.MAINTENANCE },
-];
-
 export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {
   ACTIVE: "Hiệu lực",
   ENDED: "Đã kết thúc",
@@ -79,7 +71,7 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
 };
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  BANK_TRANSFER: "Chuyển khoản ngân hàng",
+  BANK_TRANSFER: "Ngân hàng",
   E_WALLET: "VNPay",
   CASH: "Tiền Mặt",
 };
@@ -87,7 +79,7 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
 export const RESERVATION_STATUS_LABELS: Record<ReservationStatus, string> = {
   ACTIVE: "Đang giữ chỗ",
   CONVERTED: "Đã chuyển hợp đồng",
-  FORFEITED: "Mất cọc giữ chỗ",
+  FORFEITED: "Mất cọc",
   CANCELLED: "Đã hủy",
 };
 
@@ -140,3 +132,22 @@ export const SETTLEMENT_FINANCIAL_STATUS_LABELS: Record<SettlementFinancialStatu
   PARTIALLY_PAID: "Thanh toán một phần",
   SETTLED: "Đã tất toán",
 };
+
+
+export const APARTMENT_STATUS_OPTIONS = [
+  { value: "AVAILABLE", label: APARTMENT_STATUS_LABELS.AVAILABLE },
+  { value: "RESERVED", label: APARTMENT_STATUS_LABELS.RESERVED },
+  { value: "RENTED", label: APARTMENT_STATUS_LABELS.RENTED },
+  { value: "VACATING_SOON", label: APARTMENT_STATUS_LABELS.VACATING_SOON },
+  { value: "MAINTENANCE", label: APARTMENT_STATUS_LABELS.MAINTENANCE },
+];
+export const PAYMENT_STATUS_OPTIONS = [
+  { value: "SUCCESS", label: PAYMENT_STATUS_LABELS.SUCCESS },
+  { value: "PENDING", label: PAYMENT_STATUS_LABELS.PENDING },
+  { value: "FAILED", label: PAYMENT_STATUS_LABELS.FAILED },
+];
+export const PAYMENT_METHOD_OPTIONS = [
+  { value: "BANK_TRANSFER", label: PAYMENT_METHOD_LABELS.BANK_TRANSFER },
+  { value: "E_WALLET", label: PAYMENT_METHOD_LABELS.E_WALLET },
+  { value: "CASH", label: PAYMENT_METHOD_LABELS.CASH },
+];

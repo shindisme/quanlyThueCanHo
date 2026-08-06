@@ -1,4 +1,4 @@
-﻿import {
+import {
     ContractStatus,
     InvoiceStatus,
     Prisma,
@@ -368,6 +368,7 @@ export const confirmMaintenanceRequestService = async (
             data: {
                 status: RequestStatus.PROCESSING,
                 scheduled_at: input.scheduled_at,
+                ...(input.priority ? { priority: input.priority } : {}),
                 unable_reason: null,
                 assigned_staff: {
                     connect: {

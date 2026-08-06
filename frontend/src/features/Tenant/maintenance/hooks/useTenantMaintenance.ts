@@ -143,7 +143,6 @@ export function useTenantMaintenance() {
   };
 
   const handleCancelRequest = (id: number) => {
-    if (!window.confirm("Bạn có chắc muốn hủy yêu cầu sửa chữa này?")) return;
     cancelMutation.mutate(id);
   };
 

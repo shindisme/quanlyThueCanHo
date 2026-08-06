@@ -73,14 +73,7 @@ export default function MaintenanceList({
         key: "title",
         label: "Sự cố",
         sortValue: (req) => req.title,
-        render: (req) => (
-          <div className="flex flex-col max-w-xs">
-            <span className="font-semibold text-primary-600">{req.title}</span>
-            <span className="text-xs text-gray-400 truncate" title={req.description}>
-              {req.description}
-            </span>
-          </div>
-        ),
+        render: (req) => <span className="font-semibold text-primary-600">{req.title}</span>,
       },
       {
         key: "apartment",
@@ -138,11 +131,6 @@ export default function MaintenanceList({
         render: (req) => (
           <div className="flex flex-col items-center gap-0.5 text-center">
             {getStatusBadge(req.status)}
-            {req.status === "NEEDS_RESCHEDULE" && req.unable_reason && (
-              <span className="text-[10px] text-red-500 font-medium max-w-30 truncate" title={req.unable_reason}>
-                Lý do: {req.unable_reason}
-              </span>
-            )}
           </div>
         ),
       },
@@ -150,64 +138,58 @@ export default function MaintenanceList({
         key: "actions",
         label: "Chức năng",
         className: "text-right",
-        render: (req) => {
-          const showAssignBtn = canManage && (req.status === "PENDING" || req.status === "NEEDS_RESCHEDULE");
-          const showStaffActions = role === "STAFF" && req.status === "PROCESSING";
+        isAction: true,
+        render: (req) => (
+          <div className="flex items-center justify-end gap-1">
+            <button
+              type="button"
+              onClick={() => onOpenDetail(req)}
+              className="p-1.5 text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-md cursor-pointer"
+              title="Xem chi tiết"
+            >
+              <Eye size={16} />
+            </button>
 
-          return (
-            <div className="flex items-center justify-end gap-1">
+            {canManage && (req.status === "PENDING" || req.status === "NEEDS_RESCHEDULE") && (
               <button
                 type="button"
-                onClick={() => onOpenDetail(req)}
-                className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer transition-colors"
-                title="Xem chi tiết"
+                onClick={() => onOpenAssign(req)}
+                disabled={saving}
+                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md cursor-pointer disabled:opacity-50"
+                title={req.status === "NEEDS_RESCHEDULE" ? "Đổi lịch / Phân công lại" : "Phân công xử lý"}
               >
-                <Eye size={16} />
+                <CalendarIcon size={16} />
               </button>
-              {showAssignBtn && (
+            )}
+
+            {role === "STAFF" && req.status === "PROCESSING" && (
+              <>
                 <button
                   type="button"
-                  onClick={() => onOpenAssign(req)}
+                  onClick={() => onComplete(req)}
                   disabled={saving}
-                  className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer disabled:opacity-50 transition-colors"
-                  title="Phân công sửa chữa"
+                  className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-md cursor-pointer disabled:opacity-50"
+                  title="Hoàn tất sửa chữa"
                 >
-                  <CalendarIcon size={16} />
+                  <Check size={16} />
                 </button>
-              )}
-              {showStaffActions && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => onComplete(req)}
-                    disabled={saving}
-                    className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer disabled:opacity-50 transition-colors"
-                    title="Hoàn thành sửa chữa"
-                  >
-                    <Check size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onOpenUnable(req)}
-                    disabled={saving}
-                    className="p-2 rounded-lg text-gray-400 hover:text-red-650 hover:bg-red-50 cursor-pointer disabled:opacity-50 transition-colors"
-                    title="Báo cáo không sửa được"
-                  >
-                    <ShieldAlert size={16} />
-                  </button>
-                </>
-              )}
-            </div>
-          );
-        },
+                <button
+                  type="button"
+                  onClick={() => onOpenUnable(req)}
+                  disabled={saving}
+                  className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-md cursor-pointer disabled:opacity-50"
+                  title="Báo cản trở / Đổi lịch"
+                >
+                  <ShieldAlert size={16} />
+                </button>
+              </>
+            )}
+          </div>
+        ),
       },
     ],
-    [role, canManage, startIndex, saving, onOpenDetail, onOpenAssign, onOpenUnable, onComplete]
+    [canManage, onComplete, onOpenAssign, onOpenDetail, onOpenUnable, role, saving, startIndex]
   );
 
-  return (
-    <div className="mt-6">
-      <DataTable columns={columns} data={requests} emptyMessage="Không tìm thấy yêu cầu sửa chữa nào." />
-    </div>
-  );
+  return <DataTable columns={columns} data={requests} emptyMessage="Không tìm thấy yêu cầu sửa chữa nào" />;
 }

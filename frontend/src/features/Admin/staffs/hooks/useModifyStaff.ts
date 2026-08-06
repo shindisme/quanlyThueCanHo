@@ -3,18 +3,18 @@ import * as authService from "../../../../services/authService";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
 import { staffService } from "../../../../services";
 
-interface UpdateStaffParams {
+interface ModifyStaffParams {
   id: number;
   fullName: string;
   phone: string | null;
   position: string;
-  buildingId: number | "";
+  buildingId: number | null;
   hasUser: boolean;
   userId: number | null;
   nextUsername: string;
 }
 
-export function useUpdateStaff() {
+export function useModifyStaff() {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -27,7 +27,7 @@ export function useUpdateStaff() {
       hasUser,
       userId,
       nextUsername,
-    }: UpdateStaffParams) => {
+    }: ModifyStaffParams) => {
       let initialPassword = "";
       let createdAccount = false;
       let deletedAccount = false;
@@ -73,7 +73,7 @@ export function useUpdateStaff() {
       };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.STAFF });
+      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.STAFF });
     },
   });
 }

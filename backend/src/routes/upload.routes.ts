@@ -15,8 +15,7 @@ const router = Router();
 router.post(
     "/upload-multiple",
     authenticate,
-    authorizeRole([Role.ADMIN, Role.MANAGER]),
-    requireManagerBuildingAssignment,
+    authorizeRole([Role.ADMIN, Role.MANAGER, Role.STAFF, Role.TENANT]),
     uploadMultiple,
     validate(uploadImagesRequestSchema),
     uploadMultipleImages

@@ -9,23 +9,36 @@ import { usePagination } from "../../../../hooks/usePagination";
 import { useSort } from "../../../../hooks/useSort";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import { getInvoiceApartment } from "../../../../utils/invoiceDisplay";
-import type { Payment } from "../../../../types";
+import type { Payment, Apartment } from "../../../../types";
+
+export interface PaymentFiltersState {
+  search: string;
+  status: string;
+  method: string;
+  buildingId?: number;
+  floor: string;
+  month: string;
+}
 
 export function usePaymentList() {
   const queryClient = useQueryClient();
   const { role, managedBuildingId } = useUserRole();
 
-  // Lọc
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [methodFilter, setMethodFilter] = useState("");
-  const [buildingFilter, setBuildingFilter] = useState<number | undefined>(
-    role === "MANAGER" ? (managedBuildingId || undefined) : undefined
-  );
-  const [selectedFloor, setSelectedFloor] = useState<string>("");
-  const [selectedMonth, setSelectedMonth] = useState<string>("");
+  // Grouped filters state
+  const [filters, setFilters] = useState<PaymentFiltersState>({
+    search: "",
+    status: "",
+    method: "",
+    buildingId: role === "MANAGER" ? (managedBuildingId || undefined) : undefined,
+    floor: "",
+    month: "",
+  });
 
-  const debouncedSearch = useDebounce(search, 300);
+  const debouncedSearch = useDebounce(filters.search, 300);
+
+  const updateFilter = <K extends keyof PaymentFiltersState>(key: K, value: PaymentFiltersState[K]) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
 
   const { data: buildings = [] } = useQuery({
     queryKey: ["buildings"],
@@ -36,53 +49,58 @@ export function usePaymentList() {
   const { data: apartments = [] } = useQuery({
     queryKey: ["apartments"],
     queryFn: () => apartmentService.getAllPage(),
-    select: (res) => res.data,
+    select: (res) => res.data as Apartment[],
   });
 
   const availableFloors = useMemo(() => {
-    const targetBuildingId = role === "MANAGER" ? managedBuildingId : buildingFilter;
+    const targetBuildingId = role === "MANAGER" ? managedBuildingId : filters.buildingId;
     const apts = targetBuildingId
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ? (apartments as any[]).filter((a) => a.building_id === targetBuildingId)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      : (apartments as any[]);
+      ? apartments.filter((a) => a.building_id === targetBuildingId)
+      : apartments;
     const floors = Array.from(new Set(apts.map((a) => a.floor))).sort((a, b) => a - b);
     return floors;
-  }, [apartments, buildingFilter, role, managedBuildingId]);
+  }, [apartments, filters.buildingId, role, managedBuildingId]);
 
   // Fetch payments
-  const { data: paymentsRes, isLoading, refetch } = useQuery({
-    queryKey: ["payments", statusFilter, methodFilter, buildingFilter, debouncedSearch],
+  const { data: payments = [], isLoading } = useQuery({
+    queryKey: [
+      "payments",
+      {
+        status: filters.status,
+        method: filters.method,
+        buildingId: filters.buildingId,
+        search: debouncedSearch,
+      },
+    ],
     queryFn: () =>
-      paymentService.getAll({
-        status: statusFilter || undefined,
-        payment_method: methodFilter || undefined,
-        building_id: buildingFilter,
+      paymentService.getAllPage({
+        status: filters.status || undefined,
+        payment_method: filters.method || undefined,
+        building_id: filters.buildingId,
         search: debouncedSearch || undefined,
-        limit: 100,
       }),
+    select: (res) => res.data,
   });
-  const payments = paymentsRes?.data || [];
 
   const filteredPayments = useMemo(() => {
     return payments.filter((pmt) => {
-      // 1. Lọc theo Tầng
-      if (selectedFloor) {
+      if (filters.floor) {
         const apt = pmt.invoice ? getInvoiceApartment(pmt.invoice) : null;
-        if (!apt || apt.floor !== Number(selectedFloor)) return false;
+        if (!apt || apt.floor !== Number(filters.floor)) return false;
       }
 
-      // 2. Lọc theo Tháng
-      if (selectedMonth) {
+      if (filters.month) {
         const pmtDateStr = pmt.paid_at;
         if (!pmtDateStr) return false;
-        const pmtMonth = new Date(pmtDateStr).getMonth() + 1;
-        if (pmtMonth !== Number(selectedMonth)) return false;
+        const dateObj = new Date(pmtDateStr);
+        if (isNaN(dateObj.getTime())) return false;
+        const pmtMonth = dateObj.getMonth() + 1;
+        if (pmtMonth !== Number(filters.month)) return false;
       }
 
       return true;
     });
-  }, [payments, selectedFloor, selectedMonth]);
+  }, [payments, filters.floor, filters.month]);
 
   // Sắp xếp
   const { items: sortedPayments, requestSort, getSortIcon, sortConfig } = useSort<Payment>(filteredPayments, {
@@ -100,13 +118,12 @@ export function usePaymentList() {
     return sortedPayments.slice(startIdx, endIdx);
   }, [sortedPayments, startIdx, endIdx]);
 
-  // Tạo 
   const handleUpdateStatusPayment = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
       paymentService.updateStatus(id, status),
     onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ["payments"] });
-      queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      void queryClient.invalidateQueries({ queryKey: ["payments"] });
+      void queryClient.invalidateQueries({ queryKey: ["invoices"] });
 
       const statusText = res.status === "SUCCESS" ? "phê duyệt thành công" : "từ chối giao dịch";
       toast.success(`Đã ${statusText}!`);
@@ -133,18 +150,8 @@ export function usePaymentList() {
     isLoading,
     isUpdating: handleUpdateStatusPayment.isPending,
 
-    search,
-    setSearch,
-    statusFilter,
-    setStatusFilter,
-    methodFilter,
-    setMethodFilter,
-    buildingFilter,
-    setBuildingFilter,
-    selectedFloor,
-    setSelectedFloor,
-    selectedMonth,
-    setSelectedMonth,
+    filters,
+    updateFilter,
     availableFloors,
 
     handleApprove,
@@ -157,7 +164,6 @@ export function usePaymentList() {
     currentPage,
     setCurrentPage,
     totalPages,
-
-    refetch,
+    startIdx,
   };
 }

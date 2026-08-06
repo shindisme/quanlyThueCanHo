@@ -31,6 +31,9 @@ export const confirmMaintenanceSchema = z.object({
   scheduled_at: z
     .string()
     .min(1, { message: "Vui lòng chọn thời gian hẹn sửa chữa" }),
+  priority: z
+    .enum(["LOW", "MEDIUM", "HIGH"])
+    .optional(),
 });
 
 export const unableMaintenanceSchema = z.object({

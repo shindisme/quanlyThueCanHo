@@ -10,6 +10,8 @@ interface DatePickerProps {
   placeholder?: string;
   showTime?: boolean;
   disabled?: boolean;
+  minDate?: Date | string | null;
+  disablePast?: boolean;
 }
 
 const monthWordNames = [
@@ -84,6 +86,8 @@ export function DatePicker({
   placeholder,
   showTime = false,
   disabled = false,
+  minDate,
+  disablePast = false,
 }: DatePickerProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(() => parseValueToDate(value));
   const [inputValue, setInputValue] = useState("");
@@ -93,6 +97,16 @@ export function DatePicker({
   const containerRef = useRef<HTMLDivElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [popoverCoords, setPopoverCoords] = useState({ top: 0, left: 0 });
+
+  const effectiveMinDate = useMemo(() => {
+    if (minDate) return parseValueToDate(minDate);
+    if (disablePast) {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    return null;
+  }, [minDate, disablePast]);
 
   // Sync state with value prop
   useEffect(() => {
@@ -110,7 +124,7 @@ export function DatePicker({
   const updatePopoverPosition = () => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      const popoverHeight = showTime ? 340 : 280;
+      const popoverHeight = showTime ? 360 : 310;
       const spaceBelow = window.innerHeight - rect.bottom;
       let top = rect.bottom + window.scrollY;
       if (spaceBelow < popoverHeight && rect.top > popoverHeight) {
@@ -170,7 +184,6 @@ export function DatePicker({
   };
 
   const handleInputBlur = () => {
-    // If invalid input, reset text back to selectedDate format
     if (selectedDate) {
       setInputValue(formatToDMY(selectedDate, showTime));
     } else {
@@ -197,16 +210,13 @@ export function DatePicker({
 
   const daysArray = useMemo(() => {
     const arr = [];
-    // Prev month days
     const prevMonthDays = new Date(year, month, 0).getDate();
     for (let i = adjustedFirstDayIndex - 1; i >= 0; i--) {
       arr.push({ day: prevMonthDays - i, isCurrentMonth: false, monthOffset: -1 });
     }
-    // Current month days
     for (let i = 1; i <= daysInMonth; i++) {
       arr.push({ day: i, isCurrentMonth: true, monthOffset: 0 });
     }
-    // Next month days
     const remaining = 42 - arr.length;
     for (let i = 1; i <= remaining; i++) {
       arr.push({ day: i, isCurrentMonth: false, monthOffset: 1 });
@@ -214,18 +224,43 @@ export function DatePicker({
     return arr;
   }, [year, month, adjustedFirstDayIndex, daysInMonth]);
 
+  const isDayDisabled = (day: number, monthOffset: number) => {
+    if (!effectiveMinDate) return false;
+    const targetDate = new Date(year, month + monthOffset, day, 23, 59, 59, 999);
+    const minCompare = new Date(effectiveMinDate);
+    minCompare.setHours(0, 0, 0, 0);
+    return targetDate.getTime() < minCompare.getTime();
+  };
+
   const selectDate = (day: number, monthOffset: number) => {
+    if (isDayDisabled(day, monthOffset)) return;
+
     const targetDate = new Date(year, month + monthOffset, day);
     if (showTime && selectedDate) {
       targetDate.setHours(selectedDate.getHours());
       targetDate.setMinutes(selectedDate.getMinutes());
+    } else if (showTime && !selectedDate) {
+      const now = new Date();
+      targetDate.setHours(now.getHours(), now.getMinutes());
     }
+
     setSelectedDate(targetDate);
     setInputValue(formatToDMY(targetDate, showTime));
     onChange?.(targetDate);
     if (monthOffset !== 0) {
       setCurrentDate(targetDate);
     }
+    if (!showTime) {
+      setIsOpen(false);
+    }
+  };
+
+  const handleSelectToday = () => {
+    const now = new Date();
+    setSelectedDate(now);
+    setCurrentDate(now);
+    setInputValue(formatToDMY(now, showTime));
+    onChange?.(now);
     if (!showTime) {
       setIsOpen(false);
     }
@@ -298,13 +333,13 @@ export function DatePicker({
             top: `${popoverCoords.top}px`,
             left: `${popoverCoords.left}px`,
           }}
-          className="z-9999 bg-white border border-gray-200 rounded-lg shadow-lg flex font-sans overflow-visible"
+          className="z-9999 bg-white border border-gray-200 rounded-xl shadow-xl flex font-sans overflow-visible"
         >
           {/* Day Grid Panel */}
           <div className="p-3 w-65 flex flex-col justify-between">
             <div>
               {/* Header */}
-              <div className="flex items-center justify-between pb-3 mb-2 border-b border-gray-100 relative z-20">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-gray-100 relative z-20">
                 <div className="flex items-center gap-1">
                   {/* Month Dropdown */}
                   <div className="relative">
@@ -416,16 +451,20 @@ export function DatePicker({
                     selectedDate.getMonth() === month + cell.monthOffset &&
                     selectedDate.getFullYear() === year;
 
+                  const isDisabledDay = isDayDisabled(cell.day, cell.monthOffset);
+
                   return (
                     <button
                       key={idx}
                       type="button"
+                      disabled={isDisabledDay}
                       onClick={() => selectDate(cell.day, cell.monthOffset)}
                       className={cn(
                         "h-7 w-full text-xs font-medium rounded transition-all cursor-pointer",
                         !cell.isCurrentMonth && "text-gray-300",
-                        cell.isCurrentMonth && !isSelected && "text-gray-700 hover:bg-primary-50 hover:text-primary-600",
-                        isSelected && "bg-primary-600 text-white font-semibold"
+                        cell.isCurrentMonth && !isSelected && !isDisabledDay && "text-gray-700 hover:bg-primary-50 hover:text-primary-600",
+                        isSelected && "bg-primary-600 text-white font-semibold",
+                        isDisabledDay && "opacity-30 cursor-not-allowed bg-gray-50 text-gray-400 hover:bg-gray-50 hover:text-gray-400"
                       )}
                     >
                       {cell.day}
@@ -433,6 +472,30 @@ export function DatePicker({
                   );
                 })}
               </div>
+            </div>
+
+            {/* Nút Hôm nay */}
+            <div className="pt-2 mt-2 border-t border-gray-100 flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={handleSelectToday}
+                className="font-bold text-primary-600 hover:text-primary-700 hover:underline cursor-pointer"
+              >
+                Hôm nay
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedDate(null);
+                  setInputValue("");
+                  onChange?.(null);
+                  setIsOpen(false);
+                }}
+                className="font-medium text-gray-400 hover:text-gray-600 cursor-pointer"
+              >
+                Xóa chọn
+              </button>
             </div>
           </div>
 
@@ -465,7 +528,7 @@ export function DatePicker({
                   </div>
                   {/* Minutes */}
                   <div className="flex flex-col overflow-y-auto max-h-40 scrollbar-none pl-1">
-                    {minutes.filter(m => m % 5 === 0).map((m) => (
+                    {minutes.filter((m) => m % 5 === 0).map((m) => (
                       <button
                         key={m}
                         type="button"

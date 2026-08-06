@@ -49,7 +49,8 @@ export const confirmMaintenanceRequestSchema = z.object({
     query: emptyObjectSchema,
     body: z.object({
         assigned_staff_id: z.number().int().positive(),
-        scheduled_at: strictRfc3339DateSchema
+        scheduled_at: strictRfc3339DateSchema,
+        priority: z.nativeEnum(Priority).optional()
     }).strict()
 }).strict();
 

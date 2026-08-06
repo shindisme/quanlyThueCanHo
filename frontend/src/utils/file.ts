@@ -48,8 +48,19 @@ export function getApartmentThumbnail(
 ): string {
   if (apt && apt.images && Array.isArray(apt.images) && apt.images.length > 0) {
     const thumb = apt.images.find((img) => img.is_thumbnail);
-    if (thumb && thumb.image_url) return thumb.image_url;
-    if (apt.images[0]?.image_url) return apt.images[0].image_url;
+    if (thumb && thumb.image_url) return getImageUrl(thumb.image_url);
+    if (apt.images[0]?.image_url) return getImageUrl(apt.images[0].image_url);
   }
   return DEFAULT_APARTMENT_IMAGE;
+}
+
+export function getImageUrl(path?: string | null): string {
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("blob:")) {
+    return path;
+  }
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+  const baseUrl = API_URL.replace(/\/api$/, "");
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return `${baseUrl}${cleanPath}`;
 }

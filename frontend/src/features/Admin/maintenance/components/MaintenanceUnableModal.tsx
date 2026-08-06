@@ -29,7 +29,7 @@ export default function MaintenanceUnableModal({
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label htmlFor="unable-reason-textarea" className="text-xs font-semibold text-red-600 flex items-center gap-1">
-              <AlertCircle size={14} /> Lý do kỹ thuật / Cản trở không thể sửa <span className="text-red-500">*</span>
+              <AlertCircle size={14} /> Lý do không thể sửa <span className="text-red-500">*</span>
             </label>
             <span className="text-[11px] text-gray-400 font-medium">
               {unableReason.length}/{MAX_LENGTH}
@@ -51,8 +51,7 @@ export default function MaintenanceUnableModal({
             Hủy bỏ
           </Button>
           <Button
-            variant="outline"
-            className="border-red-200 text-red-600 hover:bg-red-50 rounded-xl"
+            variant="danger"
             type="submit"
             disabled={isSubmitDisabled}
           >
