@@ -1,13 +1,19 @@
 import { Fragment } from "react";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
-import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
+import Badge from "../../../../components/ui/Badge";
 import { formatDate } from "../../../../utils/date";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import { getInvoicePeriod } from "../../../../utils/invoicePeriod";
 import { getDisplayItemAmount, getDisplayTierDetails } from "../../../../utils/feeSettings";
 import { getInvoiceApartment, getInvoiceTenant } from "../../../../utils/invoiceDisplay";
+import {
+  INVOICE_STATUS_CONFIG,
+  INVOICE_TYPE_CONFIG,
+  type InvoiceStatus,
+  type InvoiceType,
+} from "../../../../constants/enums";
 import type { Invoice } from "../../../../types";
 
 interface InvoiceDetailModalProps {
@@ -18,13 +24,15 @@ interface InvoiceDetailModalProps {
 
 export default function InvoiceDetailModal({ isOpen, onClose, invoice }: InvoiceDetailModalProps) {
   function getStatusBadge(status: string) {
-    const statusMap: Record<string, { label: string; variant: BadgeVariant }> = {
-      PAID: { label: "Đã thanh toán", variant: "success" },
-      UNPAID: { label: "Chưa thanh toán", variant: "warning" },
-      OVERDUE: { label: "Quá hạn", variant: "danger" },
-    };
-    const s = statusMap[status] || { label: status, variant: "gray" };
-    return <Badge variant={s.variant}>{s.label}</Badge>;
+    const config = INVOICE_STATUS_CONFIG[status as InvoiceStatus];
+    return <Badge variant={config?.badge || "gray"}>{config?.label || status}</Badge>;
+  }
+
+  function getTypeBadge(type?: string | null) {
+    if (!type) return null;
+    const config = INVOICE_TYPE_CONFIG[type as InvoiceType];
+    if (!config) return null;
+    return <Badge variant={config.badge}>{config.label}</Badge>;
   }
 
   function formatNumber(value: number) {
@@ -66,7 +74,10 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
             <p className="text-xs text-gray-400">Hạn thanh toán: {formatDate(invoice.due_date)}</p>
           </div>
           <div className="flex flex-col items-start md:items-end gap-1.5">
-            {getStatusBadge(invoice.status)}
+            <div className="flex items-center gap-2">
+              {getTypeBadge(invoice.type)}
+              {getStatusBadge(invoice.status)}
+            </div>
             {invoice.paid_at && (
               <span className="text-[10px] text-gray-400 font-medium">
                 Thanh toán lúc: {formatDate(invoice.paid_at)}

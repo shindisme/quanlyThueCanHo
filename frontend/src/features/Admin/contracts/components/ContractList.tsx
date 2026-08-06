@@ -2,7 +2,13 @@ import { useMemo, useCallback } from "react";
 import { Eye, FileText, Calendar as CalendarIcon, XCircle, CheckCircle, ClipboardCheck, Info, RotateCcw } from "lucide-react";
 import Badge from "../../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
-import { CONTRACT_STATUS_LABELS, CONTRACT_STATUS_COLORS, type ContractStatus } from "../../../../constants/enums";
+import {
+  CONTRACT_STATUS_LABELS,
+  CONTRACT_STATUS_COLORS,
+  CONTRACT_STATUS_CONFIG,
+  CONTRACT_TERMINATION_STATUS_CONFIG,
+  type ContractStatus,
+} from "../../../../constants/enums";
 import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import type { ContractTermination, RentalContract } from "../../../../types";
@@ -34,11 +40,8 @@ interface ContractListProps {
 }
 
 function getTerminationLabel(termination: ContractTermination) {
-  if (termination.status === "PENDING") return "Chờ duyệt trả phòng";
-  if (termination.status === "APPROVED") return "Chờ bàn giao";
-  if (termination.status === "INSPECTION") return "Đang kiểm tra";
-  if (termination.status === "SETTLING") return "Đang quyết toán";
-  return termination.status;
+  const config = CONTRACT_TERMINATION_STATUS_CONFIG[termination.status];
+  return config?.label || termination.status;
 }
 
 export default function ContractList({
@@ -66,6 +69,8 @@ export default function ContractList({
   const buildingMap = useMemo(() => new Map(buildings.map((b) => [b.id, b])), [buildings]);
 
   const getStatusBadge = useCallback((status: ContractStatus) => {
+    const config = CONTRACT_STATUS_CONFIG[status];
+    if (config) return <Badge variant={config.badge}>{config.label}</Badge>;
     const label = CONTRACT_STATUS_LABELS[status] || status;
     const variant = CONTRACT_STATUS_COLORS[status] || "gray";
     return <Badge variant={variant}>{label}</Badge>;

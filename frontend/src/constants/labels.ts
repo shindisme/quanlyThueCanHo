@@ -1,20 +1,39 @@
-﻿import type {
+import type {
+  Role,
   UserStatus,
   BuildingStatus,
   ApartmentStatus,
   ContractStatus,
   InvoiceStatus,
+  InvoiceType,
   PaymentMethod,
   PaymentStatus,
+  ReservationStatus,
   Priority,
   RequestStatus,
   ScheduleStatus,
+  ContractTerminationType,
+  ContractTerminationStatus,
+  DepositPolicy,
+  SettlementFinancialStatus,
 } from "./enums";
+
+export const ROLE_LABELS: Record<Role, string> = {
+  ADMIN: "Quản trị viên",
+  MANAGER: "Quản lý",
+  STAFF: "Nhân viên",
+  TENANT: "Khách thuê",
+};
 
 export const USER_STATUS_LABELS: Record<UserStatus, string> = {
   ACTIVE: "Hoạt động",
   INACTIVE: "Không hoạt động",
   BANNED: "Bị khoá",
+};
+
+export const BUILDING_STATUS_LABELS: Record<BuildingStatus, string> = {
+  ACTIVE: "Hoạt động",
+  INACTIVE: "Ngưng hoạt động",
 };
 
 export const APARTMENT_STATUS_LABELS: Record<ApartmentStatus, string> = {
@@ -33,11 +52,6 @@ export const APARTMENT_STATUS_OPTIONS = [
   { value: "MAINTENANCE", label: APARTMENT_STATUS_LABELS.MAINTENANCE },
 ];
 
-export const BUILDING_STATUS_LABELS: Record<BuildingStatus, string> = {
-  ACTIVE: "Hoạt động",
-  INACTIVE: "Ngưng hoạt động",
-};
-
 export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {
   ACTIVE: "Hiệu lực",
   ENDED: "Đã kết thúc",
@@ -50,6 +64,14 @@ export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
   OVERDUE: "Quá hạn",
 };
 
+export const INVOICE_TYPE_LABELS: Record<InvoiceType, string> = {
+  DEPOSIT: "Tiền cọc",
+  FIRST_RENT: "Tiền thuê kỳ đầu",
+  MONTHLY: "Hóa đơn hàng tháng",
+  MAINTENANCE: "Phí sửa chữa",
+  FINAL_SETTLEMENT: "Thanh lý hợp đồng",
+};
+
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   PENDING: "Chờ xử lý",
   SUCCESS: "Thành công",
@@ -60,6 +82,13 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   BANK_TRANSFER: "Chuyển khoản ngân hàng",
   E_WALLET: "VNPay",
   CASH: "Tiền Mặt",
+};
+
+export const RESERVATION_STATUS_LABELS: Record<ReservationStatus, string> = {
+  ACTIVE: "Đang giữ chỗ",
+  CONVERTED: "Đã chuyển hợp đồng",
+  FORFEITED: "Mất cọc giữ chỗ",
+  CANCELLED: "Đã hủy",
 };
 
 export const PRIORITY_LABELS: Record<Priority, string> = {
@@ -85,3 +114,29 @@ export const SCHEDULE_STATUS_LABELS: Record<ScheduleStatus, string> = {
   NO_SHOW: "Vắng mặt",
 };
 
+export const CONTRACT_TERMINATION_TYPE_LABELS: Record<ContractTerminationType, string> = {
+  TENANT_REQUEST: "Khách yêu cầu trả phòng",
+  OVERDUE: "Quản lý chủ động thanh lý",
+};
+
+export const CONTRACT_TERMINATION_STATUS_LABELS: Record<ContractTerminationStatus, string> = {
+  PENDING: "Chờ duyệt",
+  APPROVED: "Đã duyệt",
+  REJECTED: "Đã từ chối",
+  INSPECTION: "Đang kiểm tra phòng",
+  SETTLING: "Đang quyết toán",
+  COMPLETED: "Hoàn tất",
+  CANCELLED: "Đã hủy",
+};
+
+export const DEPOSIT_POLICY_LABELS: Record<DepositPolicy, string> = {
+  REFUNDABLE: "Đủ điều kiện hoàn cọc",
+  FORFEITED: "Không hoàn cọc",
+};
+
+export const SETTLEMENT_FINANCIAL_STATUS_LABELS: Record<SettlementFinancialStatus, string> = {
+  PENDING: "Chờ quyết toán",
+  AWAITING_PAYMENT: "Chờ thanh toán",
+  PARTIALLY_PAID: "Thanh toán một phần",
+  SETTLED: "Đã tất toán",
+};

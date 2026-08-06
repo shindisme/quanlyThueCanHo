@@ -5,6 +5,7 @@ import Badge from "../../../../components/ui/Badge";
 import Button from "../../../../components/ui/Button";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import type { Building } from "../../../../types";
+import { BUILDING_STATUS_CONFIG, type BuildingStatus } from "../../../../constants/enums";
 
 interface BuildingListProps {
   sortedBuildings: Building[];
@@ -76,11 +77,14 @@ export default function BuildingList({
         key: "status",
         label: "Trạng thái",
         sortValue: (b) => b.status,
-        render: (b) => (
-          <Badge variant={b.status === "ACTIVE" ? "success" : "gray"}>
-            {b.status === "ACTIVE" ? "Hoạt động" : "Ngừng"}
-          </Badge>
-        ),
+        render: (b) => {
+          const config = BUILDING_STATUS_CONFIG[b.status as BuildingStatus];
+          return (
+            <Badge variant={config?.badge || "gray"}>
+              {config?.label || b.status}
+            </Badge>
+          );
+        },
       },
       {
         key: "actions",

@@ -22,44 +22,21 @@ import { toast } from "sonner";
 import { formatDate } from "../../../../utils/date";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatApartmentDisplay } from "../../../../utils/string";
-import type { ContractTermination, ContractTerminationStatus, DepositPolicy, SettlementFinancialStatus } from "../../../../types/contractTermination";
+import type { ContractTerminationStatus } from "../../../../types/contractTermination";
+import {
+    CONTRACT_TERMINATION_TYPE_LABELS,
+    CONTRACT_TERMINATION_STATUS_LABELS,
+    CONTRACT_TERMINATION_STATUS_CONFIG,
+    DEPOSIT_POLICY_LABELS,
+    SETTLEMENT_FINANCIAL_STATUS_LABELS,
+} from "../../../../constants/enums";
 
-const TERMINATION_TYPE_LABELS: Record<ContractTermination["type"], string> = {
-    TENANT_REQUEST: "Khách yêu cầu trả phòng",
-    OVERDUE: "Quản lý chủ động thanh lý",
-};
-
-const TERMINATION_STATUS_LABELS: Record<ContractTerminationStatus, string> = {
-    PENDING: "Chờ duyệt",
-    APPROVED: "Đã duyệt",
-    REJECTED: "Đã từ chối",
-    INSPECTION: "Đang kiểm tra phòng",
-    SETTLING: "Đang quyết toán",
-    COMPLETED: "Hoàn tất",
-    CANCELLED: "Đã hủy",
-};
-
-const TERMINATION_STATUS_VARIANTS: Record<ContractTerminationStatus, BadgeVariant> = {
-    PENDING: "warning",
-    APPROVED: "info",
-    REJECTED: "danger",
-    INSPECTION: "warning",
-    SETTLING: "info",
-    COMPLETED: "success",
-    CANCELLED: "gray",
-};
-
-const DEPOSIT_POLICY_LABELS: Record<DepositPolicy, string> = {
-    REFUNDABLE: "Đủ điều kiện hoàn cọc",
-    FORFEITED: "Không hoàn cọc",
-};
-
-const SETTLEMENT_STATUS_LABELS: Record<SettlementFinancialStatus, string> = {
-    PENDING: "Chờ quyết toán",
-    AWAITING_PAYMENT: "Chờ thanh toán",
-    PARTIALLY_PAID: "Thanh toán một phần",
-    SETTLED: "Đã tất toán",
-};
+const TERMINATION_TYPE_LABELS = CONTRACT_TERMINATION_TYPE_LABELS;
+const TERMINATION_STATUS_LABELS = CONTRACT_TERMINATION_STATUS_LABELS;
+const TERMINATION_STATUS_VARIANTS: Record<ContractTerminationStatus, BadgeVariant> = Object.fromEntries(
+    Object.entries(CONTRACT_TERMINATION_STATUS_CONFIG).map(([k, v]) => [k, v.badge])
+) as Record<ContractTerminationStatus, BadgeVariant>;
+const SETTLEMENT_STATUS_LABELS = SETTLEMENT_FINANCIAL_STATUS_LABELS;
 
 function formatMoney(value: number | string | null | undefined) {
     return formatCurrency(Number(value || 0));

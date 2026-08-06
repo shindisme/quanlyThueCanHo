@@ -13,7 +13,7 @@ export const apartmentSchema = z.object({
     .int({ message: "Tầng phải là số" })
     .min(1, { message: "Tầng phải từ 1 trở lên" }),
   area: z
-    .coerce.number()
+    .number({ message: "Diện tích phải là số" })
     .positive({ message: "Diện tích phải lớn hơn 0" }),
   bedrooms: z
     .number()
@@ -24,7 +24,7 @@ export const apartmentSchema = z.object({
     .int({ message: "Số phòng vệ sinh phải là số" })
     .positive({ message: "Số phòng vệ sinh phải từ 1 trở lên" }),
   rental_price: z
-    .coerce.number()
+    .number({ message: "Giá thuê phải là số" })
     .positive({ message: "Giá thuê phải lớn hơn 0" })
     .max(1000000000000, { message: "Giá thuê tối đa 1.000 tỷ đồng" }),
   description: z

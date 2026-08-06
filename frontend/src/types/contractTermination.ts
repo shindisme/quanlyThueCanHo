@@ -1,24 +1,18 @@
 import type { RentalContract } from "./contract";
 import type { Invoice } from "./invoice";
+import type {
+  ContractTerminationType,
+  ContractTerminationStatus,
+  DepositPolicy,
+  SettlementFinancialStatus,
+} from "../constants/enums";
 
-export type ContractTerminationType = "TENANT_REQUEST" | "OVERDUE";
-
-export type ContractTerminationStatus =
-  | "PENDING"
-  | "APPROVED"
-  | "REJECTED"
-  | "INSPECTION"
-  | "SETTLING"
-  | "COMPLETED"
-  | "CANCELLED";
-
-export type DepositPolicy = "REFUNDABLE" | "FORFEITED";
-
-export type SettlementFinancialStatus =
-  | "PENDING"
-  | "AWAITING_PAYMENT"
-  | "PARTIALLY_PAID"
-  | "SETTLED";
+export type {
+  ContractTerminationType,
+  ContractTerminationStatus,
+  DepositPolicy,
+  SettlementFinancialStatus,
+};
 
 export interface ContractTerminationDamage {
   id?: number;

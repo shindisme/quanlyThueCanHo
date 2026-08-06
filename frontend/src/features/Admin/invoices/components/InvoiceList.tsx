@@ -2,7 +2,13 @@ import { useMemo } from "react";
 import { Eye, Printer, CheckCircle, XCircle } from "lucide-react";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
-import { INVOICE_STATUS_LABELS, INVOICE_STATUS_COLORS } from "../../../../constants/enums";
+import {
+  INVOICE_STATUS_LABELS,
+  INVOICE_STATUS_COLORS,
+  INVOICE_STATUS_CONFIG,
+  INVOICE_TYPE_CONFIG,
+  type InvoiceType,
+} from "../../../../constants/enums";
 import { getInvoicePeriod, getInvoicePeriodSortValue } from "../../../../utils/invoicePeriod";
 import { getInvoiceRoomDisplay, getInvoiceTenant } from "../../../../utils/invoiceDisplay";
 import { formatCurrency } from "../../../../utils/currency";
@@ -18,9 +24,18 @@ interface InvoiceListProps {
 }
 
 function getStatusBadge(status: InvoiceStatus) {
+  const config = INVOICE_STATUS_CONFIG[status];
+  if (config) return <Badge variant={config.badge}>{config.label}</Badge>;
   const label = INVOICE_STATUS_LABELS[status] || status;
   const variant: BadgeVariant = INVOICE_STATUS_COLORS[status] || "gray";
   return <Badge variant={variant}>{label}</Badge>;
+}
+
+function getTypeBadge(type?: string | null) {
+  if (!type) return null;
+  const config = INVOICE_TYPE_CONFIG[type as InvoiceType];
+  if (!config) return null;
+  return <Badge variant={config.badge}>{config.label}</Badge>;
 }
 
 export default function InvoiceList({
@@ -67,21 +82,21 @@ export default function InvoiceList({
       },
       ...(role !== "TENANT"
         ? [
-            {
-              key: "tenant",
-              label: "Người thuê",
-              sortValue: (inv) => getInvoiceTenant(inv)?.full_name || "",
-              render: (inv) => {
-                const tenant = getInvoiceTenant(inv);
-                return (
-                  <div className="flex flex-col">
-                    <span className="font-medium text-gray-700">{tenant?.full_name || "-"}</span>
-                    {tenant?.phone && <span className="text-[10px] text-gray-400">{tenant.phone}</span>}
-                  </div>
-                );
-              },
+          {
+            key: "tenant",
+            label: "Người thuê",
+            sortValue: (inv) => getInvoiceTenant(inv)?.full_name || "",
+            render: (inv) => {
+              const tenant = getInvoiceTenant(inv);
+              return (
+                <div className="flex flex-col">
+                  <span className="font-medium text-gray-700">{tenant?.full_name || "-"}</span>
+                  {tenant?.phone && <span className="text-[10px] text-gray-400">{tenant.phone}</span>}
+                </div>
+              );
             },
-          ]
+          },
+        ]
         : []),
       {
         key: "period",
@@ -99,7 +114,12 @@ export default function InvoiceList({
         key: "status",
         label: "Trạng thái",
         sortValue: (inv) => inv.status,
-        render: (inv) => getStatusBadge(inv.status as InvoiceStatus),
+        render: (inv) => (
+          <div className="flex flex-col items-start gap-1">
+            {getStatusBadge(inv.status as InvoiceStatus)}
+            {getTypeBadge(inv.type)}
+          </div>
+        ),
       },
       {
         key: "actions",
@@ -128,11 +148,10 @@ export default function InvoiceList({
                 <button
                   type="button"
                   onClick={() => onToggleStatus(inv)}
-                  className={`p-2 rounded-lg cursor-pointer ${
-                    inv.status === "PAID"
+                  className={`p-2 rounded-lg cursor-pointer ${inv.status === "PAID"
                       ? "text-red-500 hover:text-red-700 hover:bg-red-50"
                       : "text-green-500 hover:text-green-700 hover:bg-green-50"
-                  }`}
+                    }`}
                   title={inv.status === "PAID" ? "Đánh dấu Chưa thanh toán" : "Đánh dấu Đã thanh toán"}
                 >
                   {inv.status === "PAID" ? <XCircle size={16} /> : <CheckCircle size={16} />}

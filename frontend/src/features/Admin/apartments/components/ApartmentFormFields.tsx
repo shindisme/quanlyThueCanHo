@@ -5,9 +5,11 @@ import Combobox from "../../../../components/ui/Combobox";
 import CurrencyInput from "../../../../components/ui/CurrencyInput";
 import Button from "../../../../components/ui/Button";
 import type { Building } from "../../../../types";
+import { APARTMENT_STATUS_OPTIONS } from "../../../../constants/enums";
+import type { ApartmentFormValues } from "../../../../schemas/apartment.schema";
 
 interface ApartmentFormFieldsProps {
-  form: UseFormReturn<any>;
+  form: UseFormReturn<ApartmentFormValues>;
   buildings: Building[];
   role: string | null;
   localThumbnail: string;
@@ -157,12 +159,7 @@ export default function ApartmentFormFields({
           render={({ field, fieldState: { error } }) => (
             <Combobox
               label="Trạng thái *"
-              options={[
-                { value: "AVAILABLE", label: "Còn trống" },
-                { value: "RESERVED", label: "Đã cọc" },
-                { value: "RENTED", label: "Đang thuê" },
-                { value: "MAINTENANCE", label: "Bảo trì" },
-              ]}
+              options={APARTMENT_STATUS_OPTIONS}
               value={field.value}
               onChange={field.onChange}
               placeholder="Chọn trạng thái"

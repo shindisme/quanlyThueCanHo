@@ -4,7 +4,7 @@ import { Pencil, Trash2, Eye } from "lucide-react";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import Button from "../../../../components/ui/Button";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
-import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS, type ApartmentStatus } from "../../../../constants/enums";
+import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS, APARTMENT_STATUS_CONFIG, type ApartmentStatus } from "../../../../constants/enums";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import { formatCurrency } from "../../../../utils/currency";
 import { getApartmentThumbnail } from "../../../../utils/file";
@@ -39,6 +39,8 @@ export default function ApartmentList({
   );
 
   function getStatusBadge(status: ApartmentStatus) {
+    const config = APARTMENT_STATUS_CONFIG[status];
+    if (config) return <Badge variant={config.badge}>{config.label}</Badge>;
     const label = APARTMENT_STATUS_LABELS[status] || status;
     const variant: BadgeVariant = APARTMENT_STATUS_COLORS[status] || "gray";
     return <Badge variant={variant}>{label}</Badge>;

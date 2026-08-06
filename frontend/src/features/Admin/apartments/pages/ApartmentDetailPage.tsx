@@ -2,7 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Trash2, Plus, Star, ArrowRight } from "lucide-react";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import Card from "../../../../components/ui/Card";
-import Badge from "../../../../components/ui/Badge";
+import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import Button from "../../../../components/ui/Button";
 import ApartmentModifyModal from "../components/ApartmentModifyModal";
 import { useUserRole } from "../../../../hooks/useUserRole";
@@ -11,7 +11,14 @@ import { formatApartmentDisplay, maskCCCD } from "../../../../utils/string";
 import { formatCurrency } from "../../../../utils/currency";
 import { DEFAULT_APARTMENT_IMAGE } from "../../../../utils/file";
 import { useApartmentDetailPage } from "../hooks/useApartmentDetailPage";
-import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS, type ApartmentStatus } from "../../../../constants/enums";
+import {
+  APARTMENT_STATUS_LABELS,
+  APARTMENT_STATUS_COLORS,
+  APARTMENT_STATUS_CONFIG,
+  CONTRACT_STATUS_CONFIG,
+  type ApartmentStatus,
+  type ContractStatus,
+} from "../../../../constants/enums";
 import { useDepositInvoice } from "../../invoices/hooks/useDepositInvoice";
 import DepositInvoiceModal from "../../invoices/components/DepositInvoiceModal";
 
@@ -85,10 +92,11 @@ export default function ApartmentDetailPage() {
 
 
   function getStatusBadge(status: ApartmentStatus) {
+    const config = APARTMENT_STATUS_CONFIG[status];
+    if (config) return <Badge variant={config.badge}>{config.label}</Badge>;
     const label = APARTMENT_STATUS_LABELS[status] || status;
-    const variant = APARTMENT_STATUS_COLORS[status] || "gray";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return <Badge variant={variant as any}>{label}</Badge>;
+    const variant: BadgeVariant = APARTMENT_STATUS_COLORS[status] || "gray";
+    return <Badge variant={variant}>{label}</Badge>;
   }
 
   return (
@@ -463,9 +471,14 @@ export default function ApartmentDetailPage() {
                               {formatDate(c.start_date)} - {formatDate(c.end_date)}
                             </td>
                             <td className="px-3 py-2.5 text-right">
-                              <Badge variant={c.status === "ACTIVE" ? "success" : c.status === "ENDED" ? "gray" : "danger"}>
-                                {c.status === "ACTIVE" ? "Hiệu lực" : c.status === "ENDED" ? "Đã kết thúc" : "Thanh lý"}
-                              </Badge>
+                              {(() => {
+                                const config = CONTRACT_STATUS_CONFIG[c.status as ContractStatus];
+                                return (
+                                  <Badge variant={config?.badge || "gray"}>
+                                    {config?.label || c.status}
+                                  </Badge>
+                                );
+                              })()}
                             </td>
                           </tr>
                         ))}

@@ -10,8 +10,8 @@ import ApartmentCreateModal from "../../apartments/components/ApartmentCreateMod
 import { formatApartmentDisplay } from "../../../../utils/string";
 import { formatCurrency } from "../../../../utils/currency";
 import { getApartmentThumbnail } from "../../../../utils/file";
-import { APARTMENT_STATUS_CONFIG } from "../../../../constants/badges";
-import type { ApartmentStatus } from "../../../../constants/enums";
+import { APARTMENT_STATUS_CONFIG, BUILDING_STATUS_CONFIG } from "../../../../constants/badges";
+import type { ApartmentStatus, BuildingStatus } from "../../../../constants/enums";
 import { useBuildingDetail } from "../hooks/useBuildingDetail";
 import { cn } from "../../../../lib/utils";
 
@@ -99,9 +99,14 @@ export default function BuildingDetailPage() {
                 {building.branch_name}
               </h1>
               <div className="flex items-center gap-2 mt-1">
-                <Badge variant={building.status === "ACTIVE" ? "success" : "gray"}>
-                  {building.status === "ACTIVE" ? "Hoạt động" : "Ngừng"}
-                </Badge>
+                {(() => {
+                  const config = BUILDING_STATUS_CONFIG[building.status as BuildingStatus];
+                  return (
+                    <Badge variant={config?.badge || "gray"}>
+                      {config?.label || building.status}
+                    </Badge>
+                  );
+                })()}
               </div>
             </div>
             {role === "ADMIN" && (

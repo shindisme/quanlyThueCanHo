@@ -8,7 +8,7 @@ import {
 // khởi tạo form quản lý thông tin căn hộ
 export function useApartmentForm(defaultValues?: Partial<ApartmentFormValues>) {
   return useForm<ApartmentFormValues>({
-    resolver: zodResolver(apartmentSchema) as any,
+    resolver: zodResolver(apartmentSchema),
     defaultValues: {
       room_number: "",
       building_id: 0,

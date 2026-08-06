@@ -12,6 +12,8 @@ import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import { Users } from "lucide-react";
 
+import { CONTRACT_STATUS_CONFIG, type ContractStatus } from "../../../../constants/enums";
+
 interface ContractDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -27,9 +29,8 @@ interface ContractDetailModalProps {
 const SURCHARGE_PER_PERSON = 1_000_000;
 
 function renderContractStatusBadge(status: string) {
-  if (status === "ACTIVE") return <Badge variant="success">Còn hạn</Badge>;
-  if (status === "ENDED") return <Badge variant="gray">Hết hạn</Badge>;
-  return <Badge variant="danger">Đã thanh lý</Badge>;
+  const config = CONTRACT_STATUS_CONFIG[status as ContractStatus];
+  return <Badge variant={config?.badge || "gray"}>{config?.label || status}</Badge>;
 }
 
 export default function ContractDetailModal({
