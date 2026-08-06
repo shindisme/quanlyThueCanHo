@@ -79,34 +79,43 @@ export function useDashboardTenant() {
     select: (res) => res.data,
   });
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const { activeContract, endedContract } = useMemo(() => {
+    if (!contracts || contracts.length === 0) {
+      return { activeContract: null, endedContract: null };
+    }
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
 
-  const activeContract = contracts
-    ? contracts.find((c) => c.status === "ACTIVE" || new Date(c.end_date) >= todayStart)
-    : null;
+    const active = contracts.find(
+      (c) => c.status === "ACTIVE" || new Date(c.end_date) >= todayStart
+    ) || null;
 
-  const endedContract = contracts
-    ? contracts
+    const ended = contracts
       .filter((c) => c.status === "ENDED" && new Date(c.end_date) < todayStart)
-      .sort((a, b) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime())[0]
-    : null;
+      .sort((a, b) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime())[0] || null;
 
-  const apartment = activeContract
-    ? apartments.find((a) => a.id === activeContract.apartment_id)
-    : null;
+    return { activeContract: active, endedContract: ended };
+  }, [contracts]);
 
-  const endedApartment = endedContract
-    ? apartments.find((a) => a.id === endedContract.apartment_id)
-    : null;
+  const apartment = useMemo(
+    () => (activeContract ? apartments.find((a) => a.id === activeContract.apartment_id) || null : null),
+    [activeContract, apartments]
+  );
 
-  const building = apartment
-    ? buildings.find((b) => b.id === apartment.building_id)
-    : null;
+  const endedApartment = useMemo(
+    () => (endedContract ? apartments.find((a) => a.id === endedContract.apartment_id) || null : null),
+    [endedContract, apartments]
+  );
 
-  const endedBuilding = endedApartment
-    ? buildings.find((b) => b.id === endedApartment.building_id)
-    : null;
+  const building = useMemo(
+    () => (apartment ? buildings.find((b) => b.id === apartment.building_id) || null : null),
+    [apartment, buildings]
+  );
+
+  const endedBuilding = useMemo(
+    () => (endedApartment ? buildings.find((b) => b.id === endedApartment.building_id) || null : null),
+    [endedApartment, buildings]
+  );
 
   const displayName = currentTenant?.full_name || email?.split("@")[0] || "Người thuê";
 
@@ -117,14 +126,17 @@ export function useDashboardTenant() {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
 
+  const endedContractId = endedContract?.id;
+  const hasActiveContract = Boolean(activeContract);
+
   useEffect(() => {
-    if (endedContract && !activeContract) {
-      const alreadyDealtWith = localStorage.getItem("has_ignored_review_contract_" + endedContract.id);
+    if (endedContractId && !hasActiveContract) {
+      const alreadyDealtWith = localStorage.getItem("has_ignored_review_contract_" + endedContractId);
       if (!alreadyDealtWith) {
         setReviewModalOpen(true);
       }
     }
-  }, [endedContract, activeContract]);
+  }, [endedContractId, hasActiveContract]);
 
   const reviewMutation = useMutation({
     mutationFn: (data: { apartment_id: number; rating: number; comment: string }) => reviewService.create(data),
@@ -141,7 +153,7 @@ export function useDashboardTenant() {
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string } }; message?: string };
       toast.error(err.response?.data?.message || err.message || "Không thể gửi đánh giá.");
-    }
+    },
   });
 
   const handleReviewSubmit = () => {
