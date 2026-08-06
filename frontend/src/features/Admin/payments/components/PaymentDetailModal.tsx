@@ -5,7 +5,7 @@ import { formatDate } from "../../../../utils/date";
 import { formatCurrency } from "../../../../utils/currency";
 import { getInvoicePeriod } from "../../../../utils/invoicePeriod";
 import { getInvoiceApartment, getInvoiceRoomDisplay, getInvoiceTenant } from "../../../../utils/invoiceDisplay";
-import { PAYMENT_STATUS_CONFIG, PAYMENT_METHOD_LABELS } from "../../../../constants/enums";
+import { PAYMENT_STATUS_CONFIG, PAYMENT_METHOD_LABELS, INVOICE_TYPE_LABELS } from "../../../../constants/enums";
 import type { Payment } from "../../../../types";
 
 interface PaymentDetailModalProps {
@@ -55,7 +55,7 @@ export default function PaymentDetailModal({ isOpen, onClose, payment }: Payment
 
         {/* Apartment / Tenant */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-200 space-y-2">
+          <div className="bg-gray-50/50 p-4 shadow border border-gray-200 space-y-2">
             <h5 className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Thông tin căn hộ</h5>
             <p>
               <span className="font-semibold text-gray-600">Căn hộ:</span> {roomNum}
@@ -70,7 +70,7 @@ export default function PaymentDetailModal({ isOpen, onClose, payment }: Payment
               </p>
             )}
           </div>
-          <div className="bg-gray-50/50 p-4 rounded-xl border border-gray-200 space-y-2">
+          <div className="bg-gray-50/50 p-4 shadow border border-gray-200 space-y-2">
             <h5 className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Khách hàng nộp</h5>
             <p>
               <span className="font-semibold text-gray-600">Họ và tên:</span> {tenant?.full_name || "Chưa rõ"}
@@ -86,11 +86,19 @@ export default function PaymentDetailModal({ isOpen, onClose, payment }: Payment
 
         {/* Invoice Info */}
         {invoice && (
-          <div className="bg-primary-50/20 p-4 rounded-xl border border-primary-100 space-y-2">
+          <div className="bg-primary-50/20 p-4 shadow border border-primary-100 space-y-2">
             <h5 className="font-bold text-primary-950 border-b border-primary-100 pb-1 mb-2">Thông tin hóa đơn liên kết</h5>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <p>
                 <span className="font-semibold text-gray-600">Mã hóa đơn:</span> {invoice.invoice_code}
+              </p>
+              <p>
+                <span className="font-semibold text-gray-600">Loại hóa đơn:</span>{" "}
+                <span className="font-bold text-primary-900">
+                  {(invoice.type === "MAINTENANCE" || invoice.invoice_code?.startsWith("MNT-"))
+                    ? INVOICE_TYPE_LABELS["MAINTENANCE"]
+                    : (INVOICE_TYPE_LABELS[invoice.type] || invoice.type)}
+                </span>
               </p>
               <p>
                 <span className="font-semibold text-gray-600">Kỳ hóa đơn:</span> {getInvoicePeriod(invoice).label}
@@ -99,7 +107,7 @@ export default function PaymentDetailModal({ isOpen, onClose, payment }: Payment
                 <span className="font-semibold text-gray-600">Hạn thanh toán:</span> {formatDate(invoice.due_date)}
               </p>
               <p>
-                <span className="font-semibold text-gray-600">Trạng thái HĐ:</span>{" "}
+                <span className="font-semibold text-gray-600">Trạng thái:</span>{" "}
                 <span className={`font-bold ${invoice.status === "PAID" ? "text-green-600" : "text-amber-600"}`}>
                   {invoice.status === "PAID" ? "Đã thanh toán" : "Chưa thanh toán"}
                 </span>

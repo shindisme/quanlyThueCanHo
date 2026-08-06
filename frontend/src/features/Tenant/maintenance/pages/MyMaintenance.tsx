@@ -337,11 +337,11 @@ export default function MyMaintenance() {
                 <p className="font-bold text-sm text-gray-900 border-b border-gray-200 pb-1 mb-1.5">Chi phí sửa chữa</p>
                 {detailRequest.charge_tenant ? (
                   <p className="text-amber-700 font-bold text-sm">
-                    <span className="font-semibold text-gray-600">Phí sửa chữa (Có tính phí):</span> {formatCurrency(detailRequest.repair_fee || 0)}
+                    <span className="font-semibold text-gray-600">Loại chi phí:</span> Có tính phí ({formatCurrency(detailRequest.repair_fee || 0)})
                   </p>
                 ) : (
                   <p className="text-emerald-700 font-bold text-sm">
-                    <span className="font-semibold text-gray-600">Phí sửa chữa:</span> Không tính phí (Miễn phí)
+                    <span className="font-semibold text-gray-600">Loại chi phí:</span> Không tính phí
                   </p>
                 )}
               </div>

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
+import type { AxiosError } from "axios";
 import { useUsers } from "./useUsers";
 import { useDeleteUser } from "./useDeleteUser";
 import { useResetPasswordUser } from "./useResetPasswordUser";
@@ -14,9 +15,16 @@ import { useOnOff } from "../../../../hooks/useOnOff";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import { usePagination } from "../../../../hooks/usePagination";
 import { removeVietnameseTones } from "../../../../utils/string";
-import type { User } from "../../../../types";
+import type { User, Tenant, Staff, Contract, Apartment, Building } from "../../../../types";
 import { toast } from "sonner";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
+
+const ROLE_SORT_MAP: Record<string, string> = {
+  ADMIN: "1_Admin",
+  MANAGER: "2_Quản lý",
+  STAFF: "3_Nhân viên",
+  TENANT: "4_Người thuê",
+};
 
 export function useUserPage() {
   const { isAdmin } = useUserRole();
@@ -34,39 +42,36 @@ export function useUserPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [buildingFilter, setBuildingFilter] = useState("");
 
-  const { data: usersRes, isLoading: loadingUsers, refetch: fetchUsers } = useUsers();
-  const users = (usersRes?.data || []) as User[];
+  const { data: users = [], isLoading: loadingUsers, refetch: fetchUsers } = useUsers();
 
-  const { data: tenantsRes, isLoading: loadingTenants } = useQuery({
+  const { data: tenants = [], isLoading: loadingTenants } = useQuery({
     queryKey: QUERY_KEYS.TENANTS,
     queryFn: () => tenantService.getAllPage(),
-    select: (res) => res.data,
+    select: (res) => res.data || [],
   });
-  const tenants = tenantsRes || [];
 
-  const { data: staffRes, isLoading: loadingStaff } = useQuery({
+  const { data: staff = [], isLoading: loadingStaff } = useQuery({
     queryKey: QUERY_KEYS.STAFF,
     queryFn: () => staffService.getAllPage(),
-    select: (res) => res.data,
+    select: (res) => res.data || [],
   });
-  const staff = staffRes || [];
 
   const { data: contracts = [], isLoading: loadingContracts } = useQuery({
     queryKey: QUERY_KEYS.CONTRACTS,
     queryFn: () => contractService.getAllContractsPage(),
-    select: (res) => res.data,
+    select: (res) => res.data || [],
   });
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: QUERY_KEYS.APARTMENTS,
     queryFn: () => apartmentService.getAllPage(),
-    select: (res) => res.data,
+    select: (res) => res.data || [],
   });
 
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
     queryKey: QUERY_KEYS.BUILDINGS,
     queryFn: () => buildingService.getAllPage(),
-    select: (res) => res.data,
+    select: (res) => res.data || [],
   });
 
   const loading =
@@ -77,144 +82,187 @@ export function useUserPage() {
     loadingApartments ||
     loadingBuildings;
 
-  function getTenantForUser(u: User) {
-    const matched = tenants.find(
-      (t) =>
-        t.user_id === u.id ||
-        (t.user && t.user.id === u.id) ||
-        (t.email && u.username && t.email.toLowerCase() === u.username.toLowerCase())
-    );
-    if (matched) return matched;
-    return u.tenant ?? u.tenant_profile ?? null;
-  }
+  const tenantMap = useMemo(() => {
+    const map = new Map<string | number, Tenant>();
+    tenants.forEach((t) => {
+      if (t.user_id) map.set(t.user_id, t);
+      if (t.user?.id) map.set(t.user.id, t);
+      if (t.email) map.set(t.email.toLowerCase(), t);
+    });
+    return map;
+  }, [tenants]);
 
-  function getUserFullName(u: User): string {
-    if (u.role === "TENANT") {
-      const match = getTenantForUser(u);
-      if (match) return match.full_name;
-    } else if (u.role === "MANAGER" || u.role === "STAFF") {
-      const match = staff.find(
-        (s) =>
-          s.user_id === u.id ||
-          (s.user && s.user.id === u.id) ||
-          (s.user && s.user.username === u.username)
-      );
-      if (match) return match.full_name;
-    }
-    if (u.role === "ADMIN") {
-      const storedName = u.username ? localStorage.getItem(`profile-fullname-${u.username}`) : null;
-      return storedName || "Quản trị viên";
-    }
-    return "-";
-  }
+  const staffMap = useMemo(() => {
+    const map = new Map<number, Staff>();
+    staff.forEach((s) => {
+      if (s.user_id) map.set(s.user_id, s);
+      if (s.user?.id) map.set(s.user.id, s);
+    });
+    return map;
+  }, [staff]);
 
-  function getUserBranch(u: User): string {
-    if (u.role === "ADMIN") return "Không";
-    if (u.role === "TENANT") {
+  const buildingMap = useMemo(() => {
+    const map = new Map<number, Building>();
+    buildings.forEach((b) => map.set(b.id, b));
+    return map;
+  }, [buildings]);
+
+  const apartmentMap = useMemo(() => {
+    const map = new Map<number, Apartment>();
+    apartments.forEach((a) => map.set(a.id, a));
+    return map;
+  }, [apartments]);
+
+  const contractsByTenantMap = useMemo(() => {
+    const map = new Map<number, Contract[]>();
+    contracts.forEach((c) => {
+      if (c.tenant_id) {
+        const list = map.get(c.tenant_id) || [];
+        list.push(c);
+        map.set(c.tenant_id, list);
+      }
+    });
+    return map;
+  }, [contracts]);
+
+  const getTenantForUser = useCallback(
+    (u: User): Tenant | null => {
+      const byUserId = tenantMap.get(u.id);
+      if (byUserId) return byUserId;
+      if (u.username) {
+        const byEmail = tenantMap.get(u.username.toLowerCase());
+        if (byEmail) return byEmail;
+      }
+      return u.tenant ?? u.tenant_profile ?? null;
+    },
+    [tenantMap]
+  );
+
+  const getUserFullName = useCallback(
+    (u: User): string => {
+      if (u.role === "TENANT") {
+        const match = getTenantForUser(u);
+        if (match) return match.full_name;
+      } else if (u.role === "MANAGER" || u.role === "STAFF") {
+        const match = staffMap.get(u.id);
+        if (match) return match.full_name;
+      } else if (u.role === "ADMIN") {
+        return "Quản trị viên";
+      }
+      return "-";
+    },
+    [getTenantForUser, staffMap]
+  );
+
+  const getUserApartment = useCallback(
+    (u: User): Apartment | null => {
+      if (u.role !== "TENANT") return null;
       const matchTenant = getTenantForUser(u);
-      if (matchTenant) {
-        const tenantContracts = matchTenant.contracts?.length
-          ? matchTenant.contracts
-          : contracts.filter((c) => c.tenant_id === matchTenant.id);
-        const activeContract = tenantContracts.find((c) => c.status === "ACTIVE");
-        if (activeContract) {
-          const apt =
-            activeContract.apartment ??
-            apartments.find((a) => a.id === activeContract.apartment_id);
-          const bld =
-            apt?.building ??
-            (apt ? buildings.find((b) => b.id === apt.building_id) : null);
-          if (apt) {
-            return `${bld?.branch_name || "Chi nhánh khác"} - P.${apt.floor}${apt.room_number}`;
-          }
+      if (!matchTenant) return null;
+
+      const tenantContracts = matchTenant.contracts?.length
+        ? matchTenant.contracts
+        : contractsByTenantMap.get(matchTenant.id) || [];
+
+      const activeContract = tenantContracts.find((c) => c.status === "ACTIVE");
+      if (!activeContract) return null;
+
+      return activeContract.apartment ?? apartmentMap.get(activeContract.apartment_id) ?? null;
+    },
+    [getTenantForUser, contractsByTenantMap, apartmentMap]
+  );
+
+  const getUserBuildingId = useCallback(
+    (u: User): number | null => {
+      if (u.role === "TENANT") {
+        const apt = getUserApartment(u);
+        return apt?.building_id || null;
+      }
+      if (u.role === "MANAGER" || u.role === "STAFF") {
+        const matchStaff = staffMap.get(u.id);
+        return matchStaff?.building_id || null;
+      }
+      return null;
+    },
+    [getUserApartment, staffMap]
+  );
+
+  const getUserBranch = useCallback(
+    (u: User): string => {
+      if (u.role === "ADMIN") return "Không";
+      if (u.role === "TENANT") {
+        const apt = getUserApartment(u);
+        if (apt) {
+          const bld = apt.building ?? buildingMap.get(apt.building_id);
+          return `${bld?.branch_name || "Chi nhánh khác"} - P.${apt.floor}${apt.room_number}`;
+        }
+      } else if (u.role === "MANAGER" || u.role === "STAFF") {
+        const matchStaff = staffMap.get(u.id);
+        if (matchStaff && matchStaff.building_id) {
+          const bld = buildingMap.get(matchStaff.building_id);
+          if (bld) return bld.branch_name;
+        }
+        if (u.managed_building?.branch_name) {
+          return u.managed_building.branch_name;
         }
       }
-    } else if (u.role === "MANAGER" || u.role === "STAFF") {
-      const matchStaff = staff.find(
-        (s) =>
-          s.user_id === u.id ||
-          (s.user && s.user.id === u.id) ||
-          (s.user && s.user.username === u.username)
+      return "Không";
+    },
+    [getUserApartment, buildingMap, staffMap]
+  );
+
+  const normalizedSearch = useMemo(
+    () => removeVietnameseTones(debouncedSearch),
+    [debouncedSearch]
+  );
+
+  const filtered = useMemo(() => {
+    return users.filter((u) => {
+      if (roleFilter && u.role !== roleFilter) return false;
+      if (statusFilter && u.status !== statusFilter) return false;
+      if (buildingFilter) {
+        const uBldId = getUserBuildingId(u);
+        if (uBldId !== Number(buildingFilter)) return false;
+      }
+
+      if (!normalizedSearch) return true;
+
+      const usernameNorm = removeVietnameseTones(u.username || "");
+      const roleNorm = removeVietnameseTones(u.role || "");
+      const branchNorm = removeVietnameseTones(getUserBranch(u));
+      const fullNameNorm = removeVietnameseTones(getUserFullName(u));
+
+      return (
+        usernameNorm.includes(normalizedSearch) ||
+        roleNorm.includes(normalizedSearch) ||
+        branchNorm.includes(normalizedSearch) ||
+        fullNameNorm.includes(normalizedSearch)
       );
-      if (matchStaff && matchStaff.building_id) {
-        const bld = buildings.find((b) => b.id === matchStaff.building_id);
-        if (bld) return bld.branch_name;
-      }
-      if (u.managed_building?.branch_name) {
-        return u.managed_building.branch_name;
-      }
-    }
-    return "Không";
-  }
+    });
+  }, [users, roleFilter, statusFilter, buildingFilter, normalizedSearch, getUserBuildingId, getUserBranch, getUserFullName]);
 
-  function getUserBuildingId(u: User): number | null {
-    if (u.role === "TENANT") {
-      const matchTenant = getTenantForUser(u);
-      if (matchTenant) {
-        const tenantContracts = matchTenant.contracts?.length
-          ? matchTenant.contracts
-          : contracts.filter((c) => c.tenant_id === matchTenant.id);
-        const activeContract = tenantContracts.find((c) => c.status === "ACTIVE");
-        if (activeContract) {
-          const apt =
-            activeContract.apartment ??
-            apartments.find((a) => a.id === activeContract.apartment_id);
-          return apt?.building_id || null;
-        }
-      }
-    } else if (u.role === "MANAGER" || u.role === "STAFF") {
-      const matchStaff = staff.find(
-        (s) =>
-          s.user_id === u.id ||
-          (s.user && s.user.id === u.id) ||
-          (s.user && s.user.username === u.username)
-      );
-      return matchStaff?.building_id || null;
-    }
-    return null;
-  }
+  const defaultSortedFiltered = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      if (timeA !== timeB) return timeB - timeA;
+      return (b.id || 0) - (a.id || 0);
+    });
+  }, [filtered]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const filtered = (users as any[]).filter((u) => {
-    if (roleFilter && u.role !== roleFilter) return false;
-    if (statusFilter && u.status !== statusFilter) return false;
-    if (buildingFilter) {
-      const uBldId = getUserBuildingId(u);
-      if (uBldId !== Number(buildingFilter)) return false;
-    }
-
-    const term = removeVietnameseTones(debouncedSearch);
-    if (!term) return true;
-    const usernameNorm = removeVietnameseTones(u.username || "");
-    const roleNorm = removeVietnameseTones(u.role || "");
-    const branchNorm = removeVietnameseTones(getUserBranch(u));
-    const fullNameNorm = removeVietnameseTones(getUserFullName(u));
-    return (
-      usernameNorm.includes(term) ||
-      roleNorm.includes(term) ||
-      branchNorm.includes(term) ||
-      fullNameNorm.includes(term)
-    );
-  });
-
-  const rolePriority: Record<string, number> = {
-    ADMIN: 1,
-    MANAGER: 2,
-    STAFF: 3,
-    TENANT: 4,
-  };
-
-  const defaultSortedFiltered = [...filtered].sort((a, b) => {
-    const priorityA = rolePriority[a.role] || 99;
-    const priorityB = rolePriority[b.role] || 99;
-    return priorityA - priorityB;
-  });
-
-  const { items: sortedUsers, requestSort, getSortIcon } = useSort(
+  const { items: sortedUsers, requestSort, getSortIcon, sortConfig } = useSort(
     defaultSortedFiltered,
     null,
     {
-      branch: (u) => getUserBranch(u),
+      index: (u) => (u.created_at ? new Date(u.created_at).getTime() : u.id || 0),
+      fullName: (u) => getUserFullName(u),
+      username: (u) => u.username,
+      role: (u) => ROLE_SORT_MAP[u.role] || u.role,
+      branch: (u) => {
+        const b = getUserBranch(u);
+        return (!b || b === "-" || b === "Chưa phân công" || b === "Không" || b === "Trống") ? "zzz_Trống" : b;
+      },
+      status: (u) => (u.status === "ACTIVE" ? "1_Hoạt động" : "2_Tạm khóa"),
     }
   );
 
@@ -223,12 +271,14 @@ export function useUserPage() {
     initialPageSize: 10,
   });
 
-  const paginatedUsers = sortedUsers.slice(pagination.startIdx, pagination.endIdx);
+  const paginatedUsers = useMemo(() => {
+    return sortedUsers.slice(pagination.startIdx, pagination.endIdx);
+  }, [sortedUsers, pagination.startIdx, pagination.endIdx]);
 
   const deleteMutation = useDeleteUser();
   const resetMutation = useResetPasswordUser();
 
-  function handleDelete() {
+  const handleDelete = useCallback(() => {
     if (!deleteItem) return;
     deleteMutation.mutate(deleteItem.id, {
       onSuccess: () => {
@@ -236,13 +286,13 @@ export function useUserPage() {
         setDeleteItem(null);
       },
       onError: (error: unknown) => {
-        const err = error as { response?: { data?: { error?: string } } };
-        toast.error(err.response?.data?.error || "Xóa thất bại");
+        const err = error as AxiosError<{ error?: string; message?: string }>;
+        toast.error(err.response?.data?.error || err.response?.data?.message || "Xóa thất bại");
       },
     });
-  }
+  }, [deleteItem, deleteMutation]);
 
-  function confirmResetPassword() {
+  const confirmResetPassword = useCallback(() => {
     if (!resetItem) return;
     resetMutation.mutate(resetItem.id, {
       onSuccess: () => {
@@ -255,7 +305,7 @@ export function useUserPage() {
         toast.error("Đặt lại mật khẩu thất bại");
       },
     });
-  }
+  }, [resetItem, resetMutation]);
 
   return {
     isAdmin,
@@ -283,6 +333,7 @@ export function useUserPage() {
     sortedUsers: paginatedUsers,
     pagination,
     requestSort,
+    sortConfig,
     getSortIcon,
     handleDelete,
     confirmResetPassword,

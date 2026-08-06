@@ -9,6 +9,19 @@ export function formatDate(dateStr?: string | Date | null): string {
   });
 }
 
+export function formatDateTime(dateStr?: string | Date | null): string {
+  if (!dateStr) return "-";
+  const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
+  if (isNaN(date.getTime())) return "-";
+  return date.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function formatDateToISO(date?: Date | null): string {
   if (!date || isNaN(date.getTime())) return "";
   const y = date.getFullYear();

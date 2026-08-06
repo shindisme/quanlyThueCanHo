@@ -16,14 +16,16 @@ export default function UserDeleteModal({
   user,
   loading = false,
 }: UserDeleteModalProps) {
+  const username = user?.username ?? "";
+
   return (
     <ConfirmDialog
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => !loading && onClose()}
       onConfirm={onConfirm}
       title="Xóa tài khoản"
-      message={`Bạn có chắc chắn muốn xóa tài khoản "${user?.username}"? Hành động này không thể hoàn tác.`}
-      confirmText="Xóa"
+      message={`Bạn có chắc chắn muốn xóa tài khoản "${username}"? Thao tác này không thể hoàn tác.`}
+      confirmText="Xóa tài khoản"
       isLoading={loading}
     />
   );

@@ -59,7 +59,7 @@ export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
 export const INVOICE_TYPE_LABELS: Record<InvoiceType, string> = {
   DEPOSIT: "Tiền cọc",
   FIRST_RENT: "Tiền thuê kỳ đầu",
-  MONTHLY: "Hóa đơn hàng tháng",
+  MONTHLY: "Hàng tháng",
   MAINTENANCE: "Phí sửa chữa",
   FINAL_SETTLEMENT: "Thanh lý hợp đồng",
 };
@@ -150,4 +150,17 @@ export const PAYMENT_METHOD_OPTIONS = [
   { value: "BANK_TRANSFER", label: PAYMENT_METHOD_LABELS.BANK_TRANSFER },
   { value: "E_WALLET", label: PAYMENT_METHOD_LABELS.E_WALLET },
   { value: "CASH", label: PAYMENT_METHOD_LABELS.CASH },
+];
+
+export const USER_ROLE_OPTIONS = [
+  { value: "ADMIN", label: ROLE_LABELS.ADMIN },
+  { value: "MANAGER", label: ROLE_LABELS.MANAGER },
+  { value: "STAFF", label: ROLE_LABELS.STAFF },
+  { value: "TENANT", label: ROLE_LABELS.TENANT },
+];
+
+export const USER_STATUS_OPTIONS = [
+  { value: "ACTIVE", label: USER_STATUS_LABELS.ACTIVE },
+  { value: "INACTIVE", label: USER_STATUS_LABELS.INACTIVE },
+  { value: "BANNED", label: USER_STATUS_LABELS.BANNED },
 ];

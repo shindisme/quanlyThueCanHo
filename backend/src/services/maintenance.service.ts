@@ -1,6 +1,7 @@
 import {
     ContractStatus,
     InvoiceStatus,
+    InvoiceType,
     Prisma,
     RequestStatus,
     Role,
@@ -605,6 +606,7 @@ export const completeMaintenanceRequestService = async (
                 tenant: { connect: { id: current.tenant.id } },
                 contract: { connect: { id: contract.id } },
                 invoice_code: invoiceCode,
+                type: InvoiceType.MAINTENANCE,
                 due_date: new Date(),
                 total_amount: repairFee,
                 status: InvoiceStatus.UNPAID,

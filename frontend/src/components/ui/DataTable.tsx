@@ -39,6 +39,8 @@ interface DataTableProps<T> {
   rowClassName?: string | ((item: T) => string);
   cellClassName?: string | ((item: T, column: Column<T>) => string);
   stickyHeader?: boolean;
+  sortConfig?: { key: string; direction: "asc" | "desc" } | null;
+  onSort?: (key: string) => void;
 }
 
 function DataTableInner<T>({
@@ -55,6 +57,8 @@ function DataTableInner<T>({
   rowClassName,
   cellClassName,
   stickyHeader = false,
+  sortConfig: externalSortConfig,
+  onSort,
 }: DataTableProps<T>) {
   const customExtractors = useMemo(() => {
     const extractors: Record<string, (item: T) => unknown> = {};
@@ -67,17 +71,21 @@ function DataTableInner<T>({
     return extractors;
   }, [columns]);
 
-  const { items: sortedData, requestSort, sortConfig } = useSort(
+  const internalSort = useSort(
     data,
     null,
     customExtractors
   );
 
+  const activeSortConfig = externalSortConfig !== undefined ? externalSortConfig : internalSort.sortConfig;
+  const handleSort = onSort || internalSort.requestSort;
+  const sortedData = onSort ? data : internalSort.items;
+
   const getSortIconComponent = (colKey: string) => {
-    if (!sortConfig || sortConfig.key !== colKey) {
+    if (!activeSortConfig || activeSortConfig.key !== colKey) {
       return <ChevronsUpDown size={14} className="text-gray-300 shrink-0" />;
     }
-    return sortConfig.direction === "asc"
+    return activeSortConfig.direction === "asc"
       ? <ChevronUp size={14} className="text-primary-600 shrink-0 font-bold" />
       : <ChevronDown size={14} className="text-primary-600 shrink-0 font-bold" />;
   };
@@ -168,7 +176,7 @@ function DataTableInner<T>({
                 return (
                   <TableHead
                     key={colKey}
-                    onClick={() => isSortable && requestSort(colKey)}
+                    onClick={() => isSortable && handleSort(colKey)}
                     className={cn(
                       isSortable && "cursor-pointer select-none hover:bg-gray-100 transition-colors",
                       stickyHeader && "sticky top-0 bg-gray-200 z-10",

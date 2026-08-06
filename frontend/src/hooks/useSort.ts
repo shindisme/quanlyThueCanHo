@@ -49,10 +49,13 @@ export function useSort<T>(
           : (bVal ? 1 : -1);
       }
 
-      // Convert sang number nếu có thể
-      const aNum = Number(aVal);
-      const bNum = Number(bVal);
-      if (!isNaN(aNum) && !isNaN(bNum)) {
+      // Only compare as number if both are actual numbers or non-empty numeric strings
+      const isNumA = typeof aVal === "number" || (typeof aVal === "string" && aVal.trim() !== "" && !isNaN(Number(aVal)));
+      const isNumB = typeof bVal === "number" || (typeof bVal === "string" && bVal.trim() !== "" && !isNaN(Number(bVal)));
+
+      if (isNumA && isNumB) {
+        const aNum = Number(aVal);
+        const bNum = Number(bVal);
         return sortConfig.direction === "asc" ? aNum - bNum : bNum - aNum;
       }
 

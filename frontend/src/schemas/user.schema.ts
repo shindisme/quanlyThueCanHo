@@ -12,6 +12,7 @@ export const createUserSchema = userCreateSchema;
 
 export const updateUserSchema = z.object({
   username: z.string().min(3, { message: "Tên tài khoản phải từ 3 ký tự trở lên" }).optional(),
+  full_name: z.string().min(1, { message: "Họ và tên không được để trống" }).optional(),
   role: z.enum(["ADMIN", "MANAGER", "STAFF", "TENANT"] as const, { message: "Vai trò không hợp lệ" }),
   status: z.string().optional(),
 });

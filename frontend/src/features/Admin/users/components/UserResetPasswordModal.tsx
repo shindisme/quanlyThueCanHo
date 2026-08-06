@@ -16,14 +16,16 @@ export default function UserResetPasswordModal({
   user,
   loading = false,
 }: UserResetPasswordModalProps) {
+  const username = user?.username ?? "";
+
   return (
     <ConfirmDialog
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => !loading && onClose()}
       onConfirm={onConfirm}
       title="Đặt lại mật khẩu"
-      message={`Bạn có chắc chắn muốn đặt lại mật khẩu cho tài khoản "${user?.username}" không?`}
-      confirmText="Đặt lại"
+      message={`Bạn có chắc chắn muốn đặt lại mật khẩu cho tài khoản "${username}" không? Mật khẩu sẽ được khởi tạo về mặc định "123123".`}
+      confirmText="Đặt lại mật khẩu"
       isLoading={loading}
     />
   );

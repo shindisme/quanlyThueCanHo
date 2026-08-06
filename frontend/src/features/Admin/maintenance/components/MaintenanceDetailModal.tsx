@@ -3,6 +3,8 @@ import Button from "../../../../components/ui/Button";
 import Badge from "../../../../components/ui/Badge";
 import { getImageUrl } from "../../../../utils/file";
 import { formatDate } from "../../../../utils/date";
+import { formatApartmentDisplay } from "../../../../utils/string";
+import { formatCurrency } from "../../../../utils/currency";
 import {
   REQUEST_STATUS_CONFIG,
   PRIORITY_CONFIG,
@@ -30,18 +32,23 @@ function getPriorityBadge(priority: string) {
   return <Badge variant={config?.badge || "gray"}>{config?.label || priority}</Badge>;
 }
 
+const renderEmptyText = (val?: string | number | null) => {
+  if (!val && val !== 0) {
+    return <span className="text-gray-400 italic font-normal">Trống</span>;
+  }
+  return val;
+};
+
 export default function MaintenanceDetailModal({
   isOpen,
   onClose,
   detailRequest,
   role,
-  onUpdatePriority,
 }: MaintenanceDetailModalProps) {
   if (!detailRequest) return null;
 
   const canAssign = role === "ADMIN" || role === "MANAGER";
   const {
-    id,
     title,
     created_at,
     status,
@@ -53,14 +60,13 @@ export default function MaintenanceDetailModal({
     assigned_staff,
     scheduled_at,
     unable_reason,
+    charge_tenant,
+    repair_fee,
   } = detailRequest;
 
-  const handlePrioritySelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newPriority = e.target.value as Priority;
-    if (onUpdatePriority) {
-      onUpdatePriority(id, newPriority);
-    }
-  };
+  const roomDisplay = apartment
+    ? formatApartmentDisplay(apartment.room_number, apartment.floor, role as string, apartment.building?.branch_name)
+    : <span className="text-gray-400 italic font-normal">Trống</span>;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Chi Tiết Yêu Cầu Sửa Chữa" size="lg">
@@ -81,17 +87,17 @@ export default function MaintenanceDetailModal({
         <div className="grid grid-cols-12 gap-4">
           <div className="col-span-12 md:col-span-6 bg-gray-50/50 p-4 rounded-none border border-gray-200 space-y-2">
             <h5 className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Thông tin phòng thuê</h5>
-            <p><span className="font-semibold text-gray-600">Căn hộ:</span> P.{apartment?.room_number || "Chưa rõ"}</p>
-            <p><span className="font-semibold text-gray-600">Tầng:</span> Tầng {apartment?.floor || "Chưa rõ"}</p>
+            <p><span className="font-semibold text-gray-600">Căn hộ:</span> {roomDisplay}</p>
+            <p><span className="font-semibold text-gray-600">Tầng:</span> {apartment?.floor ? `Tầng ${apartment.floor}` : <span className="text-gray-400 italic font-normal">Trống</span>}</p>
             {role === "ADMIN" && (
-              <p><span className="font-semibold text-gray-600">Chi nhánh:</span> {apartment?.building?.branch_name || "Chưa rõ"}</p>
+              <p><span className="font-semibold text-gray-600">Chi nhánh:</span> {renderEmptyText(apartment?.building?.branch_name)}</p>
             )}
           </div>
           <div className="col-span-12 md:col-span-6 bg-gray-50/50 p-4 rounded-none border border-gray-200 space-y-2">
             <h5 className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Người gửi yêu cầu</h5>
-            <p><span className="font-semibold text-gray-600">Họ và tên:</span> {tenant?.full_name || "Chưa rõ"}</p>
-            <p><span className="font-semibold text-gray-600">Số điện thoại:</span> {tenant?.phone || "-"}</p>
-            <p><span className="font-semibold text-gray-600">Email:</span> {tenant?.email || "-"}</p>
+            <p><span className="font-semibold text-gray-600">Họ và tên:</span> {renderEmptyText(tenant?.full_name)}</p>
+            <p><span className="font-semibold text-gray-600">Số điện thoại:</span> {renderEmptyText(tenant?.phone)}</p>
+            <p><span className="font-semibold text-gray-600">Email:</span> {renderEmptyText(tenant?.email)}</p>
           </div>
         </div>
 
@@ -99,11 +105,11 @@ export default function MaintenanceDetailModal({
         <div className="space-y-2">
           <h5 className="font-bold text-gray-800 border-b border-gray-100 pb-1">Mô tả sự cố</h5>
           <div className="bg-white p-3.5 rounded-none border border-gray-200 text-gray-700 min-h-20 whitespace-pre-wrap leading-relaxed">
-            {description}
+            {description || <span className="text-gray-400 italic font-normal">Trống</span>}
           </div>
         </div>
 
-        {/* Image - Full 12 columns centered */}
+        {/* Image */}
         {image_url && (
           <div className="col-span-12 w-full pt-2 flex flex-col items-center justify-center text-center">
             <span className="block text-xs font-semibold text-gray-600 mb-2">Hình ảnh đính kèm chỗ hư hại</span>
@@ -128,8 +134,11 @@ export default function MaintenanceDetailModal({
           {assigned_staff ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
               <p><span className="font-semibold text-gray-600">Kỹ thuật viên:</span> {assigned_staff.full_name}</p>
-              <p><span className="font-semibold text-gray-600">Số điện thoại:</span> {assigned_staff.phone || "-"}</p>
-              <p className="col-span-1 md:col-span-2"><span className="font-semibold text-gray-600">Lịch hẹn sửa:</span> {scheduled_at ? formatDate(scheduled_at) : "-"}</p>
+              <p><span className="font-semibold text-gray-600">Số điện thoại:</span> {renderEmptyText(assigned_staff.phone)}</p>
+              <p className="col-span-1 md:col-span-2">
+                <span className="font-semibold text-gray-600">Dự kiến sửa trước ngày:</span>{" "}
+                {scheduled_at ? formatDate(scheduled_at) : <span className="text-gray-400 italic font-normal">Trống</span>}
+              </p>
             </div>
           ) : (
             <p className="text-gray-400 italic text-xs">Yêu cầu này chưa được phân công kỹ thuật viên phụ trách.</p>
@@ -141,6 +150,22 @@ export default function MaintenanceDetailModal({
             </div>
           )}
         </div>
+
+        {/* Chi phí sửa chữa */}
+        {(status === "DONE" || charge_tenant !== undefined) && (
+          <div className="bg-gray-50/50 p-4 rounded-none border border-gray-200 space-y-1">
+            <h5 className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Chi phí sửa chữa</h5>
+            {charge_tenant ? (
+              <p className="text-amber-700 font-bold text-sm">
+                <span className="font-semibold text-gray-600">Loại chi phí:</span> Có tính phí ({formatCurrency(repair_fee || 0)})
+              </p>
+            ) : (
+              <p className="text-emerald-700 font-bold text-sm">
+                <span className="font-semibold text-gray-600">Loại chi phí:</span> Không tính phí
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Footer */}
         <div className="flex justify-end pt-3 border-t border-gray-100">
