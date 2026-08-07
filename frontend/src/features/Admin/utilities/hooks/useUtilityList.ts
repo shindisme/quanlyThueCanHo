@@ -1,11 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "../../../../stores/auth.store";
 import { useSort } from "../../../../hooks/useSort";
 import { useDebounce } from "../../../../hooks/useDebounce";
 import { usePagination } from "../../../../hooks/usePagination";
-import { removeVietnameseTones } from "../../../../utils/string";
+import { removeVietnameseTones, formatApartmentDisplay } from "../../../../utils/string";
+import { getMonthOptions, getYearOptions } from "../../../../utils/date";
+import { getApiErrorMessage } from "../../../../utils/apiError";
+import { QUERY_KEYS } from "../../../../constants/queryKeys";
 import * as utilityService from "../../../../services/utilityService";
 import type { UtilityReadingData } from "../../../../services/utilityService";
 import * as buildingService from "../../../../services/buildingService";
@@ -13,13 +16,12 @@ import * as apartmentService from "../../../../services/apartmentService";
 import type { ApartmentData } from "../../../../services/apartmentService";
 import * as maintenanceService from "../../../../services/maintenanceService";
 import { isUtilityTrackedApartment } from "../utils/utilityApartment";
+import { getFloorOptions } from "../utils/utilityForm";
 
 export function useUtilityList() {
-  const queryClient = useQueryClient();
   const { role, managedBuildingId, email, token, setAuth } = useAuthStore();
-  const isWritable = role === "ADMIN" || role === "MANAGER" || role === "STAFF";
+  const isWritable = role === "MANAGER" || role === "STAFF";
 
-  // Fallback fetching building assignment via maintenance requests if building ID not saved in local storage yet
   const { data: maintenanceData } = useQuery({
     queryKey: ["maintenanceRequestsFallback"],
     queryFn: () => maintenanceService.getAll({ limit: 50 }),
@@ -56,7 +58,6 @@ export function useUtilityList() {
   const [editItem, setEditItem] = useState<UtilityReadingData | null>(null);
   const [isViewOnly, setIsViewOnly] = useState(false);
   const [preselectedApartment, setPreselectedApartment] = useState<ApartmentData | null>(null);
-  const [deleteItem, setDeleteItem] = useState<UtilityReadingData | null>(null);
 
   const selectedMonth = Number(filterMonth) || undefined;
   const selectedYear = Number(filterYear) || undefined;
@@ -71,14 +72,14 @@ export function useUtilityList() {
   if (selectedBuildingId !== undefined) readingsParams.building_id = selectedBuildingId;
 
   const { data: readingsRes, isLoading: loadingReadings, refetch: refetchReadings } = useQuery({
-    queryKey: ["utilityReadings", role, managedBuildingId, filterBuilding, filterMonth, filterYear],
+    queryKey: [...QUERY_KEYS.UTILITIES, role, managedBuildingId, filterBuilding, filterMonth, filterYear],
     queryFn: () => utilityService.getAllPage(readingsParams),
     select: (res) => res.data,
   });
   const readings = readingsRes || [];
 
   const { data: buildings = [], isLoading: loadingBuildings, refetch: refetchBuildings } = useQuery({
-    queryKey: ["buildings"],
+    queryKey: QUERY_KEYS.BUILDINGS,
     queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data,
   });
@@ -89,7 +90,7 @@ export function useUtilityList() {
   }
 
   const { data: apartments = [], isLoading: loadingApartments, refetch: refetchApartments } = useQuery({
-    queryKey: ["apartments", role, managedBuildingId],
+    queryKey: [...QUERY_KEYS.APARTMENTS, role, managedBuildingId],
     queryFn: () => apartmentService.getAllPage(aptParams),
     select: (res) => res.data,
   });
@@ -105,8 +106,7 @@ export function useUtilityList() {
         refetchApartments(),
       ]);
     } catch (error) {
-      toast.error("Không thể tải dữ liệu điện nước");
-      console.error(error);
+      toast.error(getApiErrorMessage(error, "Không thể tải dữ liệu điện nước"));
     }
   }, [refetchReadings, refetchBuildings, refetchApartments]);
 
@@ -128,57 +128,56 @@ export function useUtilityList() {
     setShowModifyModal(true);
   };
 
-  const handleOpenDeleteModal = (item: UtilityReadingData) => {
-    setDeleteItem(item);
-  };
-
-  // Confirm delete handler
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => utilityService.remove(id),
-    onSuccess: () => {
-      toast.success("Xóa chỉ số điện nước thành công");
-      setDeleteItem(null);
-      queryClient.invalidateQueries({ queryKey: ["utilityReadings"] });
-    },
-    onError: (error: unknown) => {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Không thể xóa bản ghi");
-    }
-  });
-
-  const handleConfirmDelete = () => {
-    if (!deleteItem) return;
-    deleteMutation.mutate(deleteItem.id);
-  };
-
   // Filter logic
-  const filteredRentedApartments = (apartments as ApartmentData[]).filter((apt: ApartmentData) => {
-    const term = removeVietnameseTones(debouncedSearch);
-    const roomNorm = removeVietnameseTones(apt.room_number || "");
-    const buildingNorm = removeVietnameseTones(apt.building?.branch_name || "");
+  const filteredRentedApartments = useMemo(() => {
+    const term = removeVietnameseTones(debouncedSearch.trim());
+    return (apartments as ApartmentData[]).filter((apt: ApartmentData) => {
+      const roomNorm = removeVietnameseTones(apt.room_number || "");
+      const buildingNorm = removeVietnameseTones(apt.building?.branch_name || "");
 
-    const matchesSearch = roomNorm.includes(term) || buildingNorm.includes(term);
-    const matchesBuilding = !filterBuilding || apt.building_id === Number(filterBuilding);
-    const matchesFloor = !filterFloor || apt.floor === Number(filterFloor);
-    const isRented = isUtilityTrackedApartment(apt.status);
+      const matchesSearch = !term || roomNorm.includes(term) || buildingNorm.includes(term);
+      const matchesBuilding = !filterBuilding || apt.building_id === Number(filterBuilding);
+      const matchesFloor = !filterFloor || apt.floor === Number(filterFloor);
+      const isRented = isUtilityTrackedApartment(apt.status);
 
-    return matchesSearch && matchesBuilding && matchesFloor && isRented;
-  });
+      return matchesSearch && matchesBuilding && matchesFloor && isRented;
+    });
+  }, [apartments, debouncedSearch, filterBuilding, filterFloor]);
 
-  const defaultSorted = [...filteredRentedApartments].sort((a, b) => {
-    const branchA = a.building?.branch_name || "";
-    const branchB = b.building?.branch_name || "";
-    const branchCompare = branchA.localeCompare(branchB, "vi");
-    if (branchCompare !== 0) return branchCompare;
+  const defaultSorted = useMemo(() => {
+    return [...filteredRentedApartments].sort((a, b) => {
+      const branchA = a.building?.branch_name || "";
+      const branchB = b.building?.branch_name || "";
+      const branchCompare = branchA.localeCompare(branchB, "vi");
+      if (branchCompare !== 0) return branchCompare;
 
-    if (a.floor !== b.floor) return a.floor - b.floor;
+      if (a.floor !== b.floor) return a.floor - b.floor;
 
-    const roomA = String(a.room_number);
-    const roomB = String(b.room_number);
-    return roomA.localeCompare(roomB, undefined, { numeric: true });
-  });
+      const roomA = String(a.room_number);
+      const roomB = String(b.room_number);
+      return roomA.localeCompare(roomB, undefined, { numeric: true });
+    });
+  }, [filteredRentedApartments]);
 
-  const { items: sortedApartments, requestSort, getSortIcon } = useSort(defaultSorted);
+  const aptIndexMap = useMemo(() => {
+    const map = new Map<number, number>();
+    defaultSorted.forEach((item, idx) => map.set(item.id, idx + 1));
+    return map;
+  }, [defaultSorted]);
+
+  const customExtractors = useMemo(
+    () => ({
+      index: (apt: ApartmentData) => aptIndexMap.get(apt.id) ?? apt.id,
+      room: (apt: ApartmentData) => formatApartmentDisplay(apt.room_number, apt.floor),
+    }),
+    [aptIndexMap]
+  );
+
+  const { items: sortedApartments, requestSort, getSortIcon, sortConfig } = useSort(
+    defaultSorted,
+    null,
+    customExtractors
+  );
 
   const {
     currentPage,
@@ -211,32 +210,10 @@ export function useUtilityList() {
     return false;
   };
 
-  // Helper options for filtering
-  const filterFloorOptions = (() => {
-    if (!filterBuilding) return [];
-    const b = buildings.find((x) => x.id === Number(filterBuilding));
-    if (!b) return [];
-    return Array.from({ length: b.total_floors }, (_, i) => ({
-      value: String(i + 1),
-      label: `Tầng ${i + 1}`,
-    }));
-  })();
-
-  const getMonthOptions = () => {
-    return Array.from({ length: 12 }).map((_, idx) => ({
-      value: String(idx + 1),
-      label: `Tháng ${idx + 1}`,
-    }));
-  };
-
-  const getYearOptions = () => {
-    const yearsFromReadings = readings.map((r) => r.year);
-    const currentYear = new Date().getFullYear();
-    const uniqueYears = Array.from(new Set([...yearsFromReadings, currentYear]));
-    return uniqueYears
-      .sort((a, b) => b - a)
-      .map((y) => ({ value: String(y), label: `Năm ${y}` }));
-  };
+  const filterFloorOptions = useMemo(
+    () => getFloorOptions(buildings, filterBuilding),
+    [buildings, filterBuilding]
+  );
 
   return {
     role,
@@ -269,16 +246,13 @@ export function useUtilityList() {
     setIsViewOnly,
     preselectedApartment,
     setPreselectedApartment,
-    deleteItem,
-    setDeleteItem,
     // Handlers
     fetchData,
     handleOpenCreateModal,
     handleOpenModifyModal,
-    handleOpenDeleteModal,
-    handleConfirmDelete,
     filteredRentedApartments,
     paginatedApartments,
+    sortConfig,
     requestSort,
     getSortIcon,
     totalPages,

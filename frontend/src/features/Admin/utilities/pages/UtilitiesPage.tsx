@@ -6,7 +6,6 @@ import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import UtilityList from "../components/UtilityList";
 import UtilityCreateModal from "../components/UtilityCreateModal";
 import UtilityModifyModal from "../components/UtilityModifyModal";
-import UtilityDeleteModal from "../components/UtilityDeleteModal";
 import { useUtilityList } from "../hooks/useUtilityList";
 
 export default function UtilitiesPage() {
@@ -38,15 +37,13 @@ export default function UtilitiesPage() {
     setEditItem,
     isViewOnly,
     preselectedApartment,
-    deleteItem,
-    setDeleteItem,
     fetchData,
     handleOpenCreateModal,
     handleOpenModifyModal,
-    handleOpenDeleteModal,
-    handleConfirmDelete,
     filteredRentedApartments,
     paginatedApartments,
+    sortConfig,
+    requestSort,
     totalPages,
     pageSize,
     isLockedMonth,
@@ -160,11 +157,12 @@ export default function UtilitiesPage() {
         filterYear={filterYear}
         currentPage={currentPage}
         pageSize={pageSize}
+        sortConfig={sortConfig}
+        onSort={requestSort}
         isLockedMonth={isLockedMonth}
         isWritable={isWritable}
         handleOpenCreateModal={handleOpenCreateModal}
         handleOpenModifyModal={handleOpenModifyModal}
-        handleOpenDeleteModal={handleOpenDeleteModal}
         role={role}
       />
 
@@ -196,13 +194,6 @@ export default function UtilitiesPage() {
         isViewOnly={isViewOnly}
         buildings={buildings}
         apartments={apartments}
-      />
-
-      <UtilityDeleteModal
-        isOpen={deleteItem !== null}
-        onClose={() => setDeleteItem(null)}
-        onConfirm={handleConfirmDelete}
-        item={deleteItem}
       />
     </div>
   );

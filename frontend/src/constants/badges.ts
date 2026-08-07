@@ -7,6 +7,7 @@ import type {
   ContractStatus,
   InvoiceStatus,
   InvoiceType,
+  PaymentMethod,
   PaymentStatus,
   ReservationStatus,
   Priority,
@@ -26,6 +27,7 @@ import {
   CONTRACT_STATUS_LABELS,
   INVOICE_STATUS_LABELS,
   INVOICE_TYPE_LABELS,
+  PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
   RESERVATION_STATUS_LABELS,
   PRIORITY_LABELS,
@@ -43,6 +45,12 @@ export const ROLE_COLORS: Record<Role, BadgeVariant> = {
   MANAGER: "warning",
   STAFF: "info",
   TENANT: "success",
+};
+
+export const USER_STATUS_COLORS: Record<UserStatus, BadgeVariant> = {
+  ACTIVE: "success",
+  INACTIVE: "gray",
+  BANNED: "danger",
 };
 
 export const BUILDING_STATUS_COLORS: Record<BuildingStatus, BadgeVariant> = {
@@ -76,6 +84,12 @@ export const INVOICE_TYPE_COLORS: Record<InvoiceType, BadgeVariant> = {
   MONTHLY: "default",
   MAINTENANCE: "warning",
   FINAL_SETTLEMENT: "gray",
+};
+
+export const PAYMENT_METHOD_COLORS: Record<PaymentMethod, BadgeVariant> = {
+  BANK_TRANSFER: "info",
+  E_WALLET: "success",
+  CASH: "gray",
 };
 
 export const PAYMENT_STATUS_COLORS: Record<PaymentStatus, BadgeVariant> = {
@@ -152,9 +166,9 @@ export const ROLE_CONFIG: Record<Role, { label: string; badge: BadgeVariant }> =
 } as const;
 
 export const USER_STATUS_CONFIG: Record<UserStatus, { label: string; badge: BadgeVariant }> = {
-  ACTIVE: { label: USER_STATUS_LABELS.ACTIVE, badge: "success" },
-  INACTIVE: { label: USER_STATUS_LABELS.INACTIVE, badge: "gray" },
-  BANNED: { label: USER_STATUS_LABELS.BANNED, badge: "danger" },
+  ACTIVE: { label: USER_STATUS_LABELS.ACTIVE, badge: USER_STATUS_COLORS.ACTIVE },
+  INACTIVE: { label: USER_STATUS_LABELS.INACTIVE, badge: USER_STATUS_COLORS.INACTIVE },
+  BANNED: { label: USER_STATUS_LABELS.BANNED, badge: USER_STATUS_COLORS.BANNED },
 } as const;
 
 export const BUILDING_STATUS_CONFIG: Record<BuildingStatus, { label: string; badge: BadgeVariant }> = {
@@ -190,6 +204,12 @@ export const INVOICE_TYPE_CONFIG: Record<InvoiceType, { label: string; badge: Ba
   FINAL_SETTLEMENT: { label: INVOICE_TYPE_LABELS.FINAL_SETTLEMENT, badge: INVOICE_TYPE_COLORS.FINAL_SETTLEMENT },
 } as const;
 
+export const PAYMENT_METHOD_CONFIG: Record<PaymentMethod, { label: string; badge: BadgeVariant }> = {
+  BANK_TRANSFER: { label: PAYMENT_METHOD_LABELS.BANK_TRANSFER, badge: PAYMENT_METHOD_COLORS.BANK_TRANSFER },
+  E_WALLET: { label: PAYMENT_METHOD_LABELS.E_WALLET, badge: PAYMENT_METHOD_COLORS.E_WALLET },
+  CASH: { label: PAYMENT_METHOD_LABELS.CASH, badge: PAYMENT_METHOD_COLORS.CASH },
+} as const;
+
 export const PAYMENT_STATUS_CONFIG: Record<PaymentStatus, { label: string; badge: BadgeVariant }> = {
   PENDING: { label: PAYMENT_STATUS_LABELS.PENDING, badge: PAYMENT_STATUS_COLORS.PENDING },
   SUCCESS: { label: PAYMENT_STATUS_LABELS.SUCCESS, badge: PAYMENT_STATUS_COLORS.SUCCESS },
@@ -209,7 +229,6 @@ export const PRIORITY_CONFIG: Record<Priority, { label: string; badge: BadgeVari
   HIGH: { label: PRIORITY_LABELS.HIGH, badge: PRIORITY_COLORS.HIGH },
 } as const;
 
-
 export const REQUEST_STATUS_CONFIG: Record<RequestStatus, { label: string; badge: BadgeVariant }> = {
   PENDING: { label: REQUEST_STATUS_LABELS.PENDING, badge: REQUEST_STATUS_COLORS.PENDING },
   PROCESSING: { label: REQUEST_STATUS_LABELS.PROCESSING, badge: REQUEST_STATUS_COLORS.PROCESSING },
@@ -217,7 +236,6 @@ export const REQUEST_STATUS_CONFIG: Record<RequestStatus, { label: string; badge
   CANCELLED: { label: REQUEST_STATUS_LABELS.CANCELLED, badge: REQUEST_STATUS_COLORS.CANCELLED },
   NEEDS_RESCHEDULE: { label: REQUEST_STATUS_LABELS.NEEDS_RESCHEDULE, badge: REQUEST_STATUS_COLORS.NEEDS_RESCHEDULE },
 } as const;
-
 
 export const SCHEDULE_STATUS_CONFIG: Record<ScheduleStatus, { label: string; badge: BadgeVariant }> = {
   PENDING: { label: SCHEDULE_STATUS_LABELS.PENDING, badge: SCHEDULE_STATUS_COLORS.PENDING },

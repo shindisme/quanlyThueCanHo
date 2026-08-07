@@ -44,3 +44,32 @@ export function formatTimeAgo(dateStr: string): string {
   if (diffDays < 7) return `${diffDays} ngày trước`;
   return date.toLocaleDateString("vi-VN");
 }
+
+export function getDayOptions() {
+  return Array.from({ length: 31 }, (_, idx) => ({
+    value: String(idx + 1),
+    label: `Ngày ${idx + 1}`,
+  }));
+}
+
+export function getMonthOptions() {
+  return Array.from({ length: 12 }, (_, idx) => ({
+    value: String(idx + 1),
+    label: `Tháng ${idx + 1}`,
+  }));
+}
+
+export function getYearOptions(startYear = 2024) {
+  const currentYear = new Date().getFullYear();
+  const years: { value: string; label: string }[] = [];
+  for (let y = startYear; y <= currentYear + 1; y++) {
+    years.push({ value: String(y), label: `Năm ${y}` });
+  }
+  return years.reverse();
+}
+
+export function getPreviousMonth(month: number, year: number): { previousMonth: number; previousYear: number } {
+  const previousMonth = month === 1 ? 12 : month - 1;
+  const previousYear = month === 1 ? year - 1 : year;
+  return { previousMonth, previousYear };
+}

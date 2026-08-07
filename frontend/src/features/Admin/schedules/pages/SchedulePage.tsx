@@ -1,4 +1,5 @@
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
+import { getDayOptions, getMonthOptions, getYearOptions } from "../../../../utils/date";
 import PageHeader from "../../../../components/layout/PageHeader";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Combobox from "../../../../components/ui/Combobox";
@@ -50,21 +51,9 @@ export default function SchedulePage() {
     return <LoadingSpinner />;
   }
 
-  const daysOptions = Array.from({ length: 31 }, (_, i) => ({
-    value: String(i + 1),
-    label: `Ngày ${i + 1}`,
-  }));
-
-  const monthsOptions = Array.from({ length: 12 }, (_, i) => ({
-    value: String(i + 1),
-    label: `Tháng ${i + 1}`,
-  }));
-
-  const currentYear = new Date().getFullYear();
-  const yearsOptions = Array.from({ length: 5 }, (_, i) => ({
-    value: String(currentYear - 2 + i),
-    label: `Năm ${currentYear - 2 + i}`,
-  }));
+  const daysOptions = getDayOptions();
+  const monthsOptions = getMonthOptions();
+  const yearsOptions = getYearOptions();
 
   const statusOptions = [
     { value: "PENDING", label: "Chờ duyệt" },
@@ -77,55 +66,85 @@ export default function SchedulePage() {
       <PageHeader
         title="Quản lý lịch xem phòng"
         subtitle={`Quản lý ${schedules.length} lịch đặt hẹn xem phòng`}
+        count={filtered.length}
+        actions={
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <SearchInput
+              value={search}
+              onChange={(v) => {
+                setSearch(v);
+                setCurrentPage(1);
+              }}
+              placeholder="Tìm theo khách, SĐT, phòng, tòa nhà..."
+              className="w-64 sm:w-80 flex-1 min-w-0"
+            />
+          </div>
+        }
       />
 
-      {/* Filters */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 bg-white p-4 rounded-2xl border border-gray-100 shadow-xs">
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Tìm theo khách, SĐT, phòng, tòa nhà..."
-          className="w-full md:col-span-1"
-        />
+      {/* Filters Bar */}
+      <div className="grid grid-cols-12 gap-3 w-full">
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
+          <Combobox
+            options={statusOptions}
+            value={statusFilter}
+            onChange={(val) => {
+              setStatusFilter(val);
+              setCurrentPage(1);
+            }}
+            placeholder="Tất cả trạng thái"
+            className="w-full"
+            triggerClassName="h-10 border-gray-300"
+            clearable={true}
+          />
+        </div>
 
-        <Combobox
-          options={statusOptions}
-          value={statusFilter}
-          onChange={setStatusFilter}
-          placeholder="Tất cả trạng thái"
-          triggerClassName="h-10 rounded-xl border-gray-300"
-          clearable={true}
-        />
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
+          <Combobox
+            options={daysOptions}
+            value={filterDay}
+            onChange={(val) => {
+              setFilterDay(val);
+              setCurrentPage(1);
+            }}
+            placeholder="Tất cả ngày"
+            className="w-full"
+            triggerClassName="h-10 border-gray-300"
+            clearable={true}
+          />
+        </div>
 
-        <Combobox
-          options={daysOptions}
-          value={filterDay}
-          onChange={setFilterDay}
-          placeholder="Tất cả ngày"
-          triggerClassName="h-10 rounded-xl border-gray-300"
-          clearable={true}
-        />
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
+          <Combobox
+            options={monthsOptions}
+            value={filterMonth}
+            onChange={(val) => {
+              setFilterMonth(val);
+              setCurrentPage(1);
+            }}
+            placeholder="Tất cả tháng"
+            className="w-full"
+            triggerClassName="h-10 border-gray-300"
+            clearable={true}
+          />
+        </div>
 
-        <Combobox
-          options={monthsOptions}
-          value={filterMonth}
-          onChange={setFilterMonth}
-          placeholder="Tất cả tháng"
-          triggerClassName="h-10 rounded-xl border-gray-300"
-          clearable={true}
-        />
-
-        <Combobox
-          options={yearsOptions}
-          value={filterYear}
-          onChange={setFilterYear}
-          placeholder="Tất cả năm"
-          triggerClassName="h-10 rounded-xl border-gray-300"
-          clearable={true}
-        />
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
+          <Combobox
+            options={yearsOptions}
+            value={filterYear}
+            onChange={(val) => {
+              setFilterYear(val);
+              setCurrentPage(1);
+            }}
+            placeholder="Tất cả năm"
+            className="w-full"
+            triggerClassName="h-10 border-gray-300"
+            clearable={true}
+          />
+        </div>
       </div>
 
-      {/* Schedule Table Component */}
       <ScheduleList
         schedules={filtered}
         currentPage={currentPage}

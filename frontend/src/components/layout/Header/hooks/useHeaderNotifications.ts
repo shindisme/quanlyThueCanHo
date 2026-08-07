@@ -18,7 +18,7 @@ export function useHeaderNotifications(): HeaderNotificationsResult {
 
   const { data: notifData, isLoading } = useQuery({
     queryKey: queryKeys.notifications.all,
-    queryFn: () => notificationService.getAllNotifications({ limit: 5 }),
+    queryFn: () => notificationService.getAll({ limit: 5 }),
     refetchInterval: 30000,
     staleTime: 10000,
     refetchOnWindowFocus: true,

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
@@ -6,7 +7,6 @@ import { formatApartmentDisplay } from "../../../../utils/string";
 import { useUtilityCreate } from "../hooks/useUtilityCreate";
 import type { BuildingData } from "../../../../services/buildingService";
 import type { ApartmentData } from "../../../../services/apartmentService";
-import { isUtilityTrackedApartment } from "../utils/utilityApartment";
 
 interface UtilityCreateModalProps {
   isOpen: boolean;
@@ -47,6 +47,7 @@ export default function UtilityCreateModal({
     waterOld,
     waterNew,
     setWaterNew,
+    modalApartmentOptions,
     handleCreateUtilityReading,
   } = useUtilityCreate({
     isOpen,
@@ -61,21 +62,12 @@ export default function UtilityCreateModal({
     managedBuildingId,
   });
 
-  const selectedApt = preselectedApartment || apartments.find((a) => String(a.id) === apartmentId);
+  const selectedApt = useMemo(
+    () => preselectedApartment || apartments.find((a) => String(a.id) === apartmentId),
+    [preselectedApartment, apartments, apartmentId]
+  );
 
-  const apartmentOptions = apartments
-    .filter((apt) => {
-      const matchBuilding = role !== "ADMIN" && managedBuildingId ? apt.building_id === managedBuildingId : true;
-      return matchBuilding && isUtilityTrackedApartment(apt.status);
-    })
-    .map((apt) => {
-      const room = formatApartmentDisplay(apt.room_number, apt.floor);
-      const bldName = apt.building?.branch_name ? ` (${apt.building.branch_name})` : "";
-      return {
-        value: String(apt.id),
-        label: `${room}${bldName}`,
-      };
-    });
+  const isSubmitDisabled = saving || !electricNew || !waterNew || (!preselectedApartment && !apartmentId);
 
   return (
     <Modal
@@ -87,7 +79,7 @@ export default function UtilityCreateModal({
           <Button variant="outline" onClick={onClose}>
             Hủy
           </Button>
-          <Button onClick={handleCreateUtilityReading} isLoading={saving}>
+          <Button onClick={handleCreateUtilityReading} isLoading={saving} disabled={isSubmitDisabled}>
             Lưu thông tin
           </Button>
         </>
@@ -117,7 +109,7 @@ export default function UtilityCreateModal({
             </div>
           ) : (
             <Combobox
-              options={apartmentOptions}
+              options={modalApartmentOptions}
               value={apartmentId}
               onChange={(val) => {
                 setApartmentId(val);

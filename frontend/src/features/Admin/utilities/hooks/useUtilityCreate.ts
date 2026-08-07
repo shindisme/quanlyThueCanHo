@@ -1,11 +1,18 @@
-import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useCallback } from "react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { utilitySchema } from "../../../../schemas/utility.schema";
 import * as utilityService from "../../../../services/utilityService";
 import type { BuildingData } from "../../../../services/buildingService";
 import type { ApartmentData } from "../../../../services/apartmentService";
-import { isUtilityTrackedApartment } from "../utils/utilityApartment";
+import { getMonthOptions, getYearOptions, getPreviousMonth } from "../../../../utils/date";
+import { getApiErrorMessage } from "../../../../utils/apiError";
+import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import {
+  type UtilityFormData,
+  useUtilityOptions,
+  buildUtilityPayload,
+  validateUtilityPayload,
+} from "../utils/utilityForm";
 
 interface UseUtilityCreateProps {
   isOpen: boolean;
@@ -20,6 +27,8 @@ interface UseUtilityCreateProps {
   managedBuildingId: number | null;
 }
 
+type CreatePayload = Parameters<typeof utilityService.create>[0];
+
 export function useUtilityCreate({
   isOpen,
   onClose,
@@ -33,182 +42,153 @@ export function useUtilityCreate({
   managedBuildingId,
 }: UseUtilityCreateProps) {
   const queryClient = useQueryClient();
+
+  const [formData, setFormData] = useState<UtilityFormData>({
+    buildingId: "",
+    floor: "",
+    apartmentId: "",
+    month: defaultMonth,
+    year: defaultYear,
+    electricOld: "",
+    electricNew: "",
+    waterOld: "",
+    waterNew: "",
+  });
+
+  // Handler cập nhật từng trường dữ liệu form
+  const updateFormField = useCallback(<K extends keyof UtilityFormData>(field: K, value: UtilityFormData[K]) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  }, []);
+
+  // Handler reset form về trạng thái mặc định
+  const resetForm = useCallback(() => {
+    setFormData({
+      buildingId: role !== "ADMIN" && managedBuildingId ? String(managedBuildingId) : "",
+      floor: "",
+      apartmentId: "",
+      month: defaultMonth,
+      year: defaultYear,
+      electricOld: "",
+      electricNew: "",
+      waterOld: "",
+      waterNew: "",
+    });
+  }, [role, managedBuildingId, defaultMonth, defaultYear]);
+
+  // Reset và cập nhật form state khi mở modal hoặc thay đổi căn hộ chọn trước
+  useEffect(() => {
+    if (isOpen) {
+      if (preselectedApartment) {
+        setFormData({
+          buildingId: String(preselectedApartment.building_id),
+          floor: String(preselectedApartment.floor),
+          apartmentId: String(preselectedApartment.id),
+          month: defaultMonth,
+          year: defaultYear,
+          electricOld: "",
+          electricNew: "",
+          waterOld: "",
+          waterNew: "",
+        });
+      } else {
+        resetForm();
+      }
+    } else {
+      resetForm();
+    }
+  }, [isOpen, preselectedApartment, defaultMonth, defaultYear, resetForm]);
+
+  // Lấy chỉ số điện nước kỳ trước tự động
+  const { previousMonth, previousYear } = getPreviousMonth(formData.month, formData.year);
+  const selectedApartmentId = formData.apartmentId ? Number(formData.apartmentId) : null;
+
+  const { data: prevReading } = useQuery({
+    queryKey: ["previousUtilityReading", selectedApartmentId, previousMonth, previousYear],
+    queryFn: async () => {
+      if (!selectedApartmentId) return null;
+      const result = await utilityService.getAll({
+        apartment_id: selectedApartmentId,
+        month: previousMonth,
+        year: previousYear,
+        limit: 1,
+      });
+      return result.data[0] || null;
+    },
+    enabled: isOpen && !!selectedApartmentId,
+  });
+
+  useEffect(() => {
+    if (!isOpen || !selectedApartmentId) return;
+    if (prevReading) {
+      setFormData((prev) => ({
+        ...prev,
+        electricOld: String(Math.round(Number(prevReading.electric_new))),
+        waterOld: String(Math.round(Number(prevReading.water_new))),
+      }));
+    } else if (prevReading === null) {
+      setFormData((prev) => ({
+        ...prev,
+        electricOld: "0",
+        waterOld: "0",
+      }));
+    }
+  }, [prevReading, isOpen, selectedApartmentId]);
+
+  const { buildingOptions, floorOptions, modalApartmentOptions } = useUtilityOptions(
+    buildings,
+    apartments,
+    formData.buildingId,
+    formData.floor
+  );
+
   const createMutation = useMutation({
-    mutationFn: (data: Parameters<typeof utilityService.create>[0]) => utilityService.create(data),
+    mutationFn: (data: CreatePayload) => utilityService.create(data),
     onSuccess: () => {
       toast.success("Thêm chỉ số điện nước thành công");
-      setElectricOld("");
-      setElectricNew("");
-      setWaterOld("");
-      setWaterNew("");
-      queryClient.invalidateQueries({ queryKey: ["utilityReadings"] });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.UTILITIES });
+      resetForm();
       onSuccess();
       onClose();
     },
     onError: (error: unknown) => {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Không thể lưu chỉ số");
-    }
+      toast.error(getApiErrorMessage(error, "Không thể lưu chỉ số"));
+    },
   });
-  const saving = createMutation.isPending;
-  const [buildingId, setBuildingId] = useState<string>("");
-  const [floor, setFloor] = useState<string>("");
-  const [apartmentId, setApartmentId] = useState<string>("");
-  const [month, setMonth] = useState<number>(defaultMonth);
-  const [year, setYear] = useState<number>(defaultYear);
-  const [electricOld, setElectricOld] = useState<string>("");
-  const [electricNew, setElectricNew] = useState<string>("");
-  const [waterOld, setWaterOld] = useState<string>("");
-  const [waterNew, setWaterNew] = useState<string>("");
 
-  useEffect(() => {
-    if (isOpen) {
-      if (preselectedApartment) {
-        setBuildingId(String(preselectedApartment.building_id));
-        setFloor(String(preselectedApartment.floor));
-        setApartmentId(String(preselectedApartment.id));
-      } else {
-        const defaultBId = role !== "ADMIN" && managedBuildingId ? String(managedBuildingId) : "";
-        setBuildingId(defaultBId);
-        setFloor("");
-        setApartmentId("");
-      }
-      setMonth(defaultMonth);
-      setYear(defaultYear);
-      setElectricOld("");
-      setElectricNew("");
-      setWaterOld("");
-      setWaterNew("");
-    }
-  }, [isOpen, preselectedApartment, defaultMonth, defaultYear, role, managedBuildingId]);
-
-  // Autofill old indices from the previous month reading.
-  useEffect(() => {
-    if (!apartmentId || !isOpen) {
-      setElectricOld("");
-      setWaterOld("");
-      return;
-    }
-
-    const previousMonth = month === 1 ? 12 : month - 1;
-    const previousYear = month === 1 ? year - 1 : year;
-    let cancelled = false;
-
-    setElectricOld("");
-    setWaterOld("");
-
-    utilityService.getAll({
-      apartment_id: Number(apartmentId),
-      month: previousMonth,
-      year: previousYear,
-      limit: 1,
-    }).then((result) => {
-      if (cancelled) return;
-
-      const previousReading = result.data[0];
-      setElectricOld(previousReading ? String(Math.round(Number(previousReading.electric_new))) : "0");
-      setWaterOld(previousReading ? String(Math.round(Number(previousReading.water_new))) : "0");
-    }).catch((error) => {
-      if (cancelled) return;
-
-      console.error(error);
-      toast.error("Không thể lấy chỉ số điện nước kỳ trước");
-      setElectricOld("0");
-      setWaterOld("0");
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [apartmentId, isOpen, month, year]);
-
-  function handleCreateUtilityReading() {
-    if (electricOld === "" || waterOld === "") {
+  const handleCreateUtilityReading = () => {
+    if (formData.electricOld === "" || formData.waterOld === "") {
       toast.error("Đang lấy chỉ số điện nước kỳ trước");
       return;
     }
 
-    const payload = {
-      apartment_id: apartmentId ? Number(apartmentId) : 0,
-      month: month,
-      year: year,
-      electric_old: Math.round(Number(electricOld || 0)),
-      electric_new: Math.round(Number(electricNew || 0)),
-      water_old: Math.round(Number(waterOld || 0)),
-      water_new: Math.round(Number(waterNew || 0)),
-    };
-
-    const validationResult = utilitySchema.safeParse(payload);
-    if (!validationResult.success) {
-      toast.error(validationResult.error.issues[0].message);
+    const payload = buildUtilityPayload(formData);
+    const validation = validateUtilityPayload(payload);
+    if (!validation.success) {
+      toast.error(validation.message || "Thông tin không hợp lệ");
       return;
     }
+
     createMutation.mutate(payload);
-  }
-
-  // Helpers
-  const getMonthOptions = () => {
-    return Array.from({ length: 12 }).map((_, idx) => ({
-      value: String(idx + 1),
-      label: `Tháng ${idx + 1}`,
-    }));
   };
-
-  const getYearOptions = () => {
-    const startYear = 2024;
-    const currentYear = new Date().getFullYear();
-    const years = [];
-    for (let y = startYear; y <= currentYear + 1; y++) {
-      years.push({ value: String(y), label: `Năm ${y}` });
-    }
-    return years.reverse();
-  };
-
-  const buildingOptions = buildings.map((b) => ({
-    value: String(b.id),
-    label: b.branch_name,
-  }));
-
-  const floorOptions = (() => {
-    if (!buildingId) return [];
-    const b = buildings.find((x) => x.id === Number(buildingId));
-    if (!b) return [];
-    return Array.from({ length: b.total_floors }, (_, i) => ({
-      value: String(i + 1),
-      label: `Tầng ${i + 1}`,
-    }));
-  })();
-
-  const modalApartmentOptions = apartments
-    .filter((apt) => {
-      const matchBuilding = !buildingId || apt.building_id === Number(buildingId);
-      const matchFloor = !floor || apt.floor === Number(floor);
-      const isRented = isUtilityTrackedApartment(apt.status);
-      return matchBuilding && matchFloor && isRented;
-    })
-    .map((apt) => ({
-      value: String(apt.id),
-      label: `P.${apt.floor}${apt.room_number}`,
-    }));
 
   return {
-    saving,
-    buildingId,
-    setBuildingId,
-    floor,
-    setFloor,
-    apartmentId,
-    setApartmentId,
-    month,
-    setMonth,
-    year,
-    setYear,
-    electricOld,
-    electricNew,
-    setElectricNew,
-    waterOld,
-    waterNew,
-    setWaterNew,
+    saving: createMutation.isPending,
+    buildingId: formData.buildingId,
+    setBuildingId: (val: string) => updateFormField("buildingId", val),
+    floor: formData.floor,
+    setFloor: (val: string) => updateFormField("floor", val),
+    apartmentId: formData.apartmentId,
+    setApartmentId: (val: string) => updateFormField("apartmentId", val),
+    month: formData.month,
+    setMonth: (val: number) => updateFormField("month", val),
+    year: formData.year,
+    setYear: (val: number) => updateFormField("year", val),
+    electricOld: formData.electricOld,
+    electricNew: formData.electricNew,
+    setElectricNew: (val: string) => updateFormField("electricNew", val),
+    waterOld: formData.waterOld,
+    waterNew: formData.waterNew,
+    setWaterNew: (val: string) => updateFormField("waterNew", val),
     handleCreateUtilityReading,
     getMonthOptions,
     getYearOptions,
