@@ -41,7 +41,7 @@ export default function NotificationList({
   };
 
   return (
-    <div className="bg-white border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100/80 rounded-2xl">
+    <div className="bg-white border border-gray-100 overflow-hidden divide-y divide-gray-100/80 shadow">
       {notifications.map((notif) => (
         <NotificationItem
           key={notif.id}

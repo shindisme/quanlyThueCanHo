@@ -342,16 +342,18 @@ model ContractSettlement {
 }
 
 model ViewingSchedule {
-  id                Int            @id @default(autoincrement())
+  id                Int              @id @default(autoincrement())
   apartment_id      Int
   guest_name        String
   guest_phone       String
   guest_email       String?
   schedule_time     DateTime
-  status            ScheduleStatus @default(PENDING)
-  created_at        DateTime       @default(now())
+  status            ScheduleStatus   @default(PENDING)
+  attendance_status AttendanceStatus @default(NOT_YET)
+  cancel_reason     String?
+  created_at        DateTime         @default(now())
   temp_locked_until DateTime?
-  apartment         Apartment      @relation(fields: [apartment_id], references: [id])
+  apartment         Apartment        @relation(fields: [apartment_id], references: [id])
 
   @@index([apartment_id])
   @@index([status, schedule_time])
@@ -512,4 +514,10 @@ enum ScheduleStatus {
   PENDING
   CONFIRMED
   CANCELLED
+}
+
+enum AttendanceStatus {
+  NOT_YET
+  ATTENDED
+  ABSENT
 }

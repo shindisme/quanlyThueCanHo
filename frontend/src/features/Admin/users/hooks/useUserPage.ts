@@ -15,7 +15,7 @@ import { useOnOff } from "../../../../hooks/useOnOff";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import { usePagination } from "../../../../hooks/usePagination";
 import { removeVietnameseTones } from "../../../../utils/string";
-import type { User, Tenant, Staff, Contract, Apartment, Building } from "../../../../types";
+import type { User, Tenant, Staff, RentalContract, Apartment, Building } from "../../../../types";
 import { toast } from "sonner";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
 
@@ -114,7 +114,7 @@ export function useUserPage() {
   }, [apartments]);
 
   const contractsByTenantMap = useMemo(() => {
-    const map = new Map<number, Contract[]>();
+    const map = new Map<number, RentalContract[]>();
     contracts.forEach((c) => {
       if (c.tenant_id) {
         const list = map.get(c.tenant_id) || [];

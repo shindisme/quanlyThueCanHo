@@ -34,13 +34,23 @@ export async function confirm(id: number): Promise<unknown> {
   return res.data;
 }
 
-export async function cancel(id: number): Promise<unknown> {
-  const res = await api.put(`${SCHEDULE_API}/${id}/cancel`);
+export async function cancel(id: number, cancelReason?: string): Promise<unknown> {
+  const res = await api.put(`${SCHEDULE_API}/${id}/cancel`, { cancel_reason: cancelReason });
   return res.data;
 }
 
 export async function remove(id: number): Promise<unknown> {
   const res = await api.delete(`${SCHEDULE_API}/${id}`);
+  return res.data;
+}
+
+export async function markAttended(id: number): Promise<unknown> {
+  const res = await api.put(`${SCHEDULE_API}/${id}/attended`);
+  return res.data;
+}
+
+export async function markAbsent(id: number): Promise<unknown> {
+  const res = await api.put(`${SCHEDULE_API}/${id}/absent`);
   return res.data;
 }
 
@@ -51,5 +61,8 @@ export const scheduleService = {
   getAllPage,
   confirm,
   cancel,
+  markAttended,
+  markAbsent,
   remove,
 };
+

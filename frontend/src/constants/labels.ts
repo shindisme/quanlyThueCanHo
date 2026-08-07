@@ -12,6 +12,7 @@ import type {
   Priority,
   RequestStatus,
   ScheduleStatus,
+  AttendanceStatus,
   ContractTerminationType,
   ContractTerminationStatus,
   DepositPolicy,
@@ -98,12 +99,15 @@ export const REQUEST_STATUS_LABELS: Record<RequestStatus, string> = {
 };
 
 export const SCHEDULE_STATUS_LABELS: Record<ScheduleStatus, string> = {
-  PENDING: "Chờ xác nhận",
-  CONFIRMED: "Đã xác nhận",
-  DONE: "Hoàn thành",
+  PENDING: "Chờ duyệt",
+  CONFIRMED: "Đã duyệt",
   CANCELLED: "Đã huỷ",
-  ATTENDED: "Khách đã đến",
-  NO_SHOW: "Vắng mặt",
+};
+
+export const ATTENDANCE_STATUS_LABELS: Record<AttendanceStatus, string> = {
+  NOT_YET: "Chưa đến",
+  ATTENDED: "Đã đến",
+  ABSENT: "Vắng mặt",
 };
 
 export const CONTRACT_TERMINATION_TYPE_LABELS: Record<ContractTerminationType, string> = {

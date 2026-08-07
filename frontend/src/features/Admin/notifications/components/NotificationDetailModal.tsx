@@ -2,11 +2,11 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
-import type { Notification, Invoice } from "../../../../types";
+import type { Notification } from "../../../../types";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay, extractInvoiceCode } from "../../../../utils/string";
-import { FileText, CreditCard, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { CreditCard, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../../stores/auth.store";
 import { invoiceService } from "../../../../services";
@@ -79,10 +79,9 @@ export default function NotificationDetailModal({
 
                 {/* Invoice Summary Card */}
                 {invoice && (
-                    <div className="border border-gray-200 rounded-xl bg-gray-50/30 overflow-hidden font-sans mt-3">
+                    <div className="border border-gray-200 bg-gray-50/30 overflow-hidden font-sans mt-3">
                         <div className="bg-gray-100/70 px-4 py-3 flex items-center justify-between border-b border-gray-200">
                             <div className="flex items-center gap-2 font-bold text-gray-800 text-xs uppercase tracking-wider">
-                                <FileText size={16} className="text-primary-600" />
                                 Đính kèm: Hóa đơn {invoice.invoice_code}
                             </div>
                             <div>

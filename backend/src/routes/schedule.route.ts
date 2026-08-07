@@ -11,6 +11,7 @@ import { validate } from "../middleware/validate.middleware.js";
 import {
     bookViewingRequestSchema,
     confirmScheduleRequestSchema,
+    cancelScheduleRequestSchema,
     listSchedulesRequestSchema,
     scheduleIdRequestSchema,
     viewingAvailabilityRequestSchema
@@ -50,8 +51,22 @@ router.put(
     "/:id/cancel",
     authenticate,
     authorizeRole(manageRoles),
-    validate(scheduleIdRequestSchema),
+    validate(cancelScheduleRequestSchema),
     scheduleController.cancelSchedule
+);
+router.put(
+    "/:id/attended",
+    authenticate,
+    authorizeRole(manageRoles),
+    validate(scheduleIdRequestSchema),
+    scheduleController.markAttended
+);
+router.put(
+    "/:id/absent",
+    authenticate,
+    authorizeRole(manageRoles),
+    validate(scheduleIdRequestSchema),
+    scheduleController.markAbsent
 );
 router.delete(
     "/:id",

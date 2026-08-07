@@ -12,6 +12,7 @@ import type {
   Priority,
   RequestStatus,
   ScheduleStatus,
+  AttendanceStatus,
   ContractTerminationType,
   ContractTerminationStatus,
   DepositPolicy,
@@ -30,6 +31,7 @@ import {
   PRIORITY_LABELS,
   REQUEST_STATUS_LABELS,
   SCHEDULE_STATUS_LABELS,
+  ATTENDANCE_STATUS_LABELS,
   CONTRACT_TERMINATION_TYPE_LABELS,
   CONTRACT_TERMINATION_STATUS_LABELS,
   DEPOSIT_POLICY_LABELS,
@@ -106,10 +108,13 @@ export const REQUEST_STATUS_COLORS: Record<RequestStatus, BadgeVariant> = {
 export const SCHEDULE_STATUS_COLORS: Record<ScheduleStatus, BadgeVariant> = {
   PENDING: "warning",
   CONFIRMED: "info",
-  DONE: "success",
   CANCELLED: "gray",
+};
+
+export const ATTENDANCE_STATUS_COLORS: Record<AttendanceStatus, BadgeVariant> = {
+  NOT_YET: "gray",
   ATTENDED: "success",
-  NO_SHOW: "danger",
+  ABSENT: "danger",
 };
 
 export const CONTRACT_TERMINATION_TYPE_COLORS: Record<ContractTerminationType, BadgeVariant> = {
@@ -217,10 +222,13 @@ export const REQUEST_STATUS_CONFIG: Record<RequestStatus, { label: string; badge
 export const SCHEDULE_STATUS_CONFIG: Record<ScheduleStatus, { label: string; badge: BadgeVariant }> = {
   PENDING: { label: SCHEDULE_STATUS_LABELS.PENDING, badge: SCHEDULE_STATUS_COLORS.PENDING },
   CONFIRMED: { label: SCHEDULE_STATUS_LABELS.CONFIRMED, badge: SCHEDULE_STATUS_COLORS.CONFIRMED },
-  DONE: { label: SCHEDULE_STATUS_LABELS.DONE, badge: SCHEDULE_STATUS_COLORS.DONE },
   CANCELLED: { label: SCHEDULE_STATUS_LABELS.CANCELLED, badge: SCHEDULE_STATUS_COLORS.CANCELLED },
-  ATTENDED: { label: SCHEDULE_STATUS_LABELS.ATTENDED, badge: SCHEDULE_STATUS_COLORS.ATTENDED },
-  NO_SHOW: { label: SCHEDULE_STATUS_LABELS.NO_SHOW, badge: SCHEDULE_STATUS_COLORS.NO_SHOW },
+} as const;
+
+export const ATTENDANCE_STATUS_CONFIG: Record<AttendanceStatus, { label: string; badge: BadgeVariant }> = {
+  NOT_YET: { label: ATTENDANCE_STATUS_LABELS.NOT_YET, badge: ATTENDANCE_STATUS_COLORS.NOT_YET },
+  ATTENDED: { label: ATTENDANCE_STATUS_LABELS.ATTENDED, badge: ATTENDANCE_STATUS_COLORS.ATTENDED },
+  ABSENT: { label: ATTENDANCE_STATUS_LABELS.ABSENT, badge: ATTENDANCE_STATUS_COLORS.ABSENT },
 } as const;
 
 export const CONTRACT_TERMINATION_TYPE_CONFIG: Record<ContractTerminationType, { label: string; badge: BadgeVariant }> = {

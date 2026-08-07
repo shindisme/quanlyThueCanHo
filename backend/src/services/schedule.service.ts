@@ -144,7 +144,7 @@ const getApartmentLabel = (
     apartment: ScheduleWithApartment["apartment"]
 ) => {
     const roomLabel =
-        `Phong ${apartment.room_number}, tang ${apartment.floor}`;
+        `Phòng ${apartment.room_number}, tầng ${apartment.floor}`;
     return apartment.building?.branch_name
         ? `${roomLabel}, ${apartment.building.branch_name}`
         : roomLabel;
@@ -361,6 +361,17 @@ export const getViewingAvailabilityService = async (
     date: string
 ) => {
     const { start, end } = getVietnamDayBounds(date);
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    const todayBounds = getVietnamDayBounds(todayStr);
+
+    if (start.getTime() < todayBounds.start.getTime()) {
+        throw new AppError(
+            400,
+            "VALIDATION_ERROR",
+            "Không thể chọn ngày xem trong quá khứ"
+        );
+    }
 
     const schedules = await prisma.viewingSchedule.findMany({
         where: {
@@ -442,7 +453,7 @@ export const getSchedulesAdminService = async (
             include: scheduleInclude,
             skip,
             take: limit,
-            orderBy: { schedule_time: "asc" }
+            orderBy: { created_at: "desc" }
         }),
         prisma.viewingSchedule.count({ where })
     ]);
@@ -517,13 +528,11 @@ export const confirmScheduleService = async (
 
 export const cancelScheduleService = async (
     id: number,
-    actor: Actor
+    actor: Actor,
+    cancelReason?: string
 ) => {
     const schedule = await getScheduleById(id, actor);
 
-    if (schedule.status === ScheduleStatus.CONFIRMED) {
-        throw conflict("Không thể hủy lịch xem căn hộ đã xác nhận");
-    }
     if (schedule.status === ScheduleStatus.CANCELLED) {
         throw conflict("Lịch xem căn hộ đã được hủy");
     }
@@ -532,8 +541,9 @@ export const cancelScheduleService = async (
         where: getScopedUniqueWhere(schedule, actor),
         data: {
             status: ScheduleStatus.CANCELLED,
+            cancel_reason: cancelReason || null,
             temp_locked_until: null
-        },
+        } as any,
         include: scheduleInclude
     });
 
@@ -547,7 +557,8 @@ export const cancelScheduleService = async (
                     getApartmentLabel(schedule.apartment),
                 buildingAddress:
                     getBuildingAddress(schedule.apartment),
-                scheduleTime: schedule.schedule_time
+                scheduleTime: schedule.schedule_time,
+                cancelReason
             });
             emailSent = true;
         } catch {
@@ -584,4 +595,37 @@ export const deleteScheduleService = async (
 
     return { id };
 };
+
+export const markAttendedScheduleService = async (
+    id: number,
+    actor: Actor
+) => {
+    const schedule = await getScheduleById(id, actor);
+
+    return prisma.viewingSchedule.update({
+        where: getScopedUniqueWhere(schedule, actor),
+        data: {
+            attendance_status: "ATTENDED",
+            temp_locked_until: null
+        } as any,
+        include: scheduleInclude
+    });
+};
+
+export const markAbsentScheduleService = async (
+    id: number,
+    actor: Actor
+) => {
+    const schedule = await getScheduleById(id, actor);
+
+    return prisma.viewingSchedule.update({
+        where: getScopedUniqueWhere(schedule, actor),
+        data: {
+            attendance_status: "ABSENT",
+            temp_locked_until: null
+        } as any,
+        include: scheduleInclude
+    });
+};
+
 

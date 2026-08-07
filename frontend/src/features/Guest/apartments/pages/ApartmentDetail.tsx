@@ -99,7 +99,7 @@ export default function GuestApartmentDetail() {
       setLoading(true);
       try {
         const aptId = Number(id);
-        const apt = await apartmentService.getApartmentById(aptId);
+        const apt = await apartmentService.getById(aptId);
         setApartment(apt);
 
         // Load images
@@ -119,7 +119,7 @@ export default function GuestApartmentDetail() {
         }
 
         if (apt.building_id) {
-          const bld = await buildingService.getBuildingById(apt.building_id);
+          const bld = await buildingService.getById(apt.building_id);
           setBuilding(bld);
         } else if (apt.building) {
           setBuilding(apt.building as unknown as BuildingData);
@@ -436,6 +436,7 @@ export default function GuestApartmentDetail() {
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày muốn xem *</label>
               <DatePicker
                 value={selectedDate || null}
+                disablePast={true}
                 onChange={(date) => {
                   if (!date) {
                     setSelectedDate("");

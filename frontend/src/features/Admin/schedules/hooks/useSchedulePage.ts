@@ -1,18 +1,20 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as scheduleService from "../../../../services/scheduleService";
 import * as buildingService from "../../../../services/buildingService";
-import type { ViewingSchedule } from "../../../../types";
-import type { Building } from "../../../../types";
+import type { ViewingSchedule, Building } from "../../../../types";
 import { useDebounce } from "../../../../hooks/useDebounce";
 import { usePagination } from "../../../../hooks/usePagination";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import { useSort } from "../../../../hooks/useSort";
 import { removeVietnameseTones, parseGuestName } from "../../../../utils/string";
+import { getApiErrorMessage } from "../../../../utils/apiError";
 import { useConfirmSchedule } from "./useConfirmSchedule";
 import { useCancelSchedule } from "./useCancelSchedule";
 import { useDeleteSchedule } from "./useDeleteSchedule";
+import { useMarkAttendedSchedule } from "./useMarkAttendedSchedule";
+import { useMarkAbsentSchedule } from "./useMarkAbsentSchedule";
 import { QUERY_KEYS } from "../../../../constants/queryKeys";
 
 export function useSchedulePage() {
@@ -24,11 +26,13 @@ export function useSchedulePage() {
   const [filterMonth, setFilterMonth] = useState("");
   const [filterYear, setFilterYear] = useState("");
   const [deleteItem, setDeleteItem] = useState<ViewingSchedule | null>(null);
+  const [cancelItem, setCancelItem] = useState<ViewingSchedule | null>(null);
   const [viewItem, setViewItem] = useState<ViewingSchedule | null>(null);
 
   const debouncedSearch = useDebounce(search, 300);
 
-  const { data: schedules = [], isLoading: loadingSchedules, refetch: fetchSchedules } = useQuery({
+  // Get toàn bộ danh sách
+  const { data: schedules = [], isLoading: loadingSchedules } = useQuery({
     queryKey: QUERY_KEYS.SCHEDULES,
     queryFn: () => scheduleService.getAllPage(),
     select: (res) => res.data as unknown as ViewingSchedule[],
@@ -39,42 +43,87 @@ export function useSchedulePage() {
     queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data as unknown as Building[],
   });
-  const loading = loadingSchedules || loadingBuildings;
 
-  const displaySchedules = (() => {
+  const loading = [loadingSchedules, loadingBuildings].some(Boolean);
+
+  const buildingMap = useMemo(() => {
+    return Object.fromEntries(buildings.map((b) => [b.id, b]));
+  }, [buildings]);
+
+
+  const displaySchedules = useMemo(() => {
     if (role === "MANAGER" && managedBuildingId) {
       return schedules.filter(
         (s) => s.apartment?.building_id === managedBuildingId
       );
     }
     return schedules;
-  })();
+  }, [role, managedBuildingId, schedules]);
 
-  const filtered = displaySchedules.filter((s) => {
-    const term = removeVietnameseTones(debouncedSearch);
-    const cleanGuestName = parseGuestName(s.guest_name).name;
-    const nameNorm = removeVietnameseTones(cleanGuestName);
-    const phoneNorm = removeVietnameseTones(s.guest_phone);
-    const roomNorm = removeVietnameseTones(s.apartment?.room_number || "");
+  const normalizedSearch = useMemo(
+    () => removeVietnameseTones(debouncedSearch.trim()),
+    [debouncedSearch]
+  );
 
-    const matchesSearch =
-      nameNorm.includes(term) || phoneNorm.includes(term) || roomNorm.includes(term);
+  const filtered = useMemo(() => {
+    return displaySchedules.filter((s) => {
+      const cleanGuestName = parseGuestName(s.guest_name).name;
+      const nameNorm = removeVietnameseTones(cleanGuestName);
+      const phoneNorm = removeVietnameseTones(s.guest_phone);
+      const roomNorm = removeVietnameseTones(s.apartment?.room_number || "");
+      const buildingBranchNorm = removeVietnameseTones(
+        s.apartment?.building_id ? buildingMap[s.apartment.building_id]?.branch_name || "" : ""
+      );
 
-    const matchesStatus = !statusFilter || s.status === statusFilter;
+      const matchesSearch =
+        !normalizedSearch ||
+        nameNorm.includes(normalizedSearch) ||
+        phoneNorm.includes(normalizedSearch) ||
+        roomNorm.includes(normalizedSearch) ||
+        buildingBranchNorm.includes(normalizedSearch);
 
-    // Date filters
-    const schedDate = new Date(s.schedule_time);
-    const matchesDay = !filterDay || schedDate.getDate() === Number(filterDay);
-    const matchesMonth = !filterMonth || schedDate.getMonth() + 1 === Number(filterMonth);
-    const matchesYear = !filterYear || schedDate.getFullYear() === Number(filterYear);
+      const matchesStatus = !statusFilter || s.status === statusFilter;
 
-    return matchesSearch && matchesStatus && matchesDay && matchesMonth && matchesYear;
-  });
+      // Lọc theo ngày, tháng, năm đặt hẹn
+      const schedDate = new Date(s.schedule_time);
+      const matchesDay = !filterDay || schedDate.getDate() === Number(filterDay);
+      const matchesMonth = !filterMonth || schedDate.getMonth() + 1 === Number(filterMonth);
+      const matchesYear = !filterYear || schedDate.getFullYear() === Number(filterYear);
 
-  const { items: sortedSchedules, requestSort, getSortIcon } = useSort(filtered, { key: "schedule_time", direction: "asc" }, {
-    apartment_id: (s) => s.apartment?.room_number || String(s.apartment_id),
-    schedule_time: (s) => new Date(s.schedule_time).getTime(),
-  });
+      return matchesSearch && matchesStatus && matchesDay && matchesMonth && matchesYear;
+    });
+  }, [
+    displaySchedules,
+    buildingMap,
+    normalizedSearch,
+    statusFilter,
+    filterDay,
+    filterMonth,
+    filterYear,
+  ]);
+
+  const filteredIndexMap = useMemo(() => {
+    const map = new Map<number, number>();
+    filtered.forEach((item, idx) => map.set(item.id, idx + 1));
+    return map;
+  }, [filtered]);
+
+  const customSortExtractors = useMemo(
+    () => ({
+      index: (s: ViewingSchedule) => filteredIndexMap.get(s.id) ?? s.id,
+      guest_name: (s: ViewingSchedule) => parseGuestName(s.guest_name).name.trim(),
+      apartment_id: (s: ViewingSchedule) => s.apartment?.room_number || String(s.apartment_id),
+      schedule_time: (s: ViewingSchedule) => new Date(s.schedule_time).getTime(),
+      created_at: (s: ViewingSchedule) => (s.created_at ? new Date(s.created_at).getTime() : s.id),
+    }),
+    [filteredIndexMap]
+  );
+
+  const { items: sortedSchedules, requestSort, getSortIcon, sortConfig } = useSort(
+    filtered,
+    { key: "created_at", direction: "desc" },
+    customSortExtractors
+  );
 
   // Pagination
   const { currentPage, setCurrentPage, totalPages, startIdx, endIdx } = usePagination({
@@ -87,6 +136,8 @@ export function useSchedulePage() {
   const confirmMutation = useConfirmSchedule();
   const cancelMutation = useCancelSchedule();
   const deleteMutation = useDeleteSchedule();
+  const attendedMutation = useMarkAttendedSchedule();
+  const absentMutation = useMarkAbsentSchedule();
 
   function handleConfirm(id: number) {
     confirmMutation.mutate(id, {
@@ -94,46 +145,47 @@ export function useSchedulePage() {
         toast.success("Đã xác nhận lịch xem phòng");
       },
       onError: (error: unknown) => {
-        const err = error as { response?: { data?: { error?: string } } };
-        toast.error(err.response?.data?.error || "Xác nhận thất bại");
+        toast.error(getApiErrorMessage(error, "Xác nhận thất bại"));
       },
     });
   }
 
   function handleMarkAttended(id: number) {
-    confirmMutation.mutate(id, {
+    attendedMutation.mutate(id, {
       onSuccess: () => {
-        toast.success("Xác nhận khách đã đến xem phòng thành công!");
+        toast.info("Đã ghi nhận khách đến xem phòng");
       },
       onError: (error: unknown) => {
-        const err = error as { response?: { data?: { error?: string } } };
-        toast.error(err.response?.data?.error || "Cập nhật thất bại");
+        toast.error(getApiErrorMessage(error, "Cập nhật thất bại"));
       },
     });
   }
 
-  function handleMarkNoShow(id: number) {
-    cancelMutation.mutate(id, {
+  function handleMarkAbsent(id: number) {
+    absentMutation.mutate(id, {
       onSuccess: () => {
-        toast.info("Đã ghi nhận khách vắng mặt (No-show)");
+        toast.info("Đã ghi nhận khách vắng mặt");
       },
       onError: (error: unknown) => {
-        const err = error as { response?: { data?: { error?: string } } };
-        toast.error(err.response?.data?.error || "Cập nhật thất bại");
+        toast.error(getApiErrorMessage(error, "Cập nhật thất bại"));
       },
     });
   }
 
-  function handleCancel(id: number) {
-    cancelMutation.mutate(id, {
-      onSuccess: () => {
-        toast.success("Đã hủy lịch xem phòng");
-      },
-      onError: (error: unknown) => {
-        const err = error as { response?: { data?: { error?: string } } };
-        toast.error(err.response?.data?.error || "Hủy thất bại");
-      },
-    });
+  function handleConfirmCancel(reason: string) {
+    if (!cancelItem) return;
+    cancelMutation.mutate(
+      { id: cancelItem.id, reason },
+      {
+        onSuccess: () => {
+          toast.success("Đã hủy lịch xem phòng thành công!");
+          setCancelItem(null);
+        },
+        onError: (error: unknown) => {
+          toast.error(getApiErrorMessage(error, "Hủy thất bại"));
+        },
+      }
+    );
   }
 
   function handleDelete() {
@@ -144,8 +196,7 @@ export function useSchedulePage() {
         setDeleteItem(null);
       },
       onError: (error: unknown) => {
-        const err = error as { response?: { data?: { error?: string } } };
-        toast.error(err.response?.data?.error || "Xóa thất bại");
+        toast.error(getApiErrorMessage(error, "Xóa thất bại"));
       },
     });
   }
@@ -166,11 +217,15 @@ export function useSchedulePage() {
     setFilterYear,
     deleteItem,
     setDeleteItem,
+    cancelItem,
+    setCancelItem,
     viewItem,
     setViewItem,
     buildings,
+    buildingMap,
     filtered,
     sortedSchedules,
+    sortConfig,
     requestSort,
     getSortIcon,
     currentPage,
@@ -179,10 +234,10 @@ export function useSchedulePage() {
     paginatedSchedules,
     handleConfirm,
     handleMarkAttended,
-    handleMarkNoShow,
-    handleCancel,
+    handleMarkAbsent,
+    handleConfirmCancel,
     handleDelete,
-    fetchSchedules,
     deleting: deleteMutation.isPending,
+    canceling: cancelMutation.isPending,
   };
 }

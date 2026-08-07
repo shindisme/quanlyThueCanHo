@@ -39,7 +39,8 @@ export const listSchedulesRequestSchema = z.object({
     query: z.object({
         building_id: positiveIdSchema.optional(),
         apartment_id: positiveIdSchema.optional(),
-        status: z.nativeEnum(ScheduleStatus).optional(),
+        status: z.enum(["PENDING", "CONFIRMED", "CANCELLED"]).optional(),
+        attendance_status: z.enum(["NOT_YET", "ATTENDED", "ABSENT"]).optional(),
         date: strictDateOnlySchema.optional(),
         guestName: z.string().trim().min(1).max(200).optional(),
         page: positiveIdSchema.default(1),
@@ -61,6 +62,19 @@ export const confirmScheduleRequestSchema = z.object({
         status: z.literal(ScheduleStatus.CONFIRMED).optional()
     }).strict().default({})
 }).strict();
+
+export const cancelScheduleRequestSchema = z.object({
+    params: idParamsSchema,
+    query: emptyObjectSchema,
+    body: z.object({
+        cancel_reason: z.string().trim().max(500).optional(),
+        reason: z.string().trim().max(500).optional()
+    }).optional().default({})
+}).strict();
+
+export type CancelScheduleRequest = z.infer<
+    typeof cancelScheduleRequestSchema
+>;
 
 export type BookViewingRequest = z.infer<
     typeof bookViewingRequestSchema

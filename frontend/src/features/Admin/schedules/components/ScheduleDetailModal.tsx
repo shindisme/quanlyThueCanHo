@@ -1,9 +1,12 @@
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Badge from "../../../../components/ui/Badge";
-import type { ViewingSchedule } from "../../../../types";
+import type { ViewingSchedule, Building } from "../../../../types";
 import { formatApartmentDisplay, parseGuestName } from "../../../../utils/string";
-import type { Building } from "../../../../types";
+import { formatDateTime } from "../../../../utils/date";
+import { SCHEDULE_STATUS_LABELS, ATTENDANCE_STATUS_LABELS } from "../../../../constants/labels";
+import { SCHEDULE_STATUS_COLORS, ATTENDANCE_STATUS_COLORS } from "../../../../constants/badges";
+import type { ScheduleStatus, AttendanceStatus } from "../../../../constants/enums";
 
 interface ScheduleDetailModalProps {
   isOpen: boolean;
@@ -11,6 +14,7 @@ interface ScheduleDetailModalProps {
   schedule: ViewingSchedule | null;
   role: string | null;
   buildings?: Building[];
+  buildingMap?: Record<number, Building>;
 }
 
 export default function ScheduleDetailModal({
@@ -19,15 +23,19 @@ export default function ScheduleDetailModal({
   schedule,
   role,
   buildings = [],
+  buildingMap,
 }: ScheduleDetailModalProps) {
-  function getStatusBadge(status: string) {
-    const map: Record<string, { label: string; variant: "success" | "warning" | "gray" | "info" | "danger" }> = {
-      PENDING: { label: "Chờ xác nhận", variant: "warning" },
-      CONFIRMED: { label: "Đã xác nhận", variant: "success" },
-      CANCELLED: { label: "Đã hủy", variant: "gray" },
-    };
-    const s = map[status] || { label: status, variant: "gray" };
-    return <Badge variant={s.variant}>{s.label}</Badge>;
+  function getStatusBadge(status: ScheduleStatus) {
+    const label = SCHEDULE_STATUS_LABELS[status] || status;
+    const color = SCHEDULE_STATUS_COLORS[status] || "gray";
+    return <Badge variant={color}>{label}</Badge>;
+  }
+
+  function getAttendanceBadge(attendance?: AttendanceStatus) {
+    const key = (attendance || "NOT_YET") as AttendanceStatus;
+    const label = ATTENDANCE_STATUS_LABELS[key] || key;
+    const color = ATTENDANCE_STATUS_COLORS[key] || "gray";
+    return <Badge variant={color}>{label}</Badge>;
   }
 
   return (
@@ -39,7 +47,9 @@ export default function ScheduleDetailModal({
       footer={<Button onClick={onClose}>Đóng</Button>}
     >
       {schedule && (() => {
-        const building = buildings.find((b) => b.id === schedule.apartment?.building_id);
+        const building = schedule.apartment?.building_id
+          ? buildingMap?.[schedule.apartment.building_id] || buildings.find((b) => b.id === schedule.apartment?.building_id)
+          : undefined;
         const { name: guestName, note: guestNote } = parseGuestName(schedule.guest_name);
         return (
           <div className="space-y-4 font-sans text-sm">
@@ -89,17 +99,27 @@ export default function ScheduleDetailModal({
             <div className="flex justify-between border-b pb-2 border-gray-100">
               <span className="text-gray-500 font-medium">Thời gian hẹn:</span>
               <span className="font-semibold text-gray-800">
-                {new Date(schedule.schedule_time).toLocaleString("vi-VN")}
+                {formatDateTime(schedule.schedule_time)}
               </span>
             </div>
             <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Trạng thái:</span>
+              <span className="text-gray-500 font-medium">Trạng thái duyệt:</span>
               <span>{getStatusBadge(schedule.status)}</span>
             </div>
             <div className="flex justify-between border-b pb-2 border-gray-100">
+              <span className="text-gray-500 font-medium">Kết quả xem phòng:</span>
+              <span>{getAttendanceBadge(schedule.attendance_status)}</span>
+            </div>
+            {schedule.cancel_reason && (
+              <div className="flex justify-between border-b pb-2 border-gray-100">
+                <span className="text-gray-500 font-medium">Lý do hủy:</span>
+                <span className="font-medium text-red-600 max-w-xs text-right">{schedule.cancel_reason}</span>
+              </div>
+            )}
+            <div className="flex justify-between border-b pb-2 border-gray-100">
               <span className="text-gray-500 font-medium">Thời điểm đăng ký:</span>
               <span className="font-semibold text-gray-800">
-                {schedule.created_at ? new Date(schedule.created_at).toLocaleString("vi-VN") : "-"}
+                {formatDateTime(schedule.created_at)}
               </span>
             </div>
           </div>

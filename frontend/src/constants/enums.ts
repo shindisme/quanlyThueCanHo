@@ -22,7 +22,9 @@ export type Priority = "LOW" | "MEDIUM" | "HIGH";
 
 export type RequestStatus = "PENDING" | "PROCESSING" | "NEEDS_RESCHEDULE" | "DONE" | "CANCELLED";
 
-export type ScheduleStatus = "PENDING" | "CONFIRMED" | "DONE" | "CANCELLED" | "ATTENDED" | "NO_SHOW";
+export type ScheduleStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
+
+export type AttendanceStatus = "NOT_YET" | "ATTENDED" | "ABSENT";
 
 export type ContractTerminationType = "TENANT_REQUEST" | "OVERDUE";
 

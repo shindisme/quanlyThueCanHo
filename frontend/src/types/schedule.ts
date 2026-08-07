@@ -1,4 +1,4 @@
-import type { ScheduleStatus } from "../constants/enums";
+import type { ScheduleStatus, AttendanceStatus } from "../constants/enums";
 import type { Apartment } from "./apartment";
 
 export interface ViewingSchedule {
@@ -9,6 +9,8 @@ export interface ViewingSchedule {
   guest_email: string | null;
   schedule_time: string;
   status: ScheduleStatus;
+  attendance_status?: AttendanceStatus;
+  cancel_reason?: string | null;
   created_at: string;
   apartment?: Apartment;
 }
@@ -21,6 +23,8 @@ export interface ScheduleData {
   apartment_id: number;
   schedule_time: string;
   status: string;
+  attendance_status?: string;
+  cancel_reason?: string | null;
   created_at: string;
   temp_locked_until: string | null;
   apartment?: {

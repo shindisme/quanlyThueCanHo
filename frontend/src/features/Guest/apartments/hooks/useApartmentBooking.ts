@@ -99,8 +99,19 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
       selectedSlot: selectedTimeSlot,
       note: bookingForm.note,
     };
-    const result = scheduleSchema.safeParse(payload);
-    const todayStr = new Date().toISOString().split("T")[0];
+    const validationResult = scheduleSchema.safeParse(payload);
+    if (!validationResult.success) {
+      const firstMsg = validationResult.error.issues[0]?.message || "Thông tin đặt lịch không hợp lệ";
+      toast.error(firstMsg);
+      return;
+    }
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const todayStr = `${year}-${month}-${day}`;
+
     if (selectedDate < todayStr) {
       toast.error("Không thể đặt lịch xem phòng ở ngày trong quá khứ!");
       return;

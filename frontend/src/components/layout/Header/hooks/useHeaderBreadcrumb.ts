@@ -40,7 +40,7 @@ export function useHeaderBreadcrumb(): string[] | null {
     queryKey: ["breadcrumb-building", targetBuildingId],
     queryFn: async () => {
       if (!targetBuildingId || isNaN(targetBuildingId)) return null;
-      const b = await buildingService.getBuildingById(targetBuildingId);
+      const b = await buildingService.getById(targetBuildingId);
       return b ? b.branch_name : null;
     },
     enabled: !!targetBuildingId && !isNaN(targetBuildingId),
@@ -51,7 +51,7 @@ export function useHeaderBreadcrumb(): string[] | null {
     queryKey: ["breadcrumb-apartment", targetApartmentId, role],
     queryFn: async () => {
       if (!targetApartmentId || isNaN(targetApartmentId)) return null;
-      const apt = await apartmentService.getApartmentById(targetApartmentId);
+      const apt = await apartmentService.getById(targetApartmentId);
       if (!apt) return null;
       return formatApartmentDisplay(
         apt.room_number,

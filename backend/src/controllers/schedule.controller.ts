@@ -6,6 +6,7 @@ import { getValidated } from "../middleware/validate.middleware.js";
 import type {
     BookViewingRequest,
     ConfirmScheduleRequest,
+    CancelScheduleRequest,
     ListSchedulesRequest,
     ScheduleIdRequest,
     ViewingAvailabilityRequest
@@ -75,10 +76,12 @@ export const cancelSchedule = async (
     request: Request,
     response: Response
 ) => {
-    const { params } = getValidated<ScheduleIdRequest>(request);
+    const { params, body } = getValidated<CancelScheduleRequest>(request);
+    const reason = body?.cancel_reason || body?.reason;
     const result = await scheduleService.cancelScheduleService(
         params.id,
-        request.actor!
+        request.actor!,
+        reason
     );
 
     return sendSuccess(response, result);
@@ -96,3 +99,30 @@ export const deleteSchedule = async (
 
     return sendSuccess(response, { deleted: true });
 };
+
+export const markAttended = async (
+    request: Request,
+    response: Response
+) => {
+    const { params } = getValidated<ScheduleIdRequest>(request);
+    const schedule = await scheduleService.markAttendedScheduleService(
+        params.id,
+        request.actor!
+    );
+
+    return sendSuccess(response, schedule);
+};
+
+export const markAbsent = async (
+    request: Request,
+    response: Response
+) => {
+    const { params } = getValidated<ScheduleIdRequest>(request);
+    const schedule = await scheduleService.markAbsentScheduleService(
+        params.id,
+        request.actor!
+    );
+
+    return sendSuccess(response, schedule);
+};
+

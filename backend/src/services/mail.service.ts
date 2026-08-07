@@ -91,11 +91,15 @@ export const sendViewingScheduleConfirmedEmail = async (data: ViewingScheduleEma
     });
 };
 
-export const sendViewingScheduleCancelledEmail = async (data: ViewingScheduleEmailData) => {
+export const sendViewingScheduleCancelledEmail = async (data: ViewingScheduleEmailData & { cancelReason?: string }) => {
     const scheduleTime = formatScheduleTime(data.scheduleTime);
     const guestName = escapeHtml(data.guestName);
     const apartmentLabel = escapeHtml(data.apartmentLabel);
     const buildingAddress = escapeHtml(data.buildingAddress);
+    const reasonText = data.cancelReason ? `Lý do hủy: ${data.cancelReason}` : "";
+    const reasonHtml = data.cancelReason
+        ? `<p style="color: #dc2626; margin-top: 8px;"><strong>Lý do hủy:</strong> ${escapeHtml(data.cancelReason)}</p>`
+        : "";
 
     await getTransporter().sendMail({
         from: getRequiredEnv("SMTP_FROM"),
@@ -109,9 +113,10 @@ export const sendViewingScheduleCancelledEmail = async (data: ViewingScheduleEma
             `Địa chỉ tòa nhà: ${data.buildingAddress}`,
             `Thời gian xem: ${scheduleTime}`,
             "Trạng thái: Đã hủy.",
+            reasonText,
             "",
             "Vui lòng liên hệ với chúng tôi nếu bạn cần thêm thông tin."
-        ].join("\n"),
+        ].filter(Boolean).join("\n"),
         html: `
             <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
                 <h2 style="margin: 0 0 16px;">Lịch xem phòng đã bị hủy</h2>
@@ -121,7 +126,8 @@ export const sendViewingScheduleCancelledEmail = async (data: ViewingScheduleEma
                 <p><strong>Địa chỉ tòa nhà:</strong> ${buildingAddress}</p>
                 <p><strong>Thời gian xem:</strong> ${escapeHtml(scheduleTime)}</p>
                 <p><strong>Trạng thái:</strong> Đã hủy.</p>
-                <p>Vui lòng liên hệ với chúng tôi nếu bạn cần thêm thông tin.</p>
+                ${reasonHtml}
+                <p style="margin-top: 16px;">Vui lòng liên hệ với chúng tôi nếu bạn cần thêm thông tin.</p>
             </div>
         `
     });
