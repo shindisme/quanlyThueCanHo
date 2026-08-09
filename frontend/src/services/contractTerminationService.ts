@@ -1,7 +1,7 @@
 import api from "../lib/api";
 import type {
   ApiPagination,
-  ContractSettlement,
+  TerminationSettlementPreview,
   ContractTermination,
   ContractTerminationQuery,
   OverdueTerminationCandidate,
@@ -89,17 +89,17 @@ export async function updateInspection(
 export async function previewSettlement(
   id: number,
   payload: TerminationInspectionPayload
-): Promise<ContractSettlement> {
-  const res = await api.post<{ data: ContractSettlement }>(`${API}/${id}/settlement-preview`, payload);
+): Promise<TerminationSettlementPreview> {
+  const res = await api.post<{ data: TerminationSettlementPreview }>(`${API}/${id}/settlement-preview`, payload);
   return res.data.data;
 }
 
 export async function completeHandover(
   id: number,
   payload: TerminationInspectionPayload
-): Promise<{ termination: ContractTermination; settlement: ContractSettlement }> {
+): Promise<{ termination: ContractTermination; settlement: TerminationSettlementPreview }> {
   const res = await api.patch<{
-    data: { termination: ContractTermination; settlement: ContractSettlement };
+    data: { termination: ContractTermination; settlement: TerminationSettlementPreview };
   }>(`${API}/${id}/complete`, payload);
   return res.data.data;
 }
@@ -118,5 +118,6 @@ export const contractTerminationService = {
   previewSettlement,
   completeHandover,
 };
+
 
 

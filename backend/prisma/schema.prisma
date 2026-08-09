@@ -164,23 +164,22 @@ model RentalContract {
 }
 
 model Invoice {
-  id               Int                 @id @default(autoincrement())
-  contract_id      Int?
-  tenant_id        Int
-  invoice_code     String              @unique
-  due_date         DateTime
-  total_amount     Decimal             @db.Decimal(12, 2)
-  status           InvoiceStatus       @default(UNPAID)
-  created_at       DateTime            @default(now())
-  paid_at          DateTime?
-  reservation_id   Int?
-  type             InvoiceType         @default(MONTHLY)
-  items            InvoiceItem[]
-  final_settlement ContractSettlement? @relation("SettlementFinalInvoice")
-  contract         RentalContract?     @relation(fields: [contract_id], references: [id])
-  reservation      Reservation?        @relation(fields: [reservation_id], references: [id])
-  tenant           Tenant              @relation(fields: [tenant_id], references: [id])
-  payments         Payment[]
+  id             Int             @id @default(autoincrement())
+  contract_id    Int?
+  tenant_id      Int
+  invoice_code   String          @unique
+  due_date       DateTime
+  total_amount   Decimal         @db.Decimal(12, 2)
+  status         InvoiceStatus   @default(UNPAID)
+  created_at     DateTime        @default(now())
+  paid_at        DateTime?
+  reservation_id Int?
+  type           InvoiceType     @default(MONTHLY)
+  items          InvoiceItem[]
+  contract       RentalContract? @relation(fields: [contract_id], references: [id])
+  reservation    Reservation?    @relation(fields: [reservation_id], references: [id])
+  tenant         Tenant          @relation(fields: [tenant_id], references: [id])
+  payments       Payment[]
 
   @@index([contract_id])
   @@index([reservation_id])
@@ -266,79 +265,36 @@ model MaintenanceRequest {
 }
 
 model ContractTermination {
-  id                    Int                         @id @default(autoincrement())
+  id                    Int                       @id @default(autoincrement())
   contract_id           Int
   type                  ContractTerminationType
-  status                ContractTerminationStatus   @default(PENDING)
+  status                ContractTerminationStatus @default(PENDING)
   requested_end_date    DateTime
   effective_end_date    DateTime?
   reason                String?
   notice_days           Int
   deposit_policy        DepositPolicy
-  refund_rate           Decimal                     @db.Decimal(5, 2)
+  refund_rate           Decimal                   @db.Decimal(5, 2)
   requested_by          Int?
-  requested_at          DateTime                    @default(now())
+  requested_at          DateTime                  @default(now())
   approved_by           Int?
   approved_at           DateTime?
   rejected_reason       String?
   completed_at          DateTime?
   completed_by          Int?
   inspection_note       String?
-  final_electricity_old Decimal?                    @db.Decimal(10, 2)
-  final_electricity_new Decimal?                    @db.Decimal(10, 2)
-  final_water_old       Decimal?                    @db.Decimal(10, 2)
-  final_water_new       Decimal?                    @db.Decimal(10, 2)
-  requires_maintenance  Boolean                     @default(false)
-  created_at            DateTime                    @default(now())
-  updated_at            DateTime                    @updatedAt
-  contract              RentalContract              @relation(fields: [contract_id], references: [id])
-  damages               ContractTerminationDamage[]
-  settlement            ContractSettlement?
+  final_electricity_old Decimal?                  @db.Decimal(10, 2)
+  final_electricity_new Decimal?                  @db.Decimal(10, 2)
+  final_water_old       Decimal?                  @db.Decimal(10, 2)
+  final_water_new       Decimal?                  @db.Decimal(10, 2)
+  requires_maintenance  Boolean                   @default(false)
+  created_at            DateTime                  @default(now())
+  updated_at            DateTime                  @updatedAt
+  contract              RentalContract            @relation(fields: [contract_id], references: [id])
 
   @@index([contract_id, status])
   @@index([status, requested_at])
   @@map("contract_terminations")
-}
-
-model ContractTerminationDamage {
-  id             Int                 @id @default(autoincrement())
-  termination_id Int
-  description    String
-  amount         Decimal             @db.Decimal(12, 2)
-  note           String?
-  created_at     DateTime            @default(now())
-  termination    ContractTermination @relation(fields: [termination_id], references: [id], onDelete: Cascade)
-
-  @@index([termination_id])
-  @@map("contract_termination_damages")
-}
-
-model ContractSettlement {
-  id                    Int                       @id @default(autoincrement())
-  termination_id        Int                       @unique
-  final_invoice_id      Int?                      @unique
-  deposit_paid          Decimal                   @db.Decimal(12, 2)
-  eligible_deposit      Decimal                   @db.Decimal(12, 2)
-  outstanding_debt      Decimal                   @db.Decimal(12, 2)
-  final_rent            Decimal                   @db.Decimal(12, 2)
-  final_electricity     Decimal                   @db.Decimal(12, 2)
-  final_water           Decimal                   @db.Decimal(12, 2)
-  final_service_fee     Decimal                   @db.Decimal(12, 2)
-  other_charges         Decimal                   @db.Decimal(12, 2)
-  damage_amount         Decimal                   @db.Decimal(12, 2)
-  deposit_applied       Decimal                   @db.Decimal(12, 2)
-  refund_amount         Decimal                   @db.Decimal(12, 2)
-  additional_amount_due Decimal                   @db.Decimal(12, 2)
-  financial_status      SettlementFinancialStatus @default(PENDING)
-  calculated_at         DateTime                  @default(now())
-  settled_at            DateTime?
-  created_at            DateTime                  @default(now())
-  updated_at            DateTime                  @updatedAt
-  termination           ContractTermination       @relation(fields: [termination_id], references: [id], onDelete: Cascade)
-  final_invoice         Invoice?                  @relation("SettlementFinalInvoice", fields: [final_invoice_id], references: [id])
-
-  @@index([financial_status])
-  @@map("contract_settlements")
 }
 
 model ViewingSchedule {
@@ -474,13 +430,6 @@ enum ContractTerminationStatus {
 enum DepositPolicy {
   REFUNDABLE
   FORFEITED
-}
-
-enum SettlementFinancialStatus {
-  PENDING
-  AWAITING_PAYMENT
-  PARTIALLY_PAID
-  SETTLED
 }
 
 enum PaymentStatus {

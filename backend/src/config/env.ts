@@ -36,7 +36,7 @@ const requiredEnv = (
         throw new AppError(
             500,
             "CONFIG_REQUIRED",
-            `Thiáº¿u biáº¿n mÃ´i trÆ°á»ng ${key} cho ${featureName}`
+            `Thiếu biến môi trường ${key} cho ${featureName}`
         );
     }
 
@@ -57,7 +57,7 @@ const parseNodeEnv = (): NodeEnv => {
     throw new AppError(
         500,
         "CONFIG_INVALID",
-        "NODE_ENV pháº£i lÃ  development, test hoáº·c production"
+        "NODE_ENV phải là development, test hoặc production"
     );
 };
 
@@ -72,7 +72,7 @@ const parsePort = () => {
         throw new AppError(
             500,
             "CONFIG_INVALID",
-            "PORT pháº£i lÃ  sá»‘ nguyÃªn tá»« 0 Ä‘áº¿n 65535"
+            "PORT phải là số nguyên từ 0 đến 65535"
         );
     }
 
@@ -82,7 +82,7 @@ const parsePort = () => {
         throw new AppError(
             500,
             "CONFIG_INVALID",
-            "PORT pháº£i lÃ  sá»‘ nguyÃªn tá»« 0 Ä‘áº¿n 65535"
+            "PORT phải là số nguyên từ 0 đến 65535"
         );
     }
 
@@ -110,7 +110,7 @@ const parseBoolean = (
     throw new AppError(
         500,
         "CONFIG_INVALID",
-        `${key} pháº£i lÃ  true hoáº·c false`
+        `${key} phải là true hoặc false`
     );
 };
 
@@ -125,7 +125,7 @@ const originFromUrl = (value: string | undefined) => {
         throw new AppError(
             500,
             "CONFIG_INVALID",
-            "URL cáº¥u hÃ¬nh CORS khÃ´ng há»£p lá»‡"
+            "URL cấu hình CORS không hợp lệ"
         );
     }
 };

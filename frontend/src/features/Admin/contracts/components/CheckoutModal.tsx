@@ -11,7 +11,7 @@ import { useCheckout, CheckoutStep } from "../hooks/useCheckout";
 
 interface CheckoutModalProps {
     isOpen: boolean;
-    onClose: () => void;
+    onClose: (options?: { completed?: boolean }) => void;
     contract: RentalContract | null;
     termination: ContractTermination | null;
     isLoading: boolean;
@@ -151,14 +151,14 @@ export default function CheckoutModal({
         <>
             <Modal
                 isOpen={isOpen && !!contract}
-                onClose={onClose}
+                onClose={() => onClose()}
                 title={`Thanh lý Hợp đồng: HD-${String(contract?.id || 0).padStart(5, "0")}`}
                 size="lg"
                 footer={
                     <div className="flex flex-wrap gap-2 justify-end w-full">
                         <Button
                             variant="outline"
-                            onClick={onClose}
+                            onClick={() => onClose()}
                             disabled={isProcessing}
                         >
                             Hủy bỏ

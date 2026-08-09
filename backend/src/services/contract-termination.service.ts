@@ -8,7 +8,7 @@ import {
     InvoiceType,
     Prisma,
     Role,
-    SettlementFinancialStatus
+    UserStatus,
 } from "@prisma/client";
 import { prisma } from "../config/database.js";
 import { AppError } from "../errors/app-error.js";
@@ -31,11 +31,18 @@ import { runSerializableTransaction } from "../utils/prisma-transaction.js";
 import {
     calculateNoticeDays,
     calculateNoticePolicy,
-    calculateSettlement
+    calculateSettlement,
+    isInvoiceOverdueForTermination
 } from "../utils/contract-termination.rules.js";
 
 const openStatuses = [
     ContractTerminationStatus.PENDING,
+    ContractTerminationStatus.APPROVED,
+    ContractTerminationStatus.INSPECTION,
+    ContractTerminationStatus.SETTLING
+] as const;
+
+const handoverCompletionStatuses = [
     ContractTerminationStatus.APPROVED,
     ContractTerminationStatus.INSPECTION,
     ContractTerminationStatus.SETTLING
@@ -60,22 +67,42 @@ const contractInclude = {
     }
 } satisfies Prisma.RentalContractInclude;
 
-const terminationInclude = {
-    contract: {
-        include: contractInclude
-    },
-    damages: {
+const finalInvoiceInclude = {
+    items: {
         orderBy: { id: "asc" }
     },
-    settlement: {
-        include: {
-            final_invoice: true
-        }
+    payments: {
+        select: {
+            amount: true,
+            status: true,
+            paid_at: true
+        },
+        orderBy: { paid_at: "desc" }
+    }
+} satisfies Prisma.InvoiceInclude;
+
+const terminationContractInclude = {
+    ...contractInclude,
+    invoices: {
+        where: { type: InvoiceType.FINAL_SETTLEMENT },
+        include: finalInvoiceInclude,
+        orderBy: { created_at: "desc" },
+        take: 1
+    }
+} satisfies Prisma.RentalContractInclude;
+
+const terminationInclude = {
+    contract: {
+        include: terminationContractInclude
     }
 } satisfies Prisma.ContractTerminationInclude;
 
 type TerminationWithRelations = Prisma.ContractTerminationGetPayload<{
     include: typeof terminationInclude;
+}>;
+
+type FinalSettlementInvoice = Prisma.InvoiceGetPayload<{
+    include: typeof finalInvoiceInclude;
 }>;
 
 type ChargeInput = Partial<{
@@ -185,49 +212,224 @@ const moneyNumber = (value: number | Prisma.Decimal) =>
         Prisma.Decimal.ROUND_HALF_UP
     ).toNumber();
 
-const normalizeSettlement = (
-    settlement: TerminationWithRelations["settlement"] | undefined
-) => settlement === null || settlement === undefined ? null : {
-    ...settlement,
-    deposit_paid: toNumber(settlement.deposit_paid),
-    eligible_deposit: toNumber(settlement.eligible_deposit),
-    outstanding_debt: toNumber(settlement.outstanding_debt),
-    final_rent: toNumber(settlement.final_rent),
-    final_electricity: toNumber(settlement.final_electricity),
-    final_water: toNumber(settlement.final_water),
-    final_service_fee: toNumber(settlement.final_service_fee),
-    other_charges: toNumber(settlement.other_charges),
-    damage_amount: toNumber(settlement.damage_amount),
-    deposit_applied: toNumber(settlement.deposit_applied),
-    refund_amount: toNumber(settlement.refund_amount),
-    additional_amount_due: toNumber(settlement.additional_amount_due),
-    final_invoice: settlement.final_invoice === null
-        ? null
-        : {
-            ...settlement.final_invoice,
-            total_amount: toNumber(settlement.final_invoice.total_amount)
-        }
+const TERMINATION_NOTIFICATION_TYPE = "SYSTEM";
+
+type TerminationNotificationContract = TerminationWithRelations["contract"];
+
+const formatContractCode = (contractId: number) =>
+    `HD-${String(contractId).padStart(5, "0")}`;
+
+const formatDateVi = (date: Date | null | undefined) =>
+    date ? date.toLocaleDateString("vi-VN", { timeZone: "UTC" }) : "-";
+
+const formatMoneyVnd = (amount: number) =>
+    `${Math.round(amount).toLocaleString("vi-VN")} đ`;
+
+const getTerminationContractLabel = (contract: TerminationNotificationContract) => {
+    const buildingName = contract.apartment.building.branch_name;
+    const roomLabel = `P.${contract.apartment.room_number}`;
+
+    return `${formatContractCode(contract.id)} tại ${roomLabel}${buildingName ? ` (${buildingName})` : ""}`;
 };
 
-const normalizeTermination = (termination: TerminationWithRelations) => ({
-    ...termination,
-    refund_rate: toNumber(termination.refund_rate),
-    contract: {
-        ...termination.contract,
-        deposit_amount: toNumber(termination.contract.deposit_amount),
-        monthly_rent: toNumber(termination.contract.monthly_rent),
-        apartment: {
-            ...termination.contract.apartment,
-            area: toNumber(termination.contract.apartment.area),
-            rental_price: toNumber(termination.contract.apartment.rental_price)
-        }
-    },
-    damages: (termination.damages ?? []).map((damage) => ({
-        ...damage,
-        amount: toNumber(damage.amount)
+const getReasonSuffix = (reason: string | null | undefined) => {
+    const trimmedReason = reason?.trim();
+    return trimmedReason ? ` Lý do: ${trimmedReason}` : "";
+};
+
+const createTerminationNotifications = async (
+    transaction: Prisma.TransactionClient,
+    userIds: Array<number | null | undefined>,
+    title: string,
+    content: string
+) => {
+    const ids = [
+        ...new Set(userIds.filter((userId): userId is number =>
+            typeof userId === "number"
+        ))
+    ];
+
+    if (ids.length === 0) return;
+
+    if (ids.length === 1) {
+        await transaction.notification.create({
+            data: {
+                user_id: ids[0],
+                title,
+                content,
+                type: TERMINATION_NOTIFICATION_TYPE
+            }
+        });
+        return;
+    }
+
+    await transaction.notification.createMany({
+        data: ids.map((userId) => ({
+            user_id: userId,
+            title,
+            content,
+            type: TERMINATION_NOTIFICATION_TYPE
+        }))
+    });
+};
+
+const getTerminationManagerNotificationUserIds = async (
+    transaction: Prisma.TransactionClient,
+    contract: TerminationNotificationContract
+) => {
+    const recipients = await transaction.user.findMany({
+        where: {
+            status: UserStatus.ACTIVE,
+            OR: [
+                { role: Role.ADMIN },
+                {
+                    role: Role.MANAGER,
+                    staff: {
+                        building_id: contract.apartment.building_id
+                    }
+                }
+            ]
+        },
+        select: { id: true }
+    });
+
+    return recipients.map(({ id: userId }) => userId);
+};
+
+const notifyManagersOfTenantTerminationRequest = async (
+    transaction: Prisma.TransactionClient,
+    termination: TerminationWithRelations
+) => {
+    const recipientIds = await getTerminationManagerNotificationUserIds(
+        transaction,
+        termination.contract
+    );
+    const contractLabel = getTerminationContractLabel(termination.contract);
+
+    await createTerminationNotifications(
+        transaction,
+        recipientIds,
+        "Yêu cầu trả phòng mới",
+        `Khách ${termination.contract.tenant.full_name} đã gửi yêu cầu trả phòng ${contractLabel}. Ngày đề xuất: ${formatDateVi(termination.requested_end_date)}.${getReasonSuffix(termination.reason)}`
+    );
+};
+
+const notifyTenantOfTermination = async (
+    transaction: Prisma.TransactionClient,
+    termination: TerminationWithRelations,
+    title: string,
+    content: string
+) => createTerminationNotifications(
+    transaction,
+    [termination.contract.tenant.user_id],
+    title,
+    content
+);
+
+const notifyTenantTerminationApproved = async (
+    transaction: Prisma.TransactionClient,
+    termination: TerminationWithRelations
+) => notifyTenantOfTermination(
+    transaction,
+    termination,
+    "Yêu cầu trả phòng đã được duyệt",
+    `Yêu cầu trả phòng ${getTerminationContractLabel(termination.contract)} đã được duyệt. Ngày chấm dứt hiệu lực: ${formatDateVi(termination.effective_end_date ?? termination.requested_end_date)}.`
+);
+
+const notifyTenantTerminationRejected = async (
+    transaction: Prisma.TransactionClient,
+    termination: TerminationWithRelations,
+    rejectedReason: string
+) => notifyTenantOfTermination(
+    transaction,
+    termination,
+    "Yêu cầu trả phòng bị từ chối",
+    `Yêu cầu trả phòng ${getTerminationContractLabel(termination.contract)} đã bị từ chối.${getReasonSuffix(rejectedReason)}`
+);
+
+const notifyTenantProactiveTermination = async (
+    transaction: Prisma.TransactionClient,
+    termination: TerminationWithRelations
+) => notifyTenantOfTermination(
+    transaction,
+    termination,
+    "Hợp đồng được đưa vào thanh lý",
+    `Quản lý đã đưa ${getTerminationContractLabel(termination.contract)} vào quy trình thanh lý.${getReasonSuffix(termination.reason)}`
+);
+
+const notifyTenantTerminationCancelled = async (
+    transaction: Prisma.TransactionClient,
+    termination: TerminationWithRelations
+) => notifyTenantOfTermination(
+    transaction,
+    termination,
+    "Thanh lý hợp đồng đã bị hủy",
+    `Hồ sơ thanh lý ${getTerminationContractLabel(termination.contract)} đã bị hủy.`
+);
+
+const notifyTenantTerminationCompleted = async (
+    transaction: Prisma.TransactionClient,
+    termination: TerminationWithRelations,
+    settlement: Pick<Awaited<ReturnType<typeof calculateSettlementForTermination>>, "additional_amount_due" | "refund_amount">,
+    finalInvoice: Pick<FinalSettlementInvoice, "invoice_code"> | null
+) => {
+    const invoiceText = finalInvoice?.invoice_code
+        ? ` Hóa đơn quyết toán: ${finalInvoice.invoice_code}.`
+        : "";
+    const amountText = settlement.additional_amount_due > 0
+        ? ` Số tiền cần thanh toán: ${formatMoneyVnd(settlement.additional_amount_due)}.`
+        : settlement.refund_amount > 0
+            ? ` Số tiền hoàn cọc: ${formatMoneyVnd(settlement.refund_amount)}.`
+            : "";
+
+    await notifyTenantOfTermination(
+        transaction,
+        termination,
+        "Thanh lý hợp đồng đã hoàn tất",
+        `Hồ sơ thanh lý ${getTerminationContractLabel(termination.contract)} đã hoàn tất.${invoiceText}${amountText}`
+    );
+};
+
+const normalizeFinalInvoice = (
+    invoice: FinalSettlementInvoice | null | undefined
+) => invoice === null || invoice === undefined ? null : {
+    ...invoice,
+    total_amount: toNumber(invoice.total_amount),
+    items: (invoice.items ?? []).map((item) => ({
+        ...item,
+        quantity: toNumber(item.quantity),
+        unit_price: toNumber(item.unit_price),
+        amount: toNumber(item.amount)
     })),
-    settlement: normalizeSettlement(termination.settlement)
-});
+    payments: (invoice.payments ?? []).map((payment) => ({
+        ...payment,
+        amount: toNumber(payment.amount)
+    }))
+};
+
+const normalizeTermination = (termination: TerminationWithRelations) => {
+    const contractWithInvoices = termination.contract as TerminationWithRelations["contract"] & {
+        invoices?: FinalSettlementInvoice[];
+    };
+    const finalInvoice = contractWithInvoices.invoices?.[0] ?? null;
+    const { invoices: _invoices, ...contract } = contractWithInvoices;
+
+    return {
+        ...termination,
+        refund_rate: toNumber(termination.refund_rate),
+        contract: {
+            ...contract,
+            deposit_amount: toNumber(contract.deposit_amount),
+            monthly_rent: toNumber(contract.monthly_rent),
+            apartment: {
+                ...contract.apartment,
+                area: toNumber(contract.apartment.area),
+                rental_price: toNumber(contract.apartment.rental_price)
+            }
+        },
+        final_invoice: normalizeFinalInvoice(finalInvoice)
+    };
+};
 
 const findOpenTermination = (
     transaction: Prisma.TransactionClient,
@@ -324,19 +526,43 @@ const getOutstandingDebt = async (
     ) / 100;
 };
 
-const getDamageAmount = (
-    damages: Array<{ amount: Prisma.Decimal | number }>
-) => damages.reduce(
-    (sum, damage) => moneyNumber(sum + toNumber(damage.amount)),
-    0
-);
 
+
+const getOverdueDebtInfo = async (
+    database: Pick<Prisma.TransactionClient, "invoice">,
+    contractId: number,
+    now = new Date()
+) => {
+    const invoices = await getContractInvoicesWithPayments(database, contractId);
+    const overdueInvoices = invoices
+        .map((invoice) => ({
+            remainingCents: getInvoiceRemainingCents(invoice),
+            isOverdue: isInvoiceOverdueForTermination(invoice.due_date, now)
+        }))
+        .filter((invoice) => invoice.remainingCents > 0 && invoice.isOverdue);
+
+    return {
+        amount: overdueInvoices.reduce(
+            (sum, invoice) => sum + invoice.remainingCents,
+            0
+        ) / 100,
+        invoice_count: overdueInvoices.length
+    };
+};
 const getOccupantCount = (termination: TerminationWithRelations) =>
     1 + (termination.contract.tenant._count?.occupants ?? 0);
 const getDepositPolicyValues = (
     termination: Pick<TerminationWithRelations, "deposit_policy" | "refund_rate" | "type">,
     depositPolicy: DepositPolicy | undefined
 ) => {
+    if (termination.type === ContractTerminationType.OVERDUE) {
+        return {
+            deposit_policy: DepositPolicy.FORFEITED,
+            refund_rate: 0,
+            settlement_type: ContractTerminationType.OVERDUE
+        };
+    }
+
     if (depositPolicy === DepositPolicy.REFUNDABLE) {
         return {
             deposit_policy: DepositPolicy.REFUNDABLE,
@@ -361,8 +587,16 @@ const getDepositPolicyValues = (
 };
 
 const buildDepositPolicyUpdate = (
-    depositPolicy: DepositPolicy | undefined
+    depositPolicy: DepositPolicy | undefined,
+    terminationType?: ContractTerminationType
 ) => {
+    if (terminationType === ContractTerminationType.OVERDUE) {
+        return {
+            deposit_policy: DepositPolicy.FORFEITED,
+            refund_rate: 0
+        };
+    }
+
     if (depositPolicy === undefined) return {};
 
     return {
@@ -407,12 +641,10 @@ const calculateSettlementForTermination = async (
                 occupantCount
             )
         );
-    const damageAmount = input.damage_items === undefined
-        ? getDamageAmount(termination.damages)
-        : input.damage_items.reduce(
-            (sum, damage) => moneyNumber(sum + damage.amount),
-            0
-        );
+    const damageAmount = input.damage_items?.reduce(
+        (sum, damage) => moneyNumber(sum + damage.amount),
+        0
+    ) ?? 0;
     const depositPolicyValues = getDepositPolicyValues(
         termination,
         input.deposit_policy
@@ -447,30 +679,6 @@ const calculateSettlementForTermination = async (
     };
 };
 
-const replaceDamageItems = async (
-    transaction: Prisma.TransactionClient,
-    terminationId: number,
-    items: UpdateInspectionRequest["body"]["damage_items"] | undefined
-) => {
-    if (items === undefined) {
-        return;
-    }
-
-    await transaction.contractTerminationDamage.deleteMany({
-        where: { termination_id: terminationId }
-    });
-
-    if (items.length > 0) {
-        await transaction.contractTerminationDamage.createMany({
-            data: items.map((item) => ({
-                termination_id: terminationId,
-                description: item.description,
-                amount: item.amount,
-                note: item.note
-            }))
-        });
-    }
-};
 
 const findTerminationInScope = async (
     database: Pick<Prisma.TransactionClient, "contractTermination">,
@@ -494,6 +702,210 @@ const findTerminationInScope = async (
 
 const buildFinalSettlementInvoiceCode = (terminationId: number) =>
     `SETTLEMENT-${terminationId}`;
+const addInvoiceItem = (
+    items: Prisma.InvoiceItemCreateWithoutInvoiceInput[],
+    itemName: string,
+    amount: number
+) => {
+    const roundedAmount = moneyNumber(amount);
+
+    if (roundedAmount === 0) return;
+
+    items.push({
+        item_name: itemName,
+        quantity: 1,
+        unit_price: roundedAmount,
+        amount: roundedAmount
+    });
+};
+
+const buildFinalSettlementInvoiceItems = (
+    settlement: Awaited<ReturnType<typeof calculateSettlementForTermination>>,
+    damageItems: ChargeInput["damage_items"] | undefined
+) => {
+    const items: Prisma.InvoiceItemCreateWithoutInvoiceInput[] = [];
+
+    addInvoiceItem(
+        items,
+        "Công nợ hóa đơn chưa thanh toán",
+        settlement.outstanding_debt
+    );
+    addInvoiceItem(items, "Tiền thuê cuối kỳ", settlement.final_rent);
+    addInvoiceItem(items, "Tiền điện cuối kỳ", settlement.final_electricity);
+    addInvoiceItem(items, "Tiền nước cuối kỳ", settlement.final_water);
+    addInvoiceItem(items, "Phí dịch vụ cuối kỳ", settlement.final_service_fee);
+    addInvoiceItem(items, "Khoản phát sinh khác", settlement.other_charges);
+
+    if (damageItems !== undefined && damageItems.length > 0) {
+        for (const damage of damageItems) {
+            addInvoiceItem(
+                items,
+                `Bồi thường: ${damage.description}`,
+                damage.amount
+            );
+        }
+    } else {
+        addInvoiceItem(
+            items,
+            "Cơ sở vật chất hư hại",
+            settlement.damage_amount
+        );
+    }
+
+    addInvoiceItem(items, "Đối trừ tiền cọc", -settlement.deposit_applied);
+
+    if (items.length === 0) {
+        items.push({
+            item_name: "Quyết toán thanh lý không phát sinh phải thu",
+            quantity: 1,
+            unit_price: 0,
+            amount: 0
+        });
+    }
+
+    return items;
+};
+
+const getSuccessfulPaymentCents = (
+    invoice: Pick<FinalSettlementInvoice, "payments"> | null | undefined
+) => (invoice?.payments ?? [])
+    .filter((payment) => payment.status === "SUCCESS")
+    .reduce(
+        (sum, payment) => sum + toMoneyCents(toNumber(payment.amount)),
+        0
+    );
+
+const getRuntimeFinancialStatus = (
+    additionalAmountDue: number,
+    invoice?: FinalSettlementInvoice | null
+) => toMoneyCents(additionalAmountDue) > getSuccessfulPaymentCents(invoice)
+    ? "AWAITING_PAYMENT" as const
+    : "SETTLED" as const;
+
+const saveFinalSettlementInvoice = async (
+    transaction: Prisma.TransactionClient,
+    termination: TerminationWithRelations,
+    settlement: Awaited<ReturnType<typeof calculateSettlementForTermination>>,
+    damageItems: ChargeInput["damage_items"] | undefined
+) => {
+    const invoiceCode = buildFinalSettlementInvoiceCode(termination.id);
+    const existing = await transaction.invoice.findFirst({
+        where: { invoice_code: invoiceCode },
+        include: finalInvoiceInclude
+    });
+    const totalAmount = moneyNumber(settlement.additional_amount_due);
+    const paidCents = getSuccessfulPaymentCents(existing);
+    const status = toMoneyCents(totalAmount) <= paidCents
+        ? InvoiceStatus.PAID
+        : InvoiceStatus.UNPAID;
+    const paidAt = status === InvoiceStatus.PAID
+        ? existing?.paid_at ?? new Date()
+        : null;
+    const items = buildFinalSettlementInvoiceItems(settlement, damageItems);
+
+    if (existing) {
+        await transaction.invoiceItem.deleteMany({
+            where: { invoice_id: existing.id }
+        });
+
+        return transaction.invoice.update({
+            where: { id: existing.id },
+            data: {
+                contract_id: termination.contract.id,
+                tenant_id: termination.contract.tenant_id,
+                due_date: existing.due_date,
+                total_amount: totalAmount,
+                status,
+                paid_at: paidAt,
+                type: InvoiceType.FINAL_SETTLEMENT,
+                items: { create: items }
+            },
+            include: finalInvoiceInclude
+        });
+    }
+
+    return transaction.invoice.create({
+        data: {
+            contract_id: termination.contract.id,
+            tenant_id: termination.contract.tenant_id,
+            invoice_code: invoiceCode,
+            due_date: new Date(),
+            total_amount: totalAmount,
+            status,
+            paid_at: paidAt,
+            type: InvoiceType.FINAL_SETTLEMENT,
+            items: { create: items }
+        },
+        include: finalInvoiceInclude
+    });
+};
+
+const sumFinalInvoiceItems = (
+    invoice: FinalSettlementInvoice | null | undefined,
+    match: (itemName: string) => boolean
+) => (invoice?.items ?? []).reduce(
+    (sum, item) => match(item.item_name)
+        ? moneyNumber(sum + toNumber(item.amount))
+        : sum,
+    0
+);
+
+const buildSettlementSummaryFromFinalInvoice = (
+    termination: TerminationWithRelations,
+    invoice: FinalSettlementInvoice | null | undefined
+) => {
+    const depositPaid = moneyNumber(termination.contract.deposit_amount);
+    const refundRate = toNumber(termination.refund_rate);
+    const eligibleDeposit = termination.type === ContractTerminationType.OVERDUE
+        ? depositPaid
+        : moneyNumber(depositPaid * refundRate / 100);
+    const depositApplied = Math.abs(sumFinalInvoiceItems(
+        invoice,
+        (itemName) => itemName === "Đối trừ tiền cọc"
+    ));
+    const additionalAmountDue = moneyNumber(invoice?.total_amount ?? 0);
+
+    return {
+        deposit_paid: depositPaid,
+        eligible_deposit: eligibleDeposit,
+        outstanding_debt: sumFinalInvoiceItems(
+            invoice,
+            (itemName) => itemName === "Công nợ hóa đơn chưa thanh toán"
+        ),
+        final_rent: sumFinalInvoiceItems(
+            invoice,
+            (itemName) => itemName === "Tiền thuê cuối kỳ"
+        ),
+        final_electricity: sumFinalInvoiceItems(
+            invoice,
+            (itemName) => itemName === "Tiền điện cuối kỳ"
+        ),
+        final_water: sumFinalInvoiceItems(
+            invoice,
+            (itemName) => itemName === "Tiền nước cuối kỳ"
+        ),
+        final_service_fee: sumFinalInvoiceItems(
+            invoice,
+            (itemName) => itemName === "Phí dịch vụ cuối kỳ"
+        ),
+        other_charges: sumFinalInvoiceItems(
+            invoice,
+            (itemName) => itemName === "Khoản phát sinh khác"
+        ),
+        damage_amount: sumFinalInvoiceItems(
+            invoice,
+            (itemName) => itemName.startsWith("Bồi thường:")
+                || itemName === "Cơ sở vật chất hư hại"
+        ),
+        deposit_applied: depositApplied,
+        refund_amount: termination.type === ContractTerminationType.OVERDUE
+            ? 0
+            : Math.max(moneyNumber(eligibleDeposit - depositApplied), 0),
+        additional_amount_due: additionalAmountDue,
+        financial_status: getRuntimeFinancialStatus(additionalAmountDue, invoice),
+        final_invoice: normalizeFinalInvoice(invoice)
+    };
+};
 
 export const getContractTerminationsService = async (
     filters: ListContractTerminationsRequest["query"],
@@ -591,6 +1003,8 @@ export const createTenantTerminationService = async (
                 include: terminationInclude
             });
 
+            await notifyManagersOfTenantTerminationRequest(transaction, created);
+
             return normalizeTermination(created);
         }, concurrentModification);
     } catch (error) {
@@ -652,6 +1066,8 @@ export const approveTerminationService = async (
             data: { status: ApartmentStatus.VACATING_SOON }
         });
 
+        await notifyTenantTerminationApproved(transaction, updated);
+
         return normalizeTermination(updated);
     }, concurrentModification);
 };
@@ -689,6 +1105,8 @@ export const rejectTerminationService = async (
             },
             include: terminationInclude
         });
+
+        await notifyTenantTerminationRejected(transaction, updated, rejectedReason);
 
         return normalizeTermination(updated);
     }, concurrentModification);
@@ -728,13 +1146,16 @@ export const cancelTerminationService = async (
             },
             data: { status: ApartmentStatus.RENTED }
         });
+
+        await notifyTenantTerminationCancelled(transaction, updated);
     }
 
     return normalizeTermination(updated);
 }, concurrentModification);
 
 export const getOverdueCandidatesService = async (
-    actor: Actor
+    actor: Actor,
+    now = new Date()
 ) => {
     assertManagerOrAdmin(actor);
 
@@ -749,10 +1170,23 @@ export const getOverdueCandidatesService = async (
         include: contractInclude
     });
 
-    return contracts.map((contract) => ({
-        contract,
-        overdue_amount: 0
-    }));
+    const candidates = await Promise.all(
+        contracts.map(async (contract) => {
+            const overdue = await getOverdueDebtInfo(
+                prisma,
+                contract.id,
+                now
+            );
+
+            return {
+                contract,
+                overdue_amount: overdue.amount,
+                overdue_invoice_count: overdue.invoice_count
+            };
+        })
+    );
+
+    return candidates.filter((candidate) => candidate.overdue_amount > 0);
 };
 
 export const createOverdueTerminationService = async (
@@ -808,6 +1242,8 @@ export const createOverdueTerminationService = async (
                 },
                 data: { status: ApartmentStatus.VACATING_SOON }
             });
+
+            await notifyTenantProactiveTermination(transaction, created);
 
             return normalizeTermination(created);
         }, concurrentModification);
@@ -872,12 +1308,6 @@ export const updateInspectionService = async (
             throw invalidState();
         }
 
-        await replaceDamageItems(
-            transaction,
-            termination.id,
-            input.damage_items
-        );
-
         const updated = await transaction.contractTermination.update({
             where: { id: termination.id },
             data: {
@@ -888,7 +1318,7 @@ export const updateInspectionService = async (
                 final_water_old: input.final_water_old,
                 final_water_new: input.final_water_new,
                 requires_maintenance: input.requires_maintenance,
-                ...buildDepositPolicyUpdate(input.deposit_policy)
+                ...buildDepositPolicyUpdate(input.deposit_policy, termination.type)
             },
             include: terminationInclude
         });
@@ -925,37 +1355,34 @@ export const completeHandoverService = async (
     assertManagerOrAdmin(actor);
 
     return runSerializableTransaction(async (transaction) => {
-        let termination = await findTerminationInScope(
+        const termination = await findTerminationInScope(
             transaction,
             id,
             actor
         );
 
-        if (
-            termination.status === ContractTerminationStatus.COMPLETED
-            && termination.settlement !== null
-        ) {
+        if (termination.status === ContractTerminationStatus.COMPLETED) {
+            const finalInvoice = (
+                termination.contract as TerminationWithRelations["contract"] & {
+                    invoices?: FinalSettlementInvoice[];
+                }
+            ).invoices?.[0] ?? null;
+
             return {
                 termination: normalizeTermination(termination),
-                settlement: normalizeSettlement(termination.settlement)
+                settlement: buildSettlementSummaryFromFinalInvoice(
+                    termination,
+                    finalInvoice
+                )
             };
         }
 
-        if (termination.status !== ContractTerminationStatus.SETTLING) {
-            throw invalidState("Chỉ có thể hoàn tất sau bước quyết toán");
-        }
-
-        if (input.damage_items !== undefined) {
-            await replaceDamageItems(
-                transaction,
-                termination.id,
-                input.damage_items
-            );
-            termination = await findTerminationInScope(
-                transaction,
-                id,
-                actor
-            );
+        if (
+            !handoverCompletionStatuses.includes(
+                termination.status as typeof handoverCompletionStatuses[number]
+            )
+        ) {
+            throw invalidState("Chỉ có thể hoàn tất sau khi yêu cầu đã được duyệt");
         }
 
         const settlementData = await calculateSettlementForTermination(
@@ -963,54 +1390,12 @@ export const completeHandoverService = async (
             termination,
             input
         );
-        const hasAdditionalDue = settlementData.additional_amount_due > 0;
-        const finalInvoice = hasAdditionalDue
-            ? await transaction.invoice.create({
-                data: {
-                    contract_id: termination.contract.id,
-                    tenant_id: termination.contract.tenant_id,
-                    invoice_code: buildFinalSettlementInvoiceCode(
-                        termination.id
-                    ),
-                    due_date: new Date(),
-                    total_amount: settlementData.additional_amount_due,
-                    status: InvoiceStatus.UNPAID,
-                    type: InvoiceType.FINAL_SETTLEMENT,
-                    items: {
-                        create: [
-                            {
-                                item_name: "Khoản phải thu sau quyết toán thanh lý",
-                                quantity: 1,
-                                unit_price:
-                                    settlementData.additional_amount_due,
-                                amount:
-                                    settlementData.additional_amount_due
-                            }
-                        ]
-                    }
-                }
-            })
-            : null;
-        const settlement = await transaction.contractSettlement.upsert({
-            where: { termination_id: termination.id },
-            create: {
-                termination_id: termination.id,
-                final_invoice_id: finalInvoice?.id,
-                ...settlementData,
-                financial_status: hasAdditionalDue
-                    ? SettlementFinancialStatus.AWAITING_PAYMENT
-                    : SettlementFinancialStatus.SETTLED,
-                settled_at: hasAdditionalDue ? null : new Date()
-            },
-            update: {
-                final_invoice_id: finalInvoice?.id,
-                ...settlementData,
-                financial_status: hasAdditionalDue
-                    ? SettlementFinancialStatus.AWAITING_PAYMENT
-                    : SettlementFinancialStatus.SETTLED,
-                settled_at: hasAdditionalDue ? null : new Date()
-            }
-        });
+        const finalInvoice = await saveFinalSettlementInvoice(
+            transaction,
+            termination,
+            settlementData,
+            input.damage_items
+        );
 
         const ended = await transaction.rentalContract.updateMany({
             where: {
@@ -1041,43 +1426,49 @@ export const completeHandoverService = async (
             }
         });
 
+        const completedAt = new Date();
+        const completedTerminationData = {
+            status: ContractTerminationStatus.COMPLETED,
+            completed_at: completedAt,
+            completed_by: actor.userId,
+            inspection_note: input.inspection_note,
+            final_electricity_old: input.final_electricity_old,
+            final_electricity_new: input.final_electricity_new,
+            final_water_old: input.final_water_old,
+            final_water_new: input.final_water_new,
+            requires_maintenance: input.requires_maintenance ?? false,
+            ...buildDepositPolicyUpdate(input.deposit_policy, termination.type)
+        };
+
         await transaction.contractTermination.updateMany({
             where: {
                 id: termination.id,
-                status: ContractTerminationStatus.SETTLING
+                status: { in: [...handoverCompletionStatuses] }
             },
-            data: {
-                status: ContractTerminationStatus.COMPLETED,
-                completed_at: new Date(),
-                completed_by: actor.userId,
-                requires_maintenance: input.requires_maintenance ?? false,
-                ...buildDepositPolicyUpdate(input.deposit_policy)
-            }
+            data: completedTerminationData
         });
+
+        await notifyTenantTerminationCompleted(
+            transaction,
+            termination,
+            settlementData,
+            finalInvoice
+        );
 
         return {
             termination: {
                 ...normalizeTermination(termination),
-                status: ContractTerminationStatus.COMPLETED,
-                completed_by: actor.userId
+                ...completedTerminationData,
+                final_invoice: normalizeFinalInvoice(finalInvoice)
             },
             settlement: {
-                ...settlement,
-                deposit_paid: toNumber(settlement.deposit_paid),
-                eligible_deposit: toNumber(settlement.eligible_deposit),
-                outstanding_debt: toNumber(settlement.outstanding_debt),
-                final_rent: toNumber(settlement.final_rent),
-                final_electricity: toNumber(settlement.final_electricity),
-                final_water: toNumber(settlement.final_water),
-                final_service_fee: toNumber(settlement.final_service_fee),
-                other_charges: toNumber(settlement.other_charges),
-                damage_amount: toNumber(settlement.damage_amount),
-                deposit_applied: toNumber(settlement.deposit_applied),
-                refund_amount: toNumber(settlement.refund_amount),
-                additional_amount_due:
-                    toNumber(settlement.additional_amount_due)
+                ...settlementData,
+                financial_status: getRuntimeFinancialStatus(
+                    settlementData.additional_amount_due,
+                    finalInvoice
+                ),
+                final_invoice: normalizeFinalInvoice(finalInvoice)
             }
         };
     }, concurrentModification);
 };
-

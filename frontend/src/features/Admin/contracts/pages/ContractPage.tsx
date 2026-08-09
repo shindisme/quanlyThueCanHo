@@ -28,7 +28,6 @@ import {
     CONTRACT_TERMINATION_STATUS_LABELS,
     CONTRACT_TERMINATION_STATUS_CONFIG,
     DEPOSIT_POLICY_LABELS,
-    SETTLEMENT_FINANCIAL_STATUS_LABELS,
 } from "../../../../constants/enums";
 
 const TERMINATION_TYPE_LABELS = CONTRACT_TERMINATION_TYPE_LABELS;
@@ -36,7 +35,6 @@ const TERMINATION_STATUS_LABELS = CONTRACT_TERMINATION_STATUS_LABELS;
 const TERMINATION_STATUS_VARIANTS: Record<ContractTerminationStatus, BadgeVariant> = Object.fromEntries(
     Object.entries(CONTRACT_TERMINATION_STATUS_CONFIG).map(([k, v]) => [k, v.badge])
 ) as Record<ContractTerminationStatus, BadgeVariant>;
-const SETTLEMENT_STATUS_LABELS = SETTLEMENT_FINANCIAL_STATUS_LABELS;
 
 function formatMoney(value: number | string | null | undefined) {
     return formatCurrency(Number(value || 0));
@@ -84,7 +82,6 @@ export default function Contract() {
         terminateItem,
         setTerminateItem,
         terminationItem,
-        setTerminationItem,
         selectedTerminationDetail,
         setSelectedTerminationDetail,
         openTerminationsByContractId,
@@ -94,6 +91,7 @@ export default function Contract() {
         handleCancelTermination,
         handleCreateOverdueTermination,
         handleOpenTerminationCheckout,
+        handleCloseTerminationCheckout,
         cancelContractItem,
         setCancelContractItem,
         handleConfirmCancelContract,
@@ -116,8 +114,16 @@ export default function Contract() {
     const terminationDetailTenant = terminationDetailContract?.tenant || (terminationDetailContract ? tenants.find((t) => t.id === terminationDetailContract.tenant_id) : null);
     const terminationRequester = terminationDetail?.requested_by ? users.find((u) => u.id === terminationDetail.requested_by) : null;
     const terminationApprover = terminationDetail?.approved_by ? users.find((u) => u.id === terminationDetail.approved_by) : null;
-    const terminationDamages = terminationDetail?.damages || [];
-    const terminationSettlement = terminationDetail?.settlement;
+    const terminationFinalInvoice = terminationDetail?.final_invoice ?? null;
+    const terminationFinalItems = terminationFinalInvoice?.items ?? [];
+    const terminationDamages = terminationFinalItems
+        .filter((item) => item.item_name.startsWith("Bồi thường:") || item.item_name === "Cơ sở vật chất hư hại")
+        .map((item) => ({
+            id: item.id,
+            description: item.item_name.replace(/^Bồi thường:\s*/, ""),
+            amount: Math.abs(Number(item.amount || 0)),
+            note: null as string | null,
+        }));
     const canCancelTerminationDetail = !!terminationDetail
         && (role === "ADMIN" || role === "MANAGER")
         && ["PENDING", "APPROVED", "INSPECTION", "SETTLING"].includes(terminationDetail.status);
@@ -175,6 +181,7 @@ export default function Contract() {
                 <div className="col-span-12 sm:col-span-6 md:col-span-3">
                     <Combobox
                         options={[
+                            { value: "TERMINATION_OPEN", label: "Đang trả phòng" },
                             { value: "ACTIVE", label: "Còn hiệu lực" },
                             { value: "ENDED", label: "Đã kết thúc" }
                         ]}
@@ -255,7 +262,6 @@ export default function Contract() {
                         overdueCandidateIds={overdueCandidateIds}
                         onApproveTermination={handleApproveTermination}
                         onRejectTermination={handleRejectTermination}
-                        onCancelTermination={handleCancelTermination}
                         onCreateOverdueTermination={handleCreateOverdueTermination}
                         onOpenTerminationCheckout={handleOpenTerminationCheckout}
                         onViewTermination={setSelectedTerminationDetail}
@@ -330,10 +336,7 @@ export default function Contract() {
 
             <CheckoutModal
                 isOpen={!!terminateItem}
-                onClose={() => {
-                    setTerminateItem(null);
-                    setTerminationItem(null);
-                }}
+                onClose={handleCloseTerminationCheckout}
                 contract={terminateItem}
                 termination={terminationItem}
                 isLoading={terminating}
@@ -451,32 +454,34 @@ export default function Contract() {
                                 </div>
                             </div>
                         )}
-
-                        {terminationSettlement && (
+                        {terminationFinalInvoice && (
                             <div className="border-t border-gray-100 pt-4 space-y-3">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <h4 className="font-bold text-gray-900">Quyết toán</h4>
-                                    <Badge variant={terminationSettlement.financial_status === "SETTLED" ? "success" : "warning"}>
-                                        {SETTLEMENT_STATUS_LABELS[terminationSettlement.financial_status]}
+                                    <h4 className="font-bold text-gray-900">Hóa đơn quyết toán</h4>
+                                    <Badge variant={terminationFinalInvoice.status === "PAID" ? "success" : "warning"}>
+                                        {terminationFinalInvoice.status === "PAID" ? "Đã thanh toán" : "Chưa thanh toán"}
                                     </Badge>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-                                    <p><span className="font-semibold">Cọc đã thu:</span> {formatMoney(terminationSettlement.deposit_paid)}</p>
-                                    <p><span className="font-semibold">Cọc đủ điều kiện:</span> {formatMoney(terminationSettlement.eligible_deposit)}</p>
-                                    <p><span className="font-semibold">Nợ còn lại:</span> {formatMoney(terminationSettlement.outstanding_debt)}</p>
-                                    <p><span className="font-semibold">Tiền thuê cuối:</span> {formatMoney(terminationSettlement.final_rent)}</p>
-                                    <p><span className="font-semibold">Điện/nước/dịch vụ:</span> {formatMoney(Number(terminationSettlement.final_electricity) + Number(terminationSettlement.final_water) + Number(terminationSettlement.final_service_fee))}</p>
-                                    <p><span className="font-semibold">Phí khác:</span> {formatMoney(terminationSettlement.other_charges)}</p>
-                                    <p><span className="font-semibold">Phí hư hỏng:</span> {formatMoney(terminationSettlement.damage_amount)}</p>
-                                    <p><span className="font-semibold">Cọc đã khấu trừ:</span> {formatMoney(terminationSettlement.deposit_applied)}</p>
-                                    <p><span className="font-semibold">Hoàn lại:</span> <span className="font-bold text-emerald-600">{formatMoney(terminationSettlement.refund_amount)}</span></p>
-                                    <p><span className="font-semibold">Khách cần trả thêm:</span> <span className="font-bold text-red-600">{formatMoney(terminationSettlement.additional_amount_due)}</span></p>
+                                <div className="overflow-hidden rounded-lg border border-gray-200">
+                                    {terminationFinalItems.map((item) => {
+                                        const amount = Number(item.amount || 0);
+                                        return (
+                                            <div key={item.id} className="grid grid-cols-[1fr_auto] gap-3 border-b border-gray-100 p-3 last:border-b-0">
+                                                <p className="font-semibold text-gray-900">{item.item_name}</p>
+                                                <p className={`font-bold ${amount < 0 ? "text-emerald-600" : "text-red-600"}`}>
+                                                    {formatMoney(amount)}
+                                                </p>
+                                            </div>
+                                        );
+                                    })}
+                                    <div className="grid grid-cols-[1fr_auto] gap-3 bg-gray-50 p-3">
+                                        <p className="font-bold text-gray-900">Khách cần thanh toán</p>
+                                        <p className="font-extrabold text-red-600">{formatMoney(terminationFinalInvoice.total_amount)}</p>
+                                    </div>
                                 </div>
-                                {terminationSettlement.final_invoice && (
-                                    <p className="rounded-lg bg-gray-50 p-3">
-                                        <span className="font-semibold">Hóa đơn cuối:</span> {terminationSettlement.final_invoice.invoice_code} - {formatMoney(terminationSettlement.final_invoice.total_amount)}
-                                    </p>
-                                )}
+                                <p className="rounded-lg bg-gray-50 p-3">
+                                    <span className="font-semibold">Mã hóa đơn:</span> {terminationFinalInvoice.invoice_code}
+                                </p>
                             </div>
                         )}
                     </div>

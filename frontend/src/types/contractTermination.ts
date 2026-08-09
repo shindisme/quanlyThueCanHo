@@ -14,18 +14,13 @@ export type {
   SettlementFinancialStatus,
 };
 
-export interface ContractTerminationDamage {
-  id?: number;
-  termination_id?: number;
+export interface TerminationDamageItem {
   description: string;
   amount: number;
   note?: string | null;
 }
 
-export interface ContractSettlement {
-  id?: number;
-  termination_id?: number;
-  final_invoice_id?: number | null;
+export interface TerminationSettlementPreview {
   deposit_paid: number;
   eligible_deposit: number;
   outstanding_debt: number;
@@ -66,8 +61,7 @@ export interface ContractTermination {
   final_water_new?: number | null;
   requires_maintenance: boolean;
   contract?: RentalContract;
-  damages?: ContractTerminationDamage[];
-  settlement?: ContractSettlement | null;
+  final_invoice?: Invoice | null;
 }
 
 export interface ContractTerminationQuery {
@@ -91,7 +85,7 @@ export interface TerminationInspectionPayload {
   requires_maintenance?: boolean;
   deposit_policy?: DepositPolicy;
   inspection_note?: string;
-  damage_items?: ContractTerminationDamage[];
+  damage_items?: TerminationDamageItem[];
 }
 
 export type SettlementPayload = Pick<
@@ -104,4 +98,6 @@ export interface OverdueTerminationCandidate {
   overdue_amount: number;
   overdue_invoice_count?: number;
 }
+
+
 

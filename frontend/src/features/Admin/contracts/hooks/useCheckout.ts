@@ -2,9 +2,9 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type {
-  ContractSettlement,
+  TerminationSettlementPreview,
   ContractTermination,
-  ContractTerminationDamage,
+  TerminationDamageItem,
   DepositPolicy,
   Invoice,
   RentalContract,
@@ -33,7 +33,7 @@ interface UseCheckoutOptions {
   contract: RentalContract | null;
   termination: ContractTermination | null;
   isOpen: boolean;
-  onClose: () => void;
+  onClose: (options?: { completed?: boolean }) => void;
 }
 
 function calculateConsumption(oldVal: number, newVal: number): number {
@@ -114,8 +114,8 @@ async function fetchCheckoutInitialData(contract: RentalContract | null, current
 export function useCheckout({ contract, termination, isOpen, onClose }: UseCheckoutOptions) {
   const queryClient = useQueryClient();
   const [step, setStep] = useState<CheckoutStep>(CheckoutStep.UTILITY);
-  const [settlementPreview, setSettlementPreview] = useState<ContractSettlement | null>(null);
-  const [damageItems, setDamageItems] = useState<ContractTerminationDamage[]>([]);
+  const [settlementPreview, setSettlementPreview] = useState<TerminationSettlementPreview | null>(null);
+  const [damageItems, setDamageItems] = useState<TerminationDamageItem[]>([]);
   const [depositPolicy, setDepositPolicy] = useState<DepositPolicy>("REFUNDABLE");
 
   const [utilityInputs, setUtilityInputs] = useState<{
@@ -150,11 +150,7 @@ export function useCheckout({ contract, termination, isOpen, onClose }: UseCheck
     setStep(CheckoutStep.UTILITY);
     setSettlementPreview(null);
     setUtilityInputs({ electricOld: null, electricNew: null, waterOld: null, waterNew: null });
-    setDamageItems((termination?.damages ?? []).map((item) => ({
-      description: item.description,
-      amount: Number(item.amount || 0),
-      note: item.note ?? null,
-    })));
+    setDamageItems([]);
     setDepositPolicy(termination?.deposit_policy ?? "REFUNDABLE");
     setCheckoutMeta({ utilitySaved: false, hasSkippedInvoice: false, hasGeneratedInvoice: false });
     setDialogs({ skipInvoice: false, highConsumption: false, terminateConfirm: false });
@@ -247,7 +243,6 @@ export function useCheckout({ contract, termination, isOpen, onClose }: UseCheck
     mutationFn: async (policy?: DepositPolicy) => {
       if (!termination) throw new Error("Không tìm thấy yêu cầu thanh lý để quyết toán.");
       const payload = buildSettlementPayload(policy);
-      await contractTerminationService.updateInspection(termination.id, payload);
       return contractTerminationService.previewSettlement(termination.id, payload);
     },
     onSuccess: (settlement) => {
@@ -274,7 +269,7 @@ export function useCheckout({ contract, termination, isOpen, onClose }: UseCheck
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APARTMENTS }),
         queryClient.invalidateQueries({ queryKey: QUERY_KEYS.INVOICES }),
       ]);
-      onClose();
+      onClose({ completed: true });
     },
     onError: (err: unknown) => {
       const error = err as { response?: { data?: { message?: string; error?: string } }; message?: string };
@@ -404,3 +399,4 @@ export function useCheckout({ contract, termination, isOpen, onClose }: UseCheck
     },
   };
 }
+

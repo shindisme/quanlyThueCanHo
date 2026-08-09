@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from "react";
-import { Eye, FileText, Calendar as CalendarIcon, XCircle, CheckCircle, ClipboardCheck, Info, RotateCcw } from "lucide-react";
+import { Eye, FileText, Calendar as CalendarIcon, XCircle, CheckCircle, ClipboardCheck, Info } from "lucide-react";
 import Badge from "../../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import {
@@ -32,7 +32,6 @@ interface ContractListProps {
   overdueCandidateIds: Set<number>;
   onApproveTermination: (termination: ContractTermination) => void;
   onRejectTermination: (termination: ContractTermination) => void;
-  onCancelTermination: (termination: ContractTermination) => void;
   onCreateOverdueTermination: (contract: RentalContract) => void;
   onOpenTerminationCheckout: (contract: RentalContract, termination: ContractTermination) => void;
   onViewTermination: (termination: ContractTermination) => void;
@@ -42,6 +41,10 @@ interface ContractListProps {
 function getTerminationLabel(termination: ContractTermination) {
   const config = CONTRACT_TERMINATION_STATUS_CONFIG[termination.status];
   return config?.label || termination.status;
+}
+
+function getTerminationStatusPrefix(termination: ContractTermination) {
+  return termination.type === "TENANT_REQUEST" ? "Trả phòng" : "Thanh lý";
 }
 
 export default function ContractList({
@@ -58,7 +61,6 @@ export default function ContractList({
   overdueCandidateIds,
   onApproveTermination,
   onRejectTermination,
-  onCancelTermination,
   onCreateOverdueTermination,
   onOpenTerminationCheckout,
   onViewTermination,
@@ -214,13 +216,22 @@ export default function ContractList({
       {
         key: "status",
         label: "Trạng thái",
-        sortValue: (c) => c.status,
+        sortValue: (c) => openTerminationsByContractId.get(c.id)?.status || c.status,
         render: (c) => {
           const termination = openTerminationsByContractId.get(c.id);
+          const terminationConfig = termination
+            ? CONTRACT_TERMINATION_STATUS_CONFIG[termination.status]
+            : null;
+
           return (
             <div className="flex flex-col items-start gap-1">
-              {getStatusBadge(c.status as ContractStatus)}
-              {termination && <Badge variant="warning">{getTerminationLabel(termination)}</Badge>}
+              {termination ? (
+                <Badge variant={terminationConfig?.badge || "warning"}>
+                  {getTerminationStatusPrefix(termination)}: {getTerminationLabel(termination)}
+                </Badge>
+              ) : (
+                getStatusBadge(c.status as ContractStatus)
+              )}
             </div>
           );
         },
@@ -260,23 +271,13 @@ export default function ContractList({
             {(() => {
               const termination = openTerminationsByContractId.get(c.id);
               return termination ? (
-                <>
-                  <button
-                    onClick={() => onViewTermination(termination)}
-                    className="p-2 rounded-lg text-gray-400 hover:text-info-600 hover:bg-info-50 cursor-pointer"
-                    title="Xem chi tiết yêu cầu thanh lý"
-                  >
-                    <Info size={16} />
-                  </button>
-                  <button
-                    disabled={isTerminationActionPending}
-                    onClick={() => onCancelTermination(termination)}
-                    className="p-2 rounded-lg text-gray-400 hover:text-amber-600 hover:bg-amber-50 cursor-pointer disabled:opacity-60"
-                    title="Hủy thanh lý hợp đồng"
-                  >
-                    <RotateCcw size={16} />
-                  </button>
-                </>
+                <button
+                  onClick={() => onViewTermination(termination)}
+                  className="p-2 rounded-lg text-gray-400 hover:text-info-600 hover:bg-info-50 cursor-pointer"
+                  title="Xem chi tiết yêu cầu thanh lý"
+                >
+                  <Info size={16} />
+                </button>
               ) : null;
             })()}
             {renderTerminationActions(c)}
@@ -296,8 +297,6 @@ export default function ContractList({
       setSelectedDocContract,
       setSelectedExtendContract,
       onViewTermination,
-      onCancelTermination,
-      isTerminationActionPending,
       tenantName,
     ]
   );

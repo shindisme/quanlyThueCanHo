@@ -50,6 +50,7 @@ export function useContractPage() {
   const [selectedExtendContract, setSelectedExtendContract] = useState<RentalContract | null>(null);
   const [terminateItem, setTerminateItem] = useState<RentalContract | null>(null);
   const [terminationItem, setTerminationItem] = useState<ContractTermination | null>(null);
+  const [checkoutDraftTerminationId, setCheckoutDraftTerminationId] = useState<number | null>(null);
   const [selectedTerminationDetail, setSelectedTerminationDetail] = useState<ContractTermination | null>(null);
   const [cancelContractItem, setCancelContractItem] = useState<RentalContract | null>(null);
   const [extendEndDate, setExtendEndDate] = useState("");
@@ -209,6 +210,7 @@ export function useContractPage() {
   );
   const filteredContracts = displayContracts.filter((c) => {
     const apt = c.apartment ?? apartments.find((a) => a.id === c.apartment_id);
+    const termination = openTerminationsByContractId.get(c.id);
 
     // Lọc theo tòa nhà được chọn
     if (filterBuilding && apt?.building_id !== filterBuilding) {
@@ -216,7 +218,9 @@ export function useContractPage() {
     }
 
     // Lọc theo trạng thái 
-    if (filterStatus && c.status !== filterStatus) {
+    if (filterStatus === "TERMINATION_OPEN") {
+      if (termination?.type !== "TENANT_REQUEST") return false;
+    } else if (filterStatus && c.status !== filterStatus) {
       return false;
     }
 
@@ -247,6 +251,16 @@ export function useContractPage() {
       tenantName.toLowerCase().includes(term.toLowerCase()) ||
       room.toLowerCase().includes(term.toLowerCase())
     );
+  }).sort((a, b) => {
+    const aTermination = openTerminationsByContractId.get(a.id);
+    const bTermination = openTerminationsByContractId.get(b.id);
+    const priority = (item?: ContractTermination) => {
+      if (item?.type === "TENANT_REQUEST") return 0;
+      if (item) return 1;
+      return 2;
+    };
+
+    return priority(aTermination) - priority(bTermination);
   });
 
   // Lọc
@@ -264,7 +278,12 @@ export function useContractPage() {
       monthly_rent: (item) => Number(item.monthly_rent),
       start_date: (item) => new Date(item.start_date).getTime(),
       end_date: (item) => new Date(item.end_date).getTime(),
-      status: (item) => item.status,
+      status: (item) => {
+        const termination = openTerminationsByContractId.get(item.id);
+        if (termination?.type === "TENANT_REQUEST") return `0-${termination.status}`;
+        if (termination) return `1-${termination.status}`;
+        return `2-${item.status}`;
+      },
     }
   );
 
@@ -349,12 +368,12 @@ export function useContractPage() {
       contract_id: contractId,
       reason,
     }),
-    onSuccess: async (termination) => {
+    onSuccess: (termination) => {
       toast.success("Đã tạo hồ sơ thanh lý hợp đồng.");
+      setCheckoutDraftTerminationId(termination.id);
       setTerminationItem(termination);
       const contract = displayContracts.find((item) => item.id === termination.contract_id) || null;
       setTerminateItem(contract);
-      await invalidateTerminationFlow();
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
@@ -362,19 +381,6 @@ export function useContractPage() {
     },
   });
 
-  const startInspectionMutation = useMutation({
-    mutationFn: (id: number) => contractTerminationService.startInspection(id),
-    onSuccess: async (termination) => {
-      setTerminationItem(termination);
-      const contract = displayContracts.find((item) => item.id === termination.contract_id) || null;
-      setTerminateItem(contract);
-      await invalidateTerminationFlow();
-    },
-    onError: (error: unknown) => {
-      const err = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
-      toast.error(err.response?.data?.error || err.response?.data?.message || err.message || "Không thể bắt đầu kiểm tra phòng.");
-    },
-  });
 
   function handleApproveTermination(termination: ContractTermination) {
     approveTerminationMutation.mutate(termination.id);
@@ -402,12 +408,25 @@ export function useContractPage() {
       toast.info("Yêu cầu thanh lý cần được duyệt trước khi bàn giao.");
       return;
     }
-    if (termination.status === "APPROVED") {
-      startInspectionMutation.mutate(termination.id);
-      return;
-    }
+    setCheckoutDraftTerminationId(null);
     setTerminationItem(termination);
     setTerminateItem(contract);
+  }
+
+  function handleCloseTerminationCheckout(options?: { completed?: boolean }) {
+    const draftTerminationId = checkoutDraftTerminationId;
+    setTerminateItem(null);
+    setTerminationItem(null);
+    setCheckoutDraftTerminationId(null);
+
+    if (options?.completed || draftTerminationId === null) return;
+
+    contractTerminationService.cancel(draftTerminationId)
+      .then(() => invalidateTerminationFlow())
+      .catch((error: unknown) => {
+        const err = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
+        toast.error(err.response?.data?.error || err.response?.data?.message || err.message || "Không thể hủy phiên thanh lý chưa hoàn tất.");
+      });
   }
 
   function handleConfirmCancelContract() {
@@ -477,7 +496,8 @@ export function useContractPage() {
     cancelContractItem,
     setCancelContractItem,
     handleConfirmCancelContract,
-    terminating: approveTerminationMutation.isPending || rejectTerminationMutation.isPending || cancelTerminationMutation.isPending || createOverdueTerminationMutation.isPending || startInspectionMutation.isPending,
+    handleCloseTerminationCheckout,
+    terminating: approveTerminationMutation.isPending || rejectTerminationMutation.isPending || cancelTerminationMutation.isPending || createOverdueTerminationMutation.isPending,
     fetchContracts,
     isNewTenantFromNavigation,
     setIsNewTenantFromNavigation,
