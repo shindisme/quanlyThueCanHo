@@ -9,7 +9,7 @@ import {
   type Priority,
   type Role,
 } from "../../../../constants/enums";
-import { formatDate } from "../../../../utils/date";
+import { formatDate, formatDateTime } from "../../../../utils/date";
 import type { MaintenanceRequest } from "../../../../types";
 
 interface MaintenanceListProps {
@@ -116,7 +116,7 @@ export default function MaintenanceList({
         key: "scheduled_at",
         label: "Hẹn sửa",
         sortValue: (req) => (req.scheduled_at ? new Date(req.scheduled_at).getTime() : 0),
-        render: (req) => <span className="text-xs text-gray-600">{req.scheduled_at ? formatDate(req.scheduled_at) : "-"}</span>,
+        render: (req) => <span className="text-xs text-gray-600">{req.scheduled_at ? formatDateTime(req.scheduled_at) : "-"}</span>,
       },
       {
         key: "priority",

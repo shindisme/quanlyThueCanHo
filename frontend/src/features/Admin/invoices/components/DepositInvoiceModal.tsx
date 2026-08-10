@@ -45,6 +45,7 @@ export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
   const onApartmentChange = props.controller ? props.controller.handleApartmentChange : props.onApartmentChange;
   const onSubmit = props.controller ? props.controller.handleSubmit : (props.onSubmit ?? (() => {}));
   const isPending = props.controller ? props.controller.isPending : (props.isPending ?? false);
+  const isManager = props.controller ? props.controller.isManager : (props.role === "MANAGER");
 
   const targetApartment = fixedApartment || selectedApartment;
 
@@ -78,9 +79,9 @@ export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
                 value={form?.building_id || ""}
                 onChange={(val) => onBuildingChange && onBuildingChange(val)}
                 placeholder={isLoadingAvailableApartments ? "Đang tải..." : "Chọn chi nhánh"}
-                disabled={isLoadingAvailableApartments || isPending}
+                disabled={isManager || isLoadingAvailableApartments || isPending}
                 triggerClassName="h-10 rounded-xl border-gray-300 px-3.5"
-                clearable={true}
+                clearable={!isManager}
               />
               <Combobox
                 label="Tầng"

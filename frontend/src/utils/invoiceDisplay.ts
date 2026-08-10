@@ -1,5 +1,19 @@
 import type { Invoice } from "../types";
+import type { InvoiceType } from "../constants/enums";
 import { formatApartmentDisplay } from "./string";
+
+export function getInvoiceType(invoice: Pick<Invoice, "type" | "invoice_code">): InvoiceType {
+  if (invoice.invoice_code?.startsWith("MNT-")) {
+    return "MAINTENANCE";
+  }
+  if (invoice.invoice_code?.startsWith("SETTLEMENT-")) {
+    return "FINAL_SETTLEMENT";
+  }
+  if (invoice.invoice_code?.startsWith("DEP-")) {
+    return "DEPOSIT";
+  }
+  return (invoice.type as InvoiceType) || "MONTHLY";
+}
 
 export function getInvoiceApartment(invoice: Invoice) {
   return invoice.contract?.apartment ?? invoice.reservation?.apartment ?? null;

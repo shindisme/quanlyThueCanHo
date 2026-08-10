@@ -10,7 +10,7 @@ import {
   type InvoiceType,
 } from "../../../../constants/enums";
 import { getInvoicePeriod, getInvoicePeriodSortValue } from "../../../../utils/invoicePeriod";
-import { getInvoiceRoomDisplay, getInvoiceTenant } from "../../../../utils/invoiceDisplay";
+import { getInvoiceRoomDisplay, getInvoiceTenant, getInvoiceType } from "../../../../utils/invoiceDisplay";
 import { formatCurrency } from "../../../../utils/currency";
 import type { Invoice, InvoiceStatus } from "../../../../types";
 
@@ -31,9 +31,9 @@ function getStatusBadge(status: InvoiceStatus) {
   return <Badge variant={variant}>{label}</Badge>;
 }
 
-function getTypeBadge(type?: string | null) {
-  if (!type) return null;
-  const config = INVOICE_TYPE_CONFIG[type as InvoiceType];
+function getTypeBadge(inv: Invoice) {
+  const resolvedType = getInvoiceType(inv);
+  const config = INVOICE_TYPE_CONFIG[resolvedType];
   if (!config) return null;
   return <Badge variant={config.badge}>{config.label}</Badge>;
 }
@@ -117,7 +117,7 @@ export default function InvoiceList({
         render: (inv) => (
           <div className="flex flex-col items-start gap-1">
             {getStatusBadge(inv.status as InvoiceStatus)}
-            {getTypeBadge(inv.type)}
+            {getTypeBadge(inv)}
           </div>
         ),
       },

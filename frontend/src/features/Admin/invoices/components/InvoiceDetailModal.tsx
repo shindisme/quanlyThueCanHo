@@ -7,7 +7,7 @@ import { formatCurrency, formatNumber } from "../../../../utils/currency";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import { getInvoicePeriod } from "../../../../utils/invoicePeriod";
 import { getDisplayItemAmount, getDisplayTierDetails } from "../../../../utils/feeSettings";
-import { getInvoiceApartment, getInvoiceTenant } from "../../../../utils/invoiceDisplay";
+import { getInvoiceApartment, getInvoiceTenant, getInvoiceType } from "../../../../utils/invoiceDisplay";
 import {
   INVOICE_STATUS_CONFIG,
   INVOICE_TYPE_CONFIG,
@@ -21,9 +21,9 @@ function getStatusBadge(status: string) {
   return <Badge variant={config?.badge || "gray"}>{config?.label || status}</Badge>;
 }
 
-function getTypeBadge(type?: string | null) {
-  if (!type) return null;
-  const config = INVOICE_TYPE_CONFIG[type as InvoiceType];
+function getTypeBadge(invoice: Invoice) {
+  const resolvedType = getInvoiceType(invoice);
+  const config = INVOICE_TYPE_CONFIG[resolvedType];
   if (!config) return null;
   return <Badge variant={config.badge}>{config.label}</Badge>;
 }
@@ -72,7 +72,7 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
           </div>
           <div className="flex flex-col items-start md:items-end gap-1.5">
             <div className="flex items-center gap-2">
-              {getTypeBadge(invoice.type)}
+              {getTypeBadge(invoice)}
               {getStatusBadge(invoice.status)}
             </div>
             {invoice.paid_at && (

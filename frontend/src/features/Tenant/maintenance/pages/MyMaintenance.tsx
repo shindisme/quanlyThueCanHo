@@ -7,7 +7,7 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
-import { formatDate } from "../../../../utils/date";
+import { formatDate, formatDateTime } from "../../../../utils/date";
 import { formatApartmentDisplay, removeVietnameseTones } from "../../../../utils/string";
 import { getImageUrl } from "../../../../utils/file";
 import { formatCurrency } from "../../../../utils/currency";
@@ -320,7 +320,7 @@ export default function MyMaintenance() {
                 <p className="font-bold text-sm text-blue-950">Thông tin Nhân viên kỹ thuật phụ trách</p>
                 <p><span className="font-semibold">Họ tên:</span> {detailRequest.assigned_staff.full_name}</p>
                 <p><span className="font-semibold">Số điện thoại:</span> {detailRequest.assigned_staff.phone || "Không"}</p>
-                <p><span className="font-semibold">Dự kiến sửa trước ngày:</span> {detailRequest.scheduled_at ? formatDate(detailRequest.scheduled_at) : "Chưa xếp lịch"}</p>
+                <p><span className="font-semibold">Thời gian hẹn sửa chữa:</span> {detailRequest.scheduled_at ? formatDateTime(detailRequest.scheduled_at) : "Chưa xếp lịch"}</p>
               </div>
             )}
 

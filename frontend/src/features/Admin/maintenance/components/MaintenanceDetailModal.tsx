@@ -2,7 +2,7 @@ import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Badge from "../../../../components/ui/Badge";
 import { getImageUrl } from "../../../../utils/file";
-import { formatDate } from "../../../../utils/date";
+import { formatDate, formatDateTime } from "../../../../utils/date";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import { formatCurrency } from "../../../../utils/currency";
 import {
@@ -47,7 +47,6 @@ export default function MaintenanceDetailModal({
 }: MaintenanceDetailModalProps) {
   if (!detailRequest) return null;
 
-  const canAssign = role === "ADMIN" || role === "MANAGER";
   const {
     title,
     created_at,
@@ -64,10 +63,6 @@ export default function MaintenanceDetailModal({
     repair_fee,
   } = detailRequest;
 
-  const roomDisplay = apartment
-    ? formatApartmentDisplay(apartment.room_number, apartment.floor, role as string, apartment.building?.branch_name)
-    : <span className="text-gray-400 italic font-normal">Trống</span>;
-
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Chi Tiết Yêu Cầu Sửa Chữa" size="lg">
       <div className="space-y-6 text-sm font-sans text-left">
@@ -83,29 +78,26 @@ export default function MaintenanceDetailModal({
           </div>
         </div>
 
-        {/* Tenant info */}
+        {/* Info */}
         <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-12 md:col-span-6 bg-gray-50/50 p-4 rounded-none border border-gray-200 space-y-2">
-            <h5 className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Thông tin phòng thuê</h5>
-            <p><span className="font-semibold text-gray-600">Căn hộ:</span> {roomDisplay}</p>
-            <p><span className="font-semibold text-gray-600">Tầng:</span> {apartment?.floor ? `Tầng ${apartment.floor}` : <span className="text-gray-400 italic font-normal">Trống</span>}</p>
-            {role === "ADMIN" && (
-              <p><span className="font-semibold text-gray-600">Chi nhánh:</span> {renderEmptyText(apartment?.building?.branch_name)}</p>
-            )}
+          {/* Information */}
+          <div className="col-span-12 md:col-span-6 bg-gray-50/50 p-4 rounded-none border border-gray-200 space-y-2 flex flex-col justify-between">
+            <div>
+              <h5 className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Thông tin người gửi & phòng</h5>
+              <div className="space-y-2">
+                <p><span className="font-semibold text-gray-600">Căn hộ:</span> {apartment ? formatApartmentDisplay(apartment.room_number, apartment.floor) : <span className="text-gray-400 italic font-normal">Trống</span>}</p>
+                <p><span className="font-semibold text-gray-600">Chi nhánh:</span> {renderEmptyText(apartment?.building?.branch_name)}</p>
+                <p><span className="font-semibold text-gray-600">Họ tên người gửi:</span> {renderEmptyText(tenant?.full_name)}</p>
+              </div>
+            </div>
           </div>
-          <div className="col-span-12 md:col-span-6 bg-gray-50/50 p-4 rounded-none border border-gray-200 space-y-2">
-            <h5 className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Người gửi yêu cầu</h5>
-            <p><span className="font-semibold text-gray-600">Họ và tên:</span> {renderEmptyText(tenant?.full_name)}</p>
-            <p><span className="font-semibold text-gray-600">Số điện thoại:</span> {renderEmptyText(tenant?.phone)}</p>
-            <p><span className="font-semibold text-gray-600">Email:</span> {renderEmptyText(tenant?.email)}</p>
-          </div>
-        </div>
 
-        {/* Description */}
-        <div className="space-y-2">
-          <h5 className="font-bold text-gray-800 border-b border-gray-100 pb-1">Mô tả sự cố</h5>
-          <div className="bg-white p-3.5 rounded-none border border-gray-200 text-gray-700 min-h-20 whitespace-pre-wrap leading-relaxed">
-            {description || <span className="text-gray-400 italic font-normal">Trống</span>}
+          {/* Description */}
+          <div className="col-span-12 md:col-span-6 bg-gray-50/50 p-4 rounded-none border border-gray-200 space-y-2 flex flex-col">
+            <h5 className="font-bold text-gray-800 border-b border-gray-200 pb-1 mb-2">Mô tả sự cố</h5>
+            <div className="bg-white p-3.5 rounded-none border border-gray-200 text-gray-700 flex-1 whitespace-pre-wrap leading-relaxed min-h-[90px]">
+              {description || <span className="text-gray-400 italic font-normal">Trống</span>}
+            </div>
           </div>
         </div>
 
@@ -136,8 +128,8 @@ export default function MaintenanceDetailModal({
               <p><span className="font-semibold text-gray-600">Kỹ thuật viên:</span> {assigned_staff.full_name}</p>
               <p><span className="font-semibold text-gray-600">Số điện thoại:</span> {renderEmptyText(assigned_staff.phone)}</p>
               <p className="col-span-1 md:col-span-2">
-                <span className="font-semibold text-gray-600">Dự kiến sửa trước ngày:</span>{" "}
-                {scheduled_at ? formatDate(scheduled_at) : <span className="text-gray-400 italic font-normal">Trống</span>}
+                <span className="font-semibold text-gray-600">Thời gian hẹn sửa chữa:</span>{" "}
+                {scheduled_at ? formatDateTime(scheduled_at) : <span className="text-gray-400 italic font-normal">Trống</span>}
               </p>
             </div>
           ) : (

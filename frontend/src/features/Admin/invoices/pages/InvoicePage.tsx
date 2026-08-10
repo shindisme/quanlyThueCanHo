@@ -1,4 +1,4 @@
-import { Plus, ClipboardList } from "lucide-react";
+import { ClipboardList } from "lucide-react";
 import PageHeader from "../../../../components/layout/PageHeader";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Combobox from "../../../../components/ui/Combobox";
@@ -97,8 +97,8 @@ export default function InvoicePage() {
         subtitle="Theo dõi công nợ, tính tiền dịch vụ hằng tháng và kiểm soát trạng thái thanh toán"
         count={rawInvoicesCount}
         actions={
-          <div className="grid grid-cols-12 gap-3 w-full lg:w-auto lg:flex lg:items-center">
-            <div className="col-span-12 lg:w-80">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+            <div className="w-full sm:w-72 lg:w-80">
               <SearchInput
                 value={search}
                 onChange={setSearch}
@@ -106,29 +106,18 @@ export default function InvoicePage() {
                 className="w-full"
               />
             </div>
-            {canManageDeposits && (
-              <div className="col-span-6 lg:w-auto flex">
+            <div className="flex items-center gap-2 shrink-0">
+              {canManageDeposits && (
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => depositModal.openModal()}
-                  className="rounded-xl w-full justify-center shrink-0 shadow-md font-semibold text-xs sm:text-sm px-3"
+                  className="rounded-xl justify-center shrink-0 shadow-md font-semibold text-xs sm:text-sm px-3.5 whitespace-nowrap"
                 >
                   <span>Lập hóa đơn cọc</span>
                 </Button>
-              </div>
-            )}
-            {canManageDeposits && (
-              <div className="col-span-6 lg:w-auto flex">
-                <Button
-                  onClick={generateModal.onOpen}
-                  className="flex items-center justify-center gap-1.5 rounded-xl w-full shrink-0 shadow-md font-semibold text-xs sm:text-sm px-3"
-                >
-                  <Plus size={16} />
-                  <span>Tính tiền tháng này</span>
-                </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         }
       />

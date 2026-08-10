@@ -678,6 +678,17 @@ export const getInvoicesService = async (filters: InvoiceFilters, actor: Invoice
         andFilters.push({ status: filters.status });
     }
 
+    if (filters.type) {
+        andFilters.push({
+            OR: [
+                { type: filters.type },
+                ...(filters.type === "MAINTENANCE" ? [{ invoice_code: { startsWith: "MNT-" } }] : []),
+                ...(filters.type === "FINAL_SETTLEMENT" ? [{ invoice_code: { startsWith: "SETTLEMENT-" } }] : []),
+                ...(filters.type === "DEPOSIT" ? [{ invoice_code: { startsWith: "DEP-" } }] : [])
+            ]
+        });
+    }
+
     if (
         actor.role !== Role.TENANT
         && filters.tenant_id !== undefined

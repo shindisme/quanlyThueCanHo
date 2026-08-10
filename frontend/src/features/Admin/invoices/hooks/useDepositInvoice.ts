@@ -169,12 +169,16 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
 
   const openModal = useCallback((presetApartment?: Apartment) => {
     const targetApt = presetApartment || fixedApartment;
-    setForm(createDepositForm(targetApt));
+    const initialForm = createDepositForm(targetApt);
+    if (!targetApt && role === "MANAGER" && managedBuildingId) {
+      initialForm.building_id = String(managedBuildingId);
+    }
+    setForm(initialForm);
     if (!targetApt) {
       void refetchAvailableApartments();
     }
     setIsOpen(true);
-  }, [fixedApartment, refetchAvailableApartments]);
+  }, [fixedApartment, role, managedBuildingId, refetchAvailableApartments]);
 
   const closeModal = useCallback(() => {
     if (depositMutation.isPending) return;
@@ -236,6 +240,8 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
     handleApartmentChange,
     handleSubmit,
     isPending: depositMutation.isPending,
+    role,
+    isManager: role === "MANAGER",
   };
 }
 

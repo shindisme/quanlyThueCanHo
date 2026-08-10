@@ -1,5 +1,6 @@
 import {
-    InvoiceStatus
+    InvoiceStatus,
+    InvoiceType
 } from "@prisma/client";
 import { z } from "zod";
 import {
@@ -30,6 +31,7 @@ export const listInvoicesRequestSchema = z.object({
     params: emptyObjectSchema,
     query: z.object({
         status: z.nativeEnum(InvoiceStatus).optional(),
+        type: z.nativeEnum(InvoiceType).optional(),
         tenant_id: positiveIdSchema.optional(),
         contract_id: positiveIdSchema.optional(),
         apartment_id: positiveIdSchema.optional(),
