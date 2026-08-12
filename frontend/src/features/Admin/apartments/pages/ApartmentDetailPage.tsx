@@ -21,6 +21,7 @@ import {
 } from "../../../../constants/enums";
 import { useDepositInvoice } from "../../invoices/hooks/useDepositInvoice";
 import DepositInvoiceModal from "../../invoices/components/DepositInvoiceModal";
+import { getReservationTenantId } from "../utils/reservationTenant";
 
 export default function ApartmentDetailPage() {
   const navigate = useNavigate();
@@ -64,6 +65,7 @@ export default function ApartmentDetailPage() {
     fixedApartment: apartment,
     onSuccessCallback: fetchData,
   });
+  const reservationTenantId = getReservationTenantId(activeReservation);
 
   if (loading) {
     return (
@@ -372,7 +374,7 @@ export default function ApartmentDetailPage() {
                             apartmentId: apartment.id,
                             buildingId: apartment.building_id,
                             floor: apartment.floor,
-                            tenantId: activeReservation?.tenant_id
+                            tenantId: reservationTenantId
                           }}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow-sm transition-colors cursor-pointer"
                         >

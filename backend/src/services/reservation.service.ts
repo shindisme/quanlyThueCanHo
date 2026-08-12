@@ -16,11 +16,7 @@ import type {
 } from "../schemas/reservation.schema.js";
 import type { Actor } from "../types/auth.js";
 import { createInitialCredential, tenantUsername } from "./account.service.js";
-import {
-    sendReservationDepositPaymentEmail,
-    sendReservationExpiredEmail
-} from "./mail.service.js";
-import { buildDepositPaymentUrl } from "./payment.service.js";
+import { sendReservationExpiredEmail } from "./mail.service.js";
 import { runSerializableTransaction } from "../utils/prisma-transaction.js";
 
 type CreateReservationInput = CreateReservationRequest["body"];
@@ -143,48 +139,6 @@ const formatApartmentLabel = (
     }
 ) => `P.${apartment.room_number} - Tầng ${apartment.floor}`;
 
-const sendDepositPaymentEmail = async (
-    data: {
-        tenant: {
-            email: string | null;
-            full_name: string;
-        };
-        invoice: {
-            id: number;
-            invoice_code: string;
-            total_amount: Prisma.Decimal | number;
-        };
-        reservation: {
-            expires_at: Date;
-        };
-        apartment: {
-            room_number: string;
-            floor: number;
-            building: {
-                address: string;
-            };
-        };
-    }
-) => {
-    if (data.tenant.email === null) {
-        return;
-    }
-
-    try {
-        await sendReservationDepositPaymentEmail({
-            to: data.tenant.email,
-            tenantName: data.tenant.full_name,
-            invoiceCode: data.invoice.invoice_code,
-            depositAmount: Number(data.invoice.total_amount),
-            apartmentLabel: formatApartmentLabel(data.apartment),
-            buildingAddress: data.apartment.building.address,
-            paymentUrl: buildDepositPaymentUrl(data.invoice.id),
-            moveInDeadline: data.reservation.expires_at
-        });
-    } catch {
-        // Email lỗi không được làm rollback đặt cọc đã tạo.
-    }
-};
 const sendReservationExpiredNotice = async (
     data: {
         expires_at: Date;
@@ -428,7 +382,6 @@ export const createReservationDepositService = async (
                 };
             }, reservationConcurrentModification);
 
-            await sendDepositPaymentEmail(result);
             const { apartment: _apartment, ...response } = result;
 
             return response;

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Eye, Printer, CheckCircle, XCircle } from "lucide-react";
+import { Eye, Printer, CheckCircle, QrCode } from "lucide-react";
 import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import {
@@ -7,7 +7,6 @@ import {
   INVOICE_STATUS_COLORS,
   INVOICE_STATUS_CONFIG,
   INVOICE_TYPE_CONFIG,
-  type InvoiceType,
 } from "../../../../constants/enums";
 import { getInvoicePeriod, getInvoicePeriodSortValue } from "../../../../utils/invoicePeriod";
 import { getInvoiceRoomDisplay, getInvoiceTenant, getInvoiceType } from "../../../../utils/invoiceDisplay";
@@ -18,7 +17,8 @@ interface InvoiceListProps {
   invoices: Invoice[];
   role: string | null;
   onOpenDetails: (invoice: Invoice) => void;
-  onToggleStatus: (invoice: Invoice) => void;
+  onConfirmCashPayment?: (invoice: Invoice) => void;
+  onCreateVnpayQr?: (invoice: Invoice) => void;
   onPrint: (invoice: Invoice) => void;
   startIdx?: number;
 }
@@ -42,7 +42,8 @@ export default function InvoiceList({
   invoices,
   role,
   onOpenDetails,
-  onToggleStatus,
+  onConfirmCashPayment,
+  onCreateVnpayQr,
   onPrint,
   startIdx = 0,
 }: InvoiceListProps) {
@@ -85,8 +86,8 @@ export default function InvoiceList({
           {
             key: "tenant",
             label: "Người thuê",
-            sortValue: (inv) => getInvoiceTenant(inv)?.full_name || "",
-            render: (inv) => {
+            sortValue: (inv: Invoice) => getInvoiceTenant(inv)?.full_name || "",
+            render: (inv: Invoice) => {
               const tenant = getInvoiceTenant(inv);
               return (
                 <div className="flex flex-col">
@@ -145,24 +146,33 @@ export default function InvoiceList({
                 >
                   <Printer size={16} />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => onToggleStatus(inv)}
-                  className={`p-2 rounded-lg cursor-pointer ${inv.status === "PAID"
-                      ? "text-red-500 hover:text-red-700 hover:bg-red-50"
-                      : "text-green-500 hover:text-green-700 hover:bg-green-50"
-                    }`}
-                  title={inv.status === "PAID" ? "Đánh dấu Chưa thanh toán" : "Đánh dấu Đã thanh toán"}
-                >
-                  {inv.status === "PAID" ? <XCircle size={16} /> : <CheckCircle size={16} />}
-                </button>
+                {inv.status !== "PAID" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => onCreateVnpayQr?.(inv)}
+                      className="p-2 rounded-lg cursor-pointer text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                      title="Tạo QR thanh toán VNPay"
+                    >
+                      <QrCode size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onConfirmCashPayment?.(inv)}
+                      className="p-2 rounded-lg cursor-pointer text-green-500 hover:text-green-700 hover:bg-green-50"
+                      title="Xác nhận thanh toán tiền mặt"
+                    >
+                      <CheckCircle size={16} />
+                    </button>
+                  </>
+                )}
               </>
             )}
           </div>
         ),
       },
     ],
-    [role, canManage, startIdx, onOpenDetails, onPrint, onToggleStatus]
+    [role, canManage, startIdx, onOpenDetails, onPrint, onConfirmCashPayment, onCreateVnpayQr]
   );
 
   return (

@@ -58,6 +58,10 @@ export const getMethods = async (
     {
         value: paymentService.PAYMENT_METHODS.E_WALLET,
         label: "Ví điện tử/VNPay"
+    },
+    {
+        value: paymentService.PAYMENT_METHODS.CASH,
+        label: "Tiền mặt"
     }
 ]);
 
