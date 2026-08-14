@@ -12,6 +12,10 @@ import { useUserRole } from "../../../../hooks/useUserRole";
 import { useSort } from "../../../../hooks/useSort";
 import type { Invoice, Reservation } from "../../../../types";
 
+type VnpayQrPayment = paymentService.CreateVnpayPaymentResult & {
+  invoice: Invoice;
+};
+
 export function buildSyntheticDepositInvoices(reservations: Reservation[], existingCodes: Set<string>): Invoice[] {
   return reservations
     .filter((resv) => !existingCodes.has(`DEP-${resv.id}`))
@@ -169,7 +173,9 @@ export function useInvoiceList() {
 
   const detailsModal = useOnOff();
   const generateModal = useOnOff();
+  const vnpayQrModal = useOnOff();
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [vnpayQrPayment, setVnpayQrPayment] = useState<VnpayQrPayment | null>(null);
 
   // Danh sách tòa nhà
   const { data: buildings = [] } = useQuery({
@@ -273,40 +279,45 @@ export function useInvoiceList() {
     },
   });
 
-  // Mutation cập nhật trạng thái hóa đơn
-  const handleUpdateStatusInvoice = useMutation({
-    mutationFn: async ({ id, status, invoice }: { id: number; status: string; invoice?: Invoice }) => {
-      try {
-        return await invoiceService.updateStatus(id, status);
-      } catch (err) {
-        if (role === "MANAGER" && invoice && (invoice.type === "DEPOSIT" || invoice.invoice_code?.startsWith("DEP-"))) {
-          if (invoice.payments && invoice.payments.length > 0) {
-            const paymentId = invoice.payments[0].id;
-            const paymentStatus = status === "PAID" ? "SUCCESS" : "FAILED";
-            return await paymentService.updateStatus(paymentId, paymentStatus);
-          } else if (status === "PAID") {
-            return await paymentService.create({
-              invoice_id: invoice.id > 0 ? invoice.id : Number(invoice.reservation_id),
-              amount: Number(invoice.total_amount),
-              payment_method: "BANK_TRANSFER",
-              status: "SUCCESS",
-            });
-          }
-        }
-        throw err;
+  // Mutation tạo liên kết thanh toán VNPay
+  const handleCreateVnpayQr = useMutation({
+    mutationFn: async (invoice: Invoice) =>
+      paymentService.createVnpayPayment({ invoice_id: invoice.id }),
+    onSuccess: (res, invoice) => {
+      if (!res.qrCodeDataUrl && !res.qrCodeSvg) {
+        toast.error("Không nhận được mã QR thanh toán từ cổng VNPay");
+        return;
       }
+
+      setVnpayQrPayment({ ...res, invoice });
+      vnpayQrModal.onOpen();
+      toast.success("Đã tạo mã QR thanh toán VNPay");
     },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      toast.error(err.response?.data?.message || err.message || "Tạo mã QR thanh toán VNPay thất bại");
+    },
+  });
+
+  // Mutation xác nhận thanh toán tiền mặt
+  const handleConfirmCashPayment = useMutation({
+    mutationFn: async (invoice: Invoice) =>
+      paymentService.create({
+        invoice_id: invoice.id,
+        payment_method: "CASH",
+        status: "SUCCESS",
+      }),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["invoices"] }),
         queryClient.invalidateQueries({ queryKey: ["payments"] }),
         queryClient.invalidateQueries({ queryKey: ["reservations"] }),
       ]);
-      toast.success("Cập nhật trạng thái hóa đơn thành công!");
+      toast.success("Đã xác nhận thanh toán tiền mặt!");
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Cập nhật thất bại");
+      toast.error(err.response?.data?.message || "Xác nhận thanh toán thất bại");
     },
   });
 
@@ -315,10 +326,20 @@ export function useInvoiceList() {
     detailsModal.onOpen();
   }, [detailsModal]);
 
-  const handleToggleStatus = useCallback((invoice: Invoice) => {
-    const nextStatus = invoice.status === "PAID" ? "UNPAID" : "PAID";
-    handleUpdateStatusInvoice.mutate({ id: invoice.id, status: nextStatus, invoice });
-  }, [handleUpdateStatusInvoice]);
+  const handleCloseVnpayQr = useCallback(() => {
+    vnpayQrModal.onClose();
+    setVnpayQrPayment(null);
+  }, [vnpayQrModal]);
+
+  const handleCreateVnpayQrClick = useCallback((invoice: Invoice) => {
+    if (invoice.status === "PAID") return;
+    handleCreateVnpayQr.mutate(invoice);
+  }, [handleCreateVnpayQr]);
+
+  const handleConfirmCashPaymentClick = useCallback((invoice: Invoice) => {
+    if (invoice.status === "PAID") return;
+    handleConfirmCashPayment.mutate(invoice);
+  }, [handleConfirmCashPayment]);
 
   return {
     role,
@@ -355,15 +376,22 @@ export function useInvoiceList() {
     selectedInvoice,
     detailsModal,
     handleOpenDetails,
+    vnpayQrModal,
+    vnpayQrPayment,
+    handleCloseVnpayQr,
 
     // Generate Modal
     generateModal,
     generateInvoices: handleGenerateInvoice.mutate,
     isGenerating: handleGenerateInvoice.isPending,
 
-    // Status Toggle
-    handleToggleStatus,
-    isUpdatingStatus: handleUpdateStatusInvoice.isPending,
+    // VNPay QR creation
+    handleCreateVnpayQr: handleCreateVnpayQrClick,
+    isCreatingVnpayQr: handleCreateVnpayQr.isPending,
+
+    // Cash payment confirmation
+    handleConfirmCashPayment: handleConfirmCashPaymentClick,
+    isUpdatingStatus: handleConfirmCashPayment.isPending,
 
     refetch,
   };

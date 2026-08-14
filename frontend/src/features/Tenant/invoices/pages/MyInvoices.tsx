@@ -82,7 +82,6 @@ export default function MyInvoices() {
             invoices={invoices}
             role="TENANT"
             onOpenDetails={handleOpenDetails}
-            onToggleStatus={() => { }}
             onPrint={printInvoiceHelper}
           />
 

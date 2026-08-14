@@ -41,7 +41,8 @@ export type CreateVnpayPaymentInput = CreateVnpayPaymentRequest["body"];
 
 export const PAYMENT_METHODS = {
     BANK_TRANSFER: "BANK_TRANSFER",
-    E_WALLET: "E_WALLET"
+    E_WALLET: "E_WALLET",
+    CASH: "CASH"
 } as const;
 
 type PaymentMethod =
@@ -289,10 +290,12 @@ const paymentMethodAliases: Record<string, PaymentMethod> = {
     EWALLET: PAYMENT_METHODS.E_WALLET,
     ELECTRONIC_WALLET: PAYMENT_METHODS.E_WALLET,
     VI_DIEN_TU: PAYMENT_METHODS.E_WALLET,
-    VNPAY: PAYMENT_METHODS.E_WALLET
+    VNPAY: PAYMENT_METHODS.E_WALLET,
+    CASH: PAYMENT_METHODS.CASH,
+    TIEN_MAT: PAYMENT_METHODS.CASH
 };
 
-const normalizePaymentMethod = (value: string) => {
+export const normalizePaymentMethod = (value: string) => {
     const key = value
         .trim()
         .toUpperCase()
@@ -305,6 +308,17 @@ const normalizePaymentMethod = (value: string) => {
 
     return method;
 };
+
+export const generateCashTransactionCode = (
+    invoiceId: number,
+    timestamp = new Date()
+) => `CASH-${invoiceId}-${timestamp.getTime()}`;
+
+export const canCreateVnpayPaymentUrlForRole = (role: Role) => (
+    role === Role.ADMIN
+    || role === Role.MANAGER
+    || role === Role.TENANT
+);
 
 const requireTenantId = (actor: Actor) => {
     if (actor.tenantId === undefined) {
@@ -1044,6 +1058,18 @@ export const createPaymentService = async (
                     );
                 }
 
+                const paidAt = status === PaymentStatus.SUCCESS
+                    ? new Date()
+                    : null;
+                const transactionCode = input.transaction_code
+                    ?? (
+                        paymentMethod === PAYMENT_METHODS.CASH
+                            ? generateCashTransactionCode(
+                                invoice.id,
+                                paidAt ?? new Date()
+                            )
+                            : undefined
+                    );
                 let created;
 
                 try {
@@ -1053,14 +1079,10 @@ export const createPaymentService = async (
                                 connect: { id: invoice.id }
                             },
                             payment_method: paymentMethod,
-                            transaction_code:
-                                input.transaction_code,
+                            transaction_code: transactionCode,
                             amount,
                             status,
-                            paid_at:
-                                status === PaymentStatus.SUCCESS
-                                    ? new Date()
-                                    : null
+                            paid_at: paidAt
                         }
                     });
                 } catch (error) {
@@ -1108,11 +1130,11 @@ export const createVnpayPaymentUrlService = async (
     actor: Actor,
     ipAddress: string
 ) => {
-    if (actor.role !== Role.TENANT) {
+    if (!canCreateVnpayPaymentUrlForRole(actor.role)) {
         throw new AppError(
             403,
             "FORBIDDEN",
-            "Chỉ khách thuê mới có thể thanh toán hóa đơn trực tuyến"
+            "Không có quyền tạo liên kết thanh toán VNPay"
         );
     }
 

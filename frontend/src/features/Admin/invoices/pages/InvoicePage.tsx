@@ -1,8 +1,9 @@
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, ExternalLink } from "lucide-react";
 import PageHeader from "../../../../components/layout/PageHeader";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Combobox from "../../../../components/ui/Combobox";
 import Button from "../../../../components/ui/Button";
+import Modal from "../../../../components/ui/Modal";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import DefaultPagination from "../../../../components/ui/Pagination";
 import { useInvoiceList } from "../hooks/useInvoiceList";
@@ -40,15 +41,27 @@ export default function InvoicePage() {
     selectedInvoice,
     detailsModal,
     handleOpenDetails,
+    vnpayQrModal,
+    vnpayQrPayment,
+    handleCloseVnpayQr,
     generateModal,
     generateInvoices,
     isGenerating,
-    handleToggleStatus,
+    handleConfirmCashPayment,
+    handleCreateVnpayQr,
     refetch,
   } = useInvoiceList();
 
   const canManageDeposits = role === "ADMIN" || role === "MANAGER";
+  const vnpayQrImageSrc = vnpayQrPayment?.qrCodeDataUrl
+    || (vnpayQrPayment?.qrCodeSvg
+      ? `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(vnpayQrPayment.qrCodeSvg)}`
+      : "");
 
+  const openVnpayPaymentPage = () => {
+    if (!vnpayQrPayment?.paymentUrl) return;
+    window.open(vnpayQrPayment.paymentUrl, "_blank", "noopener,noreferrer");
+  };
   const depositModal = useDepositInvoice({
     role,
     managedBuildingId,
@@ -216,7 +229,8 @@ export default function InvoicePage() {
             invoices={invoices}
             role={role}
             onOpenDetails={handleOpenDetails}
-            onToggleStatus={handleToggleStatus}
+            onConfirmCashPayment={handleConfirmCashPayment}
+            onCreateVnpayQr={handleCreateVnpayQr}
             onPrint={printInvoiceHelper}
             startIdx={startIdx}
           />
@@ -229,6 +243,46 @@ export default function InvoicePage() {
 
       <InvoiceDetailModal isOpen={detailsModal.isOpen} onClose={detailsModal.onClose} invoice={selectedInvoice} />
 
+      <Modal
+        isOpen={vnpayQrModal.isOpen}
+        onClose={handleCloseVnpayQr}
+        title="QR thanh toán VNPay"
+        size="sm"
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={handleCloseVnpayQr}>
+              Đóng
+            </Button>
+            <Button type="button" onClick={openVnpayPaymentPage} disabled={!vnpayQrPayment?.paymentUrl}>
+              <ExternalLink size={16} />
+              Mở trang VNPay
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4 text-center">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">
+              {vnpayQrPayment?.invoice.invoice_code || "Hóa đơn"}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Khách hàng quét mã để thanh toán qua VNPay
+            </p>
+          </div>
+
+          {vnpayQrImageSrc ? (
+            <div className="mx-auto w-72 max-w-full border border-gray-200 bg-white p-4 shadow-sm">
+              <img
+                src={vnpayQrImageSrc}
+                alt="QR thanh toán VNPay"
+                className="h-auto w-full"
+              />
+            </div>
+          ) : (
+            <p className="text-sm text-red-600">Không có mã QR thanh toán.</p>
+          )}
+        </div>
+      </Modal>
       <InvoiceGenerateModal
         isOpen={generateModal.isOpen}
         onClose={generateModal.onClose}

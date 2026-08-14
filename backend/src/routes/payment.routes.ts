@@ -39,7 +39,7 @@ const paymentRoles = [
 
 router.post(
     "/vnpay/create",
-    authorizeRole([Role.TENANT]),
+    authorizeRole(paymentRoles),
     validate(createVnpayPaymentRequestSchema),
     paymentController.createVnpayPayment
 );

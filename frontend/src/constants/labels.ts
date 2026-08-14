@@ -74,7 +74,7 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   BANK_TRANSFER: "Ngân hàng",
   E_WALLET: "VNPay",
-  CASH: "Tiền Mặt",
+  CASH: "Tiền mặt",
 };
 
 export const RESERVATION_STATUS_LABELS: Record<ReservationStatus, string> = {
