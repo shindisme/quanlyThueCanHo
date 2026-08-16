@@ -19,6 +19,7 @@ export interface Column<T> {
   label: string;
   sortable?: boolean;
   sortValue?: (item: T) => unknown;
+  preserveRenderIndex?: boolean;
   className?: string;
   render: (item: T, index: number) => React.ReactNode;
   isAction?: boolean;
@@ -71,15 +72,18 @@ function DataTableInner<T>({
     return extractors;
   }, [columns]);
 
+  const safeData = useMemo(() => (Array.isArray(data) ? data : []), [data]);
+
   const internalSort = useSort(
-    data,
+    safeData,
     null,
     customExtractors
   );
 
   const activeSortConfig = externalSortConfig !== undefined ? externalSortConfig : internalSort.sortConfig;
   const handleSort = onSort || internalSort.requestSort;
-  const sortedData = onSort ? data : internalSort.items;
+  const rawSorted = onSort ? safeData : internalSort.items;
+  const sortedData = Array.isArray(rawSorted) ? rawSorted : safeData;
 
   const getSortIconComponent = (colKey: string) => {
     if (!activeSortConfig || activeSortConfig.key !== colKey) {
@@ -92,7 +96,25 @@ function DataTableInner<T>({
 
   const getRowKey = (item: T, index: number): string | number => {
     if (rowKey) return rowKey(item);
-    return (item as any).id ?? (item as any).key ?? index;
+    if (typeof item === "object" && item !== null) {
+      const record = item as Record<string, unknown>;
+      const candidate = record.id ?? record.key;
+      if (typeof candidate === "string" || typeof candidate === "number") {
+        return candidate;
+      }
+    }
+    return index;
+  };
+
+  const getRenderIndex = (column: Column<T>, index: number) => {
+    const columnKey = column.accessorKey || column.key;
+    const isDescendingIndex = columnKey === "index"
+      && activeSortConfig?.key === "index"
+      && activeSortConfig.direction === "desc";
+
+    return isDescendingIndex && !column.preserveRenderIndex
+      ? sortedData.length - index - 1
+      : index;
   };
 
   if (isLoading) {
@@ -103,7 +125,7 @@ function DataTableInner<T>({
     );
   }
 
-  if (data.length === 0) {
+  if (safeData.length === 0) {
     return (
       <div className="w-full">
         {emptyComponent ?? <EmptyState description={emptyMessage} />}
@@ -134,7 +156,7 @@ function DataTableInner<T>({
               {headerCol && (
                 <div className="flex items-center justify-between pb-2 border-b border-gray-100">
                   <div className="font-semibold text-primary-600 text-base">
-                    {headerCol.render(item, index)}
+                    {headerCol.render(item, getRenderIndex(headerCol, index))}
                   </div>
                 </div>
               )}
@@ -148,7 +170,7 @@ function DataTableInner<T>({
                       "text-gray-600 font-sans text-right",
                       typeof cellClassName === "function" ? cellClassName(item, col) : cellClassName
                     )}>
-                      {col.render(item, index)}
+                      {col.render(item, getRenderIndex(col, index))}
                     </div>
                   </div>
                 ))}
@@ -157,7 +179,7 @@ function DataTableInner<T>({
               {/* Card Footer */}
               {actionsCol && (
                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-                  {actionsCol.render(item, index)}
+                  {actionsCol.render(item, getRenderIndex(actionsCol, index))}
                 </div>
               )}
             </div>
@@ -210,7 +232,7 @@ function DataTableInner<T>({
                       typeof cellClassName === "function" ? cellClassName(item, col) : cellClassName
                     )}
                   >
-                    {col.render(item, rIdx)}
+                    {col.render(item, getRenderIndex(col, rIdx))}
                   </TableCell>
                 ))}
               </TableRow>

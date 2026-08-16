@@ -2,10 +2,9 @@ import api from "../lib/api";
 import type { UtilityReadingData, UtilityReadingQuery, CreateUtilityReadingPayload, ApiPagination } from "../types";
 export type { UtilityReadingData, UtilityReadingQuery, CreateUtilityReadingPayload };
 import { fetchAllPages } from "./apiHelper";
+import { meter, meterUsage } from "../utils/utilityMeter";
 
 const UTILITY_API = "/utility-readings";
-
-const meter = (value: number) => Math.round(Number(value) || 0);
 
 const normalizeUtilityReading = (reading: UtilityReadingData): UtilityReadingData => {
   const electricOld = meter(reading.electric_old);
@@ -17,10 +16,10 @@ const normalizeUtilityReading = (reading: UtilityReadingData): UtilityReadingDat
     ...reading,
     electric_old: electricOld,
     electric_new: electricNew,
-    electric_consumption: Math.max(0, electricNew - electricOld),
+    electric_consumption: meterUsage(electricOld, electricNew),
     water_old: waterOld,
     water_new: waterNew,
-    water_consumption: Math.max(0, waterNew - waterOld),
+    water_consumption: meterUsage(waterOld, waterNew),
   };
 };
 

@@ -16,7 +16,7 @@ interface UserCreateModalProps {
 
 export default function UserCreateModal({ isOpen, onClose, onSuccess }: UserCreateModalProps) {
   const form = useCreateUserForm();
-  const { register, handleSubmit, reset, setError, formState: { errors } } = form;
+  const { register, handleSubmit, reset, formState: { errors } } = form;
 
   const createUserMutation = useCreateUser();
   const saving = createUserMutation.isPending;

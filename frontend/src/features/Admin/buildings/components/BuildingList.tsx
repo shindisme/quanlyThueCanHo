@@ -5,12 +5,16 @@ import Badge from "../../../../components/ui/Badge";
 import Button from "../../../../components/ui/Button";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import type { Building } from "../../../../types";
-import { BUILDING_STATUS_CONFIG, type BuildingStatus } from "../../../../constants/enums";
+import { BUILDING_STATUS_CONFIG, type BuildingStatus } from "../../../../constants";
+import { getTableRowNumber } from "../../../../utils/table";
 
 interface BuildingListProps {
   sortedBuildings: Building[];
   role: string | null;
   startIdx?: number;
+  totalItems: number;
+  sortConfig: { key: string; direction: "asc" | "desc" } | null;
+  onSort: (key: string) => void;
   setEditItem: (item: Building | null) => void;
   setShowModifyModal: (show: boolean) => void;
   setDeleteItem: (item: Building | null) => void;
@@ -20,6 +24,9 @@ export default function BuildingList({
   sortedBuildings,
   role,
   startIdx = 0,
+  totalItems,
+  sortConfig,
+  onSort,
   setEditItem,
   setShowModifyModal,
   setDeleteItem,
@@ -32,13 +39,15 @@ export default function BuildingList({
         key: "index",
         label: "STT",
         className: "w-4",
+        preserveRenderIndex: true,
         render: (_, index: number) => (
-          <span className="font-semibold text-gray-800 w-2">{startIdx + index + 1}</span>
+          <span className="font-semibold text-gray-800 w-2">{getTableRowNumber(index, startIdx, totalItems, sortConfig)}</span>
         ),
       },
       {
         key: "branch_name",
         label: "Tên chi nhánh",
+        sortable: false,
         sortValue: (b) => b.branch_name,
         render: (b) => (
           <Link
@@ -52,6 +61,7 @@ export default function BuildingList({
       {
         key: "address",
         label: "Địa chỉ",
+        sortable: false,
         sortValue: (b) => b.address,
         render: (b) => (
           <span className="block max-w-xs truncate text-gray-600" title={b.address}>
@@ -62,6 +72,7 @@ export default function BuildingList({
       {
         key: "manager",
         label: "Quản lý bởi",
+        sortable: false,
         sortValue: (b) => b.manager?.fullName || b.manager?.username || "",
         render: (b) =>
           b.manager ? (
@@ -76,6 +87,7 @@ export default function BuildingList({
       {
         key: "status",
         label: "Trạng thái",
+        sortable: false,
         sortValue: (b) => b.status,
         render: (b) => {
           const config = BUILDING_STATUS_CONFIG[b.status as BuildingStatus];
@@ -128,8 +140,8 @@ export default function BuildingList({
         ),
       },
     ],
-    [startIdx, canEdit, setEditItem, setShowModifyModal, setDeleteItem]
+    [startIdx, totalItems, sortConfig, canEdit, setEditItem, setShowModifyModal, setDeleteItem]
   );
 
-  return <DataTable columns={columns} data={sortedBuildings} />;
+  return <DataTable columns={columns} data={sortedBuildings} sortConfig={sortConfig} onSort={onSort} />;
 }

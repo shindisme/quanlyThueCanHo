@@ -5,11 +5,11 @@ import SearchInput from "../../../../components/ui/SearchInput";
 import Combobox from "../../../../components/ui/Combobox";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import DefaultPagination from "../../../../components/ui/Pagination";
-import PaymentList from "../components/PaymentList";
-import PaymentDetailModal from "../components/PaymentDetailModal";
+import PaymentList from "../../../../components/payments/PaymentList";
+import PaymentDetailModal from "../../../../components/payments/PaymentDetailModal";
 import { usePaymentList } from "../hooks/usePaymentList";
-import { PAYMENT_STATUS_OPTIONS, PAYMENT_METHOD_OPTIONS } from "../../../../constants/enums";
-import type { Payment } from "../../../../types";
+import { PAYMENT_STATUS_OPTIONS, PAYMENT_METHOD_OPTIONS } from "../../../../constants";
+import type { Payment, PaymentMethod, PaymentStatus } from "../../../../types";
 
 export default function PaymentPage() {
   const [viewItem, setViewItem] = useState<Payment | null>(null);
@@ -29,6 +29,8 @@ export default function PaymentPage() {
     setCurrentPage,
     totalPages,
     startIdx,
+    requestSort,
+    sortConfig,
   } = usePaymentList();
 
   return (
@@ -52,7 +54,7 @@ export default function PaymentPage() {
           <Combobox
             options={PAYMENT_STATUS_OPTIONS}
             value={filters.status}
-            onChange={(val) => updateFilter("status", val)}
+            onChange={(val) => updateFilter("status", val as PaymentStatus | "")}
             placeholder="Trạng thái"
             searchable={false}
             className="w-full"
@@ -65,7 +67,7 @@ export default function PaymentPage() {
           <Combobox
             options={PAYMENT_METHOD_OPTIONS}
             value={filters.method}
-            onChange={(val) => updateFilter("method", val)}
+            onChange={(val) => updateFilter("method", val as PaymentMethod | "")}
             placeholder="Phương thức"
             searchable={false}
             className="w-full"
@@ -139,7 +141,7 @@ export default function PaymentPage() {
           <span className="text-sm text-gray-400 mt-2">Đang tải lịch sử giao dịch...</span>
         </div>
       ) : payments.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 bg-white border border-gray-200 shadow-sm rounded-xl">
+        <div className="text-center py-16 text-gray-500 bg-white border border-gray-200 shadow-sm rounded-none">
           <ClipboardList size={48} className="mx-auto mb-3 text-gray-300" />
           <p className="font-medium">Không tìm thấy giao dịch nào</p>
         </div>
@@ -150,9 +152,12 @@ export default function PaymentPage() {
             role={role}
             isUpdating={isUpdating}
             startIdx={startIdx}
+            totalItems={rawPaymentsCount}
             handleApprove={handleApprove}
             handleReject={handleReject}
             onViewDetail={(pmt) => setViewItem(pmt)}
+            sortConfig={sortConfig}
+            onSort={(key) => { requestSort(key); setCurrentPage(1); }}
           />
           <div className="pt-2">
             <DefaultPagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />

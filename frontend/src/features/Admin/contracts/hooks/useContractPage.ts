@@ -9,17 +9,14 @@ import * as authService from "../../../../services/authService";
 import * as contractService from "../../../../services/contractService";
 import * as contractTerminationService from "../../../../services/contractTerminationService";
 import type { ContractTermination, OverdueTerminationCandidate, RentalContract } from "../../../../types";
-import type { Apartment } from "../../../../types";
-import type { Tenant } from "../../../../types";
-import type { Building } from "../../../../types";
-import type { User } from "../../../../types/user";
 import { useOnOff } from "../../../../hooks/useOnOff";
 import { usePagination } from "../../../../hooks/usePagination";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import { useSort } from "../../../../hooks/useSort";
 import { removeVietnameseTones } from "../../../../utils/string";
 import { useExtendContract } from "./useExtendContract";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
+import { isOpenContractTerminationStatus } from "../../../../constants/enums";
 
 interface LocationState {
   openCreateModal?: boolean;
@@ -60,43 +57,43 @@ export function useContractPage() {
   const [initialFloor, setInitialFloor] = useState<number | undefined>();
 
   const { data: contracts = [], isLoading: loadingContracts, refetch: fetchContracts } = useQuery({
-    queryKey: QUERY_KEYS.CONTRACTS,
-    queryFn: () => contractService.getAllContractsPage(),
-    select: (res) => res.data as unknown as RentalContract[],
+    queryKey: queryKeys.contracts.all,
+    queryFn: () => contractService.getAllPage(),
+    select: (res) => res.data,
   });
 
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
-    queryKey: QUERY_KEYS.BUILDINGS,
+    queryKey: queryKeys.buildings.all,
     queryFn: () => buildingService.getAllPage(),
-    select: (res) => res.data as unknown as Building[],
+    select: (res) => res.data,
   });
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
-    queryKey: QUERY_KEYS.APARTMENTS,
+    queryKey: queryKeys.apartments.all,
     queryFn: () => apartmentService.getAllPage(),
-    select: (res) => res.data as unknown as Apartment[],
+    select: (res) => res.data,
   });
 
   const { data: tenantsRes, isLoading: loadingTenants } = useQuery({
-    queryKey: QUERY_KEYS.TENANTS,
+    queryKey: queryKeys.tenants.all,
     queryFn: () => tenantService.getAllPage(),
     select: (res) => res.data,
   });
-  const tenants = (tenantsRes as unknown as Tenant[]) || [];
+  const tenants = tenantsRes || [];
 
   const { data: users = [], isLoading: loadingUsers } = useQuery({
-    queryKey: QUERY_KEYS.USERS,
+    queryKey: queryKeys.users.all,
     queryFn: () => authService.getAllPage(),
-    select: (res) => res.data as unknown as User[],
+    select: (res) => res.data,
   });
   const { data: terminations = [], isLoading: loadingTerminations } = useQuery({
-    queryKey: QUERY_KEYS.TERMINATIONS,
+    queryKey: queryKeys.terminations.all,
     queryFn: () => contractTerminationService.getAllPage(),
     select: (res) => res.data as ContractTermination[],
   });
 
   const { data: overdueCandidates = [], isLoading: loadingOverdueCandidates } = useQuery({
-    queryKey: [...QUERY_KEYS.TERMINATIONS, "overdue-candidates"],
+    queryKey: queryKeys.terminations.list({ scope: "overdue-candidates" }),
     queryFn: () => contractTerminationService.getOverdueCandidates(),
     enabled: role === "ADMIN" || role === "MANAGER",
     select: (res) => res as OverdueTerminationCandidate[],
@@ -151,7 +148,7 @@ export function useContractPage() {
     mutationFn: (id: number) => tenantService.remove(id),
     onSuccess: () => {
       toast.success("Đã hủy tạo người thuê mới và xóa thông tin khỏi hệ thống.");
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TENANTS });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tenants.all });
     },
     onError: () => {
       toast.error("Không thể xóa thông tin người thuê vừa tạo.");
@@ -196,10 +193,9 @@ export function useContractPage() {
 
 
   const openTerminationsByContractId = useMemo(() => {
-    const openStatuses = new Set(["PENDING", "APPROVED", "INSPECTION", "SETTLING"]);
     return new Map(
       terminations
-        .filter((termination) => openStatuses.has(termination.status))
+        .filter((termination) => isOpenContractTerminationStatus(termination.status))
         .map((termination) => [termination.contract_id, termination])
     );
   }, [terminations]);
@@ -264,7 +260,7 @@ export function useContractPage() {
   });
 
   // Lọc
-  const { items: sortedContracts, requestSort, getSortIcon } = useSort(
+  const { items: sortedContracts, requestSort, getSortIcon, sortConfig } = useSort(
     filteredContracts,
     null,
     {
@@ -318,10 +314,10 @@ export function useContractPage() {
   }
   const invalidateTerminationFlow = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TERMINATIONS }),
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CONTRACTS }),
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APARTMENTS }),
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.INVOICES }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.terminations.all }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.contracts.all }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.apartments.all }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all }),
     ]);
   };
 
@@ -474,9 +470,11 @@ export function useContractPage() {
     sortedContracts,
     requestSort,
     getSortIcon,
+    sortConfig,
     currentPage,
     setCurrentPage,
     totalPages,
+    startIdx,
     paginatedContracts,
     handleExtendContract,
     terminateItem,

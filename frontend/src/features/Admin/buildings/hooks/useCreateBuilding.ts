@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 import { buildingService } from "../../../../services";
 
 export function useCreateBuilding() {
@@ -8,7 +8,7 @@ export function useCreateBuilding() {
   return useMutation({
     mutationFn: (data: FormData) => buildingService.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.BUILDINGS });
+      queryClient.invalidateQueries({ queryKey: queryKeys.buildings.all });
     },
   });
 }

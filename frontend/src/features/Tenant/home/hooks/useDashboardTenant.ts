@@ -1,169 +1,38 @@
-import { useMemo, useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useAuthStore } from "../../../../stores/auth.store";
-import * as contractService from "../../../../services/contractService";
-import * as apartmentService from "../../../../services/apartmentService";
-import * as buildingService from "../../../../services/buildingService";
-import * as tenantService from "../../../../services/tenantService";
-import { toast } from "sonner";
-import type { TenantOccupant } from "../../../../types";
-import { reviewService } from "../../../../services";
-
-function parseJwt(token: string) {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      window
-        .atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch {
-    return null;
-  }
-}
-
-function toOccupant(occupant: TenantOccupant) {
-  return {
-    id: occupant.id,
-    name: occupant.full_name,
-    cccd: occupant.citizen_id,
-    dob: occupant.date_of_birth?.slice(0, 10) || "",
-    phone: occupant.phone || "",
-  };
-}
+import { useTenantOccupants } from "./useTenantOccupants";
+import { useTenantApartmentInfo } from "./useTenantApartmentInfo";
+import { useTenantReview } from "./useTenantReview";
 
 export function useDashboardTenant() {
-  const { email, token } = useAuthStore();
-  const queryClient = useQueryClient();
+  const { occupants, loadingOccupants } = useTenantOccupants();
 
-  const decoded = token ? parseJwt(token) : null;
-  const userId = decoded ? (decoded.userId ? Number(decoded.userId) : (decoded.sub ? Number(decoded.sub) : null)) : null;
+  const {
+    email,
+    displayName,
+    activeContract,
+    apartment,
+    building,
+    endedContract,
+    endedApartment,
+    endedBuilding,
+    loadingApartmentInfo,
+  } = useTenantApartmentInfo();
 
-  const { data: occupantData = [], isLoading: loadingOccupants } = useQuery({
-    queryKey: ["tenant-occupants"],
-    queryFn: tenantService.getMyOccupants,
-    enabled: !!token,
+  const {
+    reviewModalOpen,
+    setReviewModalOpen,
+    rating,
+    setRating,
+    comment,
+    setComment,
+    submittingReview,
+    handleReviewSubmit,
+  } = useTenantReview({
+    activeContract,
+    endedContract,
+    endedApartment,
   });
 
-  const occupants = useMemo(
-    () => occupantData.map(toOccupant),
-    [occupantData]
-  );
-
-  const { data: contracts, isLoading: loadingContracts } = useQuery({
-    queryKey: ["contracts"],
-    queryFn: () => contractService.getAllContractsPage(),
-    enabled: !!userId,
-    select: (res) => res.data,
-  });
-
-  const currentTenant = contracts && contracts.length > 0
-    ? contracts[0].tenant
-    : null;
-
-  const { data: apartments = [], isLoading: loadingApartments } = useQuery({
-    queryKey: ["apartments"],
-    queryFn: () => apartmentService.getAllPage(),
-    enabled: !!userId,
-    select: (res) => res.data,
-  });
-
-  const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
-    queryKey: ["buildings"],
-    queryFn: () => buildingService.getAllPage(),
-    enabled: !!userId,
-    select: (res) => res.data,
-  });
-
-  const { activeContract, endedContract } = useMemo(() => {
-    if (!contracts || contracts.length === 0) {
-      return { activeContract: null, endedContract: null };
-    }
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    const active = contracts.find(
-      (c) => c.status === "ACTIVE" || new Date(c.end_date) >= todayStart
-    ) || null;
-
-    const ended = contracts
-      .filter((c) => c.status === "ENDED" && new Date(c.end_date) < todayStart)
-      .sort((a, b) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime())[0] || null;
-
-    return { activeContract: active, endedContract: ended };
-  }, [contracts]);
-
-  const apartment = useMemo(
-    () => (activeContract ? apartments.find((a) => a.id === activeContract.apartment_id) || null : null),
-    [activeContract, apartments]
-  );
-
-  const endedApartment = useMemo(
-    () => (endedContract ? apartments.find((a) => a.id === endedContract.apartment_id) || null : null),
-    [endedContract, apartments]
-  );
-
-  const building = useMemo(
-    () => (apartment ? buildings.find((b) => b.id === apartment.building_id) || null : null),
-    [apartment, buildings]
-  );
-
-  const endedBuilding = useMemo(
-    () => (endedApartment ? buildings.find((b) => b.id === endedApartment.building_id) || null : null),
-    [endedApartment, buildings]
-  );
-
-  const displayName = currentTenant?.full_name || email?.split("@")[0] || "Người thuê";
-
-  const isLoading = loadingOccupants || loadingContracts || loadingApartments || loadingBuildings;
-
-  // Review states
-  const [reviewModalOpen, setReviewModalOpen] = useState(false);
-  const [rating, setRating] = useState(5);
-  const [comment, setComment] = useState("");
-
-  const endedContractId = endedContract?.id;
-  const hasActiveContract = Boolean(activeContract);
-
-  useEffect(() => {
-    if (endedContractId && !hasActiveContract) {
-      const alreadyDealtWith = localStorage.getItem("has_ignored_review_contract_" + endedContractId);
-      if (!alreadyDealtWith) {
-        setReviewModalOpen(true);
-      }
-    }
-  }, [endedContractId, hasActiveContract]);
-
-  const reviewMutation = useMutation({
-    mutationFn: (data: { apartment_id: number; rating: number; comment: string }) => reviewService.create(data),
-    onSuccess: () => {
-      toast.success("Cảm ơn bạn đã gửi đánh giá cho căn hộ!");
-      if (endedContract) {
-        localStorage.setItem("has_ignored_review_contract_" + endedContract.id, "true");
-      }
-      setReviewModalOpen(false);
-      setComment("");
-      setRating(5);
-      queryClient.invalidateQueries({ queryKey: ["contracts"] });
-    },
-    onError: (error: unknown) => {
-      const err = error as { response?: { data?: { message?: string } }; message?: string };
-      toast.error(err.response?.data?.message || err.message || "Không thể gửi đánh giá.");
-    },
-  });
-
-  const handleReviewSubmit = () => {
-    if (!endedApartment) return;
-    reviewMutation.mutate({
-      apartment_id: endedApartment.id,
-      rating,
-      comment: comment.trim(),
-    });
-  };
+  const isLoading = loadingOccupants || loadingApartmentInfo;
 
   return {
     email,
@@ -182,7 +51,7 @@ export function useDashboardTenant() {
     setRating,
     comment,
     setComment,
-    submittingReview: reviewMutation.isPending,
+    submittingReview,
     handleReviewSubmit,
   };
 }

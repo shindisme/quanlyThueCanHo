@@ -123,6 +123,11 @@ export const getAllStaffService = async (
 
     if (actor.role === Role.MANAGER) {
         conditions.push(managerStaffScope(actor));
+    } else if (actor.role === Role.STAFF) {
+        conditions.push({
+            id: actor.staffId,
+            user_id: actor.userId
+        });
     } else if (filters.building_id !== undefined) {
         conditions.push({ building_id: filters.building_id });
     }
@@ -198,10 +203,18 @@ export const getStaffByIdService = async (
             },
             select: staffSelect
         })
-        : await prisma.staff.findUnique({
-            where: { id },
-            select: staffSelect
-        });
+        : actor.role === Role.STAFF
+            ? await prisma.staff.findFirst({
+                where: {
+                    id,
+                    user_id: actor.userId
+                },
+                select: staffSelect
+            })
+            : await prisma.staff.findUnique({
+                where: { id },
+                select: staffSelect
+            });
 
     if (!staff) {
         throw notFound();
@@ -310,6 +323,16 @@ export const updateStaffService = async (
     actor: Actor
 ) => {
     if (
+        actor.role === Role.STAFF
+        && (
+            id !== actor.staffId
+            || input.building_id !== undefined
+            || input.position !== undefined
+        )
+    ) {
+        throw forbidden("Nhân viên chỉ có thể cập nhật thông tin cá nhân của chính mình");
+    }
+    if (
         actor.role === Role.MANAGER
         && input.building_id !== undefined
         && input.building_id !== actor.buildingId
@@ -342,6 +365,30 @@ export const updateStaffService = async (
                 where: {
                     id,
                     ...managerStaffScope(actor)
+                },
+                select: staffSelect
+            });
+
+            if (!staff) {
+                throw notFound();
+            }
+        } else if (actor.role === Role.STAFF) {
+            const result = await transaction.staff.updateMany({
+                where: {
+                    id,
+                    user_id: actor.userId
+                },
+                data: staffData
+            });
+
+            if (result.count === 0) {
+                throw notFound();
+            }
+
+            staff = await transaction.staff.findFirst({
+                where: {
+                    id,
+                    user_id: actor.userId
                 },
                 select: staffSelect
             });

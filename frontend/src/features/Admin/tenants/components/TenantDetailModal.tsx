@@ -1,6 +1,7 @@
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import type { Tenant } from "../../../../types";
+import { getPreferredContract } from "../../../../utils/contract";
 import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay } from "../../../../utils/string";
 
@@ -35,7 +36,7 @@ export default function TenantDetailModal({
   const { full_name, phone, email, citizen_id, date_of_birth, address, contracts } = tenant;
 
   // Tìm hợp đồng đang ACTIVE, ko thì lấy cái đầu tiên 
-  const activeContract = contracts?.find((c) => c.status === "ACTIVE") ?? contracts?.[0];
+  const activeContract = getPreferredContract(contracts);
   const apartment = activeContract?.apartment;
 
   return (

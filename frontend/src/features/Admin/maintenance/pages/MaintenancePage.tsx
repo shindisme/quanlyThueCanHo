@@ -5,7 +5,7 @@ import PageHeader from "../../../../components/layout/PageHeader";
 import Combobox from "../../../../components/ui/Combobox";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import { removeVietnameseTones } from "../../../../utils/string";
-import { useSort } from "../../../../hooks/useSort";
+import { PRIORITY_OPTIONS, REQUEST_STATUS_OPTIONS } from "../../../../constants";
 import { useMaintenancePage } from "../hooks/useMaintenancePage";
 import { useMaintenanceDetail } from "../hooks/useMaintenanceDetail";
 import MaintenanceList from "../components/MaintenanceList";
@@ -53,8 +53,6 @@ export default function MaintenancePage() {
     });
   }, [requests, search, floorFilter]);
 
-  const { items: sortedRequests } = useSort(filteredRequests);
-
   return loading ? (
     <div className="flex flex-col items-center justify-center min-h-100">
       <LoadingSpinner size={36} />
@@ -72,15 +70,9 @@ export default function MaintenancePage() {
       />
 
       <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 sm:col-span-3">
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Combobox
-            options={[
-              { value: "PENDING", label: "Chờ xử lý" },
-              { value: "PROCESSING", label: "Đang sửa chữa" },
-              { value: "DONE", label: "Hoàn thành" },
-              { value: "NEEDS_RESCHEDULE", label: "Báo không sửa được" },
-              { value: "CANCELLED", label: "Đã hủy" },
-            ]}
+            options={REQUEST_STATUS_OPTIONS}
             value={statusFilter}
             onChange={setStatusFilter}
             placeholder="Tất cả trạng thái"
@@ -90,13 +82,9 @@ export default function MaintenancePage() {
           />
         </div>
 
-        <div className="col-span-12 sm:col-span-3">
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Combobox
-            options={[
-              { value: "LOW", label: "Thấp" },
-              { value: "MEDIUM", label: "Trung bình" },
-              { value: "HIGH", label: "Khẩn cấp" },
-            ]}
+            options={PRIORITY_OPTIONS}
             value={priorityFilter}
             onChange={setPriorityFilter}
             placeholder="Tất cả độ ưu tiên"
@@ -106,7 +94,7 @@ export default function MaintenancePage() {
           />
         </div>
 
-        <div className="col-span-12 sm:col-span-3">
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Combobox
             options={availableFloors.map((fl) => ({ value: String(fl), label: `Tầng ${fl}` }))}
             value={floorFilter}
@@ -118,7 +106,7 @@ export default function MaintenancePage() {
         </div>
 
         {role === "ADMIN" && (
-          <div className="col-span-12 sm:col-span-3">
+          <div className="col-span-12 sm:col-span-6 md:col-span-3">
             <Combobox
               options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
               value={buildingFilter}
@@ -134,14 +122,14 @@ export default function MaintenancePage() {
         )}
       </div>
 
-      {sortedRequests.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 bg-white border border-gray-200 shadow-sm rounded-xl">
+      {filteredRequests.length === 0 ? (
+        <div className="text-center py-16 text-gray-500 bg-white border border-gray-200 shadow-sm rounded-none">
           <ClipboardList size={48} className="mx-auto mb-3 text-gray-300" />
           <p className="font-medium">Không tìm thấy yêu cầu sửa chữa nào</p>
         </div>
       ) : (
         <MaintenanceList
-          requests={sortedRequests}
+          requests={filteredRequests}
           role={role}
           saving={saving}
           onOpenDetail={detail.openModal}

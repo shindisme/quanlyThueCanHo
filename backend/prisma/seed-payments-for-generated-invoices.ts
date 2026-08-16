@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 
 const TARGET_YEAR = 2026;
 const TARGET_MONTHS = [1, 2, 3, 4, 5, 6] as const;
-const PAYMENT_METHOD = "BANK_TRANSFER";
+const PAYMENT_METHOD = "CASH";
 const BATCH_SIZE = 25;
 
 type TargetMonth = typeof TARGET_MONTHS[number];

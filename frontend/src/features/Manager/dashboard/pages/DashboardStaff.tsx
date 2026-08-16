@@ -9,51 +9,20 @@ import { useDashboardStaff } from "../hooks/useDashboardStaff";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
-import { toast } from "sonner";
-
-function StatCard({ icon: Icon, label, value, iconColor, iconBg }: {
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  label: string;
-  value: string | number;
-  iconColor: string;
-  iconBg: string;
-}) {
-  return (
-    <div className="border bg-white border-gray-200 p-5 shadow-lg hover:shadow-xl rounded-none h-full flex flex-col justify-between transition-all duration-200">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-xs font-medium uppercase tracking-wide mb-2 text-gray-500">{label}</p>
-          <p className="text-2xl font-bold text-gray-800">{value}</p>
-        </div>
-        <div className={`w-12 h-12 rounded-none flex items-center justify-center shrink-0 ${iconBg}`}>
-          <Icon size={22} className={iconColor} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ChartCard({ title, subtitle, children }: {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="bg-white border border-gray-200 p-5 shadow-lg rounded-none h-full flex flex-col justify-between">
-      <div>
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="text-base font-bold text-gray-900">{title}</h3>
-            {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
-          </div>
-        </div>
-        <div>
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
+import StatCard from "../../../Admin/dashboard/components/StatCard";
+import ChartCard from "../../../Admin/dashboard/components/ChartCard";
+import type { MaintenanceRequest } from "../../../../types";
+import Badge from "../../../../components/ui/Badge";
+import Combobox from "../../../../components/ui/Combobox";
+import SearchInput from "../../../../components/ui/SearchInput";
+import {
+  PRIORITY_CONFIG,
+  REQUEST_STATUS_CONFIG,
+  type Priority,
+  type RequestStatus,
+  PRIORITY_OPTIONS,
+} from "../../../../constants";
+import { removeVietnameseTones } from "../../../../utils/string";
 
 export default function DashboardStaff() {
   const {
@@ -67,18 +36,18 @@ export default function DashboardStaff() {
     isLoading,
     currentStaff,
     role,
-    startMutation,
     completeMutation,
     unableMutation,
   } = useDashboardStaff();
 
   const [statusTab, setStatusTab] = useState<string>("ALL");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [reportRequest, setReportRequest] = useState<any | null>(null);
+  const [taskSearch, setTaskSearch] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("");
+  const [taskSort, setTaskSort] = useState("CREATED_DESC");
+  const [reportRequest, setReportRequest] = useState<MaintenanceRequest | null>(null);
   const [reportReason, setReportReason] = useState<string>("");
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [completeRequest, setCompleteRequest] = useState<any | null>(null);
+  const [completeRequest, setCompleteRequest] = useState<MaintenanceRequest | null>(null);
   const [chargeTenant, setChargeTenant] = useState<boolean>(false);
   const [repairFee, setRepairFee] = useState<string>("");
 
@@ -166,35 +135,39 @@ export default function DashboardStaff() {
     const processingMyTasks = myTasks.filter((r) => r.status === "PROCESSING").length;
     const doneMyTasks = myTasks.filter((r) => r.status === "DONE").length;
 
-    const filteredMyTasks = myTasks.filter((t) => {
-      if (statusTab === "ALL") return t.status !== "CANCELLED";
-      return t.status === statusTab;
-    });
+    const taskKeyword = removeVietnameseTones(taskSearch.trim().toLowerCase());
+    const priorityRank: Record<Priority, number> = { LOW: 1, MEDIUM: 2, HIGH: 3 };
+    const filteredMyTasks = myTasks
+      .filter((task) => {
+        const matchesStatus = statusTab === "ALL" ? task.status !== "CANCELLED" : task.status === statusTab;
+        if (!matchesStatus || (priorityFilter && task.priority !== priorityFilter)) return false;
+        if (!taskKeyword) return true;
+        return removeVietnameseTones(
+          [task.title, task.description, task.apartment?.room_number, task.apartment?.building?.branch_name]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
+        ).includes(taskKeyword);
+      })
+      .sort((a, b) => {
+        if (taskSort === "PRIORITY_DESC") return priorityRank[b.priority] - priorityRank[a.priority];
+        if (taskSort === "SCHEDULED_ASC") {
+          return new Date(a.scheduled_at || "9999-12-31").getTime() - new Date(b.scheduled_at || "9999-12-31").getTime();
+        }
+        if (taskSort === "ROOM_ASC") {
+          return String(a.apartment?.room_number || "").localeCompare(String(b.apartment?.room_number || ""), undefined, { numeric: true });
+        }
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
 
     const getPriorityBadge = (priority: string) => {
-      switch (priority) {
-        case "HIGH":
-          return <span className="text-xs px-2.5 py-0.5 bg-red-100 text-red-800 font-semibold border border-red-200">Cao</span>;
-        case "MEDIUM":
-          return <span className="text-xs px-2.5 py-0.5 bg-amber-100 text-amber-800 font-semibold border border-amber-200">Trung bình</span>;
-        default:
-          return <span className="text-xs px-2.5 py-0.5 bg-gray-100 text-gray-805 font-semibold border border-gray-200">Thấp</span>;
-      }
+      const config = PRIORITY_CONFIG[priority as Priority];
+      return <Badge variant={config?.badge || "gray"}>{config?.label || priority}</Badge>;
     };
 
     const getStatusBadge = (status: string) => {
-      switch (status) {
-        case "PENDING":
-          return <span className="text-xs px-2.5 py-0.5 bg-amber-100 text-amber-800 font-semibold">Chờ xử lý</span>;
-        case "PROCESSING":
-          return <span className="text-xs px-2.5 py-0.5 bg-blue-100 text-blue-800 font-semibold">Đang xử lý</span>;
-        case "NEEDS_RESCHEDULE":
-          return <span className="text-xs px-2.5 py-0.5 bg-red-100 text-red-800 font-semibold border border-red-150">Báo bận / Báo lại</span>;
-        case "DONE":
-          return <span className="text-xs px-2.5 py-0.5 bg-emerald-100 text-emerald-800 font-semibold">Hoàn thành</span>;
-        default:
-          return <span className="text-xs px-2.5 py-0.5 bg-gray-105 text-gray-700">Đã hủy</span>;
-      }
+      const config = REQUEST_STATUS_CONFIG[status as RequestStatus];
+      return <Badge variant={config?.badge || "gray"}>{config?.label || status}</Badge>;
     };
 
     return (
@@ -249,6 +222,35 @@ export default function DashboardStaff() {
 
         {/* Tabs & List */}
         <div className="bg-white border border-gray-200 shadow-lg p-6">
+          <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <SearchInput
+              value={taskSearch}
+              onChange={setTaskSearch}
+              placeholder="Sự cố, phòng, chi nhánh..."
+              className="w-full"
+            />
+            <Combobox
+              options={PRIORITY_OPTIONS}
+              value={priorityFilter}
+              onChange={setPriorityFilter}
+              placeholder="Độ ưu tiên"
+              searchable={false}
+              clearable
+            />
+            <Combobox
+              options={[
+                { value: "CREATED_DESC", label: "Mới gửi trước" },
+                { value: "PRIORITY_DESC", label: "Ưu tiên cao trước" },
+                { value: "SCHEDULED_ASC", label: "Lịch hẹn gần trước" },
+                { value: "ROOM_ASC", label: "Phòng tăng dần" },
+              ]}
+              value={taskSort}
+              onChange={setTaskSort}
+              placeholder="Sắp xếp"
+              searchable={false}
+              clearable={false}
+            />
+          </div>
           <div className="flex border-b border-gray-200 gap-4 mb-6 overflow-x-auto">
             <button
               onClick={() => setStatusTab("ALL")}
@@ -291,7 +293,7 @@ export default function DashboardStaff() {
               {filteredMyTasks.map((task) => {
                 const roomStr = task.apartment ? `P.${task.apartment.room_number} (Tầng ${task.apartment.floor})` : `Phòng #${task.apartment_id}`;
                 const buildingName = task.apartment?.building?.branch_name || "Chi nhánh hiện tại";
-                const isMutating = completeMutation.isPending || unableMutation.isPending || startMutation.isPending;
+                const isMutating = completeMutation.isPending || unableMutation.isPending;
 
                 return (
                   <div key={task.id} className="border border-gray-150 p-5 hover:border-gray-300 transition-all flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-50/20">
@@ -317,24 +319,7 @@ export default function DashboardStaff() {
                     </div>
 
                     <div className="flex items-center gap-2.5 w-full md:w-auto justify-end">
-                      {task.status === "PENDING" && (
-                        <Button
-                          size="sm"
-                          isLoading={isMutating}
-                          onClick={() => {
-                            const staffId = currentStaff?.id || task.assigned_staff_id || task.assigned_staff?.id;
-                            if (staffId) {
-                              startMutation.mutate({ id: task.id, staffId });
-                            } else {
-                              toast.error("Không tìm thấy thông tin nhân viên kỹ thuật để bắt đầu!");
-                            }
-                          }}
-                          className="flex items-center gap-1 bg-blue-600 text-white hover:bg-blue-700"
-                        >
-                          <Play size={12} /> Bắt đầu sửa
-                        </Button>
-                      )}
-                      {(task.status === "PROCESSING" || task.status === "NEEDS_RESCHEDULE") && (
+                      {task.status === "PROCESSING" && (
                         <>
                           <Button
                             size="sm"

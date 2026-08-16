@@ -3,9 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import * as buildingService from "../../../../services/buildingService";
 import * as staffService from "../../../../services/staffService";
 import * as authService from "../../../../services/authService";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
-import { ACCOUNT_POSITIONS } from "../constants/staff";
-import type { UserData } from "../../../../types";
+import { queryKeys } from "../../../../constants/queryKeys";
+import { ACCOUNT_POSITIONS } from "../../../../constants/staff";
 
 interface UseStaffFormFieldsProps {
   isOpen: boolean;
@@ -21,31 +20,25 @@ export function useStaffFormFields({
   currentUserId,
 }: UseStaffFormFieldsProps) {
   const { data: buildingsRes, isLoading: loadingBuildings } = useQuery({
-    queryKey: QUERY_KEYS.BUILDINGS,
+    queryKey: queryKeys.buildings.all,
     queryFn: () => buildingService.getAll({ limit: 100 }),
     enabled: isOpen,
   });
   const buildings = useMemo(() => buildingsRes?.data || [], [buildingsRes?.data]);
 
   const { data: staffRes, isLoading: loadingStaff } = useQuery({
-    queryKey: QUERY_KEYS.STAFF,
+    queryKey: queryKeys.staff.all,
     queryFn: () => staffService.getAll(),
     enabled: isOpen,
   });
   const staffList = useMemo(() => staffRes?.data || [], [staffRes?.data]);
 
-  const { data: usersData, isLoading: loadingUsers } = useQuery({
-    queryKey: QUERY_KEYS.USERS,
+  const { data: users = [], isLoading: loadingUsers } = useQuery({
+    queryKey: queryKeys.users.all,
     queryFn: () => authService.getAllPage(),
     enabled: isOpen,
-    select: (res: any) => (Array.isArray(res) ? res : res?.data || []),
+    select: (res) => res.data,
   });
-
-  const users: UserData[] = useMemo(() => {
-    if (Array.isArray(usersData)) return usersData;
-    if (usersData && Array.isArray((usersData as any).data)) return (usersData as any).data;
-    return [];
-  }, [usersData]);
 
   const managedBuildingIds = useMemo(() => {
     return staffList
@@ -54,7 +47,7 @@ export function useStaffFormFields({
   }, [staffList, currentStaffId]);
 
   const nextUsername = useMemo(() => {
-    if (!ACCOUNT_POSITIONS.includes(positionVal as any) || (currentUserId && positionVal === "Quản lý")) {
+    if (!ACCOUNT_POSITIONS.some((position) => position === positionVal) || (currentUserId && positionVal === "Quản lý")) {
       return "";
     }
 

@@ -69,6 +69,7 @@ export default function UserList({
         key: "index",
         label: "STT",
         className: "w-4",
+        preserveRenderIndex: true,
         sortValue: (u) => (u.created_at ? new Date(u.created_at).getTime() : u.id || 0),
         render: (_, index: number) => {
           const isDesc = sortConfig?.key === "index" && sortConfig?.direction === "desc";
@@ -79,24 +80,28 @@ export default function UserList({
       {
         key: "fullName",
         label: "Họ và tên",
+        sortable: false,
         sortValue: (u) => getUserFullName(u),
         render: (u) => <span className="font-medium text-gray-700">{getUserFullName(u)}</span>,
       },
       {
         key: "username",
         label: "Tên tài khoản",
+        sortable: false,
         sortValue: (u) => u.username,
         render: (u) => <span className="font-semibold text-gray-800">{u.username}</span>,
       },
       {
         key: "role",
         label: "Vai trò",
+        sortable: false,
         sortValue: (u) => (u.role === "ADMIN" ? "1_Admin" : u.role === "MANAGER" ? "2_Quản lý" : u.role === "STAFF" ? "3_Nhân viên" : "4_Người thuê"),
         render: (u) => getRoleBadge(u),
       },
       {
         key: "branch",
         label: "Chi nhánh",
+        sortable: false,
         sortValue: (u) => {
           const branch = getUserBranch(u);
           if (!branch || branch === "-" || branch === "Chưa phân công" || branch === "Không" || branch === "Trống") {
@@ -115,6 +120,7 @@ export default function UserList({
       {
         key: "status",
         label: "Trạng thái",
+        sortable: false,
         sortValue: (u) => (u.status === "ACTIVE" ? "1_Hoạt động" : "2_Tạm khóa"),
         render: (u) => (
           <Badge variant={u.status === "ACTIVE" ? "success" : "gray"}>

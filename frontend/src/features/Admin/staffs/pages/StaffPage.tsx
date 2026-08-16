@@ -9,6 +9,7 @@ import Pagination from "../../../../components/ui/Pagination";
 import Combobox from "../../../../components/ui/Combobox";
 import { maskPhone } from "../../../../utils/string";
 import type { Staff } from "../../../../types";
+import { getTableRowNumber } from "../../../../utils/table";
 
 import StaffCreateModal from "../components/StaffCreateModal";
 import StaffModifyModal from "../components/StaffModifyModal";
@@ -31,7 +32,10 @@ export default function StaffPage() {
     currentPage,
     setCurrentPage,
     totalPages,
+    startIdx,
     paginated,
+    requestSort,
+    sortConfig,
     createModal,
     modifyModal,
     editItem,
@@ -58,20 +62,32 @@ export default function StaffPage() {
 
   const columns: Column<Staff>[] = [
     {
+      key: "index",
+      label: "STT",
+      className: "w-4",
+      preserveRenderIndex: true,
+      render: (_, index) => (
+        <span className="font-semibold text-gray-800">{getTableRowNumber(index, startIdx, filtered.length, sortConfig)}</span>
+      ),
+    },
+    {
       key: "name",
       label: "Họ và tên",
+      sortable: false,
       sortValue: (s) => s.full_name,
       render: (s) => <span className="font-semibold text-gray-800">{s.full_name}</span>,
     },
     {
       key: "phone",
       label: "Số điện thoại",
+      sortable: false,
       sortValue: (s) => s.phone || "",
       render: (s) => (s.phone ? maskPhone(s.phone) : <span className="text-gray-400">-</span>),
     },
     {
       key: "position",
       label: "Chức vụ",
+      sortable: false,
       sortValue: (s) => s.position,
       render: (s) => {
         const isManager = s.position === "Quản lý";
@@ -85,6 +101,7 @@ export default function StaffPage() {
     {
       key: "building",
       label: "Tòa nhà làm việc",
+      sortable: false,
       sortValue: (s) => getBuildingName(s.building_id),
       render: (s) => {
         const bName = getBuildingName(s.building_id);
@@ -98,6 +115,7 @@ export default function StaffPage() {
     {
       key: "account",
       label: "Tài khoản liên kết",
+      sortable: false,
       sortValue: (s) => s.user?.username || "",
       render: (s) =>
         s.user?.username ? (
@@ -202,7 +220,12 @@ export default function StaffPage() {
         )}
       </div>
 
-      <DataTable columns={columns} data={paginated} />
+      <DataTable
+        columns={columns}
+        data={paginated}
+        sortConfig={sortConfig}
+        onSort={(key) => { requestSort(key); setCurrentPage(1); }}
+      />
 
       <Pagination
         currentPage={currentPage}

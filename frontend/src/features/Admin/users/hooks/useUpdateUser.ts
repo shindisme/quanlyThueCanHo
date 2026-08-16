@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 import { authService } from "../../../../services";
 
 export function useUpdateUser() {
@@ -9,7 +9,7 @@ export function useUpdateUser() {
     mutationFn: ({ id, data }: { id: number; data: { username?: string; role?: string; status?: string } }) =>
       authService.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.USERS });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
     },
   });
 }

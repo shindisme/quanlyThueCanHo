@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as scheduleService from "../../../../services/scheduleService";
 import * as buildingService from "../../../../services/buildingService";
-import type { ViewingSchedule, Building } from "../../../../types";
+import type { ViewingSchedule } from "../../../../types";
 import { useDebounce } from "../../../../hooks/useDebounce";
 import { usePagination } from "../../../../hooks/usePagination";
 import { useUserRole } from "../../../../hooks/useUserRole";
@@ -15,7 +15,8 @@ import { useCancelSchedule } from "./useCancelSchedule";
 import { useDeleteSchedule } from "./useDeleteSchedule";
 import { useMarkAttendedSchedule } from "./useMarkAttendedSchedule";
 import { useMarkAbsentSchedule } from "./useMarkAbsentSchedule";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
+import { VIEWING_DAILY_CAPACITY_PER_BUILDING } from "../../../../constants";
 
 export function useSchedulePage() {
   const { role, managedBuildingId } = useUserRole();
@@ -33,15 +34,15 @@ export function useSchedulePage() {
 
   // Get toàn bộ danh sách
   const { data: schedules = [], isLoading: loadingSchedules } = useQuery({
-    queryKey: QUERY_KEYS.SCHEDULES,
+    queryKey: queryKeys.schedules.all,
     queryFn: () => scheduleService.getAllPage(),
-    select: (res) => res.data as unknown as ViewingSchedule[],
+    select: (res) => res.data,
   });
 
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
-    queryKey: QUERY_KEYS.BUILDINGS,
+    queryKey: queryKeys.buildings.all,
     queryFn: () => buildingService.getAllPage(),
-    select: (res) => res.data as unknown as Building[],
+    select: (res) => res.data,
   });
 
   const loading = [loadingSchedules, loadingBuildings].some(Boolean);
@@ -49,6 +50,18 @@ export function useSchedulePage() {
   const buildingMap = useMemo(() => {
     return Object.fromEntries(buildings.map((b) => [b.id, b]));
   }, [buildings]);
+
+  const viewingCapacityByBuilding = useMemo(() => {
+    return buildings
+      .filter((building) => role !== "MANAGER" || building.id === managedBuildingId)
+      .map((building) => {
+        return {
+          buildingId: building.id,
+          branchName: building.branch_name,
+          dailyCapacity: VIEWING_DAILY_CAPACITY_PER_BUILDING,
+        };
+      });
+  }, [buildings, managedBuildingId, role]);
 
 
   const displaySchedules = useMemo(() => {
@@ -223,6 +236,7 @@ export function useSchedulePage() {
     setViewItem,
     buildings,
     buildingMap,
+    viewingCapacityByBuilding,
     filtered,
     sortedSchedules,
     sortConfig,

@@ -1,17 +1,18 @@
 import { useMemo } from "react";
 import { Eye, Printer, CheckCircle, QrCode } from "lucide-react";
-import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
-import DataTable, { type Column } from "../../../../components/ui/DataTable";
+import Badge from "../ui/Badge";
+import DataTable, { type Column } from "../ui/DataTable";
 import {
-  INVOICE_STATUS_LABELS,
-  INVOICE_STATUS_COLORS,
   INVOICE_STATUS_CONFIG,
   INVOICE_TYPE_CONFIG,
-} from "../../../../constants/enums";
-import { getInvoicePeriod, getInvoicePeriodSortValue } from "../../../../utils/invoicePeriod";
-import { getInvoiceRoomDisplay, getInvoiceTenant, getInvoiceType } from "../../../../utils/invoiceDisplay";
-import { formatCurrency } from "../../../../utils/currency";
-import type { Invoice, InvoiceStatus } from "../../../../types";
+} from "../../constants";
+import { getInvoicePeriod, getInvoicePeriodSortValue } from "../../utils/invoicePeriod";
+import { getInvoiceRoomDisplay, getInvoiceStatus, getInvoiceTenant, getInvoiceType } from "../../utils/invoiceDisplay";
+import { formatCurrency } from "../../utils/currency";
+import { formatDate } from "../../utils/date";
+import { getTableRowNumber } from "../../utils/table";
+import type { Invoice, InvoiceStatus } from "../../types";
+import type { SortConfig } from "../../hooks/useSort";
 
 interface InvoiceListProps {
   invoices: Invoice[];
@@ -21,14 +22,14 @@ interface InvoiceListProps {
   onCreateVnpayQr?: (invoice: Invoice) => void;
   onPrint: (invoice: Invoice) => void;
   startIdx?: number;
+  totalItems?: number;
+  sortConfig?: SortConfig | null;
+  onSort?: (key: string) => void;
 }
 
 function getStatusBadge(status: InvoiceStatus) {
   const config = INVOICE_STATUS_CONFIG[status];
-  if (config) return <Badge variant={config.badge}>{config.label}</Badge>;
-  const label = INVOICE_STATUS_LABELS[status] || status;
-  const variant: BadgeVariant = INVOICE_STATUS_COLORS[status] || "gray";
-  return <Badge variant={variant}>{label}</Badge>;
+  return <Badge variant={config.badge}>{config.label}</Badge>;
 }
 
 function getTypeBadge(inv: Invoice) {
@@ -46,6 +47,9 @@ export default function InvoiceList({
   onCreateVnpayQr,
   onPrint,
   startIdx = 0,
+  totalItems,
+  sortConfig,
+  onSort,
 }: InvoiceListProps) {
   const canManage = role === "ADMIN" || role === "MANAGER";
 
@@ -55,19 +59,20 @@ export default function InvoiceList({
         key: "index",
         label: "STT",
         className: "w-4",
-        render: (_, index: number) => (
-          <span className="font-semibold text-gray-800">{startIdx + index + 1}</span>
-        ),
+        preserveRenderIndex: true,
+        sortValue: (invoice) => invoice.created_at ? new Date(invoice.created_at).getTime() : invoice.id,
+        render: (_, index: number) => <span className="font-semibold text-gray-800">{getTableRowNumber(index, startIdx, totalItems ?? invoices.length, sortConfig)}</span>,
       },
       {
         key: "invoice_code",
         label: "Mã hóa đơn",
+        sortable: false,
         sortValue: (inv) => inv.invoice_code,
         render: (inv) => <span className="font-semibold text-gray-800">{inv.invoice_code}</span>,
       },
       {
         key: "room",
-        label: "Phòng",
+        label: "Căn hộ",
         sortValue: (inv) => getInvoiceRoomDisplay(inv).room,
         render: (inv) => {
           const { room, branch } = getInvoiceRoomDisplay(inv);
@@ -86,6 +91,7 @@ export default function InvoiceList({
           {
             key: "tenant",
             label: "Người thuê",
+            sortable: false,
             sortValue: (inv: Invoice) => getInvoiceTenant(inv)?.full_name || "",
             render: (inv: Invoice) => {
               const tenant = getInvoiceTenant(inv);
@@ -103,21 +109,30 @@ export default function InvoiceList({
         key: "period",
         label: "Kỳ thanh toán",
         sortValue: (inv) => getInvoicePeriodSortValue(inv),
-        render: (inv) => <span className="text-gray-600">{getInvoicePeriod(inv).label}</span>,
+        render: (inv) => (
+          <div className="flex flex-col">
+            <span className="text-gray-600">{getInvoicePeriod(inv).label}</span>
+            {role === "TENANT" && (
+              <span className="text-xs font-medium text-red-600">Hạn: {formatDate(inv.due_date)}</span>
+            )}
+          </div>
+        ),
       },
       {
         key: "total_amount",
         label: "Tổng tiền",
+        sortable: false,
         sortValue: (inv) => Number(inv.total_amount),
         render: (inv) => <span className="font-bold text-gray-900">{formatCurrency(inv.total_amount)}</span>,
       },
       {
         key: "status",
         label: "Trạng thái",
-        sortValue: (inv) => inv.status,
+        sortable: false,
+        sortValue: getInvoiceStatus,
         render: (inv) => (
           <div className="flex flex-col items-start gap-1">
-            {getStatusBadge(inv.status as InvoiceStatus)}
+            {getStatusBadge(getInvoiceStatus(inv))}
             {getTypeBadge(inv)}
           </div>
         ),
@@ -172,12 +187,18 @@ export default function InvoiceList({
         ),
       },
     ],
-    [role, canManage, startIdx, onOpenDetails, onPrint, onConfirmCashPayment, onCreateVnpayQr]
+    [role, canManage, invoices.length, startIdx, totalItems, sortConfig, onOpenDetails, onPrint, onConfirmCashPayment, onCreateVnpayQr]
   );
 
   return (
     <div className="mt-6">
-      <DataTable columns={columns} data={invoices} emptyMessage="Không tìm thấy hóa đơn nào." />
+      <DataTable
+        columns={columns}
+        data={invoices}
+        emptyMessage="Không tìm thấy hóa đơn nào."
+        sortConfig={sortConfig}
+        onSort={onSort}
+      />
     </div>
   );
 }

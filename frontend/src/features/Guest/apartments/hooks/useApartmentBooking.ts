@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { bookViewing, getViewingAvailability } from "../../../../services/scheduleService";
 import type { ApartmentData } from "../../../../services/apartmentService";
 import { scheduleSchema } from "../../../../schemas/schedule.schema";
+import { queryKeys } from "../../../../constants/queryKeys";
+import { getApiErrorMessage } from "../../../../utils/apiError";
 
 interface UseApartmentBookingProps {
   apartment: ApartmentData | null;
@@ -21,53 +23,36 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
     note: "",
   });
 
-  const [holdTimeRemaining, setHoldTimeRemaining] = useState<number>(0);
-
-  useEffect(() => {
-    if (!selectedTimeSlot || holdTimeRemaining <= 0) return;
-    const timer = setInterval(() => {
-      setHoldTimeRemaining((prev) => {
-        if (prev <= 1) {
-          setSelectedTimeSlot("");
-          toast.error("Đã hết thời gian giữ khung giờ này. Vui lòng chọn lại!");
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [selectedTimeSlot, holdTimeRemaining]);
-
   // Fetch availability
   const availabilityQuery = useQuery({
-    queryKey: ["availability", apartment?.id, selectedDate],
+    queryKey: queryKeys.schedules.availability(apartment?.id, selectedDate),
     queryFn: () => getViewingAvailability(apartment!.id, selectedDate),
     enabled: showScheduleForm && !!apartment && !!selectedDate,
   });
 
   const availability = availabilityQuery.data
-    ? { date: selectedDate, hours: availabilityQuery.data.available_hours }
+    ? {
+      date: selectedDate,
+      hours: availabilityQuery.data.available_hours,
+      dailyCapacity: availabilityQuery.data.daily_capacity,
+      bookedCount: availabilityQuery.data.booked_count,
+      isDayFull: availabilityQuery.data.is_day_full,
+    }
     : null;
 
-  const checkIsSlotBooked = (slot: string) =>
-    availability?.date === selectedDate &&
-    !availability.hours.includes(Number.parseInt(slot, 10));
+  const checkIsSlotUnavailable = () =>
+    availability?.date === selectedDate && availability.isDayFull;
 
   const handleSelectBookingSlot = (slot: string) => {
     if (selectedTimeSlot === slot) {
       setSelectedTimeSlot("");
-      setHoldTimeRemaining(0);
     } else {
       setSelectedTimeSlot(slot);
-      setHoldTimeRemaining(600); // 10 mins
-      toast.info(`Khung giờ ${slot} đang được giữ tạm thời cho bạn trong 10 phút.`);
     }
   };
 
   const handleResetBooking = () => {
     setSelectedTimeSlot("");
-    setHoldTimeRemaining(0);
     setShowScheduleForm(false);
     setBookingForm({ guest_name: "", guest_phone: "", guest_email: "", schedule_time: "", note: "" });
     setSelectedDate("");
@@ -80,8 +65,7 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
       handleResetBooking();
     },
     onError: (error: unknown) => {
-      const err = error as { response?: { data?: { error?: string } } };
-      toast.error(err.response?.data?.error || "Gửi yêu cầu thất bại");
+      toast.error(getApiErrorMessage(error, "Gửi yêu cầu thất bại"));
     },
   });
 
@@ -118,7 +102,7 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
     }
 
     const isTooCloseOrBooked = () => {
-      if (checkIsSlotBooked(selectedTimeSlot)) return true;
+      if (checkIsSlotUnavailable()) return true;
 
       if (!selectedDate || !selectedTimeSlot) return true;
       const [hoursStr, minutesStr] = selectedTimeSlot.split("h");
@@ -133,7 +117,7 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
     };
 
     if (isTooCloseOrBooked()) {
-      toast.error("Mốc giờ xem phòng không khả dụng (đã được đặt hoặc quá sát giờ hiện tại < 6 tiếng)!");
+      toast.error("Ngày đã đủ lượt đặt lịch hoặc thời gian xem còn cách hiện tại dưới 6 tiếng.");
       return;
     }
 
@@ -160,11 +144,10 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
     isPending: handleSubmitSchedule.isPending,
     bookingForm,
     setBookingForm,
-    checkIsSlotBooked,
+    checkIsSlotUnavailable,
     handleBookingScheduleSubmit,
-    holdTimeRemaining,
-    setHoldTimeRemaining,
     handleSelectBookingSlot,
     handleResetBooking,
+    dayAvailability: availability,
   };
 }

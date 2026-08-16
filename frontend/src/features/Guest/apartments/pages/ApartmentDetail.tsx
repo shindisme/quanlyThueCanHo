@@ -8,7 +8,7 @@ import Badge from "../../../../components/ui/Badge";
 import Modal from "../../../../components/ui/Modal";
 import Input from "../../../../components/ui/Input";
 import { DatePicker } from "../../../../components/ui/DatePicker";
-import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../../../constants/enums";
+import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../../../constants";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import { toast } from "sonner";
@@ -46,15 +46,15 @@ export default function GuestApartmentDetail() {
     isPending,
     bookingForm,
     setBookingForm,
-    checkIsSlotBooked,
+    checkIsSlotUnavailable,
     handleBookingScheduleSubmit,
-    holdTimeRemaining,
     handleSelectBookingSlot,
     handleResetBooking,
+    dayAvailability,
   } = useApartmentBooking({ apartment });
 
   const isSlotDisabled = (slot: string) => {
-    if (checkIsSlotBooked(slot)) return true;
+    if (checkIsSlotUnavailable()) return true;
     if (!selectedDate) return false;
 
     const [hoursStr, minutesStr] = slot.split("h");
@@ -148,7 +148,7 @@ export default function GuestApartmentDetail() {
     }
 
     loadData();
-  }, [id, searchParams]);
+  }, [id, searchParams, setShowScheduleForm]);
 
   if (loading) {
     return (
@@ -462,9 +462,13 @@ export default function GuestApartmentDetail() {
             {selectedDate && (
               <div className="col-span-12">
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Chọn giờ xem *</label>
+                {dayAvailability?.isDayFull && (
+                  <div className="mb-3 border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    Tòa nhà đã đủ {dayAvailability.dailyCapacity} lịch xem trong ngày này. Vui lòng chọn ngày khác.
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3 mt-2">
                   {timeSlots.map((slot) => {
-                    const booked = checkIsSlotBooked(slot);
                     const disabled = isSlotDisabled(slot);
                     const selected = selectedTimeSlot === slot;
                     return (
@@ -480,7 +484,7 @@ export default function GuestApartmentDetail() {
                             : "bg-white text-gray-700 border-gray-300 hover:border-primary-500 hover:text-primary-600"
                           }`}
                       >
-                        {slot} {selected && `(Giữ chỗ ${Math.floor(holdTimeRemaining / 60)}:${String(holdTimeRemaining % 60).padStart(2, "0")})`} {booked && " (Đã đặt)"}
+                        {slot} {dayAvailability?.isDayFull && " (Ngày đã đủ lịch)"}
                       </button>
                     );
                   })}

@@ -28,8 +28,12 @@ export default function GuestHomePage() {
     availableApartments,
   } = useHomePage();
 
+  const locationSearchUrl = searchQuery.trim()
+    ? `/apartments?location=${encodeURIComponent(searchQuery.trim())}`
+    : "/apartments";
+
   const handleSearchSubmit = () => {
-    navigate(`/apartments?search=${encodeURIComponent(searchQuery)}`);
+    navigate(locationSearchUrl);
   };
 
   return (
@@ -71,7 +75,7 @@ export default function GuestHomePage() {
                   />
                 </div>
                 <Link
-                  to={`/apartments?search=${encodeURIComponent(searchQuery)}`}
+                  to={locationSearchUrl}
                   className="px-6 py-3 bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-all flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 rounded-lg"
                 >
                   Tìm kiếm

@@ -10,6 +10,7 @@ import { CreditCard, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../../stores/auth.store";
 import { invoiceService } from "../../../../services";
+import { queryKeys } from "../../../../constants/queryKeys";
 
 interface NotificationDetailModalProps {
     isOpen: boolean;
@@ -30,7 +31,7 @@ export default function NotificationDetailModal({
     const invoiceCode = useMemo(() => extractInvoiceCode(notification), [notification]);
 
     const { data: invoice = null, isLoading: loadingInvoice } = useQuery({
-        queryKey: ["invoiceByCode", invoiceCode],
+        queryKey: queryKeys.invoices.byCode(invoiceCode),
         queryFn: async () => {
             if (!invoiceCode) return null;
             const res = await invoiceService.getAll({ search: invoiceCode });

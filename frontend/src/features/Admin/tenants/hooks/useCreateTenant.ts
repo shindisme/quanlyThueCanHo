@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 import { tenantService } from "../../../../services";
 
 export function useCreateTenant() {
@@ -8,7 +8,7 @@ export function useCreateTenant() {
   return useMutation({
     mutationFn: tenantService.create,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TENANTS });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tenants.all });
     },
   });
 }

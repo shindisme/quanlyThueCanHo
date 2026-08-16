@@ -1,231 +1,190 @@
-import { useState, useMemo, useEffect, useRef } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import * as paymentService from "../../../../services/paymentService";
-import * as invoiceService from "../../../../services/invoiceService";
-import { useOnOff } from "../../../../hooks/useOnOff";
+import { queryKeys } from "../../../../constants/queryKeys";
+import { useDebounce } from "../../../../hooks/useDebounce";
 import { usePagination } from "../../../../hooks/usePagination";
 import { useSort } from "../../../../hooks/useSort";
+import * as invoiceService from "../../../../services/invoiceService";
+import * as paymentService from "../../../../services/paymentService";
 import type { Payment } from "../../../../types";
-import { hideInvoicesCoveredByFinalSettlement } from "../../../../utils/invoiceDisplay";
+import { getApiErrorMessage } from "../../../../utils/apiError";
+import { getInvoiceRoomDisplay, getInvoiceStatus, hideInvoicesCoveredByFinalSettlement } from "../../../../utils/invoiceDisplay";
+import { resolvePaymentReturnStatus, type PaymentReturnStatus } from "../../../../utils/paymentReturn";
+
+const PAYMENT_SORT_EXTRACTORS = {
+  room: (payment: Payment) => payment.invoice ? getInvoiceRoomDisplay(payment.invoice).room : "",
+};
+
+function notifyPaymentReturn(status: PaymentReturnStatus) {
+  if (status === "SUCCESS") toast.success("Đã thanh toán thành công");
+  else if (status === "CANCELLED") toast.warning("Đã hủy thanh toán");
+  else if (status === "PROCESSING") toast.info("Thanh toán đang được xử lý, vui lòng kiểm tra lại sau");
+  else toast.error("Thanh toán không thành công");
+}
 
 export function useTenantPayments() {
   const queryClient = useQueryClient();
   const location = useLocation();
+  const navigate = useNavigate();
   const handledVnpayReturnRef = useRef(false);
+  const handledNavigationStateRef = useRef(false);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [methodFilter, setMethodFilter] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
 
-  const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | undefined>(undefined);
-  const [paymentMethod, setPaymentMethod] = useState<string>("VNPAY");
-
-  const [transactionCode, setTransactionCode] = useState("");
-
-  const payModal = useOnOff();
-  const manualTransferModal = useOnOff();
-
-  useEffect(() => {
-    const state = location.state as { invoiceId?: number | string } | null;
-    if (state && state.invoiceId) {
-      setSelectedInvoiceId(Number(state.invoiceId));
-      payModal.onOpen();
-    }
-  }, [location.state]);
-
-  useEffect(() => {
-    if (handledVnpayReturnRef.current || !location.search) {
-      return;
-    }
-
-    const params = new URLSearchParams(location.search);
-
-    const paymentStatus = (
-      params.get("payment_status")
-      || params.get("status")
-      || ""
-    ).toUpperCase();
-
-    if (!paymentStatus) {
-      return;
-    }
-
-    handledVnpayReturnRef.current = true;
-
-    payModal.onClose();
-    manualTransferModal.onClose();
-    setSelectedInvoiceId(undefined);
-
-    queryClient.removeQueries({
-      queryKey: ["tenant-payments"],
-    });
-
-    queryClient.removeQueries({
-      queryKey: ["tenant-unpaid-invoices"],
-    });
-
-    queryClient.removeQueries({
-      queryKey: ["tenant-invoices"],
-    });
-
-    queryClient.invalidateQueries();
-
-    if (paymentStatus === "SUCCESS") {
-      toast.success("Đã thanh toán thành công");
-    } else if (paymentStatus === "CANCELLED") {
-      toast.warning("Đã hủy thanh toán");
-    } else if (paymentStatus === "PROCESSING") {
-      toast.info("Thanh toán đang được xử lý, vui lòng kiểm tra lại sau");
-    } else {
-      toast.error("Thanh toán không thành công");
-    }
-
-    window.history.replaceState(
-      {},
-      "",
-      location.pathname
-    );
-  }, [
-    location.pathname,
-    location.search,
-    queryClient,
-    payModal,
-    manualTransferModal,
-  ]);
-
-  // Fetch invoices for payment selection
-  const { data: unpaidInvoicesRes, isLoading: loadingInvoices } = useQuery({
-    queryKey: ["tenant-unpaid-invoices"],
+  const invoicesQuery = useQuery({
+    queryKey: queryKeys.invoices.tenantList({ paymentStatus: "outstanding" }),
     queryFn: () => invoiceService.getAllPage(),
   });
-  const unpaidInvoices = useMemo(
-    () => hideInvoicesCoveredByFinalSettlement(unpaidInvoicesRes?.data || [])
-      .filter((invoice) => invoice.status === "UNPAID"),
-    [unpaidInvoicesRes?.data]
+  const unpaidInvoices = useMemo(() => {
+    return hideInvoicesCoveredByFinalSettlement(invoicesQuery.data?.data || [])
+      .filter((invoice) => getInvoiceStatus(invoice) !== "PAID")
+      .filter((invoice) => Number(invoice.remaining_amount ?? invoice.total_amount) > 0)
+      .sort((a, b) => {
+        const aStatus = getInvoiceStatus(a);
+        const bStatus = getInvoiceStatus(b);
+        if (aStatus !== bStatus) return aStatus === "OVERDUE" ? -1 : 1;
+        return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+      });
+  }, [invoicesQuery.data?.data]);
+
+  const paymentsQuery = useQuery({
+    queryKey: queryKeys.payments.tenantList(),
+    queryFn: () => paymentService.getAllPage(),
+  });
+  const filteredPayments = useMemo(() => {
+    const keyword = debouncedSearch.trim().toLowerCase();
+    return (paymentsQuery.data?.data || []).filter((payment) => {
+      if (statusFilter && payment.status !== statusFilter) return false;
+      if (methodFilter && payment.payment_method !== methodFilter) return false;
+      if (!keyword) return true;
+      const room = payment.invoice ? getInvoiceRoomDisplay(payment.invoice) : null;
+      return [payment.transaction_code, payment.invoice?.invoice_code, room?.room, room?.branch]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(keyword);
+    });
+  }, [debouncedSearch, methodFilter, paymentsQuery.data?.data, statusFilter]);
+
+  const { items: sortedPayments, requestSort, sortConfig } = useSort<Payment>(
+    filteredPayments,
+    { key: "paid_at", direction: "desc" },
+    PAYMENT_SORT_EXTRACTORS
   );
-
-  // Fetch payment transactions history
-  const { data: paymentsRes, isLoading: loadingPayments } = useQuery({
-    queryKey: ["tenant-payments"],
-    queryFn: () => paymentService.getAll({ limit: 100 }),
-  });
-  const payments = paymentsRes?.data || [];
-
-  // Sort payment history
-  const { items: sortedPayments, requestSort, getSortIcon, sortConfig } = useSort<Payment>(payments, {
-    key: "paid_at",
-    direction: "desc",
-  });
-
-  // Paginate payments
   const { currentPage, setCurrentPage, totalPages, startIdx, endIdx } = usePagination({
     totalItems: sortedPayments.length,
     initialPageSize: 10,
   });
 
-  const paginatedPayments = useMemo(() => {
-    return sortedPayments.slice(startIdx, endIdx);
-  }, [sortedPayments, startIdx, endIdx]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, methodFilter, setCurrentPage, statusFilter]);
 
-  // Calculate outstanding balance
-  const outstandingBalance = useMemo(() => {
-    return unpaidInvoices.reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
-  }, [unpaidInvoices]);
-
-  // Mutations
   const payVNPayMutation = useMutation({
-    mutationFn: (payload: paymentService.CreateVnpayPaymentPayload) =>
-      paymentService.createVnpayPayment(payload),
-    onSuccess: (res) => {
-      toast.loading("Đang chuyển hướng tới cổng thanh toán VNPay...");
-      if (res.paymentUrl) {
-        window.location.href = res.paymentUrl;
-      } else {
+    mutationFn: paymentService.createVnpayPayment,
+    onSuccess: (result) => {
+      if (!result.paymentUrl) {
         toast.error("Không nhận được URL thanh toán từ cổng VNPay");
+        return;
       }
+      window.location.assign(result.paymentUrl);
     },
-    onError: (error: unknown) => {
-      const err = error as { message?: string };
-      toast.error(err.message || "Tạo liên kết thanh toán VNPay thất bại");
-    },
-  });
-
-  const payManualMutation = useMutation({
-    mutationFn: (payload: paymentService.CreatePaymentPayload) =>
-      paymentService.create(payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tenant-payments"] });
-      queryClient.invalidateQueries({ queryKey: ["tenant-unpaid-invoices"] });
-      toast.success("Gửi thông tin giao dịch thành công! Chờ quản lý phê duyệt.");
-      manualTransferModal.onClose();
-      payModal.onClose();
-      // Reset form
-      setTransactionCode("");
-    },
-    onError: (error: unknown) => {
-      const err = error as { message?: string };
-      toast.error(err.message || "Gửi thông tin giao dịch thất bại");
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Tạo liên kết thanh toán VNPay thất bại"));
     },
   });
 
-  const handleStartPayment = (invoiceId: number) => {
-    setSelectedInvoiceId(invoiceId);
-    payModal.onOpen();
-  };
-
-  const handleConfirmPayment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedInvoiceId) return;
-
-    if (paymentMethod === "VNPAY") {
-      payVNPayMutation.mutate({ invoice_id: selectedInvoiceId });
-    } else if (paymentMethod === "BANK_TRANSFER") {
-      // upload transaction code
-      manualTransferModal.onOpen();
+  const handleStartPayment = useCallback((invoiceId: number) => {
+    if (payVNPayMutation.isPending) return;
+    const invoice = unpaidInvoices.find((item) => item.id === invoiceId);
+    if (!invoice) {
+      toast.warning("Hóa đơn không còn khả dụng để thanh toán");
+      return;
     }
-  };
+    payVNPayMutation.mutate({ invoice_id: invoiceId });
+  }, [payVNPayMutation, unpaidInvoices]);
 
-  const handleManualSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedInvoiceId || !transactionCode.trim()) return;
+  useEffect(() => {
+    if (handledNavigationStateRef.current || invoicesQuery.isLoading) return;
+    const state = location.state as { invoiceId?: number | string } | null;
+    if (!state?.invoiceId) return;
 
-    const targetInvoice = unpaidInvoices.find((inv) => inv.id === selectedInvoiceId);
-    if (!targetInvoice) return;
+    handledNavigationStateRef.current = true;
+    const invoiceId = Number(state.invoiceId);
+    const invoice = unpaidInvoices.find((item) => item.id === invoiceId);
+    if (invoice) {
+      handleStartPayment(invoiceId);
+    } else {
+      toast.warning("Hóa đơn không còn khả dụng để thanh toán");
+    }
+    void navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+  }, [handleStartPayment, invoicesQuery.isLoading, location.pathname, location.search, location.state, navigate, unpaidInvoices]);
 
-    payManualMutation.mutate({
-      invoice_id: selectedInvoiceId,
-      payment_method: "BANK_TRANSFER",
-      transaction_code: transactionCode.trim(),
-      amount: Number(targetInvoice.total_amount),
-      status: "PENDING",
-    });
-  };
+  useEffect(() => {
+    if (handledVnpayReturnRef.current || !location.search) return;
+    const params = new URLSearchParams(location.search);
+    const responseStatus = params.get("payment_status");
+    if (!responseStatus) return;
+
+    handledVnpayReturnRef.current = true;
+    const verifyReturn = async () => {
+      const paymentId = Number(params.get("payment_id"));
+      let payment: Payment | null = null;
+      if (Number.isInteger(paymentId) && paymentId > 0) {
+        try {
+          payment = await paymentService.getById(paymentId);
+        } catch {
+          // Trạng thái URL không được coi là thành công nếu API chưa xác minh được.
+        }
+      }
+
+      const status = resolvePaymentReturnStatus(
+        responseStatus,
+        params.get("response_code"),
+        payment
+      );
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.payments.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all }),
+      ]);
+      notifyPaymentReturn(status);
+      void navigate(location.pathname, { replace: true, state: null });
+    };
+
+    void verifyReturn();
+  }, [location.pathname, location.search, navigate, queryClient]);
 
   return {
     unpaidInvoices,
-    payments: paginatedPayments,
-    rawPaymentsCount: payments.length,
-    outstandingBalance,
-    isLoading: loadingInvoices || loadingPayments,
-    isProcessing: payVNPayMutation.isPending || payManualMutation.isPending,
-
-    // Payment process
-    selectedInvoiceId,
-    setSelectedInvoiceId,
-    paymentMethod,
-    setPaymentMethod,
-    transactionCode,
-    setTransactionCode,
-    payModal,
-    manualTransferModal,
+    payments: sortedPayments.slice(startIdx, endIdx),
+    rawPaymentsCount: filteredPayments.length,
+    outstandingBalance: unpaidInvoices.reduce(
+      (sum, invoice) => sum + Number(invoice.remaining_amount ?? invoice.total_amount),
+      0
+    ),
+    isLoading: invoicesQuery.isLoading || paymentsQuery.isLoading,
+    error: invoicesQuery.error || paymentsQuery.error,
+    refetch: async () => {
+      await Promise.all([invoicesQuery.refetch(), paymentsQuery.refetch()]);
+    },
+    isProcessing: payVNPayMutation.isPending,
+    processingInvoiceId: payVNPayMutation.variables?.invoice_id,
+    search,
+    setSearch,
+    statusFilter,
+    setStatusFilter,
+    methodFilter,
+    setMethodFilter,
     handleStartPayment,
-    handleConfirmPayment,
-    handleManualSubmit,
-
-    // Sorting and Pagination
     requestSort,
-    getSortIcon,
     sortConfig,
     currentPage,
     setCurrentPage,
     totalPages,
+    startIdx,
   };
 }

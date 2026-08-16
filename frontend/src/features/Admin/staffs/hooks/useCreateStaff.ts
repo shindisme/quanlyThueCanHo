@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 import { staffService } from "../../../../services";
 
 export function useCreateStaff() {
@@ -8,7 +8,7 @@ export function useCreateStaff() {
   return useMutation({
     mutationFn: staffService.create,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.STAFF });
+      queryClient.invalidateQueries({ queryKey: queryKeys.staff.all });
     },
   });
 }

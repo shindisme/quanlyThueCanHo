@@ -1,7 +1,7 @@
 import { FileText } from "lucide-react";
 import PageHeader from "../../../../components/layout/PageHeader";
 import Button from "../../../../components/ui/Button";
-import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
+import Badge from "../../../../components/ui/Badge";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Pagination from "../../../../components/ui/Pagination";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
@@ -15,26 +15,20 @@ import { useAuthStore } from "../../../../stores/auth.store";
 import { useContractPage } from "../hooks/useContractPage";
 import ContractList from "../components/ContractList";
 import ContractDetailModal from "../components/ContractDetailModal";
-import ContractDocModal from "../components/ContractDocModal";
+import ContractDocModal from "../../../../components/ContractDocModal";
 import ContractCreateModal from "../components/ContractCreateModal";
 import CheckoutModal from "../components/CheckoutModal";
 import { toast } from "sonner";
 import { formatDate } from "../../../../utils/date";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatApartmentDisplay } from "../../../../utils/string";
-import type { ContractTerminationStatus } from "../../../../types/contractTermination";
 import {
-    CONTRACT_TERMINATION_TYPE_LABELS,
-    CONTRACT_TERMINATION_STATUS_LABELS,
+    CONTRACT_TERMINATION_TYPE_CONFIG,
     CONTRACT_TERMINATION_STATUS_CONFIG,
-    DEPOSIT_POLICY_LABELS,
-} from "../../../../constants/enums";
-
-const TERMINATION_TYPE_LABELS = CONTRACT_TERMINATION_TYPE_LABELS;
-const TERMINATION_STATUS_LABELS = CONTRACT_TERMINATION_STATUS_LABELS;
-const TERMINATION_STATUS_VARIANTS: Record<ContractTerminationStatus, BadgeVariant> = Object.fromEntries(
-    Object.entries(CONTRACT_TERMINATION_STATUS_CONFIG).map(([k, v]) => [k, v.badge])
-) as Record<ContractTerminationStatus, BadgeVariant>;
+    CONTRACT_STATUS_LABELS,
+    DEPOSIT_POLICY_CONFIG,
+    isOpenContractTerminationStatus,
+} from "../../../../constants";
 
 function formatMoney(value: number | string | null | undefined) {
     return formatCurrency(Number(value || 0));
@@ -78,6 +72,9 @@ export default function Contract() {
         setCurrentPage,
         totalPages,
         paginatedContracts,
+        startIdx,
+        requestSort,
+        sortConfig,
         handleExtendContract,
         terminateItem,
         setTerminateItem,
@@ -108,6 +105,9 @@ export default function Contract() {
     const { email } = useAuthStore();
     const currentUser = users.find((u) => u.username === email) || { id: 1 };
     const terminationDetail = selectedTerminationDetail;
+    const terminationTypeConfig = terminationDetail ? CONTRACT_TERMINATION_TYPE_CONFIG[terminationDetail.type] : null;
+    const terminationStatusConfig = terminationDetail ? CONTRACT_TERMINATION_STATUS_CONFIG[terminationDetail.status] : null;
+    const depositPolicyConfig = terminationDetail ? DEPOSIT_POLICY_CONFIG[terminationDetail.deposit_policy] : null;
     const terminationDetailContract = terminationDetail?.contract || (terminationDetail ? contracts.find((c) => c.id === terminationDetail.contract_id) : null);
     const terminationDetailApartment = terminationDetailContract?.apartment || (terminationDetailContract ? apartments.find((a) => a.id === terminationDetailContract.apartment_id) : null);
     const terminationDetailBuilding = terminationDetailApartment?.building || (terminationDetailApartment ? buildings.find((b) => b.id === terminationDetailApartment.building_id) : null);
@@ -126,7 +126,7 @@ export default function Contract() {
         }));
     const canCancelTerminationDetail = !!terminationDetail
         && (role === "ADMIN" || role === "MANAGER")
-        && ["PENDING", "APPROVED", "INSPECTION", "SETTLING"].includes(terminationDetail.status);
+        && isOpenContractTerminationStatus(terminationDetail.status);
 
     if (loading) {
         return (
@@ -182,8 +182,8 @@ export default function Contract() {
                     <Combobox
                         options={[
                             { value: "TERMINATION_OPEN", label: "Đang trả phòng" },
-                            { value: "ACTIVE", label: "Còn hiệu lực" },
-                            { value: "ENDED", label: "Đã kết thúc" }
+                            { value: "ACTIVE", label: CONTRACT_STATUS_LABELS.ACTIVE },
+                            { value: "ENDED", label: CONTRACT_STATUS_LABELS.ENDED }
                         ]}
                         value={filterStatus || ""}
                         onChange={(val) => {
@@ -248,6 +248,10 @@ export default function Contract() {
                 <div className="space-y-4">
                     <ContractList
                         paginatedContracts={paginatedContracts}
+                        startIdx={startIdx}
+                        totalItems={filteredContracts.length}
+                        sortConfig={sortConfig}
+                        onSort={(key) => { requestSort(key); setCurrentPage(1); }}
                         tenants={tenants}
                         apartments={apartments}
                         buildings={buildings}
@@ -365,12 +369,12 @@ export default function Contract() {
                 {terminationDetail && (
                     <div className="space-y-5 text-sm text-gray-700">
                         <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="info">{TERMINATION_TYPE_LABELS[terminationDetail.type]}</Badge>
-                            <Badge variant={TERMINATION_STATUS_VARIANTS[terminationDetail.status]}>
-                                {TERMINATION_STATUS_LABELS[terminationDetail.status]}
+                            <Badge variant={terminationTypeConfig?.badge}>{terminationTypeConfig?.label}</Badge>
+                            <Badge variant={terminationStatusConfig?.badge}>
+                                {terminationStatusConfig?.label}
                             </Badge>
-                            <Badge variant={terminationDetail.deposit_policy === "REFUNDABLE" ? "success" : "warning"}>
-                                {DEPOSIT_POLICY_LABELS[terminationDetail.deposit_policy]}
+                            <Badge variant={depositPolicyConfig?.badge}>
+                                {depositPolicyConfig?.label}
                             </Badge>
                         </div>
 

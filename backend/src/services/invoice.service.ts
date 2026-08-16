@@ -583,10 +583,12 @@ const getInvoiceScopeWhere = (
     }
 
     if (actor.role === Role.MANAGER) {
+        const apartmentScope = getManagerApartmentScope(actor);
         return {
-            contract: {
-                apartment: getManagerApartmentScope(actor)
-            }
+            OR: [
+                { contract: { apartment: apartmentScope } },
+                { reservation: { apartment: apartmentScope } }
+            ]
         };
     }
 
@@ -708,9 +710,10 @@ export const getInvoicesService = async (filters: InvoiceFilters, actor: Invoice
         && filters.apartment_id !== undefined
     ) {
         andFilters.push({
-            contract: {
-                apartment_id: filters.apartment_id
-            }
+            OR: [
+                { contract: { apartment_id: filters.apartment_id } },
+                { reservation: { apartment_id: filters.apartment_id } }
+            ]
         });
     }
 
@@ -719,11 +722,10 @@ export const getInvoicesService = async (filters: InvoiceFilters, actor: Invoice
         && filters.building_id !== undefined
     ) {
         andFilters.push({
-            contract: {
-                apartment: {
-                    building_id: filters.building_id
-                }
-            }
+            OR: [
+                { contract: { apartment: { building_id: filters.building_id } } },
+                { reservation: { apartment: { building_id: filters.building_id } } }
+            ]
         });
     }
 
@@ -754,9 +756,12 @@ export const getInvoicesService = async (filters: InvoiceFilters, actor: Invoice
         andFilters.push({
             OR: [
                 { invoice_code: { contains: filters.search, mode: "insensitive" } },
+                { tenant: { full_name: { contains: filters.search, mode: "insensitive" } } },
                 { contract: { tenant: { full_name: { contains: filters.search, mode: "insensitive" } } } },
                 { contract: { apartment: { room_number: { contains: filters.search, mode: "insensitive" } } } },
-                { contract: { apartment: { building: { branch_name: { contains: filters.search, mode: "insensitive" } } } } }
+                { contract: { apartment: { building: { branch_name: { contains: filters.search, mode: "insensitive" } } } } },
+                { reservation: { apartment: { room_number: { contains: filters.search, mode: "insensitive" } } } },
+                { reservation: { apartment: { building: { branch_name: { contains: filters.search, mode: "insensitive" } } } } }
             ]
         });
     }

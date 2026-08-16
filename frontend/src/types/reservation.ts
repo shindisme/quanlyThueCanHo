@@ -7,6 +7,7 @@ export type { ReservationStatus };
 export interface CreateReservationPayload {
   apartment_id: number;
   deposit_amount: number;
+  payment_method: "VNPAY" | "CASH";
   move_in_date: string;
   tenant: {
     full_name: string;

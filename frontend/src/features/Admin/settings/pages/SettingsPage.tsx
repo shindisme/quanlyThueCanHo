@@ -1,78 +1,19 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import PageHeader from "../../../../components/layout/PageHeader";
 import Button from "../../../../components/ui/Button";
 import { toast } from "sonner";
-
-interface FeeSettings {
-  electricityRates: number[];
-  waterRates: number[];
-  internetRate: number;
-  managementFeePerM2: number;
-}
-
-type SavedFeeSettings = Partial<FeeSettings> & {
-  electricityRate?: number;
-  electricTierPrices?: number[];
-  waterRate?: number;
-  waterTierPrices?: number[];
-};
-
-const ELECTRIC_LABELS = [
-  "Bậc 1 (0-50 kWh)",
-  "Bậc 2 (51-100 kWh)",
-  "Bậc 3 (101-200 kWh)",
-  "Bậc 4 (201-300 kWh)",
-  "Bậc 5 (301-400 kWh)",
-  "Bậc 6 (Trên 400 kWh)",
-];
-const WATER_LABELS = [
-  "Bậc 1 (0-4 m³/người)",
-  "Bậc 2 (4-6 m³/người)",
-  "Bậc 3 (trên 6 m³/người)",
-];
-
-const DEFAULT_FEES: FeeSettings = {
-  electricityRates: [1984, 2050, 2380, 2998, 3350, 3460],
-  waterRates: [6700, 12900, 14400],
-  internetRate: 300000,
-  managementFeePerM2: 10000,
-};
+import {
+  ELECTRICITY_TIER_LABELS,
+  WATER_TIER_LABELS,
+  readFeeSettings,
+  saveFeeSettings,
+  type FeeSettings,
+} from "../../../../utils/feeSettings";
 
 const parseMoneyInput = (value: string) => Number(value.replace(/[^0-9]/g, ""));
 
-const normalizeRates = (value: unknown, fallback: number[]) => {
-  if (!Array.isArray(value) || value.length !== fallback.length) return fallback;
-  const rates = value.map(Number);
-  return rates.every(Number.isFinite) ? rates : fallback;
-};
-
-const normalizeFees = (saved: SavedFeeSettings): FeeSettings => ({
-  electricityRates: normalizeRates(
-    saved.electricityRates ?? saved.electricTierPrices,
-    DEFAULT_FEES.electricityRates
-  ),
-  waterRates: normalizeRates(
-    saved.waterRates ?? saved.waterTierPrices,
-    DEFAULT_FEES.waterRates
-  ),
-  internetRate: saved.internetRate ?? DEFAULT_FEES.internetRate,
-  managementFeePerM2: saved.managementFeePerM2 ?? DEFAULT_FEES.managementFeePerM2,
-});
-
 export default function SettingsPage() {
-  const [fees, setFees] = useState<FeeSettings>(DEFAULT_FEES);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem("system_fee_settings");
-    if (!saved) return;
-
-    try {
-      setFees(normalizeFees(JSON.parse(saved)));
-    } catch {
-      setFees(DEFAULT_FEES);
-    }
-  }, []);
+  const [fees, setFees] = useState<FeeSettings>(readFeeSettings);
 
   const handleChange = (key: "internetRate" | "managementFeePerM2", value: string) => {
     const num = parseMoneyInput(value);
@@ -92,12 +33,8 @@ export default function SettingsPage() {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-    setTimeout(() => {
-      localStorage.setItem("system_fee_settings", JSON.stringify(fees));
-      setSaving(false);
-      toast.success("Cấu hình biểu phí dịch vụ đã được lưu thành công!");
-    }, 600);
+    saveFeeSettings(fees);
+    toast.success("Cấu hình biểu phí dịch vụ đã được lưu thành công!");
   };
 
   function formatCurrencyInput(val: number) {
@@ -122,10 +59,9 @@ export default function SettingsPage() {
             <div className="flex justify-end pt-4">
               <Button
                 type="submit"
-                disabled={saving}
                 className="px-6 py-3 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-bold flex items-center gap-2 shadow-md shrink-0 cursor-pointer"
               >
-                {saving ? "Đang lưu cấu hình..." : "Lưu cài đặt"}
+                Lưu cài đặt
               </Button>
             </div>
           </div>
@@ -136,12 +72,13 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-sm text-amber-500">Biểu giá điện lũy tiến 6 bậc</span>
+                  <span className="text-[11px] text-gray-500">Ngưỡng bậc cố định, chỉ thay đổi đơn giá</span>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {fees.electricityRates.map((rate, index) => (
-                  <label key={ELECTRIC_LABELS[index]} className="block space-y-1">
-                    <span className="text-[11px] font-semibold text-gray-500">{ELECTRIC_LABELS[index]}</span>
+                  <label key={ELECTRICITY_TIER_LABELS[index]} className="block space-y-1">
+                    <span className="text-[11px] font-semibold text-gray-500">{ELECTRICITY_TIER_LABELS[index]}</span>
                     <div className="relative">
                       <input
                         type="text"
@@ -161,12 +98,13 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-blue-600">
                   <span className="font-bold text-sm text-blue-500">Biểu giá nước sạch sinh hoạt 3 bậc</span>
+                  <span className="text-[11px] text-gray-500">Ngưỡng bậc cố định theo số người, chỉ thay đổi đơn giá</span>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {fees.waterRates.map((rate, index) => (
-                  <label key={WATER_LABELS[index]} className="block space-y-1">
-                    <span className="text-[11px] font-semibold text-gray-500">{WATER_LABELS[index]}</span>
+                  <label key={WATER_TIER_LABELS[index]} className="block space-y-1">
+                    <span className="text-[11px] font-semibold text-gray-500">{WATER_TIER_LABELS[index]}</span>
                     <div className="relative">
                       <input
                         type="text"

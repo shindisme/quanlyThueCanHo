@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { CITIZEN_ID_REGEX, VIETNAM_PHONE_REGEX } from "./common.schema"
 
 export const contractSchema = z.object({
   is_new_tenant: z.boolean(),
@@ -12,14 +13,27 @@ export const contractSchema = z.object({
   new_tenant_phone: z.string().optional(),
   new_tenant_address: z.string().optional(),
 
-  building_id: z.number({ message: "Chi nhánh không được để trống" }),
-  floor: z.number({ message: "Tầng không được để trống" }),
-  apartment_id: z.number({ message: "Căn hộ không được để trống" }),
+  building_id: z.number({ message: "Chi nhánh không được để trống" }).int().positive().optional(),
+  floor: z.number({ message: "Tầng không được để trống" }).int().positive().optional(),
+  apartment_id: z.number({ message: "Căn hộ không được để trống" }).int().positive().optional(),
   start_date: z.string().min(1, { message: "Ngày bắt đầu không được để trống" }),
   end_date: z.string().min(1, { message: "Ngày kết thúc không được để trống" }),
-  actual_occupants: z.number({ message: "Số người ở phải là một số" }).min(1, { message: "Số người ở phải ít nhất là 1" }),
+  actual_occupants: z.number({ message: "Số người ở phải là một số" }).min(1, { message: "Số người ở phải ít nhất là 1" }).optional(),
   monthly_rent: z.number().positive({ message: "Tiền thuê phải lớn hơn 0" }),
 }).superRefine((data, ctx) => {
+  const requiredNumberFields = [
+    ["building_id", data.building_id, "Vui lòng chọn chi nhánh"],
+    ["floor", data.floor, "Vui lòng chọn tầng"],
+    ["apartment_id", data.apartment_id, "Vui lòng chọn căn hộ"],
+    ["actual_occupants", data.actual_occupants, "Vui lòng nhập số người ở"],
+  ] as const;
+
+  requiredNumberFields.forEach(([field, value, message]) => {
+    if (value === undefined) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: [field], message });
+    }
+  });
+
   if (data.start_date && data.end_date) {
     const startDate = new Date(data.start_date);
     const endDate = new Date(data.end_date);
@@ -65,7 +79,7 @@ export const contractSchema = z.object({
         path: ["new_tenant_cccd"],
         message: "Số CCCD người thuê mới không được để trống",
       })
-    } else if (!/^\d{12}$/.test(data.new_tenant_cccd)) {
+    } else if (!CITIZEN_ID_REGEX.test(data.new_tenant_cccd)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["new_tenant_cccd"],
@@ -85,8 +99,7 @@ export const contractSchema = z.object({
     }
 
     if (data.new_tenant_phone && data.new_tenant_phone.trim() !== "") {
-      const phoneRegex = /^(0[123456789]\d{8})$/;
-      if (!phoneRegex.test(data.new_tenant_phone)) {
+      if (!VIETNAM_PHONE_REGEX.test(data.new_tenant_phone)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["new_tenant_phone"],

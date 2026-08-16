@@ -1,5 +1,6 @@
 import api from "../lib/api";
 import type { MaintenanceRequest, MaintenanceFilters, CreateMaintenanceRequestPayload, ConfirmMaintenanceRequestPayload, UnableMaintenanceRequestPayload, ApiPagination } from "../types";
+import { fetchAllPages } from "./apiHelper";
 export type { MaintenanceFilters, CreateMaintenanceRequestPayload, ConfirmMaintenanceRequestPayload, UnableMaintenanceRequestPayload };
 
 
@@ -10,6 +11,10 @@ export async function getAll(params?: MaintenanceFilters): Promise<{ data: Maint
   const rawData = res.data.data || [];
   const pagination = res.data.meta?.pagination || res.data.pagination || { total: rawData.length, page: 1, limit: 10, totalPages: 1 };
   return { data: rawData, pagination };
+}
+
+export async function getAllPage(params?: Omit<MaintenanceFilters, "page" | "limit">): Promise<{ data: MaintenanceRequest[] }> {
+  return fetchAllPages<MaintenanceRequest, MaintenanceFilters>(getAll, params);
 }
 
 export async function getById(id: number): Promise<MaintenanceRequest> {
@@ -44,6 +49,7 @@ export async function complete(id: number, data?: { charge_tenant: boolean; repa
 
 export const maintenanceService = {
   getAll,
+  getAllPage,
   getById,
   create,
   cancel,

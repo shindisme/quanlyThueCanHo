@@ -32,6 +32,8 @@ export default function BuildingPage() {
     totalPages,
     filtered,
     sortedBuildings,
+    requestSort,
+    sortConfig,
     handleDelete,
     deleting,
   } = useBuildingPage();
@@ -80,6 +82,9 @@ export default function BuildingPage() {
           sortedBuildings={sortedBuildings}
           role={role}
           startIdx={startIdx}
+          totalItems={totalCount}
+          sortConfig={sortConfig}
+          onSort={(key) => { requestSort(key); setCurrentPage(1); }}
           setEditItem={setEditItem}
           setShowModifyModal={modifyModal.onOpen}
           setDeleteItem={setDeleteItem}

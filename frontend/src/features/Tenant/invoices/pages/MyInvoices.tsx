@@ -6,24 +6,31 @@ import Combobox from "../../../../components/ui/Combobox";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import DefaultPagination from "../../../../components/ui/Pagination";
 import { useTenantInvoices } from "../hooks/useTenantInvoices";
-import InvoiceTable from "../../../Admin/invoices/components/InvoiceList";
-import InvoiceDetailModal from "../../../Admin/invoices/components/InvoiceDetailModal";
+import InvoiceTable from "../../../../components/invoices/InvoiceList";
+import InvoiceDetailModal from "../../../../components/invoices/InvoiceDetailModal";
 import { printInvoiceHelper } from "../../../../utils/print";
+import { INVOICE_STATUS_OPTIONS, INVOICE_TYPE_OPTIONS } from "../../../../constants";
 
 export default function MyInvoices() {
   const navigate = useNavigate();
   const {
     invoices,
+    rawInvoicesCount,
     isLoading,
     search,
     setSearch,
     statusFilter,
     setStatusFilter,
+    typeFilter,
+    setTypeFilter,
 
     // Pagination
     currentPage,
     setCurrentPage,
     totalPages,
+    startIdx,
+    requestSort,
+    sortConfig,
 
     // Details Modal
     selectedInvoice,
@@ -31,38 +38,48 @@ export default function MyInvoices() {
     handleOpenDetails,
   } = useTenantInvoices();
 
-
   return (
     <div className="space-y-6 font-sans">
       <PageHeader
         title="Hóa đơn dịch vụ"
         subtitle="Danh sách hóa đơn tiền thuê phòng và phí dịch vụ hàng tháng"
-        count={invoices.length}
+        count={rawInvoicesCount}
+        actions={
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Tìm theo mã phòng, mã hóa đơn..."
+            className="w-full sm:w-72"
+          />
+        }
       />
 
-      {/* Filters bar */}
-      <div className="flex flex-col sm:flex-row gap-3 w-full">
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Tìm hóa đơn theo mã phòng..."
-          className="flex-1"
-        />
-
-        <Combobox
-          options={[
-            { value: "", label: "Tất cả trạng thái" },
-            { value: "PAID", label: "Đã thanh toán" },
-            { value: "UNPAID", label: "Chưa thanh toán" },
-            { value: "OVERDUE", label: "Quá hạn" }
-          ]}
-          value={statusFilter}
-          onChange={setStatusFilter}
-          placeholder="Trạng thái"
-          searchable={false}
-          triggerClassName="h-[42px] border-gray-300 px-3 rounded-xl min-w-[160px]"
-          clearable={true}
-        />
+      {/* Filters bar above table */}
+      <div className="grid w-full grid-cols-12 gap-3">
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
+          <Combobox
+            options={INVOICE_STATUS_OPTIONS}
+            value={statusFilter}
+            onChange={setStatusFilter}
+            placeholder="Trạng thái"
+            searchable={false}
+            className="w-full"
+            triggerClassName="h-[40px] border-gray-300 px-3 rounded-xl"
+            clearable={true}
+          />
+        </div>
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
+          <Combobox
+            options={INVOICE_TYPE_OPTIONS}
+            value={typeFilter}
+            onChange={setTypeFilter}
+            placeholder="Loại hóa đơn"
+            searchable={false}
+            className="w-full"
+            triggerClassName="h-[40px] border-gray-300 px-3 rounded-xl"
+            clearable
+          />
+        </div>
       </div>
 
       {/* Main Table Content */}
@@ -71,8 +88,8 @@ export default function MyInvoices() {
           <LoadingSpinner size={36} />
           <span className="text-sm text-gray-400 mt-2">Đang tải hóa đơn...</span>
         </div>
-      ) : invoices.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 bg-white border border-gray-200 shadow-md rounded-none">
+      ) : rawInvoicesCount === 0 ? (
+        <div className="text-center py-16 text-gray-500 bg-white border border-gray-200 shadow-sm rounded-none">
           <ClipboardList size={48} className="mx-auto mb-3 text-gray-300" />
           <p className="font-medium">Bạn chưa có hóa đơn nào</p>
         </div>
@@ -83,21 +100,25 @@ export default function MyInvoices() {
             role="TENANT"
             onOpenDetails={handleOpenDetails}
             onPrint={printInvoiceHelper}
+            startIdx={startIdx}
+            totalItems={rawInvoicesCount}
+            sortConfig={sortConfig}
+            onSort={(key) => { requestSort(key); setCurrentPage(1); }}
           />
 
           {invoices.some((inv) => inv.status === "UNPAID") && (
-            <div className="bg-amber-50 border border-amber-200 p-4 shadow-md rounded-none flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="bg-amber-50 border border-amber-200 p-4 shadow-sm rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <Wallet className="text-amber-600 shrink-0" size={24} />
                 <div>
-                  <h4 className="font-bold text-amber-850 text-sm">Bạn có hóa đơn chưa thanh toán</h4>
+                  <h4 className="font-bold text-amber-900 text-sm">Bạn có hóa đơn chưa thanh toán</h4>
                   <p className="text-xs text-amber-700 mt-0.5">Vui lòng thanh toán sớm để đảm bảo các dịch vụ không bị gián đoạn.</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => navigate("/tenant/payments")}
-                className="px-4 py-2 bg-amber-600 text-white font-semibold text-xs hover:bg-amber-700 transition-colors shadow-sm cursor-pointer rounded-none whitespace-nowrap"
+                className="px-4 py-2 bg-amber-600 text-white font-semibold text-xs hover:bg-amber-700 transition-colors shadow-sm cursor-pointer rounded-lg whitespace-nowrap"
               >
                 Tới trang thanh toán
               </button>
@@ -105,13 +126,15 @@ export default function MyInvoices() {
           )}
 
           {/* Pagination */}
-          <div className="pt-2">
-            <DefaultPagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
-          </div>
+          {totalPages > 1 && (
+            <div className="pt-2">
+              <DefaultPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
         </div>
       )}
 

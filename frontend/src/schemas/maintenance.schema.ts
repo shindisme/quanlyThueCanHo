@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PRIORITY_VALUES } from "../constants/enums";
 
 export const createMaintenanceSchema = z.object({
   apartment_id: z.coerce
@@ -16,7 +17,7 @@ export const createMaintenanceSchema = z.object({
     .min(1, { message: "Mô tả chi tiết không được để trống" })
     .max(10000, { message: "Mô tả tối đa 10000 ký tự" }),
   priority: z
-    .enum(["LOW", "MEDIUM", "HIGH"])
+    .enum(PRIORITY_VALUES)
     .default("MEDIUM"),
   image_url: z
     .string()
@@ -32,7 +33,7 @@ export const confirmMaintenanceSchema = z.object({
     .string()
     .min(1, { message: "Vui lòng chọn thời gian hẹn sửa chữa" }),
   priority: z
-    .enum(["LOW", "MEDIUM", "HIGH"])
+    .enum(PRIORITY_VALUES)
     .optional(),
 });
 

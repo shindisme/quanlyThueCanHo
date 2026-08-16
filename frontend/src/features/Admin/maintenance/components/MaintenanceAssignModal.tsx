@@ -4,7 +4,7 @@ import Combobox from "../../../../components/ui/Combobox";
 import DatePicker from "../../../../components/ui/DatePicker";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import { toast } from "sonner";
-import type { Priority } from "../../../../constants/enums";
+import { PRIORITY_OPTIONS, type Priority } from "../../../../constants";
 
 export interface Technician {
   id: number;
@@ -64,11 +64,7 @@ export default function MaintenanceAssignModal({
               Mức độ ưu tiên xử lý <span className="text-red-500">*</span>
             </label>
             <Combobox
-              options={[
-                { value: "LOW", label: "Thấp" },
-                { value: "MEDIUM", label: "Trung bình" },
-                { value: "HIGH", label: "Khẩn cấp" },
-              ]}
+              options={PRIORITY_OPTIONS}
               value={priority}
               onChange={(val) => setPriority(val as Priority)}
               className="w-full"

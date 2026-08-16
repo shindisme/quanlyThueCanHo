@@ -18,6 +18,18 @@ import type {
   DepositPolicy,
   SettlementFinancialStatus,
 } from "./enums";
+import {
+  ATTENDANCE_STATUS_VALUES,
+  BUILDING_STATUS_VALUES,
+  CONTRACT_STATUS_VALUES,
+  INVOICE_STATUS_VALUES,
+  INVOICE_TYPE_VALUES,
+  PRIORITY_VALUES,
+  REQUEST_STATUS_VALUES,
+  ROLE_VALUES,
+  SCHEDULE_STATUS_VALUES,
+  USER_STATUS_VALUES,
+} from "./enums";
 
 export const ROLE_LABELS: Record<Role, string> = {
   ADMIN: "Quản trị viên",
@@ -48,7 +60,6 @@ export const APARTMENT_STATUS_LABELS: Record<ApartmentStatus, string> = {
 export const CONTRACT_STATUS_LABELS: Record<ContractStatus, string> = {
   ACTIVE: "Hiệu lực",
   ENDED: "Đã kết thúc",
-  FORCE_TERMINATED: "Đã thanh lý",
 };
 
 export const INVOICE_STATUS_LABELS: Record<InvoiceStatus, string> = {
@@ -72,7 +83,6 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
 };
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  BANK_TRANSFER: "Ngân hàng",
   E_WALLET: "VNPay",
   CASH: "Tiền mặt",
 };
@@ -138,33 +148,52 @@ export const SETTLEMENT_FINANCIAL_STATUS_LABELS: Record<SettlementFinancialStatu
 };
 
 
-export const APARTMENT_STATUS_OPTIONS = [
+export interface SelectOption<T extends string = string> {
+  value: T;
+  label: string;
+}
+
+const createOptions = <T extends string>(
+  labels: Record<T, string>,
+  values: readonly T[]
+): SelectOption<T>[] => values.map((value) => ({ value, label: labels[value] }));
+
+export const APARTMENT_STATUS_OPTIONS: SelectOption<ApartmentStatus>[] = [
   { value: "AVAILABLE", label: APARTMENT_STATUS_LABELS.AVAILABLE },
   { value: "RESERVED", label: APARTMENT_STATUS_LABELS.RESERVED },
   { value: "RENTED", label: APARTMENT_STATUS_LABELS.RENTED },
   { value: "VACATING_SOON", label: APARTMENT_STATUS_LABELS.VACATING_SOON },
   { value: "MAINTENANCE", label: APARTMENT_STATUS_LABELS.MAINTENANCE },
 ];
-export const PAYMENT_STATUS_OPTIONS = [
+export const APARTMENT_MANAGEABLE_STATUS_OPTIONS: SelectOption<ApartmentStatus>[] = [
+  { value: "AVAILABLE", label: APARTMENT_STATUS_LABELS.AVAILABLE },
+  { value: "MAINTENANCE", label: APARTMENT_STATUS_LABELS.MAINTENANCE },
+];
+export const PAYMENT_STATUS_OPTIONS: SelectOption<PaymentStatus>[] = [
   { value: "SUCCESS", label: PAYMENT_STATUS_LABELS.SUCCESS },
   { value: "PENDING", label: PAYMENT_STATUS_LABELS.PENDING },
   { value: "FAILED", label: PAYMENT_STATUS_LABELS.FAILED },
 ];
-export const PAYMENT_METHOD_OPTIONS = [
-  { value: "BANK_TRANSFER", label: PAYMENT_METHOD_LABELS.BANK_TRANSFER },
+export const INVOICE_STATUS_OPTIONS = createOptions(INVOICE_STATUS_LABELS, INVOICE_STATUS_VALUES);
+
+export const INVOICE_TYPE_OPTIONS = createOptions(INVOICE_TYPE_LABELS, INVOICE_TYPE_VALUES);
+export const PAYMENT_METHOD_OPTIONS: SelectOption<PaymentMethod>[] = [
   { value: "E_WALLET", label: PAYMENT_METHOD_LABELS.E_WALLET },
   { value: "CASH", label: PAYMENT_METHOD_LABELS.CASH },
 ];
 
-export const USER_ROLE_OPTIONS = [
-  { value: "ADMIN", label: ROLE_LABELS.ADMIN },
-  { value: "MANAGER", label: ROLE_LABELS.MANAGER },
-  { value: "STAFF", label: ROLE_LABELS.STAFF },
-  { value: "TENANT", label: ROLE_LABELS.TENANT },
-];
+export const REQUEST_STATUS_OPTIONS = createOptions(REQUEST_STATUS_LABELS, REQUEST_STATUS_VALUES);
 
-export const USER_STATUS_OPTIONS = [
-  { value: "ACTIVE", label: USER_STATUS_LABELS.ACTIVE },
-  { value: "INACTIVE", label: USER_STATUS_LABELS.INACTIVE },
-  { value: "BANNED", label: USER_STATUS_LABELS.BANNED },
-];
+export const PRIORITY_OPTIONS = createOptions(PRIORITY_LABELS, PRIORITY_VALUES);
+
+export const USER_ROLE_OPTIONS = createOptions(ROLE_LABELS, ROLE_VALUES);
+
+export const USER_STATUS_OPTIONS = createOptions(USER_STATUS_LABELS, USER_STATUS_VALUES);
+
+export const BUILDING_STATUS_OPTIONS = createOptions(BUILDING_STATUS_LABELS, BUILDING_STATUS_VALUES);
+
+export const CONTRACT_STATUS_OPTIONS = createOptions(CONTRACT_STATUS_LABELS, CONTRACT_STATUS_VALUES);
+
+export const SCHEDULE_STATUS_OPTIONS = createOptions(SCHEDULE_STATUS_LABELS, SCHEDULE_STATUS_VALUES);
+
+export const ATTENDANCE_STATUS_OPTIONS = createOptions(ATTENDANCE_STATUS_LABELS, ATTENDANCE_STATUS_VALUES);

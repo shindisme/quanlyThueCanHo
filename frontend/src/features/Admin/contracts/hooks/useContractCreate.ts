@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import * as contractService from "../../../../services/contractService";
 import * as apartmentService from "../../../../services/apartmentService";
 import { contractSchema, type ContractFormValues } from "../../../../schemas/contract.schema";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 import type { Apartment } from "../../../../types";
 import type { Role } from "../../../../constants/enums";
 
@@ -25,12 +25,12 @@ interface UseContractCreateOptions {
 const DEFAULT_CONTRACT_FORM = {
   is_new_tenant: false,
   tenant_id: null,
-  building_id: undefined as unknown as number,
-  floor: undefined as unknown as number,
-  apartment_id: undefined as unknown as number,
+  building_id: undefined,
+  floor: undefined,
+  apartment_id: undefined,
   start_date: "",
   end_date: "",
-  actual_occupants: undefined as unknown as number,
+  actual_occupants: undefined,
   monthly_rent: 0,
 };
 
@@ -71,9 +71,9 @@ export function useContractCreate({
 
   // Lấy danh sách căn hộ theo chi nhánh được chọn
   const { data: buildingApartments = [], isLoading: loadingApartments } = useQuery({
-    queryKey: ["apartments", "building", buildingIdValue],
+    queryKey: queryKeys.apartments.list({ buildingId: buildingIdValue }),
     queryFn: () => apartmentService.getAllPage({ building_id: buildingIdValue }),
-    select: (res) => res.data as unknown as Apartment[],
+    select: (res) => res.data,
     enabled: !!buildingIdValue,
   });
 
@@ -118,9 +118,9 @@ export function useContractCreate({
       reset({
         ...DEFAULT_CONTRACT_FORM,
         tenant_id: initialTenantId || null,
-        building_id: (role === "MANAGER" ? managerBuildingId : initialBuildingId) as number,
-        floor: initialFloor as number,
-        apartment_id: initialApartmentId as number,
+        building_id: role === "MANAGER" ? managerBuildingId : initialBuildingId,
+        floor: initialFloor,
+        apartment_id: initialApartmentId,
       });
     }
   }, [isOpen, initialTenantId, initialBuildingId, initialApartmentId, initialFloor, role, managerBuildingId, reset]);
@@ -132,8 +132,8 @@ export function useContractCreate({
   }, [selectedApartment, setValue]);
 
   const createMutation = useMutation({
-    mutationFn: (data: Partial<ContractFormValues>) =>
-      contractService.createContract({
+    mutationFn: (data: ContractFormValues) =>
+      contractService.create({
         apartment_id: data.apartment_id!,
         tenant_id: data.tenant_id!,
         start_date: data.start_date!,
@@ -141,9 +141,9 @@ export function useContractCreate({
         monthly_rent: data.monthly_rent!,
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CONTRACTS });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APARTMENTS });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TENANTS });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contracts.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.apartments.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tenants.all });
       toast.success("Tạo hợp đồng thành công!");
       onSuccess();
     },

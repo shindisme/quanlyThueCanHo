@@ -1,5 +1,6 @@
 import React from "react";
-import { Trash2, Check, Mail, Info, Wrench, Receipt } from "lucide-react";
+import { Trash2, Check, Mail } from "lucide-react";
+import { getNotificationMeta } from "../../../../constants/notification";
 import { formatDate } from "../../../../utils/date";
 import type { Notification } from "../../../../types";
 
@@ -12,13 +13,6 @@ interface NotificationItemProps {
   onViewDetails?: (notif: Notification) => void;
 }
 
-const NOTIFICATION_ICON_CONFIG: Record<string, { icon: React.ComponentType<{ size?: number; className?: string }>; bg: string; color: string }> = {
-  INVOICE: { icon: Receipt, bg: "bg-emerald-50", color: "text-emerald-600" },
-  MAINTENANCE: { icon: Wrench, bg: "bg-amber-50", color: "text-amber-600" },
-  SYSTEM: { icon: Info, bg: "bg-blue-50", color: "text-blue-600" },
-  GENERAL: { icon: Mail, bg: "bg-gray-100", color: "text-gray-500" },
-};
-
 export default function NotificationItem({
   notification,
   isExpanded,
@@ -28,8 +22,7 @@ export default function NotificationItem({
   onViewDetails,
 }: NotificationItemProps) {
   const { id, title, content, type, is_read, created_at } = notification;
-  const config = NOTIFICATION_ICON_CONFIG[type] || NOTIFICATION_ICON_CONFIG.GENERAL;
-  const IconComponent = config.icon;
+  const notificationMeta = getNotificationMeta(type);
 
   return (
     <div
@@ -38,8 +31,8 @@ export default function NotificationItem({
       }`}
     >
       {/* Icon Box */}
-      <div className={`w-9 h-9 rounded-xl ${config.bg} flex items-center justify-center shrink-0`}>
-        <IconComponent size={16} className={config.color} />
+      <div className={`w-9 h-9 rounded-xl ${notificationMeta.bgClass} flex items-center justify-center shrink-0`}>
+        {notificationMeta.icon}
       </div>
 
       {/* Content Info */}

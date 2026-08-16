@@ -3,12 +3,16 @@ import { Eye, Pencil, Trash2 } from "lucide-react";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import type { Tenant } from "../../../../types";
 import { maskPhone, maskCCCD, formatApartmentDisplay } from "../../../../utils/string";
-import { getTenantActiveContract } from "../hooks/useTenantPage";
+import { getPreferredContract } from "../../../../utils/contract";
+import { getTableRowNumber } from "../../../../utils/table";
 
 interface TenantListProps {
   paginatedTenants: Tenant[];
   role: string | null;
   startIdx: number;
+  totalItems: number;
+  sortConfig: { key: string; direction: "asc" | "desc" } | null;
+  onSort: (key: string) => void;
   setViewItem: (item: Tenant | null) => void;
   setEditItem: (item: Tenant | null) => void;
   onOpenModifyModal: () => void;
@@ -19,6 +23,9 @@ export default function TenantList({
   paginatedTenants,
   role,
   startIdx,
+  totalItems,
+  sortConfig,
+  onSort,
   setViewItem,
   setEditItem,
   onOpenModifyModal,
@@ -30,13 +37,15 @@ export default function TenantList({
         key: "index",
         label: "STT",
         className: "w-4",
+        preserveRenderIndex: true,
         render: (_, index: number) => (
-          <span className="font-semibold text-gray-800">{startIdx + index + 1}</span>
+          <span className="font-semibold text-gray-800">{getTableRowNumber(index, startIdx, totalItems, sortConfig)}</span>
         ),
       },
       {
         key: "name",
         label: "Họ tên",
+        sortable: false,
         sortValue: (t) => t.full_name,
         render: (t) => <span className="font-medium">{t.full_name}</span>,
       },
@@ -44,12 +53,12 @@ export default function TenantList({
         key: "apartment",
         label: "Căn hộ",
         sortValue: (t) => {
-          const activeContract = getTenantActiveContract(t);
+          const activeContract = getPreferredContract(t.contracts);
           if (!activeContract || !activeContract.apartment) return "Chưa thuê";
           return `${activeContract.apartment.building?.branch_name || ""} - P.${activeContract.apartment.room_number}`;
         },
         render: (t) => {
-          const activeContract = getTenantActiveContract(t);
+          const activeContract = getPreferredContract(t.contracts);
           if (!activeContract || !activeContract.apartment) {
             return <span className="text-gray-450 italic text-xs">Chưa thuê</span>;
           }
@@ -69,12 +78,14 @@ export default function TenantList({
       {
         key: "phone",
         label: "Số điện thoại",
+        sortable: false,
         sortValue: (t) => t.phone || "",
         render: (t) => (t.phone ? maskPhone(t.phone) : "-"),
       },
       {
         key: "citizen_id",
         label: "CCCD",
+        sortable: false,
         sortValue: (t) => t.citizen_id,
         render: (t) => maskCCCD(t.citizen_id),
       },
@@ -82,7 +93,7 @@ export default function TenantList({
         key: "actions",
         label: "Chức năng",
         render: (t) => {
-          const activeContract = getTenantActiveContract(t);
+          const activeContract = getPreferredContract(t.contracts);
           return (
             <div className="flex items-center gap-1">
               <button
@@ -120,7 +131,7 @@ export default function TenantList({
         },
       },
     ],
-    [role, startIdx, setViewItem, setEditItem, onOpenModifyModal, setDeleteItem]
+    [role, startIdx, totalItems, sortConfig, setViewItem, setEditItem, onOpenModifyModal, setDeleteItem]
   );
 
   return (
@@ -128,7 +139,7 @@ export default function TenantList({
       {/* Mobile Card View */}
       <div className="grid grid-cols-1 gap-4 md:hidden font-sans">
         {paginatedTenants.map((t) => {
-          const activeContract = getTenantActiveContract(t);
+          const activeContract = getPreferredContract(t.contracts);
           const apt = activeContract?.apartment;
           const bld = apt?.building;
           return (
@@ -199,7 +210,12 @@ export default function TenantList({
 
       {/* Desktop Table View */}
       <div className="hidden md:block">
-        <DataTable columns={columns} data={paginatedTenants} />
+        <DataTable
+          columns={columns}
+          data={paginatedTenants}
+          sortConfig={sortConfig}
+          onSort={onSort}
+        />
       </div>
     </div>
   );

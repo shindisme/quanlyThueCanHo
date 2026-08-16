@@ -10,6 +10,7 @@ import type {
     CreateOccupantRequest,
     CreateTenantRequest,
     UpdateOccupantRequest,
+    UpdateMyTenantProfileRequest,
     UpdateTenantRequest
 } from "../schemas/tenant.schema.js";
 import type { Actor } from "../types/auth.js";
@@ -34,6 +35,9 @@ const tenantSelect = {
     address: true,
     is_verified: true,
     created_at: true,
+    _count: {
+        select: { occupants: true }
+    },
     user: {
         select: {
             id: true,
@@ -103,6 +107,39 @@ const occupantDuplicated = () => new AppError(
     "OCCUPANT_DUPLICATED",
     "Người ở cùng đã được khai báo"
 );
+
+const ensureOccupantCapacity = async (tenantId: number) => {
+    const activeContract = await prisma.rentalContract.findFirst({
+        where: {
+            tenant_id: tenantId,
+            status: ContractStatus.ACTIVE
+        },
+        orderBy: { start_date: "desc" },
+        select: {
+            apartment: { select: { bedrooms: true } },
+            tenant: { select: { _count: { select: { occupants: true } } } }
+        }
+    });
+
+    if (!activeContract) {
+        throw new AppError(
+            409,
+            "ACTIVE_CONTRACT_REQUIRED",
+            "Cần có hợp đồng thuê đang hoạt động để khai báo người ở cùng"
+        );
+    }
+
+    const maximum = Math.max(2, activeContract.apartment.bedrooms * 2);
+    const currentTotal = 1 + activeContract.tenant._count.occupants;
+
+    if (currentTotal >= maximum) {
+        throw new AppError(
+            409,
+            "OCCUPANT_LIMIT_REACHED",
+            `Hợp đồng chỉ cho phép tối đa ${maximum} người, bao gồm người đứng tên hợp đồng`
+        );
+    }
+};
 const requireTenantId = (actor: Actor) => {
     if (actor.tenantId === undefined) {
         throw new AppError(
@@ -160,7 +197,12 @@ const getTenantWhere = (id: number, actor: Actor) => actor.role === Role.MANAGER
         ...getManagerTenantScope(actor),
         id
     }
-    : { id };
+    : actor.role === Role.TENANT
+        ? {
+            id,
+            user_id: actor.userId
+        }
+        : { id };
 
 const getMyOccupantWhere = (id: number, tenantId: number) => ({
     id,
@@ -426,6 +468,22 @@ export const updateTenant = async (
     input: UpdateTenantRequest["body"],
     actor: Actor
 ) => {
+    if (actor.role === Role.TENANT) {
+        if (id !== actor.tenantId) {
+            throw notFound();
+        }
+
+        const disallowedFields = Object.keys(input).filter(
+            (key) => key !== "full_name" && key !== "phone"
+        );
+        if (disallowedFields.length > 0) {
+            throw new AppError(
+                403,
+                "FORBIDDEN",
+                "Khách thuê chỉ có thể cập nhật họ tên và số điện thoại của chính mình"
+            );
+        }
+    }
     if (
         actor.role === Role.MANAGER
         && input.is_verified !== undefined
@@ -479,6 +537,27 @@ export const updateTenant = async (
     });
 };
 
+export const getMyTenantProfile = async (actor: Actor) => {
+    const tenant = await prisma.tenant.findFirst({
+        where: {
+            id: requireTenantId(actor),
+            user_id: actor.userId
+        },
+        select: tenantSelect
+    });
+
+    if (!tenant) {
+        throw notFound();
+    }
+
+    return tenant;
+};
+
+export const updateMyTenantProfile = async (
+    input: UpdateMyTenantProfileRequest["body"],
+    actor: Actor
+) => updateTenant(requireTenantId(actor), input, actor);
+
 export const getMyOccupants = async (actor: Actor) => {
     const tenantId = requireTenantId(actor);
 
@@ -494,6 +573,7 @@ export const createMyOccupant = async (
     actor: Actor
 ) => {
     const tenantId = requireTenantId(actor);
+    await ensureOccupantCapacity(tenantId);
     await ensureOccupantCitizenIdUnique(
         tenantId,
         input.citizen_id

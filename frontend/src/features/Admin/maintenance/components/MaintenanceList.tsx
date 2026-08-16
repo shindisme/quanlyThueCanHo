@@ -8,7 +8,7 @@ import {
   type RequestStatus,
   type Priority,
   type Role,
-} from "../../../../constants/enums";
+} from "../../../../constants";
 import { formatDate, formatDateTime } from "../../../../utils/date";
 import type { MaintenanceRequest } from "../../../../types";
 
@@ -72,6 +72,7 @@ export default function MaintenanceList({
       {
         key: "title",
         label: "Sự cố",
+        sortable: false,
         sortValue: (req) => req.title,
         render: (req) => <span className="font-semibold text-primary-600">{req.title}</span>,
       },
@@ -95,6 +96,7 @@ export default function MaintenanceList({
       {
         key: "assigned_staff",
         label: "Nhân viên kỹ thuật",
+        sortable: false,
         sortValue: (req) => req.assigned_staff?.full_name || "",
         render: (req) =>
           req.assigned_staff ? (
@@ -114,19 +116,21 @@ export default function MaintenanceList({
       },
       {
         key: "scheduled_at",
-        label: "Hẹn sửa",
+        label: "Ngày hẹn",
         sortValue: (req) => (req.scheduled_at ? new Date(req.scheduled_at).getTime() : 0),
         render: (req) => <span className="text-xs text-gray-600">{req.scheduled_at ? formatDateTime(req.scheduled_at) : "-"}</span>,
       },
       {
         key: "priority",
         label: "Độ ưu tiên",
+        sortable: false,
         sortValue: (req) => PRIORITY_ORDER[req.priority] ?? 0,
         render: (req) => getPriorityBadge(req.priority),
       },
       {
         key: "status",
         label: "Trạng thái",
+        sortable: false,
         sortValue: (req) => STATUS_ORDER[req.status] ?? 0,
         render: (req) => (
           <div className="flex flex-col items-center gap-0.5 text-center">

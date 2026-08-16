@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as staffService from "../../../../services/staffService";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 
 export function useAvailableManagers(enabled = true, currentBuildingId?: number) {
   const { data: staffList = [], isLoading: loadingStaff } = useQuery({
-    queryKey: QUERY_KEYS.STAFF,
+    queryKey: queryKeys.staff.all,
     queryFn: () => staffService.getAllPage(),
     enabled,
     select: (res) => res.data,

@@ -15,7 +15,7 @@ export default function TenantLayout() {
       <div className="flex flex-col flex-1">
         <Header />
         <main className="flex-1 bg-gray-50/30">
-          <div className="mx-auto px-8 md:px-16 lg:px-24 xl:px-32 py-10 max-w-[1800px]">
+          <div className="mx-auto px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 py-6 sm:py-8 max-w-[1800px] w-full">
             <Outlet />
           </div>
         </main>

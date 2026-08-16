@@ -9,6 +9,7 @@ import { useMaintenances } from "./useMaintenances";
 import { useMaintenanceAssign } from "./useMaintenanceAssign";
 import { useMaintenanceComplete } from "./useMaintenanceComplete";
 import { useMaintenanceUnable } from "./useMaintenanceUnable";
+import { queryKeys } from "../../../../constants/queryKeys";
 
 export function useMaintenancePage() {
   const { role, managedBuildingId } = useAuthStore();
@@ -36,7 +37,7 @@ export function useMaintenancePage() {
 
   // Fetch danh sách căn hộ để tính số tầng khả dụng
   const { data: apartments = [] } = useQuery({
-    queryKey: ["apartments"],
+    queryKey: queryKeys.apartments.all,
     queryFn: () => apartmentService.getAllPage(),
     select: (res) => res.data as Apartment[],
   });
@@ -62,7 +63,7 @@ export function useMaintenancePage() {
 
   // Fetch danh sách nhân viên kỹ thuật
   const { data: staffRes, isLoading: loadingStaff } = useQuery({
-    queryKey: ["technicians", selectedBuildingId],
+    queryKey: queryKeys.staff.technicians(selectedBuildingId),
     queryFn: () => staffService.getAllPage(selectedBuildingId ? { building_id: Number(selectedBuildingId) } : undefined),
     enabled: role !== "STAFF" && !!selectedBuildingId,
   });

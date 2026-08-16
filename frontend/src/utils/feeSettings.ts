@@ -19,8 +19,24 @@ export const DEFAULT_FEES: FeeSettings = {
   managementFeePerM2: 10000,
 };
 
-const ELECTRIC_LIMITS = [50, 50, 100, 100, 100, null] as const;
-const WATER_LIMITS_PER_PERSON = [4, 2, null] as const;
+export const ELECTRICITY_TIER_LABELS = [
+  "Bậc 1 (0-50 kWh)",
+  "Bậc 2 (51-100 kWh)",
+  "Bậc 3 (101-200 kWh)",
+  "Bậc 4 (201-300 kWh)",
+  "Bậc 5 (301-400 kWh)",
+  "Bậc 6 (Trên 400 kWh)",
+] as const;
+
+export const WATER_TIER_LABELS = [
+  "Bậc 1 (Đến 4 m³/người)",
+  "Bậc 2 (Trên 4-6 m³/người)",
+  "Bậc 3 (Trên 6 m³/người)",
+] as const;
+
+// Ngưỡng tiêu thụ là quy tắc nghiệp vụ cố định; trang cài đặt chỉ thay đổi đơn giá.
+export const ELECTRICITY_TIER_LIMITS = [50, 50, 100, 100, 100, null] as const;
+export const WATER_TIER_LIMITS_PER_PERSON = [4, 2, null] as const;
 
 const normalizeRates = (value: unknown, fallback: number[]) => {
   if (!Array.isArray(value) || value.length !== fallback.length) return fallback;
@@ -64,8 +80,6 @@ export const saveFeeSettings = (settings: Partial<FeeSettings>) => {
   }
 };
 
-export const writeFeeSettings = saveFeeSettings;
-
 const roundMoney = (value: number) => Math.round(value * 100) / 100;
 
 const normalizeOccupantCount = (value?: number) =>
@@ -73,7 +87,7 @@ const normalizeOccupantCount = (value?: number) =>
 
 const waterLimitsFor = (occupantCount?: number) => {
   const personCount = normalizeOccupantCount(occupantCount);
-  return WATER_LIMITS_PER_PERSON.map((limit) =>
+  return WATER_TIER_LIMITS_PER_PERSON.map((limit) =>
     limit === null ? null : limit * personCount
   );
 };
@@ -131,7 +145,7 @@ export const getDisplayTierDetails = (item: InvoiceItem, occupantCount?: number)
   const name = (item.item_name || "").toLowerCase();
 
   if (item.utility_type === "ELECTRIC" || name.includes("điện") || name.includes("electric")) {
-    return calculateTiers(Number(item.quantity), settings.electricityRates, ELECTRIC_LIMITS, "kWh");
+    return calculateTiers(Number(item.quantity), settings.electricityRates, ELECTRICITY_TIER_LIMITS, "kWh");
   }
 
   if (item.utility_type === "WATER" || name.includes("nước") || name.includes("water")) {

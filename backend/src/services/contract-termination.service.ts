@@ -1216,6 +1216,19 @@ export const createOverdueTerminationService = async (
 
             await assertNoOpenTermination(transaction, contract.id);
 
+            const overdue = await getOverdueDebtInfo(
+                transaction,
+                contract.id,
+                now
+            );
+            if (overdue.amount <= 0) {
+                throw new AppError(
+                    409,
+                    "CONTRACT_NOT_OVERDUE",
+                    "Hợp đồng chưa có hóa đơn quá hạn trên 7 ngày để quản lý chủ động thanh lý"
+                );
+            }
+
             const today = startOfUtcDay(now);
             const created = await transaction.contractTermination.create({
                 data: {

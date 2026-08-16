@@ -8,8 +8,8 @@ import * as tenantService from "../../../../services/tenantService";
 import * as authService from "../../../../services/authService";
 import * as reservationService from "../../../../services/reservationService";
 import { getApartmentReviews } from "../../../../services/reviewService";
-import type { Apartment, Building, ApartmentImage, TenantOccupant, RentalContract } from "../../../../types";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import type { ApartmentImage, TenantOccupant } from "../../../../types";
+import { queryKeys } from "../../../../constants/queryKeys";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import { getApiErrorMessage } from "../../../../utils/apiError";
 import { apartmentService } from "../../../../services";
@@ -25,7 +25,7 @@ export function useApartmentDetailPage() {
     mutationFn: (formDataToSend: FormData) => apartmentService.update(Number(id), formDataToSend),
     onSuccess: () => {
       toast.success("Tải ảnh lên thành công");
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.APARTMENTS[0], id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.apartments.detail(id ?? "invalid") });
     },
     onError: (error: unknown) => {
       toast.error(getApiErrorMessage(error, "Không thể tải ảnh lên"));
@@ -36,8 +36,8 @@ export function useApartmentDetailPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: FormData | object }) => apartmentService.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.APARTMENTS[0], id] });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APARTMENTS });
+      queryClient.invalidateQueries({ queryKey: queryKeys.apartments.detail(id ?? "invalid") });
+      queryClient.invalidateQueries({ queryKey: queryKeys.apartments.all });
     },
   });
 
@@ -53,7 +53,7 @@ export function useApartmentDetailPage() {
     isLoading: loadingApartment,
     refetch: fetchApartment,
   } = useQuery({
-    queryKey: [QUERY_KEYS.APARTMENTS[0], id],
+    queryKey: queryKeys.apartments.detail(id ?? "invalid"),
     queryFn: () => apartmentService.getById(Number(id)),
     enabled: Boolean(id) && !isNaN(Number(id)),
   });
@@ -66,7 +66,7 @@ export function useApartmentDetailPage() {
 
   // Danh sách hợp đồng của căn hộ hiện tại
   const { data: contracts = [], isLoading: loadingContracts } = useQuery({
-    queryKey: [...QUERY_KEYS.CONTRACTS, "apartment", id],
+    queryKey: queryKeys.contracts.list({ apartmentId: id }),
     queryFn: () => contractService.getAllPage({ apartment_id: Number(id) }),
     select: (res) => res.data,
     enabled: Boolean(id) && !isNaN(Number(id)),
@@ -74,12 +74,12 @@ export function useApartmentDetailPage() {
 
   // Danh sách hợp đồng cũ
   const apartmentContracts = useMemo(() => {
-    return (apartment as unknown as { contracts?: RentalContract[] })?.contracts || [];
+    return apartment?.contracts || [];
   }, [apartment]);
 
   // Đặt phòng cọc
   const { data: activeReservation, isLoading: loadingReservation } = useQuery({
-    queryKey: ["reservation", "apartment", id],
+    queryKey: queryKeys.reservations.apartment(id),
     queryFn: async () => {
       const res = await reservationService.getReservations({ apartment_id: Number(id), status: "ACTIVE" });
       return res.data?.[0] || null;
@@ -95,8 +95,8 @@ export function useApartmentDetailPage() {
 
   // Người thuê
   const { data: tenants = [], isLoading: loadingTenants } = useQuery({
-    queryKey: QUERY_KEYS.TENANTS,
-    queryFn: () => tenantService.getAll(),
+    queryKey: queryKeys.tenants.all,
+    queryFn: () => tenantService.getAllPage(),
     select: (res) => res.data,
   });
 
@@ -107,8 +107,9 @@ export function useApartmentDetailPage() {
 
   // Người dùng
   const { data: users = [], isLoading: loadingUsers } = useQuery({
-    queryKey: ["users"],
-    queryFn: () => authService.getAll(),
+    queryKey: queryKeys.users.all,
+    queryFn: () => authService.getAllPage(),
+    select: (res) => res.data,
   });
 
   const activeTenantUser = useMemo(() => {
@@ -118,17 +119,22 @@ export function useApartmentDetailPage() {
 
   // Đánh giá
   const { data: reviewRes, isLoading: loadingReviews } = useQuery({
-    queryKey: ["reviews", "apartment", id],
+    queryKey: queryKeys.reviews.apartment(id ?? "invalid"),
     queryFn: () => getApartmentReviews(Number(id)),
     enabled: Boolean(id) && !isNaN(Number(id)),
   });
 
   const reviews = useMemo(() => reviewRes?.data || [], [reviewRes]);
-  const reviewMeta = useMemo(() => reviewRes?.meta || null, [reviewRes]);
+  const reviewMeta = useMemo(() => reviewRes?.meta || {
+    averageRating: 0,
+    totalReviews: 0,
+    currentPage: 1,
+    totalPages: 0,
+  }, [reviewRes]);
 
   // Chi tiết người thuê
   const { data: activeTenantDetail, isLoading: loadingOccupants } = useQuery({
-    queryKey: ["tenant", activeTenant?.id, "occupants"],
+    queryKey: queryKeys.occupants.byTenant(activeTenant?.id),
     queryFn: () => tenantService.getById(activeTenant!.id),
     enabled: !!activeTenant?.id,
   });
@@ -240,15 +246,15 @@ export function useApartmentDetailPage() {
     : activeReservation?.tenant;
 
   const { data: buildings = [] } = useQuery({
-    queryKey: QUERY_KEYS.BUILDINGS,
+    queryKey: queryKeys.buildings.all,
     queryFn: () => buildingService.getAllPage(),
-    select: (res) => res.data as unknown as Building[],
+    select: (res) => res.data,
   });
 
   return {
     role,
     id,
-    apartment: apartment as unknown as Apartment,
+    apartment,
     loading,
     images,
     uploading,

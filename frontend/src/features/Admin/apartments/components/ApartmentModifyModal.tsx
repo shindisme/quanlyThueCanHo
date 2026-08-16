@@ -9,6 +9,7 @@ import type { Apartment } from "../../../../types";
 import type { ApartmentFormValues } from "../../../../schemas/apartment.schema";
 import { isValidImageFile } from "../../../../utils/file";
 import { toast } from "sonner";
+import { getFirstFormErrorMessage } from "../../../../utils/formError";
 
 interface ApartmentModifyModalProps {
   isOpen: boolean;
@@ -192,30 +193,8 @@ export default function ApartmentModifyModal({
     );
   };
 
-  const onInvalid = (errors: Record<string, any>) => {
-    const fieldLabels: Record<string, string> = {
-      room_number: "Số phòng",
-      building_id: "Chi nhánh",
-      floor: "Tầng",
-      area: "Diện tích",
-      bedrooms: "Số phòng ngủ",
-      bathrooms: "Số phòng vệ sinh",
-      rental_price: "Giá thuê",
-      description: "Mô tả",
-      status: "Trạng thái",
-    };
-
-    const messages = Object.entries(errors)
-      .map(([key, err]: [string, any]) => {
-        if (!err?.message) return null;
-        const label = fieldLabels[key];
-        return label ? `${label}: ${err.message}` : String(err.message);
-      })
-      .filter(Boolean);
-
-    if (messages.length > 0) {
-      messages.forEach((msg) => toast.error(String(msg)));
-    }
+  const onInvalid = (errors: unknown) => {
+    toast.error(getFirstFormErrorMessage(errors) || "Vui lòng kiểm tra thông tin căn hộ.");
   };
 
   return (

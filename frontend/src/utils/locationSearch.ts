@@ -11,12 +11,26 @@ export type BuildingLocationCandidate = {
   longitude?: number;
 };
 
+type MapboxContextEntry = {
+  name?: string;
+  region_code?: string;
+  region_code_full?: string;
+};
+
+type MapboxFeature = {
+  geometry?: {
+    coordinates?: number[];
+  };
+  properties?: {
+    name?: string;
+    full_address?: string;
+    place_formatted?: string;
+    context?: Record<string, MapboxContextEntry | undefined>;
+  };
+};
+
 type MapboxFeatureCollection = {
-  features?: {
-    geometry?: {
-      coordinates?: number[];
-    };
-  }[];
+  features?: MapboxFeature[];
 };
 
 type MapboxSuggestResponse = {
@@ -32,6 +46,7 @@ type FetchLike = (input: string) => Promise<{
 
 // Tọa độ trung tâm TP.HCM
 const HCMC_PROXIMITY = "106.700981,10.776889";
+const HCMC_REGION_CODES = new Set(["vn sg", "sg"]);
 
 const buildingCoordsCache = new Map<string, Coordinates>();
 
@@ -64,7 +79,7 @@ export function isCoordinatesInHCMC(coords: Coordinates): boolean {
 
 // Từ khóa các tỉnh/thành phố ngoài TP.HCM
 const NON_HCMC_KEYWORDS = [
-  "dong thap", "ha noi", "hanoi", "da nang", "can tho", "haiphong", "hai phong",
+  "sa dec", "dong thap", "ha noi", "hanoi", "da nang", "can tho", "haiphong", "hai phong",
   "nha trang", "da lat", "dalat", "phu quoc", "vung tau", "ba ria",
   "binh duong", "dong nai", "bien hoa", "long an", "tien giang",
   "ben tre", "vinh long", "tra vinh", "an giang", "kien giang",
@@ -79,6 +94,15 @@ const NON_HCMC_KEYWORDS = [
 
 export function isNonHCMCQuery(query: string): boolean {
   const normalized = normalizeLocationText(query);
+  const explicitlyInHCMC = [
+    "ho chi minh",
+    "hcmc",
+    "tp hcm",
+    "sai gon",
+    "saigon",
+  ].some((keyword) => normalized.includes(keyword));
+
+  if (explicitlyInHCMC) return false;
   return NON_HCMC_KEYWORDS.some((kw) => normalized.includes(kw));
 }
 
@@ -114,10 +138,15 @@ export function getLocationSearchText(query: string): string {
     .trim();
 }
 
-export type NearestBuildingResult<T> = {
+export type BuildingDistanceResult<T> = {
   building: T;
   distanceKm: number;
-  isWithinRange: boolean;
+};
+
+export type GeocodedLocation = {
+  coordinates: Coordinates;
+  fullAddress: string;
+  isInHCMC: boolean;
 };
 
 // Giải mã động địa chỉ tòa nhà qua Mapbox API
@@ -136,73 +165,40 @@ export async function getBuildingCoordinatesDynamic<T extends BuildingLocationCa
   }
 
   if (hasMapboxToken(token)) {
-    const coords = await geocodeSearchText(queryText, token);
-    if (coords) {
-      buildingCoordsCache.set(cacheKey, coords);
-      return coords;
+    const result = await geocodeLocationSearch(queryText, token);
+    if (result?.isInHCMC) {
+      buildingCoordsCache.set(cacheKey, result.coordinates);
+      return result.coordinates;
     }
   }
 
   return null;
 }
 
-// Tìm tòa nhà gần nhất và kiểm tra bán kính giới hạn 15km
-export async function findNearestBuildingAsync<T extends BuildingLocationCandidate>(
+export async function findBuildingsWithinRadiusAsync<T extends BuildingLocationCandidate>(
   location: Coordinates,
   buildings: T[],
   token?: string,
   maxDistanceKm: number = 15
-): Promise<NearestBuildingResult<T> | null> {
-  let nearest: { building: T; distanceKm: number } | null = null;
+): Promise<BuildingDistanceResult<T>[]> {
+  const results = await Promise.all(
+    buildings.map(async (building) => {
+      const coordinates = await getBuildingCoordinatesDynamic(building, token);
+      if (!coordinates || !isCoordinatesInHCMC(coordinates)) return null;
 
-  for (const building of buildings) {
-    const coords = await getBuildingCoordinatesDynamic(building, token);
-    if (!coords) continue;
+      const distanceKm = getDistanceKm(location, coordinates);
+      if (distanceKm > maxDistanceKm) return null;
 
-    const distanceKm = getDistanceKm(location, coords);
-    if (!nearest || distanceKm < nearest.distanceKm) {
-      nearest = { building, distanceKm };
-    }
-  }
+      return {
+        building,
+        distanceKm: Math.round(distanceKm * 10) / 10,
+      };
+    })
+  );
 
-  if (!nearest) return null;
-
-  return {
-    building: nearest.building,
-    distanceKm: Math.round(nearest.distanceKm * 10) / 10,
-    isWithinRange: nearest.distanceKm <= maxDistanceKm,
-  };
-}
-
-// Đồng bộ hóa tương thích ngược
-export function findNearestBuilding<T extends BuildingLocationCandidate>(
-  location: Coordinates,
-  buildings: T[],
-  maxDistanceKm: number = 15
-): NearestBuildingResult<T> | null {
-  let nearest: { building: T; distanceKm: number } | null = null;
-
-  for (const building of buildings) {
-    const coords: Coordinates | null =
-      typeof building.latitude === "number" && typeof building.longitude === "number"
-        ? { latitude: building.latitude, longitude: building.longitude }
-        : buildingCoordsCache.get(normalizeLocationText(`${building.address || building.branch_name}, TP.HCM`)) || null;
-
-    if (!coords) continue;
-
-    const distanceKm = getDistanceKm(location, coords);
-    if (!nearest || distanceKm < nearest.distanceKm) {
-      nearest = { building, distanceKm };
-    }
-  }
-
-  if (!nearest) return null;
-
-  return {
-    building: nearest.building,
-    distanceKm: Math.round(nearest.distanceKm * 10) / 10,
-    isWithinRange: nearest.distanceKm <= maxDistanceKm,
-  };
+  return results
+    .filter((result): result is BuildingDistanceResult<T> => result !== null)
+    .sort((left, right) => left.distanceKm - right.distanceKm);
 }
 
 // Tạo câu thông báo gợi ý khu vực với giới hạn TP.HCM
@@ -214,16 +210,19 @@ export function getLocationSuggestionMessage(
 ): string {
   const target = search.trim();
   if (isOutsideHCMC) {
-    return `Hệ thống hiện tại chỉ hỗ trợ tìm kiếm căn hộ tại khu vực Thành phố Hồ Chí Minh..`;
+    return `YuKi House hiện chỉ có căn hộ tại Thành phố Hồ Chí Minh. Vị trí "${target}" nằm ngoài phạm vi phục vụ.`;
   }
-  if (!isWithinRange && distanceKm) {
-    return `Không tìm thấy căn hộ trực tiếp tại "${target}". Dưới đây là danh sách các căn hộ tại khu vực lân cận ở TP.HCM.`;
+  if (!isWithinRange) {
+    return `Không tìm thấy căn hộ tại "${target}" hoặc trong bán kính 15 km.`;
   }
-  return `Không tìm thấy căn hộ trực tiếp tại "${target}". Dưới đây là danh sách các căn hộ tại khu vực lân cận ở TP.HCM.`;
+  const nearestText = typeof distanceKm === "number"
+    ? ` Chi nhánh gần nhất cách khoảng ${distanceKm} km.`
+    : "";
+  return `Không có căn hộ khớp chính xác địa chỉ "${target}". Đang hiển thị các căn hộ trong bán kính 15 km.${nearestText}`;
 }
 
-function getFirstCoordinates(value: unknown): Coordinates | null {
-  const coordinates = (value as MapboxFeatureCollection).features?.[0]?.geometry?.coordinates;
+function getFeatureCoordinates(feature: MapboxFeature | undefined): Coordinates | null {
+  const coordinates = feature?.geometry?.coordinates;
   const longitude = coordinates?.[0];
   const latitude = coordinates?.[1];
 
@@ -232,6 +231,41 @@ function getFirstCoordinates(value: unknown): Coordinates | null {
   }
 
   return { latitude, longitude };
+}
+
+function getFeatureFullText(feature: MapboxFeature): string {
+  const properties = feature.properties;
+  const contextNames = Object.values(properties?.context ?? {})
+    .map((entry) => entry?.name ?? "")
+    .filter(Boolean);
+
+  return [
+    properties?.name,
+    properties?.full_address,
+    properties?.place_formatted,
+    ...contextNames,
+  ].filter(Boolean).join(" ");
+}
+
+function isFeatureInHCMC(feature: MapboxFeature, coordinates: Coordinates): boolean {
+  if (!isCoordinatesInHCMC(coordinates)) return false;
+
+  const context = feature.properties?.context ?? {};
+  const hasHCMCRegionCode = Object.values(context).some((entry) => {
+    const code = normalizeLocationText(entry?.region_code_full ?? entry?.region_code ?? "");
+    return HCMC_REGION_CODES.has(code);
+  });
+  if (hasHCMCRegionCode) return true;
+
+  const locationText = normalizeLocationText(getFeatureFullText(feature));
+  return [
+    "ho chi minh",
+    "thanh pho ho chi minh",
+    "hcmc",
+    "tp hcm",
+    "sai gon",
+    "saigon",
+  ].some((name) => locationText.includes(name));
 }
 
 function createSearchUrl(path: string, params: Record<string, string>): string {
@@ -248,58 +282,73 @@ async function requestJson(url: string, fetcher: FetchLike): Promise<unknown | n
   return response.json();
 }
 
-// Chuyển đổi tên vị trí tìm kiếm thành tọa độ (Latitude, Longitude) qua Mapbox Search Box API
-export async function geocodeSearchText(
+async function findMapboxFeature(
+  searchText: string,
+  token: string,
+  fetcher: FetchLike
+): Promise<MapboxFeature | null> {
+  const commonParams = {
+    country: "VN",
+    language: "vi",
+    limit: "1",
+    proximity: HCMC_PROXIMITY,
+    access_token: token,
+  };
+
+  const forwardResult = await requestJson(
+    createSearchUrl("forward", { ...commonParams, q: searchText }),
+    fetcher
+  );
+  const forwardFeature = (forwardResult as MapboxFeatureCollection | null)?.features?.[0];
+  if (getFeatureCoordinates(forwardFeature)) return forwardFeature ?? null;
+
+  const sessionToken = globalThis.crypto?.randomUUID?.() ?? String(Date.now());
+  const suggestResult = await requestJson(
+    createSearchUrl("suggest", {
+      ...commonParams,
+      q: searchText,
+      session_token: sessionToken,
+    }),
+    fetcher
+  );
+  const mapboxId = (suggestResult as MapboxSuggestResponse | null)
+    ?.suggestions?.[0]?.mapbox_id;
+  if (!mapboxId) return null;
+
+  const retrieveResult = await requestJson(
+    createSearchUrl(`retrieve/${encodeURIComponent(mapboxId)}`, {
+      access_token: token,
+      session_token: sessionToken,
+    }),
+    fetcher
+  );
+
+  return (retrieveResult as MapboxFeatureCollection | null)?.features?.[0] ?? null;
+}
+
+export async function geocodeLocationSearch(
   query: string,
   token: string | undefined,
   fetcher: FetchLike = fetch
-): Promise<Coordinates | null> {
+): Promise<GeocodedLocation | null> {
   if (!hasMapboxToken(token)) return null;
 
   const searchText = getLocationSearchText(query);
   if (!searchText) return null;
 
   try {
-    const commonParams = {
-      country: "VN",
-      language: "vi",
-      limit: "1",
-      proximity: HCMC_PROXIMITY,
-      access_token: token,
+    const feature = await findMapboxFeature(searchText, token, fetcher);
+    const coordinates = getFeatureCoordinates(feature ?? undefined);
+    if (!feature || !coordinates) return null;
+
+    return {
+      coordinates,
+      fullAddress: feature.properties?.full_address
+        ?? feature.properties?.place_formatted
+        ?? feature.properties?.name
+        ?? searchText,
+      isInHCMC: isFeatureInHCMC(feature, coordinates),
     };
-
-    const forwardResult = await requestJson(
-      createSearchUrl("forward", {
-        ...commonParams,
-        q: searchText,
-      }),
-      fetcher
-    );
-    const forwardCoordinates = getFirstCoordinates(forwardResult);
-    if (forwardCoordinates) return forwardCoordinates;
-
-    const sessionToken = globalThis.crypto?.randomUUID?.() ?? String(Date.now());
-    const suggestResult = await requestJson(
-      createSearchUrl("suggest", {
-        ...commonParams,
-        q: searchText,
-        session_token: sessionToken,
-      }),
-      fetcher
-    );
-    const mapboxId = (suggestResult as MapboxSuggestResponse | null)
-      ?.suggestions?.[0]?.mapbox_id;
-    if (!mapboxId) return null;
-
-    const retrieveResult = await requestJson(
-      createSearchUrl(`retrieve/${encodeURIComponent(mapboxId)}`, {
-        access_token: token,
-        session_token: sessionToken,
-      }),
-      fetcher
-    );
-
-    return getFirstCoordinates(retrieveResult);
   } catch {
     return null;
   }

@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import * as buildingService from "../../../../services/buildingService";
 import * as reservationService from "../../../../services/reservationService";
 import type { Apartment } from "../../../../types";
-import type { Building } from "../../../../types";
 import { useDebounce } from "../../../../hooks/useDebounce";
 import { useOnOff } from "../../../../hooks/useOnOff";
 import { usePagination } from "../../../../hooks/usePagination";
@@ -14,7 +13,7 @@ import { removeVietnameseTones, formatApartmentDisplay } from "../../../../utils
 import { formatCurrency } from "../../../../utils/currency";
 import { useDeleteApartment } from "./useDeleteApartment";
 import { getApiErrorMessage } from "../../../../utils/apiError";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 import { apartmentService } from "../../../../services";
 
 export function useApartmentPage() {
@@ -25,7 +24,7 @@ export function useApartmentPage() {
   useEffect(() => {
     reservationService.expireReservations().then((res) => {
       if (res && res.count > 0) {
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APARTMENTS });
+        queryClient.invalidateQueries({ queryKey: queryKeys.apartments.all });
       }
     }).catch(() => { });
   }, [queryClient]);
@@ -47,9 +46,9 @@ export function useApartmentPage() {
 
   // Lấy danh sách tòa nhà
   const { data: buildings = [] } = useQuery({
-    queryKey: QUERY_KEYS.BUILDINGS,
+    queryKey: queryKeys.buildings.all,
     queryFn: () => buildingService.getAllPage(),
-    select: (res) => res.data as unknown as Building[],
+    select: (res) => res.data,
   });
 
   // Map ID tòa nhà
@@ -59,21 +58,26 @@ export function useApartmentPage() {
 
   // Lấy danh sách căn hộ
   const { data: apartments = [], isLoading: loading } = useQuery({
-    queryKey: [QUERY_KEYS.APARTMENTS[0], filterBuilding],
+    queryKey: queryKeys.apartments.list({ buildingId: filterBuilding }),
     queryFn: () => apartmentService.getAllPage({
       building_id: filterBuilding,
     }),
     select: (res) => res.data,
   });
 
+  const uniqueApartments = useMemo(
+    () => Array.from(new Map(apartments.map((apartment) => [apartment.id, apartment])).values()),
+    [apartments]
+  );
+
   // Danh sách tầng hiện có
   const availableFloors = useMemo(() => {
-    return Array.from(new Set(apartments.map((a) => a.floor).filter(Boolean))).sort((a, b) => a - b);
-  }, [apartments]);
+    return Array.from(new Set(uniqueApartments.map((a) => a.floor).filter(Boolean))).sort((a, b) => a - b);
+  }, [uniqueApartments]);
 
   // Lọc danh sách căn hộ
   const filtered: Apartment[] = useMemo(() => {
-    return apartments.filter((apt) => {
+    return uniqueApartments.filter((apt) => {
       if (debouncedSearch) {
         const rawSearch = debouncedSearch.trim().toLowerCase();
         const s = removeVietnameseTones(rawSearch);
@@ -91,14 +95,15 @@ export function useApartmentPage() {
           (searchDigits !== "" && (rawRoom.includes(searchDigits) || displayRoom.includes(searchDigits)));
 
         // Khớp giá thuê
-        const rawPriceStr = String(apt.rental_price || 0);
+        const rawPriceStr = String(Number(apt.rental_price || 0));
         const formattedPriceStr = removeVietnameseTones(
           formatCurrency(Number(apt.rental_price || 0)).toLowerCase()
         );
+        const normalizedPriceSearch = rawSearch.replace(/[^0-9]/g, "");
         const priceMatch =
           rawPriceStr.includes(s) ||
           formattedPriceStr.includes(s) ||
-          (searchDigits !== "" && rawPriceStr.includes(searchDigits));
+          (normalizedPriceSearch !== "" && rawPriceStr.includes(normalizedPriceSearch));
 
         // Khớp tên chi nhánh
         const buildingName = apt.building?.branch_name || buildingMap.get(apt.building_id)?.branch_name || "";
@@ -124,7 +129,7 @@ export function useApartmentPage() {
 
       return true;
     });
-  }, [apartments, buildingMap, debouncedSearch, filterFloor, filterStatus]);
+  }, [uniqueApartments, buildingMap, debouncedSearch, filterFloor, filterStatus]);
 
   const defaultSortedFiltered: Apartment[] = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -142,7 +147,25 @@ export function useApartmentPage() {
     });
   }, [filtered, buildingMap]);
 
-  const { items: sortedApartments, requestSort, getSortIcon } = useSort(defaultSortedFiltered);
+  const apartmentSortExtractors = useMemo(() => {
+    const defaultOrderById = new Map(
+      defaultSortedFiltered.map((apartment, index) => [apartment.id, index])
+    );
+
+    return {
+      index: (apartment: Apartment) => defaultOrderById.get(apartment.id) ?? Number.MAX_SAFE_INTEGER,
+      area: (apartment: Apartment) => Number(apartment.area),
+      bedrooms: (apartment: Apartment) => Number(apartment.bedrooms),
+      bathrooms: (apartment: Apartment) => Number(apartment.bathrooms),
+      rental_price: (apartment: Apartment) => Number(apartment.rental_price),
+    };
+  }, [defaultSortedFiltered]);
+
+  const { items: sortedApartments, requestSort, getSortIcon, sortConfig } = useSort(
+    defaultSortedFiltered,
+    null,
+    apartmentSortExtractors
+  );
 
   const { currentPage, setCurrentPage, totalPages, startIdx, endIdx } = usePagination({
     totalItems: filtered.length,
@@ -173,6 +196,7 @@ export function useApartmentPage() {
 
   return {
     role,
+    managedBuildingId,
     search,
     setSearch,
     currentPage,
@@ -192,6 +216,7 @@ export function useApartmentPage() {
     sortedApartments: paginatedApartments,
     requestSort,
     getSortIcon,
+    sortConfig,
     handleDelete,
     filterBuilding,
     setFilterBuilding,

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 import type { BuildingModifyFormValues } from "../../../../schemas/building.schema";
 import { buildingService } from "../../../../services";
 
@@ -42,10 +42,9 @@ export function useUpdateBuilding() {
       }
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.BUILDINGS });
-      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.BUILDINGS, String(variables.id)] });
-      queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.BUILDINGS, variables.id] });
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APARTMENTS });
+      queryClient.invalidateQueries({ queryKey: queryKeys.buildings.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.buildings.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.apartments.all });
     },
   });
 }

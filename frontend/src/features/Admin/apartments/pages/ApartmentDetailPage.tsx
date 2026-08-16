@@ -2,7 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Trash2, Plus, Star, ArrowRight } from "lucide-react";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import Card from "../../../../components/ui/Card";
-import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
+import Badge from "../../../../components/ui/Badge";
 import Button from "../../../../components/ui/Button";
 import ApartmentModifyModal from "../components/ApartmentModifyModal";
 import { useUserRole } from "../../../../hooks/useUserRole";
@@ -12,13 +12,11 @@ import { formatCurrency } from "../../../../utils/currency";
 import { DEFAULT_APARTMENT_IMAGE } from "../../../../utils/file";
 import { useApartmentDetailPage } from "../hooks/useApartmentDetailPage";
 import {
-  APARTMENT_STATUS_LABELS,
-  APARTMENT_STATUS_COLORS,
   APARTMENT_STATUS_CONFIG,
   CONTRACT_STATUS_CONFIG,
   type ApartmentStatus,
   type ContractStatus,
-} from "../../../../constants/enums";
+} from "../../../../constants";
 import { useDepositInvoice } from "../../invoices/hooks/useDepositInvoice";
 import DepositInvoiceModal from "../../invoices/components/DepositInvoiceModal";
 import { getReservationTenantId } from "../utils/reservationTenant";
@@ -95,10 +93,7 @@ export default function ApartmentDetailPage() {
 
   function getStatusBadge(status: ApartmentStatus) {
     const config = APARTMENT_STATUS_CONFIG[status];
-    if (config) return <Badge variant={config.badge}>{config.label}</Badge>;
-    const label = APARTMENT_STATUS_LABELS[status] || status;
-    const variant: BadgeVariant = APARTMENT_STATUS_COLORS[status] || "gray";
-    return <Badge variant={variant}>{label}</Badge>;
+    return <Badge variant={config.badge}>{config.label}</Badge>;
   }
 
   return (
@@ -317,9 +312,9 @@ export default function ApartmentDetailPage() {
                           Chủ hợp đồng: <span className="text-primary-700 font-bold ml-1">{activeTenant.full_name}</span>
                         </p>
                         {/* Hiển thị phân loại Hợp đồng ban đầu hay Hợp đồng đã gia hạn */}
-                        {(activeContract as unknown as { extended_at?: string }).extended_at ? (
+                        {activeContract.extended_at ? (
                           <Badge variant="warning" showDot>
-                            Đã gia hạn ({formatDate((activeContract as unknown as { extended_at: string }).extended_at)})
+                            Đã gia hạn ({formatDate(activeContract.extended_at)})
                           </Badge>
                         ) : (
                           <Badge variant="info">
@@ -329,8 +324,8 @@ export default function ApartmentDetailPage() {
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 pt-1">
                         <p>Số CCCD: <span className="font-medium">{maskCCCD(activeTenant.citizen_id)}</span></p>
-                        <p>SĐT: <span className="font-medium">{(activeTenantUser as unknown as { phone?: string })?.phone || activeTenant.phone || "-"}</span></p>
-                        <p>Email: <span className="font-medium">{(activeTenantUser as unknown as { email?: string })?.email || activeTenant.email || "-"}</span></p>
+                        <p>SĐT: <span className="font-medium">{activeTenantUser?.phone || activeTenant.phone || "-"}</span></p>
+                        <p>Email: <span className="font-medium">{activeTenantUser?.email || activeTenant.email || "-"}</span></p>
                         <p>Thời hạn thuê: <span className="font-medium">{formatDate(activeContract.start_date)} - {formatDate(activeContract.end_date)}</span></p>
                       </div>
                       <div className="pt-2 border-t border-primary-100 flex items-center justify-between text-xs">

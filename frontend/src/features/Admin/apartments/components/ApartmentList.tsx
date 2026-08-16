@@ -1,21 +1,25 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Pencil, Trash2, Eye } from "lucide-react";
-import Badge, { type BadgeVariant } from "../../../../components/ui/Badge";
+import Badge from "../../../../components/ui/Badge";
 import Button from "../../../../components/ui/Button";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
-import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS, APARTMENT_STATUS_CONFIG, type ApartmentStatus } from "../../../../constants/enums";
+import { APARTMENT_STATUS_CONFIG, type ApartmentStatus } from "../../../../constants";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import { formatCurrency } from "../../../../utils/currency";
 import { getApartmentThumbnail } from "../../../../utils/file";
 import type { Apartment, Building } from "../../../../types";
 import { useOnOff } from "../../../../hooks/useOnOff";
+import { getTableRowNumber } from "../../../../utils/table";
 
 interface ApartmentListProps {
   paginatedApartments: Apartment[];
   buildings: Building[];
   role: string | null;
   startIdx?: number;
+  totalItems: number;
+  sortConfig: { key: string; direction: "asc" | "desc" } | null;
+  onSort: (key: string) => void;
   setEditItem: (item: Apartment | null) => void;
   modifyModal: ReturnType<typeof useOnOff>;
   setDeleteItem: (item: Apartment | null) => void;
@@ -26,6 +30,9 @@ export default function ApartmentList({
   buildings,
   role,
   startIdx = 0,
+  totalItems,
+  sortConfig,
+  onSort,
   setEditItem,
   modifyModal,
   setDeleteItem,
@@ -38,12 +45,19 @@ export default function ApartmentList({
     [buildings]
   );
 
+  const rowNumberByApartmentId = useMemo(
+    () => new Map(
+      paginatedApartments.map((apartment, index) => [
+        apartment.id,
+        getTableRowNumber(index, startIdx, totalItems, sortConfig),
+      ])
+    ),
+    [paginatedApartments, sortConfig, startIdx, totalItems]
+  );
+
   function getStatusBadge(status: ApartmentStatus) {
     const config = APARTMENT_STATUS_CONFIG[status];
-    if (config) return <Badge variant={config.badge}>{config.label}</Badge>;
-    const label = APARTMENT_STATUS_LABELS[status] || status;
-    const variant: BadgeVariant = APARTMENT_STATUS_COLORS[status] || "gray";
-    return <Badge variant={variant}>{label}</Badge>;
+    return <Badge variant={config.badge}>{config.label}</Badge>;
   }
 
   const columns: Column<Apartment>[] = useMemo(
@@ -52,14 +66,16 @@ export default function ApartmentList({
         key: "index",
         label: "STT",
         className: "w-4",
-        render: (_, index: number) => (
-          <span className="font-semibold text-gray-800">{startIdx + index + 1}</span>
+        render: (apt) => (
+          <span className="font-semibold text-gray-800">
+            {rowNumberByApartmentId.get(apt.id) ?? "-"}
+          </span>
         ),
       },
       {
         key: "room_number",
         label: "Căn hộ",
-        sortValue: (apt) => apt.room_number,
+        sortable: false,
         render: (apt) => {
           const roomName = formatApartmentDisplay(apt.room_number, apt.floor);
           const branch = apt.building?.branch_name || buildingMap.get(apt.building_id);
@@ -89,31 +105,27 @@ export default function ApartmentList({
       {
         key: "area",
         label: "Diện tích",
-        sortValue: (apt) => apt.area,
         render: (apt) => <span className="text-gray-650">{apt.area} m²</span>,
       },
       {
         key: "bedrooms",
         label: "PN",
-        sortValue: (apt) => apt.bedrooms,
         render: (apt) => <span className="text-gray-650">{apt.bedrooms}</span>,
       },
       {
         key: "bathrooms",
         label: "PVS",
-        sortValue: (apt) => apt.bathrooms,
         render: (apt) => <span className="text-gray-650">{apt.bathrooms}</span>,
       },
       {
         key: "rental_price",
         label: "Giá thuê",
-        sortValue: (apt) => apt.rental_price,
         render: (apt) => <span className="font-semibold text-gray-800">{formatCurrency(apt.rental_price)}</span>,
       },
       {
         key: "status",
         label: "Trạng thái",
-        sortValue: (apt) => apt.status,
+        sortable: false,
         render: (apt) => getStatusBadge(apt.status as ApartmentStatus),
       },
       {
@@ -158,12 +170,19 @@ export default function ApartmentList({
         ),
       },
     ],
-    [startIdx, buildingMap, role, basePath, canEdit, setEditItem, modifyModal, setDeleteItem]
+    [rowNumberByApartmentId, buildingMap, role, basePath, canEdit, setEditItem, modifyModal, setDeleteItem]
   );
 
   return (
     <div className="mt-6">
-      <DataTable columns={columns} data={paginatedApartments} emptyMessage="Không tìm thấy căn hộ nào." />
+      <DataTable
+        columns={columns}
+        data={paginatedApartments}
+        rowKey={(apartment) => apartment.id}
+        sortConfig={sortConfig}
+        onSort={onSort}
+        emptyMessage="Không tìm thấy căn hộ nào."
+      />
     </div>
   );
 }

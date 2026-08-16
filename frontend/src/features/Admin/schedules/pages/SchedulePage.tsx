@@ -4,6 +4,7 @@ import PageHeader from "../../../../components/layout/PageHeader";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Combobox from "../../../../components/ui/Combobox";
 import Pagination from "../../../../components/ui/Pagination";
+import { SCHEDULE_STATUS_OPTIONS } from "../../../../constants";
 import { useSchedulePage } from "../hooks/useSchedulePage";
 
 import ScheduleList from "../components/ScheduleList";
@@ -16,6 +17,7 @@ export default function SchedulePage() {
     role,
     buildings,
     buildingMap,
+    viewingCapacityByBuilding,
     schedules,
     filtered,
     loading,
@@ -55,11 +57,7 @@ export default function SchedulePage() {
   const monthsOptions = getMonthOptions();
   const yearsOptions = getYearOptions();
 
-  const statusOptions = [
-    { value: "PENDING", label: "Chờ duyệt" },
-    { value: "CONFIRMED", label: "Đã duyệt" },
-    { value: "CANCELLED", label: "Đã hủy" },
-  ];
+  const statusOptions = SCHEDULE_STATUS_OPTIONS;
 
   return (
     <div className="space-y-6 font-sans">
@@ -81,6 +79,17 @@ export default function SchedulePage() {
           </div>
         }
       />
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {viewingCapacityByBuilding.map((capacity) => (
+          <div key={capacity.buildingId} className="border border-gray-200 bg-white px-4 py-3">
+            <p className="text-sm font-semibold text-gray-800">{capacity.branchName}</p>
+            <p className="mt-1 text-xs text-gray-500">
+              Giới hạn tối đa {capacity.dailyCapacity} lượt đặt lịch/ngày
+            </p>
+          </div>
+        ))}
+      </div>
 
       {/* Filters Bar */}
       <div className="grid grid-cols-12 gap-3 w-full">
@@ -148,6 +157,7 @@ export default function SchedulePage() {
       <ScheduleList
         schedules={filtered}
         currentPage={currentPage}
+        onSortResetPage={() => setCurrentPage(1)}
         role={role}
         buildingMap={buildingMap}
         onView={setViewItem}

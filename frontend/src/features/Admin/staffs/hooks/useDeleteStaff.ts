@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 import { staffService } from "../../../../services";
 
 export function useDeleteStaff() {
@@ -8,7 +8,7 @@ export function useDeleteStaff() {
   return useMutation({
     mutationFn: staffService.remove,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.STAFF });
+      queryClient.invalidateQueries({ queryKey: queryKeys.staff.all });
     },
   });
 }

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 import { scheduleService } from "../../../../services";
 
 export function useMarkAbsentSchedule() {
@@ -8,7 +8,7 @@ export function useMarkAbsentSchedule() {
   return useMutation({
     mutationFn: scheduleService.markAbsent,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SCHEDULES });
+      queryClient.invalidateQueries({ queryKey: queryKeys.schedules.all });
     },
   });
 }

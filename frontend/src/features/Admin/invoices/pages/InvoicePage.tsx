@@ -8,11 +8,12 @@ import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import DefaultPagination from "../../../../components/ui/Pagination";
 import { useInvoiceList } from "../hooks/useInvoiceList";
 import { useDepositInvoice } from "../hooks/useDepositInvoice";
-import InvoiceTable from "../components/InvoiceList";
-import InvoiceDetailModal from "../components/InvoiceDetailModal";
+import InvoiceTable from "../../../../components/invoices/InvoiceList";
+import InvoiceDetailModal from "../../../../components/invoices/InvoiceDetailModal";
 import InvoiceGenerateModal from "../components/InvoiceGenerateModal";
 import DepositInvoiceModal from "../components/DepositInvoiceModal";
 import { printInvoiceHelper } from "../../../../utils/print";
+import { INVOICE_STATUS_OPTIONS, INVOICE_TYPE_OPTIONS } from "../../../../constants";
 
 export default function InvoicePage() {
   const {
@@ -22,6 +23,7 @@ export default function InvoicePage() {
     rawInvoicesCount,
     buildings,
     isLoading,
+    isError,
     search,
     setSearch,
     statusFilter,
@@ -38,6 +40,8 @@ export default function InvoicePage() {
     setCurrentPage,
     totalPages,
     startIdx,
+    requestSort,
+    sortConfig,
     selectedInvoice,
     detailsModal,
     handleOpenDetails,
@@ -64,7 +68,7 @@ export default function InvoicePage() {
   };
   const depositModal = useDepositInvoice({
     role,
-    managedBuildingId,
+    managedBuildingId: managedBuildingId ?? undefined,
     onSuccessCallback: refetch,
   });
 
@@ -135,14 +139,10 @@ export default function InvoicePage() {
         }
       />
 
-      <div className="grid grid-cols-12 gap-3 w-full">
-        <div className="col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-3">
+      <div className={`grid w-full grid-cols-1 gap-3 sm:grid-cols-2 ${role === "ADMIN" ? "lg:grid-cols-5" : "lg:grid-cols-4"}`}>
+        <div className="min-w-0">
           <Combobox
-            options={[
-              { value: "PAID", label: "Đã thanh toán" },
-              { value: "UNPAID", label: "Chưa thanh toán" },
-              { value: "OVERDUE", label: "Quá hạn" },
-            ]}
+            options={INVOICE_STATUS_OPTIONS}
             value={statusFilter}
             onChange={setStatusFilter}
             placeholder="Trạng thái"
@@ -153,15 +153,9 @@ export default function InvoicePage() {
           />
         </div>
 
-        <div className="col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-3">
+        <div className="min-w-0">
           <Combobox
-            options={[
-              { value: "DEPOSIT", label: "Tiền cọc" },
-              { value: "FIRST_RENT", label: "Tiền thuê kỳ đầu" },
-              { value: "MONTHLY", label: "Hóa đơn hàng tháng" },
-              { value: "MAINTENANCE", label: "Phí sửa chữa" },
-              { value: "FINAL_SETTLEMENT", label: "Thanh lý hợp đồng" },
-            ]}
+            options={INVOICE_TYPE_OPTIONS}
             value={typeFilter}
             onChange={setTypeFilter}
             placeholder="Loại hóa đơn"
@@ -172,7 +166,7 @@ export default function InvoicePage() {
           />
         </div>
 
-        <div className="col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-2">
+        <div className="min-w-0">
           <Combobox
             options={monthOptions}
             value={monthFilter ? String(monthFilter) : ""}
@@ -185,7 +179,7 @@ export default function InvoicePage() {
           />
         </div>
 
-        <div className="col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-2">
+        <div className="min-w-0">
           <Combobox
             options={yearOptions}
             value={yearFilter ? String(yearFilter) : ""}
@@ -199,7 +193,7 @@ export default function InvoicePage() {
         </div>
 
         {role === "ADMIN" && (
-          <div className="col-span-12 sm:col-span-6 md:col-span-4 lg:col-span-2">
+          <div className="min-w-0">
             <Combobox
               options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
               value={buildingFilter ? String(buildingFilter) : ""}
@@ -218,6 +212,13 @@ export default function InvoicePage() {
           <LoadingSpinner size={36} />
           <span className="text-sm text-gray-400 mt-2">Đang tải hóa đơn...</span>
         </div>
+      ) : isError ? (
+        <div className="flex flex-col items-center justify-center gap-3 border border-red-200 bg-red-50 py-12 text-center text-red-700">
+          <p className="font-medium">Không thể tải danh sách hóa đơn.</p>
+          <Button type="button" variant="outline" onClick={() => void refetch()}>
+            Thử lại
+          </Button>
+        </div>
       ) : invoices.length === 0 ? (
         <div className="text-center py-16 text-gray-500 bg-white border border-gray-200 shadow-md rounded-none">
           <ClipboardList size={48} className="mx-auto mb-3 text-gray-300" />
@@ -233,6 +234,9 @@ export default function InvoicePage() {
             onCreateVnpayQr={handleCreateVnpayQr}
             onPrint={printInvoiceHelper}
             startIdx={startIdx}
+            totalItems={rawInvoicesCount}
+            sortConfig={sortConfig}
+            onSort={(key) => { requestSort(key); setCurrentPage(1); }}
           />
 
           <div className="pt-2">

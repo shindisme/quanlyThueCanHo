@@ -1,7 +1,7 @@
 import { Controller, type UseFormReturn } from "react-hook-form";
 import Input from "../../../../components/ui/Input";
 import Combobox from "../../../../components/ui/Combobox";
-import { STAFF_POSITIONS, ACCOUNT_POSITIONS } from "../constants/staff";
+import { STAFF_POSITIONS } from "../../../../constants/staff";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import type { Building, Staff } from "../../../../types";
 import type { StaffFormValues } from "../../../../schemas/staff.schema";
@@ -20,7 +20,6 @@ export default function StaffFormFields({
   buildings,
   managedBuildingIds,
   positionVal,
-  nextUsername,
   editItem,
 }: StaffFormFieldsProps) {
   const { isManager } = useUserRole();
@@ -29,8 +28,6 @@ export default function StaffFormFields({
     control,
     formState: { errors },
   } = form;
-
-  const isActor = ACCOUNT_POSITIONS.includes(positionVal as any);
 
   const availablePositions = isManager
     ? STAFF_POSITIONS.filter((pos) => pos !== "Quản lý")

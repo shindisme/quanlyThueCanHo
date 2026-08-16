@@ -9,6 +9,8 @@ import { useUpdateTenant } from "../hooks/useUpdateTenant";
 import type { Tenant } from "../../../../types";
 import type { TenantFormValues } from "../../../../schemas/tenant.schema";
 import { toast } from "sonner";
+import { formatDateToISO } from "../../../../utils/date";
+import { getFirstFormErrorMessage } from "../../../../utils/formError";
 
 interface TenantModifyModalProps {
   isOpen: boolean;
@@ -16,24 +18,6 @@ interface TenantModifyModalProps {
   onSuccess: () => void;
   editItem: Tenant | null;
 }
-
-// Hàm get thông báo lỗi đầu tiên từ object errors
-function getFirstErrorMessage(errs: Record<string, any>): string | undefined {
-  for (const key of Object.keys(errs)) {
-    const err = errs[key];
-    if (!err) continue;
-    if (typeof err.message === "string") return err.message;
-    if (typeof err === "object") {
-      const nested = getFirstErrorMessage(err);
-      if (nested) return nested;
-    }
-  }
-  return undefined;
-}
-
-// Định dạng ngày Date sang chuỗi YYYY-MM-DD
-const formatDateToISO = (date: Date) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
 export default function TenantModifyModal({
   isOpen,
@@ -101,14 +85,15 @@ export default function TenantModifyModal({
   };
 
   const onInvalid = (fieldErrors: Record<string, unknown>) => {
-    const firstMsg = getFirstErrorMessage(fieldErrors);
+    const firstMsg = getFirstFormErrorMessage(fieldErrors);
     toast.error(firstMsg || "Vui lòng kiểm tra và điền đầy đủ các thông tin người thuê!");
   };
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={loading ? undefined : handleClose}
+      onClose={handleClose}
+      closeOnOutsideClick={!loading}
       title="Chỉnh sửa thông tin người thuê"
       size="lg"
       footer={

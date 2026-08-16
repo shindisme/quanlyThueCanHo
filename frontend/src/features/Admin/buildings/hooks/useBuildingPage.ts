@@ -8,7 +8,7 @@ import { usePagination } from "../../../../hooks/usePagination";
 import { useDeleteBuilding } from "./useDeleteBuilding";
 import type { Building } from "../../../../types";
 import { toast } from "sonner";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 import { getApiErrorMessage } from "../../../../utils/apiError";
 import { buildingService } from "../../../../services";
 
@@ -27,7 +27,7 @@ export function useBuildingPage() {
 
   // Lấy toàn bộ danh sách tòa nhà 
   const { data: buildings = [], isLoading: loading } = useQuery({
-    queryKey: QUERY_KEYS.BUILDINGS,
+    queryKey: queryKeys.buildings.all,
     queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data,
   });
@@ -50,7 +50,9 @@ export function useBuildingPage() {
   }, [role, buildings, managedBuildingId, debouncedSearch]);
 
   // Quản lý sắp xếp danh sách
-  const { items: sortedBuildings, requestSort, getSortIcon } = useSort(filtered);
+  const { items: sortedBuildings, requestSort, getSortIcon, sortConfig } = useSort(filtered, null, {
+    manager: (building) => building.manager?.fullName || building.manager?.username || "",
+  });
 
   // Phân trang
   const { currentPage, setCurrentPage, totalPages, startIdx, endIdx } = usePagination({
@@ -105,6 +107,7 @@ export function useBuildingPage() {
     sortedBuildings: paginatedBuildings,
     requestSort,
     getSortIcon,
+    sortConfig,
     handleDelete,
     deleting,
   };

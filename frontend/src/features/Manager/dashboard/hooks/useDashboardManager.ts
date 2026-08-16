@@ -9,23 +9,8 @@ import * as invoiceService from "../../../../services/invoiceService";
 import * as staffService from "../../../../services/staffService";
 import * as buildingService from "../../../../services/buildingService";
 import * as maintenanceService from "../../../../services/maintenanceService";
-
-function parseJwt(token: string) {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      window
-        .atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch {
-    return null;
-  }
-}
+import { parseJwt } from "../../../../utils/jwt";
+import { queryKeys } from "../../../../constants/queryKeys";
 
 export function useDashboardManager() {
   const { email, token, role, managedBuildingId, managedBuildingName, setAuth } = useAuthStore();
@@ -35,19 +20,20 @@ export function useDashboardManager() {
 
   // Query staff
   const { data: staffRes, isLoading: loadingStaff } = useQuery({
-    queryKey: ["staff"],
-    queryFn: () => staffService.getAll(),
+    queryKey: queryKeys.staff.list({ scope: "manager-dashboard" }),
+    queryFn: () => staffService.getAllPage(),
+    select: (response) => response.data,
     enabled: !!userId,
   });
-  const currentStaff = userId && staffRes?.data
-    ? staffRes.data.find((s) => s.user_id === userId)
+  const currentStaff = userId && staffRes
+    ? staffRes.find((s) => s.user_id === userId)
     : null;
 
   const displayName = currentStaff?.full_name || email?.split("@")[0] || "Quản lý";
 
   // Query buildings if staff has building_id
   const { data: buildings = [] } = useQuery({
-    queryKey: ["buildings"],
+    queryKey: queryKeys.buildings.all,
     queryFn: () => buildingService.getAllPage(),
     enabled: !!currentStaff?.building_id && (!managedBuildingId || !managedBuildingName),
     select: (res) => res.data,
@@ -65,7 +51,7 @@ export function useDashboardManager() {
   const activeBuildingId = managedBuildingId || currentStaff?.building_id || undefined;
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
-    queryKey: ["apartments", activeBuildingId],
+    queryKey: queryKeys.apartments.list({ buildingId: activeBuildingId }),
     queryFn: () => apartmentService.getAllPage({
       building_id: activeBuildingId || undefined
     }),
@@ -73,27 +59,27 @@ export function useDashboardManager() {
   });
 
   const { data: tenants = [], isLoading: loadingTenants } = useQuery({
-    queryKey: ["tenants"],
+    queryKey: queryKeys.tenants.list({ scope: "manager-dashboard" }),
     queryFn: () => tenantService.getAllPage(),
     select: (res) => res.data,
   });
 
   const { data: contracts = [], isLoading: loadingContracts } = useQuery({
-    queryKey: ["contracts", activeBuildingId],
-    queryFn: () => contractService.getAllContractsPage({
+    queryKey: queryKeys.contracts.list({ buildingId: activeBuildingId }),
+    queryFn: () => contractService.getAllPage({
       buildingId: activeBuildingId || undefined
     }),
     select: (res) => res.data,
   });
 
   const { data: schedules = [], isLoading: loadingSchedules } = useQuery({
-    queryKey: ["schedules"],
+    queryKey: queryKeys.schedules.list({ scope: "manager-dashboard" }),
     queryFn: () => scheduleService.getAllPage(),
     select: (res) => res.data,
   });
 
   const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
-    queryKey: ["invoices", activeBuildingId],
+    queryKey: queryKeys.invoices.list({ buildingId: activeBuildingId }),
     queryFn: () => invoiceService.getAllPage({
       building_id: activeBuildingId || undefined,
     }),
@@ -101,13 +87,13 @@ export function useDashboardManager() {
   });
 
   const { data: maintenanceData, isLoading: loadingMaintenance } = useQuery({
-    queryKey: ["maintenanceRequests", activeBuildingId],
-    queryFn: () => maintenanceService.getAll({
+    queryKey: queryKeys.maintenance.list({ buildingId: activeBuildingId }),
+    queryFn: () => maintenanceService.getAllPage({
       building_id: activeBuildingId || undefined,
-      limit: 100
     }),
+    select: (response) => response.data,
   });
-  const maintenanceRequests = maintenanceData?.data || [];
+  const maintenanceRequests = maintenanceData || [];
 
   const isLoading = loadingStaff || loadingApartments || loadingTenants || loadingContracts || loadingSchedules || loadingInvoices || loadingMaintenance;
 

@@ -10,8 +10,15 @@ export async function bookViewing(data: BookViewingPayload): Promise<unknown> {
   return res.data;
 }
 
-export async function getViewingAvailability(apartmentId: number, date: string): Promise<{ available_hours: number[] }> {
-  const res = await api.get<{ data: { available_hours: number[] } }>(
+export interface ViewingAvailability {
+  available_hours: number[];
+  daily_capacity: number;
+  booked_count: number;
+  is_day_full: boolean;
+}
+
+export async function getViewingAvailability(apartmentId: number, date: string): Promise<ViewingAvailability> {
+  const res = await api.get<{ data: ViewingAvailability }>(
     `${SCHEDULE_API}/availability`,
     { params: { apartment_id: apartmentId, date } },
   );
@@ -65,4 +72,3 @@ export const scheduleService = {
   markAbsent,
   remove,
 };
-

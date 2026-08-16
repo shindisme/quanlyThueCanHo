@@ -1,9 +1,15 @@
-import type { Invoice } from "../types";
+import type { Invoice, RentalContract } from "../types";
 import { formatDate } from "./date";
 import { formatApartmentDisplay } from "./string";
+import { numberToVietnameseWords } from "./currency";
 import { getInvoicePeriod } from "./invoicePeriod";
 import { getDisplayItemAmount, getDisplayTierDetails, getUtilityUnit } from "./feeSettings";
 import { getInvoiceApartment, getInvoiceTenant } from "./invoiceDisplay";
+import {
+  getContractDurationText,
+  getContractOccupancyPricing,
+  getContractSignedDate,
+} from "./contractDocument";
 
 export function printInvoiceHelper(invoice: Invoice) {
   const printWindow = window.open("", "_blank");
@@ -300,6 +306,295 @@ export function printInvoiceHelper(invoice: Invoice) {
           <div class="footer">
             <p style="margin: 0; font-weight: 500;">Cảm ơn quý khách đã tin tưởng và đồng hành cùng YuKi House!</p>
             <p style="margin: 4px 0 0 0; font-size: 10px; color: #94a3b8;">Hóa đơn được in tự động từ hệ thống quản lý căn hộ YuKi House ngày ${new Date().toLocaleDateString("vi-VN")}</p>
+          </div>
+        </div>
+
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          };
+        </script>
+      </body>
+    </html>
+  `;
+
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+}
+
+export function printContractHelper(contract: RentalContract) {
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    alert("Vui lòng cho phép popup để in hợp đồng!");
+    return;
+  }
+
+  const tenant = contract.tenant;
+  const apt = contract.apartment;
+  const bld = apt?.building;
+
+  const {
+    maxOccupants: maxOcc,
+    actualOccupants: actOcc,
+    excessOccupants: excess,
+    excessSurcharge,
+    baseRent,
+  } = getContractOccupancyPricing(contract, apt);
+  const durationText = getContractDurationText(contract.start_date, contract.end_date);
+  const signedDate = getContractSignedDate(contract);
+
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amount);
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="vi">
+      <head>
+        <meta charset="utf-8" />
+        <title>Hợp Đồng Thuê Căn Hộ - HD-${String(contract.id).padStart(5, "0")}</title>
+        <style>
+          @page {
+            size: A4 portrait;
+            margin: 15mm 15mm 15mm 15mm;
+          }
+          * {
+            box-sizing: border-box;
+          }
+          body {
+            font-family: 'Times New Roman', Times, serif;
+            color: #111827;
+            margin: 0;
+            padding: 0;
+            background-color: #f8fafc;
+            line-height: 1.5;
+            font-size: 13pt;
+          }
+          .no-print-bar {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #1e293b;
+            color: #ffffff;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          }
+          .no-print-bar button {
+            padding: 6px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+          }
+          .btn-print {
+            background-color: #2563eb;
+            color: white;
+            margin-right: 8px;
+          }
+          .btn-print:hover {
+            background-color: #1d4ed8;
+          }
+          .btn-close {
+            background-color: #475569;
+            color: white;
+          }
+          .btn-close:hover {
+            background-color: #334155;
+          }
+          .contract-page {
+            max-width: 800px;
+            margin: 20px auto;
+            background: #ffffff;
+            padding: 30px 40px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+          }
+          .text-center { text-align: center; }
+          .font-bold { font-weight: bold; }
+          .uppercase { text-transform: uppercase; }
+          .italic { font-style: italic; }
+          .divider {
+            width: 160px;
+            height: 1px;
+            background: #374151;
+            margin: 6px auto 16px auto;
+          }
+          .section-title {
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-top: 14px;
+            margin-bottom: 4px;
+          }
+          .indent {
+            padding-left: 20px;
+          }
+          .signature-grid {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 24px;
+            text-align: center;
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          .signature-box {
+            width: 45%;
+          }
+          @media print {
+            body {
+              background: white !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            .no-print-bar {
+              display: none !important;
+            }
+            .contract-page {
+              margin: 0 !important;
+              padding: 0 !important;
+              box-shadow: none !important;
+              max-width: 100% !important;
+              width: 100% !important;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print-bar">
+          <span style="font-weight: 600;">Xem Trước Bản In Hợp Đồng - HD-${String(contract.id).padStart(5, "0")}</span>
+          <div>
+            <button type="button" class="btn-print" onclick="window.print()">In Hợp Đồng</button>
+            <button type="button" class="btn-close" onclick="window.close()">Đóng</button>
+          </div>
+        </div>
+
+        <div class="contract-page">
+          <div class="text-center">
+            <p class="font-bold uppercase" style="margin: 0; font-size: 13pt;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
+            <p class="font-bold" style="margin: 2px 0 0 0; font-size: 12pt;">Độc lập – Tự do – Hạnh phúc</p>
+            <div class="divider"></div>
+          </div>
+
+          <div class="text-center" style="margin-bottom: 20px;">
+            <h2 class="font-bold uppercase" style="margin: 0; font-size: 15pt;">HỢP ĐỒNG THUÊ CĂN HỘ CHUNG CƯ</h2>
+            <p class="italic" style="margin: 4px 0 0 0; font-size: 11pt; color: #4b5563;">
+              Số: HD-${String(contract.id).padStart(5, "0")}
+            </p>
+          </div>
+
+          <p style="margin-bottom: 12px;">
+            Hôm nay, ngày ${signedDate.getDate()} tháng ${signedDate.getMonth() + 1} năm ${signedDate.getFullYear()}, tại ${bld?.address || "văn phòng đại diện Yuki House"}, chúng tôi gồm có:
+          </p>
+
+          <div class="section-title">BÊN CHO THUÊ (Sau đây gọi tắt là Bên A)</div>
+          <div class="indent">
+            <p style="margin: 3px 0;">– Ông/bà: <strong>BAN QUẢN LÝ CĂN HỘ DỊCH VỤ YUKI HOUSE (Đại diện)</strong></p>
+            <p style="margin: 3px 0;">– Số CMND/CCCD/Mã số thuế: 079200000001</p>
+            <p style="margin: 3px 0;">– Địa chỉ: ${bld?.address || "Hệ thống tòa nhà Yuki House"}</p>
+            <p style="margin: 3px 0;">– Điện thoại: 0901000001</p>
+            <p style="margin: 3px 0;">– Là chủ cho thuê hợp pháp căn hộ số: <strong>${apt ? formatApartmentDisplay(apt.room_number, apt.floor, "TENANT", bld?.branch_name) : "-"}</strong> tại ${bld?.name || "Tòa nhà Yuki House"}</p>
+          </div>
+
+          <div class="section-title">BÊN THUÊ (Sau đây gọi tắt là Bên B)</div>
+          <div class="indent">
+            <p style="margin: 3px 0;">– Ông/bà: <strong>${tenant?.full_name || "CHƯA XÁC ĐỊNH"}</strong></p>
+            <p style="margin: 3px 0;">– Số CMND/CCCD: ${tenant?.citizen_id || "Chưa cập nhật"}</p>
+            <p style="margin: 3px 0;">– Địa chỉ: ${tenant?.address || "Chưa cập nhật"}</p>
+            <p style="margin: 3px 0;">– Số điện thoại: ${tenant?.phone || "Chưa cập nhật"}</p>
+          </div>
+
+          <p class="italic" style="margin-top: 10px; margin-bottom: 10px;">
+            Sau khi bàn bạc hai Bên thống nhất ký Hợp đồng cho thuê căn hộ chung cư với nội dung sau:
+          </p>
+
+          <div class="section-title">ĐIỀU 1: ĐỐI TƯỢNG VÀ NỘI DUNG CỦA HỢP ĐỒNG</div>
+          <div class="indent">
+            <p style="margin: 3px 0;">1.1. Bên A cho Bên B thuê và Bên B đồng ý thuê căn hộ chung cư có thông tin như sau:</p>
+            <p style="margin: 2px 0 2px 14px;">+ Địa chỉ căn hộ: ${bld?.address || "Chưa xác định"}</p>
+            <p style="margin: 2px 0 2px 14px;">+ Căn hộ số: ${apt?.room_number || "..."} - Tầng số: ${apt?.floor || "..."}</p>
+            <p style="margin: 2px 0 2px 14px;">+ Tổng diện tích sàn căn hộ là: ${apt?.area || "..."} m².</p>
+            <p style="margin: 2px 0 2px 14px;">+ Đặc điểm: 1 phòng khách, ${apt?.bedrooms || 1} phòng ngủ, ${apt?.bathrooms || 1} WC.</p>
+            <p style="margin: 2px 0 2px 14px;">+ Trang thiết bị: Bàn giao đầy đủ theo biên bản bàn giao kèm theo hợp đồng.</p>
+            <p style="margin: 3px 0;">1.2. Mục đích thuê: Để ở sinh hoạt gia đình (Số lượng người ở tối đa cho phép: ${maxOcc} người, thực tế đăng ký: ${actOcc} người).</p>
+          </div>
+
+          <div class="section-title">ĐIỀU 2: THỜI HẠN THUÊ CĂN HỘ CHUNG CƯ</div>
+          <div class="indent">
+            <p style="margin: 3px 0;">
+              Thời hạn thuê căn hộ chung cư là: <strong>${durationText}</strong> (từ ngày <strong>${formatDate(contract.start_date)}</strong> đến ngày <strong>${formatDate(contract.end_date)}</strong>).
+            </p>
+          </div>
+
+          <div class="section-title">ĐIỀU 3: GIÁ THUÊ, PHƯƠNG THỨC VÀ THỜI HẠN THANH TOÁN</div>
+          <div class="indent">
+            <p style="margin: 3px 0;">
+              3.1. Giá thuê căn hộ là: <strong>${formatCurrency(contract.monthly_rent)}/tháng</strong> (Bằng chữ: <em>${numberToVietnameseWords(contract.monthly_rent)} đồng chẵn / tháng</em>).
+            </p>
+            <p style="margin: 3px 0;">Tiền thuê được giữ cố định trong suốt thời hạn thuê.</p>
+            ${excess > 0 ? `<p style="margin: 2px 0 2px 14px; color: #b45309; font-weight: bold; font-style: italic;">(* Ghi chú: Giá thuê bao gồm đơn giá cơ bản ${formatCurrency(baseRent)}/tháng và phụ thu ${formatCurrency(excessSurcharge)}/tháng do quá số lượng người ở quy định).</p>` : ""}
+            <p style="margin: 3px 0;">3.2. Giá cho thuê này đã bao gồm chi phí bảo trì, quản lý vận hành nhà ở và chưa bao gồm các khoản thuế phát sinh theo quy định.</p>
+            <p style="margin: 3px 0;">3.3. Chi phí sử dụng điện, nước, internet và dịch vụ khác do Bên B thanh toán theo hóa đơn thực tế.</p>
+            <p style="margin: 3px 0;">3.4. Phương thức thanh toán: Thực hiện theo kỳ 01 tháng một lần trong vòng 05 ngày đầu tiên của mỗi đợt thanh toán bằng hình thức chuyển khoản hoặc tiền mặt.</p>
+          </div>
+
+          <div class="section-title">ĐIỀU 4: ĐẶT CỌC</div>
+          <div class="indent">
+            <p style="margin: 3px 0;">
+              Bên B đặt cọc cho Bên A số tiền là: <strong>${formatCurrency(contract.deposit_amount)}</strong> (tương đương với ${Math.round(contract.deposit_amount / contract.monthly_rent) || 1} tháng tiền thuê căn hộ).
+            </p>
+            <p style="margin: 3px 0;">Tiền đặt cọc được Bên A giữ trong suốt thời hạn thuê để đảm bảo thực hiện hợp đồng và không tính lãi.</p>
+          </div>
+
+          <div class="section-title">ĐIỀU 5: CHO THUÊ LẠI CĂN HỘ CHUNG CƯ</div>
+          <div class="indent">
+            <p style="margin: 3px 0;">Bên B không có quyền cho thuê lại căn hộ, trừ trường hợp được sự đồng ý bằng văn bản của Bên A.</p>
+          </div>
+
+          <div class="section-title">ĐIỀU 6: QUYỀN VÀ NGHĨA VỤ CỦA BÊN A</div>
+          <div class="indent">
+            <p style="margin: 3px 0;">– Bàn giao căn hộ và trang thiết bị theo đúng thỏa thuận;</p>
+            <p style="margin: 3px 0;">– Bảo đảm cho Bên B sử dụng ổn định căn hộ trong thời hạn thuê;</p>
+            <p style="margin: 3px 0;">– Nhận đúng và đầy đủ tiền thuê từ Bên B theo quy định.</p>
+          </div>
+
+          <div class="section-title">ĐIỀU 7: QUYỀN VÀ NGHĨA VỤ CỦA BÊN B</div>
+          <div class="indent">
+            <p style="margin: 3px 0;">– Trả đủ tiền thuê căn hộ theo đúng thời hạn đã cam kết;</p>
+            <p style="margin: 3px 0;">– Sử dụng căn hộ đúng mục đích; có trách nhiệm giữ gìn tài sản và sửa chữa hư hỏng do mình gây ra;</p>
+            <p style="margin: 3px 0;">– Chấp hành đầy đủ nội quy tòa nhà và quy định pháp luật về an ninh trật tự, vệ sinh môi trường.</p>
+          </div>
+
+          <div class="section-title">ĐIỀU 8: CHẤM DỨT HỢP ĐỒNG</div>
+          <div class="indent">
+            <p style="margin: 3px 0;">Hợp đồng chấm dứt khi hết thời hạn thuê hoặc theo thỏa thuận của hai bên. Khi chấm dứt hợp đồng, Bên B bàn giao lại căn hộ và trang thiết bị nguyên trạng. Bên A hoàn trả tiền đặt cọc sau khi đã khấu trừ các chi phí dịch vụ hoặc hư hại tài sản do Bên B gây ra (nếu có).</p>
+          </div>
+
+          <div class="section-title">ĐIỀU 9: GIẢI QUYẾT TRANH CHẤP</div>
+          <div class="indent">
+            <p style="margin: 3px 0;">Tranh chấp phát sinh được ưu tiên thương lượng giải quyết. Trường hợp không tự thương lượng được, các bên có quyền yêu cầu Tòa án có thẩm quyền giải quyết theo quy định của pháp luật.</p>
+          </div>
+
+          <div class="section-title">ĐIỀU 10: HIỆU LỰC HỢP ĐỒNG</div>
+          <div class="indent">
+            <p style="margin: 3px 0;">Hợp đồng này có hiệu lực kể từ ngày <strong>${formatDate(contract.start_date)}</strong>, được lập thành 02 bản có giá trị pháp lý như nhau, mỗi Bên giữ 01 bản.</p>
+          </div>
+
+          <div class="signature-grid">
+            <div class="signature-box">
+              <p class="font-bold uppercase" style="margin: 0;">BÊN CHO THUÊ (BÊN A)</p>
+              <p class="italic" style="margin: 2px 0 0 0; font-size: 10pt; color: #6b7280;">(Ký và ghi rõ họ tên)</p>
+              <div style="height: 70px;"></div>
+              <p class="font-bold" style="margin: 0;">BAN QUẢN LÝ YUKI HOUSE</p>
+            </div>
+            <div class="signature-box">
+              <p class="font-bold uppercase" style="margin: 0;">BÊN THUÊ (BÊN B)</p>
+              <p class="italic" style="margin: 2px 0 0 0; font-size: 10pt; color: #6b7280;">(Ký và ghi rõ họ tên)</p>
+              <div style="height: 70px;"></div>
+              <p class="font-bold" style="margin: 0;">${tenant?.full_name || "Bên thuê"}</p>
+            </div>
           </div>
         </div>
 

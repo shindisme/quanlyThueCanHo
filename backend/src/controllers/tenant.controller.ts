@@ -8,10 +8,12 @@ import type {
     CreateTenantRequest,
     ListMyOccupantsRequest,
     ListTenantsRequest,
+    MyTenantProfileRequest,
     OccupantIdRequest,
     TenantIdRequest,
     UpdateOccupantRequest,
-    UpdateTenantRequest
+    UpdateTenantRequest,
+    UpdateMyTenantProfileRequest
 } from "../schemas/tenant.schema.js";
 import * as tenantService from "../services/tenant.service.js";
 import {
@@ -144,4 +146,22 @@ export const deleteMyOccupant = async (
     );
 
     return sendSuccess(response, result);
+};
+
+export const getMyProfile = async (
+    request: Request,
+    response: Response
+) => {
+    getValidated<MyTenantProfileRequest>(request);
+    const tenant = await tenantService.getMyTenantProfile(request.actor!);
+    return sendSuccess(response, tenant);
+};
+
+export const updateMyProfile = async (
+    request: Request,
+    response: Response
+) => {
+    const { body } = getValidated<UpdateMyTenantProfileRequest>(request);
+    const tenant = await tenantService.updateMyTenantProfile(body, request.actor!);
+    return sendSuccess(response, tenant);
 };

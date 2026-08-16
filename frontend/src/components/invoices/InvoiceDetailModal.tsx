@@ -1,20 +1,19 @@
 import { Fragment } from "react";
-import Modal from "../../../../components/ui/Modal";
-import Button from "../../../../components/ui/Button";
-import Badge from "../../../../components/ui/Badge";
-import { formatDate } from "../../../../utils/date";
-import { formatCurrency, formatNumber } from "../../../../utils/currency";
-import { formatApartmentDisplay } from "../../../../utils/string";
-import { getInvoicePeriod } from "../../../../utils/invoicePeriod";
-import { getDisplayItemAmount, getDisplayTierDetails } from "../../../../utils/feeSettings";
-import { getInvoiceApartment, getInvoiceTenant, getInvoiceType } from "../../../../utils/invoiceDisplay";
+import Modal from "../ui/Modal";
+import Button from "../ui/Button";
+import Badge from "../ui/Badge";
+import { formatDate } from "../../utils/date";
+import { formatCurrency, formatNumber } from "../../utils/currency";
+import { formatApartmentDisplay } from "../../utils/string";
+import { getInvoicePeriod } from "../../utils/invoicePeriod";
+import { getDisplayItemAmount, getDisplayTierDetails } from "../../utils/feeSettings";
+import { getInvoiceApartment, getInvoiceStatus, getInvoiceTenant, getInvoiceType } from "../../utils/invoiceDisplay";
 import {
   INVOICE_STATUS_CONFIG,
   INVOICE_TYPE_CONFIG,
   type InvoiceStatus,
-  type InvoiceType,
-} from "../../../../constants/enums";
-import type { Invoice } from "../../../../types";
+} from "../../constants";
+import type { Invoice } from "../../types";
 
 function getStatusBadge(status: string) {
   const config = INVOICE_STATUS_CONFIG[status as InvoiceStatus];
@@ -73,7 +72,7 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
           <div className="flex flex-col items-start md:items-end gap-1.5">
             <div className="flex items-center gap-2">
               {getTypeBadge(invoice)}
-              {getStatusBadge(invoice.status)}
+              {getStatusBadge(getInvoiceStatus(invoice))}
             </div>
             {invoice.paid_at && (
               <span className="text-[10px] text-gray-400 font-medium">

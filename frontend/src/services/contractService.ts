@@ -20,6 +20,7 @@ function mapBackendToFrontend(c: RawContract): RentalContract {
     start_date: c.start_date ? c.start_date.split("T")[0] : "",
     end_date: c.end_date ? c.end_date.split("T")[0] : "",
     created_at: c.created_at,
+    extended_at: c.extended_at,
     max_occupants: c.max_occupants,
     tenant: c.tenant,
     apartment: c.apartment,
@@ -90,25 +91,10 @@ export async function extend(id: number, newEndDate: string): Promise<RentalCont
   return mapBackendToFrontend(updatedContract);
 }
 
-export async function terminate(_id: number, _endDate?: string): Promise<RentalContract> {
-  throw new Error("Endpoint kết thúc hợp đồng trực tiếp đã ngừng dùng. Vui lòng dùng quy trình thanh lý hợp đồng.");
-}
-
-export async function getAllContracts(params?: ContractQuery): Promise<RentalContract[]> {
-  const res = await getAll(params);
-  return res.data;
-}
-export const getAllContractsPage = getAllPage;
-export const getContractById = getById;
-export const createContract = create;
-export const extendContract = extend;
-export const terminateContract = terminate;
-
 export const contractService = {
   getAll,
   getAllPage,
   getById,
   create,
   extend,
-  terminate,
 };

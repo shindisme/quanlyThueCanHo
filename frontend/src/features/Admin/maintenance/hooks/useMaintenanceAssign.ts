@@ -65,7 +65,7 @@ export function useMaintenanceAssign({ onSuccess }: UseMaintenanceAssignProps = 
         return;
       }
 
-      confirmMutation.mutate({ id: selectedRequest.id, data: validation.data as any });
+      confirmMutation.mutate({ id: selectedRequest.id, data: validation.data });
     },
     [selectedRequest, assignedStaffId, scheduledAt, priority, confirmMutation]
   );

@@ -8,13 +8,13 @@ export interface Payment {
   transaction_code: string | null;
   amount: number;
   status: PaymentStatus;
-  paid_at: string;
+  paid_at: string | null;
   invoice?: Invoice;
 }
 
 export interface PaymentFilters {
-  status?: string;
-  payment_method?: string;
+  status?: PaymentStatus;
+  payment_method?: PaymentMethod;
   invoice_id?: number;
   tenant_id?: number;
   contract_id?: number;
@@ -26,10 +26,10 @@ export interface PaymentFilters {
 
 export interface CreatePaymentPayload {
   invoice_id: number;
-  payment_method: string;
+  payment_method: PaymentMethod;
   transaction_code?: string;
   amount?: number;
-  status?: string;
+  status?: PaymentStatus;
 }
 
 export interface CreateVnpayPaymentPayload {
@@ -41,10 +41,14 @@ export interface CreateVnpayPaymentResult {
   paymentId: number;
   invoiceId: number;
   transactionCode: string;
-  paymentMethod: string;
+  paymentMethod: PaymentMethod;
   amount: number;
   paymentUrl: string;
   qrCodeDataUrl?: string;
   qrCodeSvg?: string;
 }
 
+export interface PaymentMethodOption {
+  value: PaymentMethod;
+  label: string;
+}

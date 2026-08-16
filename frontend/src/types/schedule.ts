@@ -12,28 +12,10 @@ export interface ViewingSchedule {
   attendance_status?: AttendanceStatus;
   cancel_reason?: string | null;
   created_at: string;
-  apartment?: Apartment;
+  apartment?: Pick<Apartment, "id" | "room_number" | "floor" | "building_id">;
 }
 
-export interface ScheduleData {
-  id: number;
-  guest_name: string;
-  guest_phone: string;
-  guest_email: string | null;
-  apartment_id: number;
-  schedule_time: string;
-  status: string;
-  attendance_status?: string;
-  cancel_reason?: string | null;
-  created_at: string;
-  temp_locked_until: string | null;
-  apartment?: {
-    id: number;
-    room_number: string;
-    floor: number;
-    building_id: number;
-  };
-}
+export type ScheduleData = ViewingSchedule;
 
 export interface ScheduleFilters {
   building_id?: number;
@@ -53,4 +35,3 @@ export interface BookViewingPayload {
   schedule_time: string;
   note?: string;
 }
-

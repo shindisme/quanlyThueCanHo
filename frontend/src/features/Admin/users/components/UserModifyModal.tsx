@@ -91,7 +91,7 @@ export default function UserModifyModal({
     try {
       await updateLinkedProfile({
         role: user.role,
-        username: user.username,
+        username: user.username || "",
         fullName: fullNameStr,
         tenantId,
         staffId,
@@ -103,7 +103,11 @@ export default function UserModifyModal({
       return;
     }
 
-    const { full_name, ...updateUserData } = data;
+    const updateUserData = {
+      username: data.username,
+      role: data.role,
+      status: data.status,
+    };
     updateUserMutation.mutate(
       { id: user.id, data: updateUserData },
       {

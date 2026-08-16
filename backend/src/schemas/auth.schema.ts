@@ -38,7 +38,13 @@ export const changePasswordRequestSchema = z.object({
     body: z.object({
         oldPass: z.string().min(1).max(200),
         newPass: z.string().min(6).max(200)
-    }).strict()
+    }).strict().refine(
+        (body) => body.oldPass !== body.newPass,
+        {
+            path: ["newPass"],
+            message: "Mật khẩu mới phải khác mật khẩu hiện tại"
+        }
+    )
 }).strict();
 
 export const userIdRequestSchema = z.object({

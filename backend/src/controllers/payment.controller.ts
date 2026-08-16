@@ -2,6 +2,7 @@ import type {
     Request,
     Response
 } from "express";
+import { Role } from "@prisma/client";
 import { getValidated } from "../middleware/validate.middleware.js";
 import type {
     CreatePaymentRequest,
@@ -48,22 +49,26 @@ export const getAll = async (
 };
 
 export const getMethods = async (
-    _request: Request,
+    request: Request,
     response: Response
-) => sendSuccess(response, [
-    {
-        value: paymentService.PAYMENT_METHODS.BANK_TRANSFER,
-        label: "Chuyển khoản ngân hàng"
-    },
-    {
+) => {
+    const onlineMethod = {
         value: paymentService.PAYMENT_METHODS.E_WALLET,
         label: "Ví điện tử/VNPay"
-    },
-    {
-        value: paymentService.PAYMENT_METHODS.CASH,
-        label: "Tiền mặt"
-    }
-]);
+    };
+
+    const methods = request.actor?.role === Role.TENANT
+        ? [onlineMethod]
+        : [
+            onlineMethod,
+            {
+                value: paymentService.PAYMENT_METHODS.CASH,
+                label: "Tiền mặt"
+            }
+        ];
+
+    return sendSuccess(response, methods);
+};
 
 export const getById = async (
     request: Request,

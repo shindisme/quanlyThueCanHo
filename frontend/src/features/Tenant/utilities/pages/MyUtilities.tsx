@@ -1,136 +1,69 @@
-import { Receipt, Zap, Droplet } from "lucide-react";
+import { useState } from "react";
 import PageHeader from "../../../../components/layout/PageHeader";
+import Button from "../../../../components/ui/Button";
+import Combobox from "../../../../components/ui/Combobox";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
+import DefaultPagination from "../../../../components/ui/Pagination";
+import SearchInput from "../../../../components/ui/SearchInput";
+import { getMonthOptions } from "../../../../utils/date";
+import UtilityReadingList from "../components/UtilityReadingList";
+import UtilityReadingDetailModal from "../components/UtilityReadingDetailModal";
 import { useTenantUtilities } from "../hooks/useTenantUtilities";
-import { formatDate } from "../../../../utils/date";
-import { formatApartmentDisplay } from "../../../../utils/string";
-import DataTable, { type Column } from "../../../../components/ui/DataTable";
-
-const meter = (value: number) => Math.round(Number(value));
-const meterUsage = (oldValue: number, newValue: number) =>
-  Math.max(0, meter(newValue) - meter(oldValue));
+import type { UtilityReadingData } from "../../../../types";
 
 export default function MyUtilities() {
-  const {
-    apartment,
-    readings,
-    isLoading
-  } = useTenantUtilities();
+  const utilities = useTenantUtilities();
+  const [detailReading, setDetailReading] = useState<UtilityReadingData | null>(null);
 
-  if (isLoading) {
+  if (utilities.isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-100">
+      <div className="flex min-h-100 flex-col items-center justify-center">
         <LoadingSpinner size={36} />
-        <span className="text-sm text-gray-400 mt-2 font-sans">Đang tải lịch sử chỉ số điện nước...</span>
+        <span className="mt-2 text-sm text-gray-400">Đang tải lịch sử chỉ số điện nước...</span>
       </div>
     );
   }
-
-  const sortedReadings = [...readings].sort((a, b) => {
-    if (b.year !== a.year) return b.year - a.year;
-    return b.month - a.month;
-  });
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const columns: Column<any>[] = [
-    {
-      key: "index",
-      label: "STT",
-      className: "w-4",
-      render: (_, index: number) => <span className="font-semibold text-gray-800">{index + 1}</span>,
-    },
-    {
-      key: "period",
-      label: "Kỳ thanh toán",
-      render: (r) => <span className="font-semibold text-gray-900">Tháng {r.month}/{r.year}</span>
-    },
-    {
-      key: "electric_old",
-      label: "Số điện cũ",
-      className: "text-center",
-      render: (r) => <span className="text-gray-600">{meter(r.electric_old)}</span>
-    },
-    {
-      key: "electric_new",
-      label: "Số điện mới",
-      className: "text-center",
-      render: (r) => <span className="text-gray-600">{meter(r.electric_new)}</span>
-    },
-    {
-      key: "electric_consumption",
-      label: "Tiêu thụ điện (kWh)",
-      className: "text-center bg-primary-50/10 font-semibold text-primary-600",
-      render: (r) => <span>{meterUsage(r.electric_old, r.electric_new)}</span>
-    },
-    {
-      key: "water_old",
-      label: "Số nước cũ",
-      className: "text-center",
-      render: (r) => <span className="text-gray-600">{meter(r.water_old)}</span>
-    },
-    {
-      key: "water_new",
-      label: "Số nước mới",
-      className: "text-center",
-      render: (r) => <span className="text-gray-600">{meter(r.water_new)}</span>
-    },
-    {
-      key: "water_consumption",
-      label: "Tiêu thụ nước (m³)",
-      className: "text-center bg-emerald-50/10 font-semibold text-emerald-600",
-      render: (r) => <span>{meterUsage(r.water_old, r.water_new)}</span>
-    },
-    {
-      key: "created_at",
-      label: "Ngày ghi nhận",
-      render: (r) => <span className="text-gray-500">{formatDate(r.created_at)}</span>
-    },
-    {
-      key: "recorded_by",
-      label: "Người ghi",
-      render: (r) => <span className="text-gray-750 font-semibold">{r.staff?.full_name || "Quản trị viên"}</span>
-    }
-  ];
 
   return (
     <div className="space-y-6 font-sans">
       <PageHeader
         title="Điện & Nước"
         subtitle="Theo dõi chỉ số và lịch sử tiêu thụ điện nước"
-        count={sortedReadings.length}
+        count={utilities.readingCount}
+        actions={
+          <SearchInput value={utilities.search} onChange={utilities.setSearch} placeholder="Kỳ ghi, người ghi..." className="w-full sm:w-64" />
+        }
       />
 
-      {/* Apartment Header Card */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h3 className="font-bold text-gray-800 text-lg">
-            {apartment ? formatApartmentDisplay(apartment.room_number, apartment.floor, "TENANT", apartment.building?.branch_name) : "Chưa nhận căn hộ"}
-          </h3>
-          <p className="text-sm text-gray-500 mt-1">
-            {apartment?.building?.address}
-          </p>
+      <div className="grid w-full grid-cols-12 gap-3">
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
+          <Combobox className="w-full" options={getMonthOptions()} value={utilities.monthFilter} onChange={utilities.setMonthFilter} placeholder="Tháng" searchable={false} clearable />
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-50 text-primary-600 text-xs font-semibold">
-            <Zap size={14} /> Điện sinh hoạt
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 text-xs font-semibold">
-            <Droplet size={14} /> Nước sinh hoạt
-          </div>
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
+          <Combobox className="w-full" options={utilities.yearOptions} value={utilities.yearFilter} onChange={utilities.setYearFilter} placeholder="Năm" searchable={false} clearable />
         </div>
       </div>
 
-      {/* History list */}
-      {sortedReadings.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 bg-white rounded-xl border border-gray-200">
-          <Receipt className="mx-auto mb-3 text-gray-300" size={48} />
-          <p className="font-medium">Chưa có lịch sử ghi nhận điện nước cho căn hộ này</p>
+      {utilities.error ? (
+        <div className="border border-red-200 bg-red-50 p-6 text-center text-sm text-red-700">
+          <p>Không thể tải lịch sử điện nước.</p>
+          <Button variant="outline" onClick={() => void utilities.refetch()} className="mt-3">Thử lại</Button>
         </div>
       ) : (
-        <div className="space-y-4">
-          <DataTable columns={columns} data={sortedReadings} emptyMessage="Chưa có lịch sử ghi nhận điện nước nào." />
-        </div>
+        <UtilityReadingList
+          readings={utilities.readings}
+          startIdx={utilities.startIdx}
+          totalItems={utilities.readingCount}
+          sortConfig={utilities.sortConfig}
+          onSort={(key) => { utilities.requestSort(key); utilities.setCurrentPage(1); }}
+          onView={setDetailReading}
+        />
       )}
+
+      {utilities.totalPages > 1 && (
+        <DefaultPagination currentPage={utilities.currentPage} totalPages={utilities.totalPages} onPageChange={utilities.setCurrentPage} />
+      )}
+      <UtilityReadingDetailModal reading={detailReading} onClose={() => setDetailReading(null)} />
     </div>
   );
 }

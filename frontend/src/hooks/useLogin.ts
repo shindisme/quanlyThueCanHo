@@ -7,6 +7,8 @@ import { toast } from "sonner"
 import { loginSchema } from "../schemas/auth.schema"
 import { useAuthStore } from "../stores/auth.store"
 import { login } from "../services/authService"
+import { getAllPage as getAllStaff } from "../services/staffService"
+import { getAllPage as getAllBuildings } from "../services/buildingService"
 
 interface LoginForm {
   username: string
@@ -68,10 +70,7 @@ export function useLogin() {
 
       if (result.role === "MANAGER" && userId) {
         try {
-          const { getAllStaffs } = await import("../services/staffService")
-          const { getAllBuildings } = await import("../services/buildingService")
-
-          const staffRes = await getAllStaffs()
+          const staffRes = await getAllStaff()
           const currentStaff = staffRes.data.find((s) => s.user_id === userId)
 
           if (currentStaff && currentStaff.building_id) {

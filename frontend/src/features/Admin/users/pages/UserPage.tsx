@@ -123,7 +123,7 @@ export default function UserPage() {
 
       {/* Tìm kiếm và Bộ lọc */}
       <div className="grid grid-cols-12 gap-4 w-full font-sans">
-        <div className="col-span-12 sm:col-span-3">
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Combobox
             options={USER_ROLE_OPTIONS}
             value={roleFilter}
@@ -136,7 +136,7 @@ export default function UserPage() {
           />
         </div>
 
-        <div className="col-span-12 sm:col-span-3">
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Combobox
             options={USER_STATUS_OPTIONS}
             value={statusFilter}
@@ -149,7 +149,7 @@ export default function UserPage() {
           />
         </div>
 
-        <div className="col-span-12 sm:col-span-3">
+        <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Combobox
             options={buildingOptions}
             value={buildingFilter}
@@ -183,7 +183,7 @@ export default function UserPage() {
             onResetPassword={setResetItem}
             onDelete={setDeleteItem}
             sortConfig={sortConfig}
-            onSort={requestSort}
+            onSort={(key) => { requestSort(key); pagination.setCurrentPage(1); }}
           />
 
           <Pagination

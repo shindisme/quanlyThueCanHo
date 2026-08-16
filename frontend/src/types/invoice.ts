@@ -1,4 +1,4 @@
-import type { InvoiceStatus } from "../constants/enums";
+import type { InvoicePersistedStatus, InvoiceType } from "../constants/enums";
 import type { RentalContract } from "./contract";
 import type { Tenant } from "./tenant";
 import type { Payment } from "./payment";
@@ -33,9 +33,12 @@ export interface Invoice {
   tenant_id: number;
   due_date: string;
   total_amount: number;
-  status: InvoiceStatus;
+  paid_amount?: number;
+  remaining_amount?: number;
+  status: InvoicePersistedStatus;
   paid_at: string | null;
   created_at: string;
+  updated_at?: string;
   contract?: RentalContract | null;
   tenant?: InvoiceTenant | null;
   reservation?: InvoiceReservation | null;
@@ -66,7 +69,8 @@ export interface InvoiceElectricTierDetail {
 }
 
 export interface InvoiceFilters {
-  status?: string;
+  status?: InvoicePersistedStatus;
+  type?: InvoiceType;
   tenant_id?: number;
   contract_id?: number;
   apartment_id?: number;
@@ -88,4 +92,4 @@ export interface GenerateMonthlyInvoicesPayload {
   water_tier_prices?: number[];
   internet_fee?: number;
   notify?: boolean;
-}
+}

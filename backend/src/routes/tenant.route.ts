@@ -11,10 +11,12 @@ import {
     createTenantRequestSchema,
     listMyOccupantsRequestSchema,
     listTenantsRequestSchema,
+    myTenantProfileRequestSchema,
     occupantIdRequestSchema,
     tenantIdRequestSchema,
     updateOccupantRequestSchema,
-    updateTenantRequestSchema
+    updateTenantRequestSchema,
+    updateMyTenantProfileRequestSchema
 } from "../schemas/tenant.schema.js";
 
 const router = Router();
@@ -35,6 +37,18 @@ router.get(
     authorizeTenantManagement,
     validate(listTenantsRequestSchema),
     tenantController.getAll
+);
+router.get(
+    "/me",
+    authorizeTenantOccupants,
+    validate(myTenantProfileRequestSchema),
+    tenantController.getMyProfile
+);
+router.put(
+    "/me",
+    authorizeTenantOccupants,
+    validate(updateMyTenantProfileRequestSchema),
+    tenantController.updateMyProfile
 );
 router.get(
     "/me/occupants",

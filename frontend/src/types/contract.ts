@@ -16,6 +16,7 @@ export interface RentalContract {
   signedAt: string;
   createdBy: number;
   created_at: string;
+  extended_at?: string | null;
   actual_occupants?: number;
   max_occupants?: number;
   apartment?: Apartment;
@@ -36,6 +37,7 @@ export interface RawContract {
   signed_at?: string | null;
   created_by?: number | null;
   created_at: string;
+  extended_at?: string | null;
   max_occupants?: number;
   tenant?: Tenant;
   apartment?: Apartment;
@@ -64,4 +66,3 @@ export interface CreateContractRequest {
 }
 
 export type UpdateContractRequest = Partial<CreateContractRequest>;
-

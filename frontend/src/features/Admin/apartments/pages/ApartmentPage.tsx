@@ -40,6 +40,8 @@ export default function ApartmentPage() {
     totalPages,
     startIdx,
     paginatedApartments,
+    requestSort,
+    sortConfig,
     handleDelete,
     deleting,
   } = useApartmentPage();
@@ -103,6 +105,9 @@ export default function ApartmentPage() {
           buildings={buildings}
           role={role}
           startIdx={startIdx}
+          totalItems={filtered.length}
+          sortConfig={sortConfig}
+          onSort={(key) => { requestSort(key); setCurrentPage(1); }}
           setEditItem={setEditItem}
           modifyModal={modifyModal}
           setDeleteItem={setDeleteItem}

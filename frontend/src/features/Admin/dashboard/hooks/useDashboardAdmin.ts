@@ -5,6 +5,7 @@ import * as buildingService from "../../../../services/buildingService";
 import * as apartmentService from "../../../../services/apartmentService";
 import * as contractService from "../../../../services/contractService";
 import * as invoiceService from "../../../../services/invoiceService";
+import { queryKeys } from "../../../../constants/queryKeys";
 
 export function useDashboardAdmin() {
   const { email } = useAuthStore();
@@ -15,25 +16,25 @@ export function useDashboardAdmin() {
   const [timeFrame, setTimeFrame] = useState<"month" | "year">("month");
 
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
-    queryKey: ["buildings"],
+    queryKey: queryKeys.buildings.all,
     queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data,
   });
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
-    queryKey: ["apartments"],
+    queryKey: queryKeys.apartments.all,
     queryFn: () => apartmentService.getAllPage(),
     select: (res) => res.data,
   });
 
   const { data: contracts = [], isLoading: loadingContracts } = useQuery({
-    queryKey: ["contracts"],
-    queryFn: () => contractService.getAllContractsPage(),
-    select: (res) => res.data,
+    queryKey: queryKeys.contracts.all,
+    queryFn: () => contractService.getAllPage(),
+    select: (res) => res.data || [],
   });
 
   const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
-    queryKey: ["invoices"],
+    queryKey: queryKeys.invoices.all,
     queryFn: () => invoiceService.getAllPage(),
     select: (res) => res.data,
   });

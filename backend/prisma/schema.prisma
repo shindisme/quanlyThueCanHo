@@ -308,12 +308,10 @@ model ViewingSchedule {
   attendance_status AttendanceStatus @default(NOT_YET)
   cancel_reason     String?
   created_at        DateTime         @default(now())
-  temp_locked_until DateTime?
   apartment         Apartment        @relation(fields: [apartment_id], references: [id])
 
   @@index([apartment_id])
   @@index([status, schedule_time])
-  @@index([temp_locked_until])
   @@map("viewing_schedules")
 }
 

@@ -45,6 +45,7 @@ export const createReservationRequestSchema = z.object({
     body: z.object({
         apartment_id: positiveIdSchema,
         deposit_amount: depositAmountSchema,
+        payment_method: z.enum(["VNPAY", "CASH"]).default("VNPAY"),
         move_in_date: dateOnlySchema,
         tenant: tenantSchema
     }).strict()

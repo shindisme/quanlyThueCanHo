@@ -1,5 +1,5 @@
 import { useSearchParams, Link } from "react-router-dom";
-import { CheckCircle2, Home, ArrowLeft, ShieldCheck, Calendar, MapPin, Building2, CreditCard } from "lucide-react";
+import { CheckCircle2, Home, ArrowLeft, ShieldCheck, Calendar, Building2, CreditCard } from "lucide-react";
 import Button from "../../../../components/ui/Button";
 import Card from "../../../../components/ui/Card";
 import { formatCurrency } from "../../../../utils/currency";

@@ -9,23 +9,9 @@ import * as staffService from "../../../../services/staffService";
 import * as buildingService from "../../../../services/buildingService";
 import * as maintenanceService from "../../../../services/maintenanceService";
 import { toast } from "sonner";
-
-function parseJwt(token: string) {
-  try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      window
-        .atob(base64)
-        .split("")
-        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch {
-    return null;
-  }
-}
+import { parseJwt } from "../../../../utils/jwt";
+import { queryKeys } from "../../../../constants/queryKeys";
+import { getApiErrorMessage } from "../../../../utils/apiError";
 
 export function useDashboardStaff() {
   const { email, token, role, managedBuildingId, managedBuildingName, setAuth } = useAuthStore();
@@ -35,26 +21,23 @@ export function useDashboardStaff() {
 
   // Query staff
   const { data: staffRes, isLoading: loadingStaff } = useQuery({
-    queryKey: ["staff"],
-    queryFn: () => staffService.getAll(),
-    enabled: !!userId && !!role && role !== "STAFF",
+    queryKey: queryKeys.staff.list({ scope: "staff-dashboard", userId }),
+    queryFn: () => staffService.getAllPage(),
+    select: (response) => response.data,
+    enabled: !!userId && !!role,
   });
 
   // Query maintenance
   const { data: maintenanceData, isLoading: loadingMaintenance } = useQuery({
-    queryKey: ["maintenanceRequests", managedBuildingId],
-    queryFn: () => maintenanceService.getAll({
+    queryKey: queryKeys.maintenance.list({ scope: "staff-dashboard", buildingId: managedBuildingId }),
+    queryFn: () => maintenanceService.getAllPage({
       building_id: managedBuildingId || undefined,
-      limit: 100
     }),
+    select: (response) => response.data,
   });
 
-  const maintenanceRequests = maintenanceData?.data || [];
-
-  const currentStaff = role === "STAFF"
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ? (maintenanceRequests.length > 0 ? (maintenanceRequests[0] as any).assigned_staff : null)
-    : (userId && staffRes?.data ? staffRes.data.find((s) => s.user_id === userId) : null);
+  const maintenanceRequests = maintenanceData || [];
+  const currentStaff = userId && staffRes ? staffRes.find((staff) => staff.user_id === userId) : null;
 
   const displayName = currentStaff?.full_name || email?.split("@")[0] || "Nhân viên";
 
@@ -62,14 +45,14 @@ export function useDashboardStaff() {
 
   // Query buildings if staff has building_id
   const { data: buildings = [] } = useQuery({
-    queryKey: ["buildings"],
+    queryKey: queryKeys.buildings.all,
     queryFn: () => buildingService.getAllPage(),
-    enabled: !!role && role !== "STAFF" && !!currentStaff?.building_id && (!managedBuildingId || !managedBuildingName),
+    enabled: !!currentStaff?.building_id && (!managedBuildingId || !managedBuildingName),
     select: (res) => res.data,
   });
 
   useEffect(() => {
-    if (role !== "STAFF" && currentStaff && currentStaff.building_id && (!managedBuildingId || !managedBuildingName)) {
+    if (currentStaff?.building_id && (!managedBuildingId || !managedBuildingName)) {
       const currentBld = buildings.find((b) => b.id === currentStaff.building_id);
       if (currentBld && role && email) {
         setAuth(token, role, email, currentStaff.building_id, currentBld.branch_name);
@@ -78,7 +61,7 @@ export function useDashboardStaff() {
   }, [currentStaff, buildings, managedBuildingId, managedBuildingName, role, email, token, setAuth]);
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
-    queryKey: ["apartments", activeBuildingId],
+    queryKey: queryKeys.apartments.list({ buildingId: activeBuildingId }),
     queryFn: () => apartmentService.getAllPage({
       building_id: activeBuildingId || undefined
     }),
@@ -87,15 +70,15 @@ export function useDashboardStaff() {
   });
 
   const { data: tenants = [], isLoading: loadingTenants } = useQuery({
-    queryKey: ["tenants"],
+    queryKey: queryKeys.tenants.list({ scope: "staff-dashboard" }),
     queryFn: () => tenantService.getAllPage(),
     enabled: !!role && role !== "STAFF",
     select: (res) => res.data,
   });
 
   const { data: contracts = [], isLoading: loadingContracts } = useQuery({
-    queryKey: ["contracts", activeBuildingId],
-    queryFn: () => contractService.getAllContractsPage({
+    queryKey: queryKeys.contracts.list({ buildingId: activeBuildingId }),
+    queryFn: () => contractService.getAllPage({
       buildingId: activeBuildingId || undefined
     }),
     enabled: !!role && role !== "STAFF",
@@ -103,7 +86,7 @@ export function useDashboardStaff() {
   });
 
   const { data: schedules = [], isLoading: loadingSchedules } = useQuery({
-    queryKey: ["schedules"],
+    queryKey: queryKeys.schedules.list({ scope: "staff-dashboard" }),
     queryFn: () => scheduleService.getAllPage(),
     enabled: !!role && role !== "STAFF",
     select: (res) => res.data,
@@ -115,30 +98,15 @@ export function useDashboardStaff() {
 
   const queryClient = useQueryClient();
 
-  const startMutation = useMutation({
-    mutationFn: ({ id, staffId }: { id: number; staffId: number }) =>
-      maintenanceService.confirm(id, {
-        assigned_staff_id: staffId,
-        scheduled_at: new Date().toISOString(),
-      }),
-    onSuccess: () => {
-      toast.success("Đã bắt đầu xử lý sự cố");
-      queryClient.invalidateQueries({ queryKey: ["maintenanceRequests"] });
-    },
-    onError: () => {
-      toast.error("Không thể cập nhật trạng thái");
-    },
-  });
-
   const completeMutation = useMutation({
     mutationFn: ({ id, charge_tenant, repair_fee }: { id: number; charge_tenant: boolean; repair_fee?: number }) =>
       maintenanceService.complete(id, { charge_tenant, repair_fee }),
     onSuccess: () => {
       toast.success("Đã hoàn thành sửa chữa sự cố");
-      queryClient.invalidateQueries({ queryKey: ["maintenanceRequests"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.maintenance.all });
     },
-    onError: () => {
-      toast.error("Không thể cập nhật trạng thái");
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Không thể cập nhật trạng thái"));
     },
   });
 
@@ -147,10 +115,10 @@ export function useDashboardStaff() {
       maintenanceService.unable(id, { reason }),
     onSuccess: () => {
       toast.success("Đã báo cáo không thể sửa chữa thành công");
-      queryClient.invalidateQueries({ queryKey: ["maintenanceRequests"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.maintenance.all });
     },
-    onError: () => {
-      toast.error("Không thể gửi báo cáo");
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, "Không thể gửi báo cáo"));
     },
   });
 
@@ -165,7 +133,6 @@ export function useDashboardStaff() {
     isLoading,
     currentStaff,
     role,
-    startMutation,
     completeMutation,
     unableMutation,
   };

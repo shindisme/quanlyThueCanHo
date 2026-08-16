@@ -1,11 +1,13 @@
-import { Controller, type UseFormReturn } from "react-hook-form";
+import { Controller, type FieldPath, type UseFormReturn } from "react-hook-form";
 import Input from "../../../../components/ui/Input";
 import Combobox from "../../../../components/ui/Combobox";
 import Button from "../../../../components/ui/Button";
 import type { Staff } from "../../../../types";
+import type { BuildingFormValues } from "../../../../schemas/building.schema";
+import { BUILDING_STATUS_OPTIONS } from "../../../../constants";
 
-interface BuildingFormFieldsProps {
-  form: UseFormReturn<any>;
+interface BuildingFormFieldsProps<T extends BuildingFormValues> {
+  form: UseFormReturn<T>;
   availableManagers: Staff[];
   previewUrl: string;
   onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -14,7 +16,7 @@ interface BuildingFormFieldsProps {
   isEdit?: boolean;
 }
 
-export default function BuildingFormFields({
+export default function BuildingFormFields<T extends BuildingFormValues>({
   form,
   availableManagers,
   previewUrl,
@@ -22,7 +24,7 @@ export default function BuildingFormFields({
   onRemoveImage,
   inputRef,
   isEdit = false,
-}: BuildingFormFieldsProps) {
+}: BuildingFormFieldsProps<T>) {
   const { register, control, formState: { errors } } = form;
 
   return (
@@ -34,7 +36,7 @@ export default function BuildingFormFields({
           placeholder="VD: YukiHouse + Tên chi nhánh"
           error={errors.branch_name?.message as string | undefined}
           className="rounded-md"
-          {...register("branch_name")}
+          {...register("branch_name" as FieldPath<T>)}
         />
       </div>
 
@@ -44,7 +46,7 @@ export default function BuildingFormFields({
           type="number"
           error={errors.total_floors?.message as string | undefined}
           className="rounded-md"
-          {...register("total_floors", { valueAsNumber: true })}
+          {...register("total_floors" as FieldPath<T>, { valueAsNumber: true })}
         />
       </div>
 
@@ -52,15 +54,12 @@ export default function BuildingFormFields({
         <div className="col-span-6">
           <Controller
             control={control}
-            name="status"
+            name={"status" as FieldPath<T>}
             render={({ field, fieldState: { error } }) => (
               <Combobox
                 label="Trạng thái *"
-                options={[
-                  { value: "ACTIVE", label: "Hoạt động" },
-                  { value: "INACTIVE", label: "Dừng hoạt động" },
-                ]}
-                value={field.value || "ACTIVE"}
+                options={BUILDING_STATUS_OPTIONS}
+                value={String(field.value || "ACTIVE")}
                 onChange={field.onChange}
                 placeholder="Chọn trạng thái"
                 searchable={false}
@@ -79,14 +78,14 @@ export default function BuildingFormFields({
           placeholder="Nhập địa chỉ đầy đủ của tòa nhà"
           error={errors.address?.message as string | undefined}
           className="rounded-md"
-          {...register("address")}
+          {...register("address" as FieldPath<T>)}
         />
       </div>
 
       <div className="col-span-12">
         <Controller
           control={control}
-          name="staff_id"
+          name={"staff_id" as FieldPath<T>}
           render={({ field, fieldState: { error } }) => (
             <Combobox
               label="Quản lý chi nhánh (Manager)"
@@ -113,7 +112,7 @@ export default function BuildingFormFields({
           placeholder="Mô tả thông tin tòa nhà"
           error={errors.description?.message as string | undefined}
           className="rounded-md"
-          {...register("description")}
+          {...register("description" as FieldPath<T>)}
         />
       </div>
 

@@ -5,6 +5,7 @@ import * as apartmentService from "../../../../services/apartmentService";
 import * as reservationService from "../../../../services/reservationService";
 import type { Apartment } from "../../../../types";
 import { depositFormSchema } from "../../../../schemas/invoice.schema";
+import { queryKeys } from "../../../../constants/queryKeys";
 
 export type DepositForm = {
   building_id: string;
@@ -18,6 +19,7 @@ export type DepositForm = {
   address: string;
   move_in_date: string;
   deposit_amount: number;
+  payment_method: "VNPAY" | "CASH";
 };
 
 export const emptyDepositForm = (): DepositForm => ({
@@ -32,6 +34,7 @@ export const emptyDepositForm = (): DepositForm => ({
   address: "",
   move_in_date: "",
   deposit_amount: 0,
+  payment_method: "VNPAY",
 });
 
 export const getPresetForm = (apt: Apartment): DepositForm => ({
@@ -142,6 +145,7 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
       reservationService.createReservationDeposit({
         apartment_id: fixedApartment ? fixedApartment.id : Number(form.apartment_id),
         deposit_amount: Number(form.deposit_amount),
+        payment_method: form.payment_method,
         move_in_date: form.move_in_date,
         tenant: {
           full_name: form.full_name.trim(),
@@ -153,10 +157,12 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
         },
       }),
     onSuccess: async () => {
-      toast.success("Đã lập hóa đơn cọc phòng");
+      toast.success(form.payment_method === "CASH"
+        ? "Đã lập hóa đơn và ghi nhận tiền cọc tiền mặt"
+        : "Đã lập hóa đơn và gửi email thanh toán VNPay");
       setIsOpen(false);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["invoices"] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all }),
         queryClient.invalidateQueries({ queryKey: availableApartmentKeys.all }),
       ]);
       if (onSuccessCallback) onSuccessCallback();

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 
 export interface SortConfig {
@@ -14,7 +14,8 @@ export function useSort<T>(
   const [sortConfig, setSortConfig] = useState<SortConfig | null>(initialConfig);
 
   const sortedItems = useMemo(() => {
-    if (!sortConfig) return items;
+    const safeItems = Array.isArray(items) ? items : [];
+    if (!sortConfig) return safeItems;
 
     const getNestedValue = (obj: T, path: string): unknown => {
       if (customExtractors && customExtractors[path]) {
@@ -25,6 +26,13 @@ export function useSort<T>(
         }
       }
       if (!obj) return undefined;
+      // STT is a presentation column, so use the stable entity id when users
+      // request sorting by it. This keeps the behaviour consistent across all
+      // tables without duplicating an extractor in every feature.
+      if (path === "index" && typeof obj === "object") {
+        const record = obj as Record<string, unknown>;
+        return record.id ?? record.created_at;
+      }
       return path.split(".").reduce<unknown>((acc, part) => {
         if (acc && typeof acc === "object" && part in acc) {
           return (acc as Record<string, unknown>)[part];
@@ -33,15 +41,16 @@ export function useSort<T>(
       }, obj);
     };
 
-    const sorted = [...items].sort((a, b) => {
+    const sorted = [...safeItems].sort((a, b) => {
       const aVal = getNestedValue(a, sortConfig.key);
       const bVal = getNestedValue(b, sortConfig.key);
 
-      // Handle null/undefined values
-      if (aVal === undefined || aVal === null) return 1;
-      if (bVal === undefined || bVal === null) return -1;
+      const aMissing = aVal === undefined || aVal === null;
+      const bMissing = bVal === undefined || bVal === null;
+      if (aMissing && bMissing) return 0;
+      if (aMissing) return 1;
+      if (bMissing) return -1;
 
-      // Handle boolean
       if (typeof aVal === "boolean" && typeof bVal === "boolean") {
         if (aVal === bVal) return 0;
         return sortConfig.direction === "asc"
@@ -49,7 +58,6 @@ export function useSort<T>(
           : (bVal ? 1 : -1);
       }
 
-      // Only compare as number if both are actual numbers or non-empty numeric strings
       const isNumA = typeof aVal === "number" || (typeof aVal === "string" && aVal.trim() !== "" && !isNaN(Number(aVal)));
       const isNumB = typeof bVal === "number" || (typeof bVal === "string" && bVal.trim() !== "" && !isNaN(Number(bVal)));
 
@@ -70,22 +78,21 @@ export function useSort<T>(
     return sorted;
   }, [items, sortConfig, customExtractors]);
 
-  const requestSort = (key: string) => {
-    let direction: "asc" | "desc" = "asc";
-    if (sortConfig && sortConfig.key === key) {
-      direction = sortConfig.direction === "asc" ? "desc" : "asc";
-    }
-    setSortConfig({ key, direction });
-  };
+  const requestSort = useCallback((key: string) => {
+    setSortConfig((current) => ({
+      key,
+      direction: current?.key === key && current.direction === "asc" ? "desc" : "asc",
+    }));
+  }, []);
 
-  const getSortIcon = (key: string) => {
+  const getSortIcon = useCallback((key: string) => {
     if (!sortConfig || sortConfig.key !== key) {
       return React.createElement(ChevronsUpDown, { size: 14, className: "inline-block ml-1 text-gray-300 align-middle shrink-0" });
     }
     return sortConfig.direction === "asc"
       ? React.createElement(ChevronUp, { size: 14, className: "inline-block ml-1 text-primary-600 align-middle shrink-0 font-bold" })
       : React.createElement(ChevronDown, { size: 14, className: "inline-block ml-1 text-primary-600 align-middle shrink-0 font-bold" });
-  };
+  }, [sortConfig]);
 
   return { items: sortedItems, requestSort, getSortIcon, sortConfig, setSortConfig };
 }

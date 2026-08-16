@@ -4,6 +4,7 @@ import { useAuthStore } from "../../../../stores/auth.store";
 import * as buildingService from "../../../../services/buildingService";
 import * as apartmentService from "../../../../services/apartmentService";
 import { formatApartmentDisplay } from "../../../../utils/string";
+import { queryKeys } from "../../../../constants/queryKeys";
 
 const BREADCRUMB_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
@@ -37,7 +38,7 @@ export function useHeaderBreadcrumb(): string[] | null {
   const targetApartmentId = isApartmentDetail ? Number(parts[parts.length - 1]) : null;
 
   const { data: dynamicBuildingName } = useQuery({
-    queryKey: ["breadcrumb-building", targetBuildingId],
+    queryKey: queryKeys.buildings.detail(targetBuildingId ?? "invalid"),
     queryFn: async () => {
       if (!targetBuildingId || isNaN(targetBuildingId)) return null;
       const b = await buildingService.getById(targetBuildingId);
@@ -48,7 +49,7 @@ export function useHeaderBreadcrumb(): string[] | null {
   });
 
   const { data: dynamicApartmentName } = useQuery({
-    queryKey: ["breadcrumb-apartment", targetApartmentId, role],
+    queryKey: queryKeys.apartments.detail(targetApartmentId ?? "invalid"),
     queryFn: async () => {
       if (!targetApartmentId || isNaN(targetApartmentId)) return null;
       const apt = await apartmentService.getById(targetApartmentId);

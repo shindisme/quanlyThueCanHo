@@ -1,67 +1,119 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useAuthStore } from "../../../../stores/auth.store";
-import * as maintenanceService from "../../../../services/maintenanceService";
-import * as contractService from "../../../../services/contractService";
-import * as uploadService from "../../../../services/uploadService";
-import { createMaintenanceSchema } from "../../../../schemas/maintenance.schema";
+import { queryKeys } from "../../../../constants/queryKeys";
+import { useDebounce } from "../../../../hooks/useDebounce";
 import { useOnOff } from "../../../../hooks/useOnOff";
+import { usePagination } from "../../../../hooks/usePagination";
+import { useSort } from "../../../../hooks/useSort";
+import { createMaintenanceSchema } from "../../../../schemas/maintenance.schema";
+import * as contractService from "../../../../services/contractService";
+import * as maintenanceService from "../../../../services/maintenanceService";
+import * as uploadService from "../../../../services/uploadService";
+import { useAuthStore } from "../../../../stores/auth.store";
+import type { MaintenanceRequest, Priority } from "../../../../types";
+import { getApiErrorMessage } from "../../../../utils/apiError";
+import { formatApartmentDisplay, removeVietnameseTones } from "../../../../utils/string";
 
 export function useTenantMaintenance() {
   const { token, role } = useAuthStore();
   const queryClient = useQueryClient();
   const createModal = useOnOff();
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("");
+  const [detailRequest, setDetailRequest] = useState<MaintenanceRequest | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<MaintenanceRequest | null>(null);
 
-  // Form states
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState<"LOW" | "MEDIUM" | "HIGH">("MEDIUM");
+  const [priority, setPriority] = useState<Priority>("MEDIUM");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
 
-  // Fetch contracts
-  const { data: contractsData, isLoading: loadingContracts } = useQuery({
-    queryKey: ["contracts"],
-    queryFn: () => contractService.getAllContractsPage(),
-    enabled: role === "TENANT" && !!token,
-    select: (res) => res.data,
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) URL.revokeObjectURL(imagePreviewUrl);
+    };
+  }, [imagePreviewUrl]);
+
+  const { data: contracts = [], isLoading: loadingContracts } = useQuery({
+    queryKey: queryKeys.contracts.list({ scope: "tenant", status: "ACTIVE" }),
+    queryFn: () => contractService.getAllPage({ status: "ACTIVE" }),
+    select: (response) => response.data,
+    enabled: role === "TENANT" && Boolean(token),
   });
-  const contracts = contractsData || [];
+  const activeContract = contracts[0] ?? null;
 
-  const currentTenant = contracts && contracts.length > 0
-    ? contracts[0].tenant
-    : null;
-
-  const activeContract = contracts
-    ? contracts.find((c) => c.status === "ACTIVE")
-    : null;
-
-  // Fetch maintenance request
-  const { data: requestsRes, isLoading: loadingRequests } = useQuery({
-    queryKey: ["maintenanceRequests", role],
-    queryFn: () => maintenanceService.getAll(),
-    enabled: !!token,
+  const requestsQuery = useQuery({
+    queryKey: queryKeys.maintenance.tenantList(),
+    queryFn: () => maintenanceService.getAllPage(),
+    select: (response) => response.data,
+    enabled: role === "TENANT" && Boolean(token),
   });
-  const requests = requestsRes?.data || [];
+  const requests = useMemo(() => requestsQuery.data ?? [], [requestsQuery.data]);
 
-  // Filter requests cho người thuê hiện tại
-  const myRequests = requests;
+  const filteredRequests = useMemo(() => {
+    const keyword = removeVietnameseTones(debouncedSearch.trim().toLowerCase());
+    return requests.filter((request) => {
+      if (statusFilter && request.status !== statusFilter) return false;
+      if (priorityFilter && request.priority !== priorityFilter) return false;
+      if (!keyword) return true;
+
+      const room = request.apartment
+        ? formatApartmentDisplay(request.apartment.room_number, request.apartment.floor)
+        : "";
+      return removeVietnameseTones(
+        [request.title, request.description, room].filter(Boolean).join(" ").toLowerCase()
+      ).includes(keyword);
+    });
+  }, [debouncedSearch, priorityFilter, requests, statusFilter]);
+
+  const { items: sortedRequests, requestSort, sortConfig } = useSort<MaintenanceRequest>(
+    filteredRequests,
+    { key: "created_at", direction: "desc" },
+    {
+      room: (request) => request.apartment?.room_number ?? "",
+    }
+  );
+  const { currentPage, setCurrentPage, totalPages, startIdx, endIdx } = usePagination({
+    totalItems: sortedRequests.length,
+    initialPageSize: 10,
+  });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, priorityFilter, setCurrentPage, statusFilter]);
+
+  const paginatedRequests = useMemo(
+    () => sortedRequests.slice(startIdx, endIdx),
+    [endIdx, sortedRequests, startIdx]
+  );
+
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setPriority("MEDIUM");
+    setImageFile(null);
+    setImagePreviewUrl("");
+  };
+
+  const closeCreateModal = () => {
+    createModal.onClose();
+    resetForm();
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: {
       apartment_id: number;
       title: string;
       description: string;
-      priority: string;
+      priority: Priority;
       imageFile?: File | null;
     }) => {
       const { imageFile: selectedImage, ...payload } = data;
-      const imageUrls = selectedImage
-        ? await uploadService.uploadImages([selectedImage])
-        : [];
-
+      const imageUrls = selectedImage ? await uploadService.uploadImages([selectedImage]) : [];
       return maintenanceService.create({
         ...payload,
         ...(imageUrls[0] ? { image_url: imageUrls[0] } : {}),
@@ -69,32 +121,25 @@ export function useTenantMaintenance() {
     },
     onSuccess: () => {
       toast.success("Gửi yêu cầu sửa chữa thành công!");
-      setTitle("");
-      setDescription("");
-      setPriority("MEDIUM");
-      setImageFile(null);
-      setImagePreviewUrl("");
-      createModal.onClose();
-      queryClient.invalidateQueries({ queryKey: ["maintenanceRequests"] });
+      closeCreateModal();
+      void queryClient.invalidateQueries({ queryKey: queryKeys.maintenance.all });
     },
     onError: (error: unknown) => {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Không thể gửi yêu cầu");
-    },
-  });
-  const cancelMutation = useMutation({
-    mutationFn: (id: number) => maintenanceService.cancel(id),
-    onSuccess: () => {
-      toast.success("Đã hủy yêu cầu sửa chữa");
-      queryClient.invalidateQueries({ queryKey: ["maintenanceRequests"] });
-    },
-    onError: (error: unknown) => {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Không thể hủy yêu cầu");
+      toast.error(getApiErrorMessage(error, "Không thể gửi yêu cầu sửa chữa"));
     },
   });
 
-  const loading = loadingContracts || loadingRequests;
+  const cancelMutation = useMutation({
+    mutationFn: maintenanceService.cancel,
+    onSuccess: () => {
+      toast.success("Đã hủy yêu cầu sửa chữa");
+      setCancelTarget(null);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.maintenance.all });
+    },
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, "Không thể hủy yêu cầu sửa chữa"));
+    },
+  });
 
   const handleImageChange = (file: File | null) => {
     if (!file) {
@@ -102,29 +147,24 @@ export function useTenantMaintenance() {
       setImagePreviewUrl("");
       return;
     }
-
     if (!file.type.startsWith("image/")) {
       toast.error("Vui lòng chọn đúng định dạng hình ảnh");
       return;
     }
-
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Ảnh không được vượt quá 5MB");
       return;
     }
-
     setImageFile(file);
     setImagePreviewUrl(URL.createObjectURL(file));
   };
 
-  const clearImage = () => handleImageChange(null);
-  const handleCreateMaintenanceRequest = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentTenant || !activeContract) {
+  const handleCreateMaintenanceRequest = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!activeContract) {
       toast.error("Không xác định được phòng thuê hoạt động");
       return;
     }
-
     const payload = {
       apartment_id: activeContract.apartment_id,
       title: title.trim(),
@@ -132,25 +172,26 @@ export function useTenantMaintenance() {
       priority,
       imageFile,
     };
-
     const validation = createMaintenanceSchema.safeParse(payload);
     if (!validation.success) {
       toast.error(validation.error.issues[0].message);
       return;
     }
-
     createMutation.mutate(payload);
   };
 
-  const handleCancelRequest = (id: number) => {
-    cancelMutation.mutate(id);
-  };
-
   return {
-    myRequests,
+    requests: paginatedRequests,
+    filteredCount: filteredRequests.length,
+    requestCount: filteredRequests.length,
     search,
     setSearch,
+    statusFilter,
+    setStatusFilter,
+    priorityFilter,
+    setPriorityFilter,
     createModal,
+    closeCreateModal,
     title,
     setTitle,
     description,
@@ -160,11 +201,23 @@ export function useTenantMaintenance() {
     imageFile,
     imagePreviewUrl,
     handleImageChange,
-    clearImage,
-    loading,
+    clearImage: () => handleImageChange(null),
+    loading: loadingContracts || requestsQuery.isLoading,
+    error: requestsQuery.error,
+    refetch: requestsQuery.refetch,
     handleCreateMaintenanceRequest,
-    handleCancelRequest,
+    detailRequest,
+    setDetailRequest,
+    cancelTarget,
+    setCancelTarget,
+    confirmCancel: () => cancelTarget && cancelMutation.mutate(cancelTarget.id),
     activeContract,
     saving: createMutation.isPending || cancelMutation.isPending,
+    requestSort,
+    sortConfig,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    startIdx,
   };
 }

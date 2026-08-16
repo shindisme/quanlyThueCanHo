@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Calendar as CalendarIcon, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -11,6 +11,7 @@ interface DatePickerProps {
   showTime?: boolean;
   disabled?: boolean;
   minDate?: Date | string | null;
+  maxDate?: Date | string | null;
   disablePast?: boolean;
 }
 
@@ -87,6 +88,7 @@ export function DatePicker({
   showTime = false,
   disabled = false,
   minDate,
+  maxDate,
   disablePast = false,
 }: DatePickerProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(() => parseValueToDate(value));
@@ -108,6 +110,27 @@ export function DatePicker({
     return null;
   }, [minDate, disablePast]);
 
+  const effectiveMaxDate = useMemo(() => parseValueToDate(maxDate), [maxDate]);
+
+  const isDateOutsideRange = useCallback((date: Date) => {
+    const target = new Date(date);
+    target.setHours(0, 0, 0, 0);
+
+    if (effectiveMinDate) {
+      const minimum = new Date(effectiveMinDate);
+      minimum.setHours(0, 0, 0, 0);
+      if (target < minimum) return true;
+    }
+
+    if (effectiveMaxDate) {
+      const maximum = new Date(effectiveMaxDate);
+      maximum.setHours(0, 0, 0, 0);
+      if (target > maximum) return true;
+    }
+
+    return false;
+  }, [effectiveMaxDate, effectiveMinDate]);
+
   // Sync state with value prop
   useEffect(() => {
     const parsed = parseValueToDate(value);
@@ -121,7 +144,7 @@ export function DatePicker({
   }, [value, showTime]);
 
   // Position popover
-  const updatePopoverPosition = () => {
+  const updatePopoverPosition = useCallback(() => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       const popoverHeight = showTime ? 360 : 310;
@@ -135,7 +158,7 @@ export function DatePicker({
         left: rect.left + window.scrollX,
       });
     }
-  };
+  }, [showTime]);
 
   useEffect(() => {
     if (isOpen) {
@@ -147,7 +170,7 @@ export function DatePicker({
       window.removeEventListener("scroll", updatePopoverPosition);
       window.removeEventListener("resize", updatePopoverPosition);
     };
-  }, [isOpen]);
+  }, [isOpen, updatePopoverPosition]);
 
   // Close on click outside
   useEffect(() => {
@@ -173,7 +196,7 @@ export function DatePicker({
     setInputValue(val);
 
     const parsed = parseDMY(val, showTime);
-    if (parsed) {
+    if (parsed && !isDateOutsideRange(parsed)) {
       setSelectedDate(parsed);
       setCurrentDate(parsed);
       onChange?.(parsed);
@@ -224,13 +247,8 @@ export function DatePicker({
     return arr;
   }, [year, month, adjustedFirstDayIndex, daysInMonth]);
 
-  const isDayDisabled = (day: number, monthOffset: number) => {
-    if (!effectiveMinDate) return false;
-    const targetDate = new Date(year, month + monthOffset, day, 23, 59, 59, 999);
-    const minCompare = new Date(effectiveMinDate);
-    minCompare.setHours(0, 0, 0, 0);
-    return targetDate.getTime() < minCompare.getTime();
-  };
+  const isDayDisabled = (day: number, monthOffset: number) =>
+    isDateOutsideRange(new Date(year, month + monthOffset, day));
 
   const selectDate = (day: number, monthOffset: number) => {
     if (isDayDisabled(day, monthOffset)) return;
@@ -257,6 +275,7 @@ export function DatePicker({
 
   const handleSelectToday = () => {
     const now = new Date();
+    if (isDateOutsideRange(now)) return;
     setSelectedDate(now);
     setCurrentDate(now);
     setInputValue(formatToDMY(now, showTime));
@@ -479,7 +498,8 @@ export function DatePicker({
               <button
                 type="button"
                 onClick={handleSelectToday}
-                className="font-bold text-primary-600 hover:text-primary-700 hover:underline cursor-pointer"
+                disabled={isDateOutsideRange(new Date())}
+                className="font-bold text-primary-600 hover:text-primary-700 hover:underline cursor-pointer disabled:text-gray-300 disabled:no-underline disabled:cursor-not-allowed"
               >
                 Hôm nay
               </button>

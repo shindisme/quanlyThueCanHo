@@ -4,14 +4,13 @@ import type { Building } from "./building";
 
 export interface User {
   id: number;
-  email: string;
-  username?: string;
-  phone: string | null;
-  password_hash: string;
+  username: string;
+  email?: string;
+  phone?: string | null;
   role: Role;
   status: UserStatus;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   tenant_profile?: Tenant;
   tenant?: Tenant;
   managedBuildingId?: number;
@@ -35,20 +34,7 @@ export interface LoginResponse {
   role: Role;
 }
 
-export interface UserData {
-  id: number;
-  username: string;
-  role: string;
-  status: string;
-  created_at: string;
-  tenant?: Tenant | null;
-  tenant_profile?: Tenant | null;
-  managed_building?: {
-    id: number;
-    branch_name: string;
-    address: string;
-  } | null;
-}
+export type UserData = User;
 
 export interface CreateUserResponse extends UserData {
   initial_password?: string;
@@ -81,5 +67,4 @@ export interface CreateStaffRequest {
 }
 
 export type UpdateStaffRequest = Partial<CreateStaffRequest>;
-
 

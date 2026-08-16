@@ -282,7 +282,10 @@ export const getAllApartmentsService = async (filters: {
             where,
             skip,
             take: limit,
-            orderBy: { floor: "asc" },
+            orderBy: [
+                { floor: "asc" },
+                { id: "asc" }
+            ],
             select: apartmentSelect
         }),
         prisma.apartment.count({ where })
@@ -336,6 +339,36 @@ export const updateApartmentService = async (
     }
 
     return runSerializableTransaction(async (transaction) => {
+        const currentApartment = await transaction.apartment.findFirst({
+            where,
+            select: { status: true }
+        });
+
+        if (!currentApartment) {
+            throw notFound();
+        }
+
+        const requestedStatus = adminData.status;
+        const systemManagedStatuses = new Set<ApartmentStatus>([
+            ApartmentStatus.RESERVED,
+            ApartmentStatus.RENTED,
+            ApartmentStatus.VACATING_SOON
+        ]);
+        if (
+            requestedStatus !== undefined
+            && requestedStatus !== currentApartment.status
+            && (
+                systemManagedStatuses.has(currentApartment.status)
+                || systemManagedStatuses.has(requestedStatus)
+            )
+        ) {
+            throw new AppError(
+                409,
+                "APARTMENT_STATUS_MANAGED_BY_SYSTEM",
+                "Trạng thái giữ chỗ, đang thuê và sắp trống được hệ thống cập nhật theo quy trình nghiệp vụ"
+            );
+        }
+
         if (existing_image_urls !== undefined) {
             await transaction.apartmentImage.deleteMany({
                 where: {

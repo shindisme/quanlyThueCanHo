@@ -6,6 +6,7 @@ import * as buildingService from "../../../../services/buildingService";
 import * as apartmentService from "../../../../services/apartmentService";
 import { useOnOff } from "../../../../hooks/useOnOff";
 import { useUserRole } from "../../../../hooks/useUserRole";
+import { queryKeys } from "../../../../constants/queryKeys";
 
 export function useNotificationSend() {
   const queryClient = useQueryClient();
@@ -25,7 +26,7 @@ export function useNotificationSend() {
 
   // Get danh sách tòa theo Admin
   const { data: buildings = [] } = useQuery({
-    queryKey: ["buildings"],
+    queryKey: queryKeys.buildings.all,
     queryFn: () => buildingService.getAllPage(),
     enabled: role === "ADMIN",
     select: (res) => res.data,
@@ -33,7 +34,7 @@ export function useNotificationSend() {
 
   // Get danh sách căn hộ khi chọn chế độ gửi theo căn hộ chỉ định
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
-    queryKey: ["apartments-for-target", buildingId],
+    queryKey: queryKeys.apartments.list({ scope: "notification-target", buildingId }),
     queryFn: () =>
       apartmentService.getAllPage({
         building_id: buildingId,
@@ -52,7 +53,7 @@ export function useNotificationSend() {
     mutationFn: (payload: notificationService.SendBuildingNotificationPayload) =>
       notificationService.sendBuildingNotification(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
       toast.success("Phát thông báo thành công!");
       broadcastModal.onClose();
       setTitle("");

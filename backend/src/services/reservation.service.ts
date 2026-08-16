@@ -2,6 +2,7 @@ import {
     ApartmentStatus,
     InvoiceStatus,
     InvoiceType,
+    PaymentStatus,
     Prisma,
     ReservationStatus,
     Role,
@@ -16,7 +17,12 @@ import type {
 } from "../schemas/reservation.schema.js";
 import type { Actor } from "../types/auth.js";
 import { createInitialCredential, tenantUsername } from "./account.service.js";
-import { sendReservationExpiredEmail } from "./mail.service.js";
+import {
+    sendReservationDepositPaidEmail,
+    sendReservationDepositPaymentEmail,
+    sendReservationExpiredEmail
+} from "./mail.service.js";
+import { buildDepositPaymentUrl } from "./payment.service.js";
 import { runSerializableTransaction } from "../utils/prisma-transaction.js";
 
 type CreateReservationInput = CreateReservationRequest["body"];
@@ -357,7 +363,10 @@ export const createReservationDepositService = async (
                         invoice_code: `DEP-${reservation.id}`,
                         due_date: now,
                         total_amount: input.deposit_amount,
-                        status: InvoiceStatus.UNPAID,
+                        status: input.payment_method === "CASH"
+                            ? InvoiceStatus.PAID
+                            : InvoiceStatus.UNPAID,
+                        paid_at: input.payment_method === "CASH" ? now : null,
                         items: {
                             create: [
                                 {
@@ -372,17 +381,57 @@ export const createReservationDepositService = async (
                     include: invoiceInclude
                 });
 
+                const payment = input.payment_method === "CASH"
+                    ? await tx.payment.create({
+                        data: {
+                            invoice_id: invoice.id,
+                            payment_method: "CASH",
+                            amount: input.deposit_amount,
+                            status: PaymentStatus.SUCCESS,
+                            paid_at: now
+                        }
+                    })
+                    : null;
+
                 return {
                     reservation,
                     invoice,
                     tenant,
                     user,
+                    payment,
                     initial_password: credential.initial_password,
                     apartment
                 };
             }, reservationConcurrentModification);
 
             const { apartment: _apartment, ...response } = result;
+
+            try {
+                if (!result.tenant.email) {
+                    return response;
+                }
+
+                const emailData = {
+                    to: result.tenant.email,
+                    tenantName: result.tenant.full_name,
+                    invoiceCode: result.invoice.invoice_code,
+                    depositAmount: Number(result.invoice.total_amount),
+                    apartmentLabel: formatApartmentLabel(result.apartment),
+                    buildingAddress: result.apartment.building.address,
+                    moveInDeadline: result.reservation.expires_at
+                };
+
+                if (input.payment_method === "CASH") {
+                    await sendReservationDepositPaidEmail(emailData);
+                } else {
+                    await sendReservationDepositPaymentEmail({
+                        ...emailData,
+                        paymentUrl: buildDepositPaymentUrl(result.invoice.id)
+                    });
+                }
+            } catch {
+                // Email lỗi không được làm rollback dữ liệu đặt cọc đã tạo.
+            }
 
             return response;
         } catch (error) {

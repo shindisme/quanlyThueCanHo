@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BUILDING_STATUS_VALUES } from "../constants/enums";
 
 export const buildingSchema = z.object({
   branch_name: z
@@ -28,7 +29,7 @@ export const DEFAULT_BUILDING_FORM: BuildingFormValues = {
 };
 
 export const buildingModifySchema = buildingSchema.extend({
-  status: z.string().optional(),
+  status: z.enum(BUILDING_STATUS_VALUES).optional(),
   remove_thumbnail: z.boolean().optional(),
 });
 

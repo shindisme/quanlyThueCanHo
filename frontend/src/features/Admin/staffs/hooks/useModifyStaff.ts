@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import * as authService from "../../../../services/authService";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 import { staffService } from "../../../../services";
 
 interface ModifyStaffParams {
@@ -73,7 +73,7 @@ export function useModifyStaff() {
       };
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.STAFF });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.staff.all });
     },
   });
 }

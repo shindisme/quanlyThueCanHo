@@ -1,7 +1,8 @@
-import { Role } from "@prisma/client";
+import { Role, UserStatus } from "@prisma/client";
 import { describe, expect, it } from "vitest";
 import {
     canCreateVnpayPaymentUrlForRole,
+    createPaymentService,
     generateCashTransactionCode,
     normalizePaymentMethod,
     PAYMENT_METHODS
@@ -28,5 +29,25 @@ describe("canCreateVnpayPaymentUrlForRole", () => {
 
     it("keeps staff from creating VNPay links", () => {
         expect(canCreateVnpayPaymentUrlForRole(Role.STAFF)).toBe(false);
+    });
+});
+
+describe("createPaymentService", () => {
+    it("rejects manual payment creation from tenants", async () => {
+        await expect(createPaymentService(
+            {
+                invoice_id: 1,
+                payment_method: PAYMENT_METHODS.CASH
+            },
+            {
+                userId: 1,
+                tenantId: 1,
+                role: Role.TENANT,
+                status: UserStatus.ACTIVE
+            }
+        )).rejects.toMatchObject({
+            statusCode: 403,
+            code: "FORBIDDEN"
+        });
     });
 });

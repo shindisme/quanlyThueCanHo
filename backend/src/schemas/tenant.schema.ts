@@ -75,6 +75,24 @@ export const tenantIdRequestSchema = z.object({
     body: optionalEmptyBodySchema
 }).strict();
 
+export const myTenantProfileRequestSchema = z.object({
+    params: emptyObjectSchema,
+    query: emptyObjectSchema,
+    body: optionalEmptyBodySchema
+}).strict();
+
+export const updateMyTenantProfileRequestSchema = z.object({
+    params: emptyObjectSchema,
+    query: emptyObjectSchema,
+    body: z.object({
+        full_name: tenantFields.full_name.optional(),
+        phone: tenantFields.phone
+    }).strict().refine(
+        (body) => body.full_name !== undefined || body.phone !== undefined,
+        "Cần cung cấp ít nhất một trường dữ liệu"
+    )
+}).strict();
+
 export const updateTenantRequestSchema = z.object({
     params: idParamsSchema,
     query: emptyObjectSchema,
@@ -137,6 +155,12 @@ export type TenantIdRequest = z.infer<
 >;
 export type UpdateTenantRequest = z.infer<
     typeof updateTenantRequestSchema
+>;
+export type MyTenantProfileRequest = z.infer<
+    typeof myTenantProfileRequestSchema
+>;
+export type UpdateMyTenantProfileRequest = z.infer<
+    typeof updateMyTenantProfileRequestSchema
 >;
 export type ListMyOccupantsRequest = z.infer<
     typeof listMyOccupantsRequestSchema

@@ -40,7 +40,6 @@ export type CreatePaymentInput = CreatePaymentRequest["body"];
 export type CreateVnpayPaymentInput = CreateVnpayPaymentRequest["body"];
 
 export const PAYMENT_METHODS = {
-    BANK_TRANSFER: "BANK_TRANSFER",
     E_WALLET: "E_WALLET",
     CASH: "CASH"
 } as const;
@@ -283,9 +282,6 @@ const normalizePayment = (payment: PaymentWithRelations) => ({
 });
 
 const paymentMethodAliases: Record<string, PaymentMethod> = {
-    BANK_TRANSFER: PAYMENT_METHODS.BANK_TRANSFER,
-    CHUYEN_KHOAN: PAYMENT_METHODS.BANK_TRANSFER,
-    TRANSFER: PAYMENT_METHODS.BANK_TRANSFER,
     E_WALLET: PAYMENT_METHODS.E_WALLET,
     EWALLET: PAYMENT_METHODS.E_WALLET,
     ELECTRONIC_WALLET: PAYMENT_METHODS.E_WALLET,
@@ -968,26 +964,18 @@ export const createPaymentService = async (
     input: CreatePaymentInput,
     actor: Actor
 ) => {
-    const paymentMethod = normalizePaymentMethod(
-        input.payment_method
-    );
-    const status = input.status
-        ?? (
-            actor.role === Role.TENANT
-                ? PaymentStatus.PENDING
-                : PaymentStatus.SUCCESS
-        );
-
-    if (
-        actor.role === Role.TENANT
-        && status !== PaymentStatus.PENDING
-    ) {
+    if (actor.role === Role.TENANT) {
         throw new AppError(
             403,
             "FORBIDDEN",
-            "Khách thuê chỉ có thể tạo thanh toán ở trạng thái chờ"
+            "Khách thuê chỉ có thể thanh toán trực tuyến qua VNPay"
         );
     }
+
+    const paymentMethod = normalizePaymentMethod(
+        input.payment_method
+    );
+    const status = input.status ?? PaymentStatus.SUCCESS;
 
     if (
         input.amount !== undefined
@@ -1749,5 +1737,3 @@ export const handleVnpayCallbackService = async (
         response_code: responseCode
     });
 };
-
-

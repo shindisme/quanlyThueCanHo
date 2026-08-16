@@ -3,9 +3,10 @@ import { Pencil, Eye } from "lucide-react";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay } from "../../../../utils/string";
-import { meterUsage } from "../utils/utilityMeter";
+import { meterUsage } from "../../../../utils/utilityMeter";
 import type { UtilityReadingData } from "../../../../services/utilityService";
 import type { ApartmentData } from "../../../../services/apartmentService";
+import { getTableRowNumber } from "../../../../utils/table";
 
 interface UtilityListProps {
   paginatedApartments: ApartmentData[];
@@ -14,6 +15,7 @@ interface UtilityListProps {
   filterYear: string;
   currentPage: number;
   pageSize: number;
+  totalItems: number;
   sortConfig?: { key: string; direction: "asc" | "desc" } | null;
   onSort?: (key: string) => void;
   isLockedMonth: (month: number, year: number) => boolean;
@@ -30,6 +32,7 @@ export default function UtilityList({
   filterYear,
   currentPage,
   pageSize,
+  totalItems,
   sortConfig,
   onSort,
   isLockedMonth,
@@ -59,17 +62,18 @@ export default function UtilityList({
         label: "STT",
         className: "w-4 text-center",
         sortable: true,
+        preserveRenderIndex: true,
         sortValue: (apt: ApartmentData) => apt.id,
         render: (_, index: number) => (
           <span className="font-semibold text-gray-800 w-2">
-            {startIdx + index + 1}
+            {getTableRowNumber(index, startIdx, totalItems, sortConfig)}
           </span>
         ),
       },
       {
         key: "room",
         label: "Phòng",
-        sortable: true,
+        sortable: false,
         sortValue: (apt: ApartmentData) => formatApartmentDisplay(apt.room_number, apt.floor),
         render: (apt: ApartmentData) => {
           const room = formatApartmentDisplay(apt.room_number, apt.floor);
@@ -116,7 +120,7 @@ export default function UtilityList({
         key: "period",
         label: "Tháng / Năm",
         className: "text-center",
-        sortable: false,
+        sortable: true,
         render: () => (
           <span className="text-gray-600 font-medium">
             Tháng {filterMonth}/{filterYear}
@@ -126,7 +130,7 @@ export default function UtilityList({
       {
         key: "created_at",
         label: "Ngày ghi",
-        sortable: false,
+        sortable: true,
         render: (apt: ApartmentData) => {
           const r = readingMap.get(apt.id);
           return r ? (
@@ -197,6 +201,8 @@ export default function UtilityList({
     ],
     [
       startIdx,
+      totalItems,
+      sortConfig,
       role,
       filterMonth,
       filterYear,

@@ -7,7 +7,7 @@ import type { ApartmentData } from "../../../../services/apartmentService";
 import type { UtilityReadingData } from "../../../../services/utilityService";
 import { getMonthOptions, getYearOptions } from "../../../../utils/date";
 import { getApiErrorMessage } from "../../../../utils/apiError";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 import {
   type UtilityFormData,
   INITIAL_UTILITY_FORM_DATA,
@@ -79,7 +79,7 @@ export function useUtilityModify({
       utilityService.update(id, data),
     onSuccess: () => {
       toast.success("Cập nhật chỉ số điện nước thành công");
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.UTILITIES });
+      queryClient.invalidateQueries({ queryKey: queryKeys.utilities.all });
       resetForm();
       onSuccess();
       onClose();

@@ -7,7 +7,7 @@ import { useStaffForm } from "../hooks/useStaffForm";
 import { useCreateStaff } from "../hooks/useCreateStaff";
 import { useStaffFormFields } from "../hooks/useStaffFormFields";
 import { useUserRole } from "../../../../hooks/useUserRole";
-import { ACCOUNT_POSITIONS, type StaffPosition } from "../constants/staff";
+import { ACCOUNT_POSITIONS, type StaffPosition } from "../../../../constants/staff";
 import * as authService from "../../../../services/authService";
 import { toast } from "sonner";
 import type { StaffFormValues } from "../../../../schemas/staff.schema";
@@ -59,8 +59,8 @@ export default function StaffCreateModal({ isOpen, onClose, onSuccess }: StaffCr
           if (!isActor && res.user?.id) {
             try {
               await authService.remove(res.user.id);
-            } catch (e) {
-              console.error("Không thể xóa tài khoản hệ thống cho nhân viên", e);
+            } catch (error) {
+              console.error("Không thể xóa tài khoản hệ thống cho nhân viên", error);
               deleteFailed = true;
             }
           }

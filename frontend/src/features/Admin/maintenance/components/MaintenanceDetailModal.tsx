@@ -11,7 +11,7 @@ import {
   type RequestStatus,
   type Priority,
   type Role,
-} from "../../../../constants/enums";
+} from "../../../../constants";
 import type { MaintenanceRequest } from "../../../../types";
 
 interface MaintenanceDetailModalProps {
@@ -43,7 +43,6 @@ export default function MaintenanceDetailModal({
   isOpen,
   onClose,
   detailRequest,
-  role,
 }: MaintenanceDetailModalProps) {
   if (!detailRequest) return null;
 
@@ -111,7 +110,7 @@ export default function MaintenanceDetailModal({
                 alt="Hình ảnh sự cố thực tế"
                 loading="lazy"
                 onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=800&q=80";
+                  e.currentTarget.style.display = "none";
                 }}
                 className="w-full max-w-2xl max-h-96 object-contain rounded-none border border-gray-300 shadow-xs mx-auto group-hover:opacity-90 transition-opacity"
               />

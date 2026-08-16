@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as buildingService from "../../../../services/buildingService";
 import * as apartmentService from "../../../../services/apartmentService";
+import { queryKeys } from "../../../../constants/queryKeys";
 import { selectAvailableApartmentsByBuilding } from "./homeApartmentSelection";
 
 export function useHomePage() {
@@ -30,13 +31,13 @@ export function useHomePage() {
   });
 
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
-    queryKey: ["buildings"],
+    queryKey: queryKeys.buildings.all,
     queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data,
   });
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
-    queryKey: ["apartments-landing", "AVAILABLE"],
+    queryKey: queryKeys.apartments.list({ scope: "landing", status: "AVAILABLE" }),
     queryFn: () => apartmentService.getAllPage({ status: "AVAILABLE" }),
     select: (res) => res.data,
   });

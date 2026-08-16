@@ -6,7 +6,7 @@ import type { BuildingData } from "../../../../services/buildingService";
 import type { ApartmentData } from "../../../../services/apartmentService";
 import { getMonthOptions, getYearOptions, getPreviousMonth } from "../../../../utils/date";
 import { getApiErrorMessage } from "../../../../utils/apiError";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 import {
   type UtilityFormData,
   useUtilityOptions,
@@ -103,7 +103,7 @@ export function useUtilityCreate({
   const selectedApartmentId = formData.apartmentId ? Number(formData.apartmentId) : null;
 
   const { data: prevReading } = useQuery({
-    queryKey: ["previousUtilityReading", selectedApartmentId, previousMonth, previousYear],
+    queryKey: queryKeys.utilities.previousReading(selectedApartmentId, previousMonth, previousYear),
     queryFn: async () => {
       if (!selectedApartmentId) return null;
       const result = await utilityService.getAll({
@@ -145,7 +145,7 @@ export function useUtilityCreate({
     mutationFn: (data: CreatePayload) => utilityService.create(data),
     onSuccess: () => {
       toast.success("Thêm chỉ số điện nước thành công");
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.UTILITIES });
+      queryClient.invalidateQueries({ queryKey: queryKeys.utilities.all });
       resetForm();
       onSuccess();
       onClose();

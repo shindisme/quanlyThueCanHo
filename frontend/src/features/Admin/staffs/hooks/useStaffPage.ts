@@ -5,13 +5,13 @@ import { toast } from "sonner";
 import * as staffService from "../../../../services/staffService";
 import * as buildingService from "../../../../services/buildingService";
 import type { Staff } from "../../../../types";
-import type { Building } from "../../../../types";
 import { useDebounce } from "../../../../hooks/useDebounce";
 import { useOnOff } from "../../../../hooks/useOnOff";
 import { usePagination } from "../../../../hooks/usePagination";
+import { useSort } from "../../../../hooks/useSort";
 import { removeVietnameseTones } from "../../../../utils/string";
 import { useDeleteStaff } from "./useDeleteStaff";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 
 export function useStaffPage() {
   const { role, managedBuildingId } = useAuthStore();
@@ -29,17 +29,17 @@ export function useStaffPage() {
   const [viewItem, setViewItem] = useState<Staff | null>(null);
 
   const { data: staffRes, isLoading: loadingStaff, refetch: fetchStaff } = useQuery({
-    queryKey: QUERY_KEYS.STAFF,
+    queryKey: queryKeys.staff.all,
     queryFn: () => staffService.getAllPage(),
   });
 
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
-    queryKey: QUERY_KEYS.BUILDINGS,
+    queryKey: queryKeys.buildings.all,
     queryFn: () => buildingService.getAllPage(),
-    select: (res) => res.data as unknown as Building[],
+    select: (res) => res.data,
   });
 
-  const staffList = (staffRes?.data as unknown as Staff[]) || [];
+  const staffList = staffRes?.data || [];
   const loading = loadingStaff || loadingBuildings;
 
   function loadData() {
@@ -66,12 +66,20 @@ export function useStaffPage() {
     return matchSearch && matchPosition && matchBuilding;
   });
 
+  const { items: sorted, requestSort, sortConfig } = useSort(filtered, null, {
+    name: (staff) => staff.full_name,
+    phone: (staff) => staff.phone || "",
+    position: (staff) => staff.position || "",
+    building: (staff) => buildings.find((building) => building.id === staff.building_id)?.branch_name || "",
+    account: (staff) => staff.user?.username || "",
+  });
+
   const pagination = usePagination({
-    totalItems: filtered.length,
+    totalItems: sorted.length,
     initialPageSize: 10,
   });
 
-  const paginated = filtered.slice(pagination.startIdx, pagination.endIdx);
+  const paginated = sorted.slice(pagination.startIdx, pagination.endIdx);
 
   const deleteMutation = useDeleteStaff();
 
@@ -109,6 +117,7 @@ export function useStaffPage() {
     currentPage: pagination.currentPage,
     setCurrentPage: pagination.setCurrentPage,
     totalPages: pagination.totalPages,
+    startIdx: pagination.startIdx,
     pageSize: pagination.pageSize,
     createModal,
     modifyModal,
@@ -120,6 +129,8 @@ export function useStaffPage() {
     setViewItem,
     filtered,
     paginated,
+    requestSort,
+    sortConfig,
     handleDelete,
     getBuildingName,
     loadData,

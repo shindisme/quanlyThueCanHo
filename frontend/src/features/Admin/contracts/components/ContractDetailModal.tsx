@@ -12,7 +12,7 @@ import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import { Users } from "lucide-react";
 
-import { CONTRACT_STATUS_CONFIG, type ContractStatus } from "../../../../constants/enums";
+import { CONTRACT_STATUS_CONFIG, type ContractStatus } from "../../../../constants";
 
 interface ContractDetailModalProps {
   isOpen: boolean;

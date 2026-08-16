@@ -49,6 +49,7 @@ export interface CreateMaintenanceRequestPayload {
 export interface ConfirmMaintenanceRequestPayload {
   assigned_staff_id: number;
   scheduled_at: string;
+  priority?: Priority;
 }
 
 export interface UnableMaintenanceRequestPayload {

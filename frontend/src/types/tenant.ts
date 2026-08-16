@@ -30,6 +30,7 @@ export interface Tenant {
   invoices?: Invoice[];
   maintenance_requests?: MaintenanceRequest[];
   occupants?: TenantOccupant[];
+  _count?: { occupants: number };
 }
 
 export interface Occupant {
@@ -61,4 +62,4 @@ export interface OccupantForm {
   dob?: string | null;
   phone?: string | null;
 }
-
+

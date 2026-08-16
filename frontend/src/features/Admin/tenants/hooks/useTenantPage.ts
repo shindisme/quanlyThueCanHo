@@ -7,19 +7,14 @@ import * as contractService from "../../../../services/contractService";
 import * as apartmentService from "../../../../services/apartmentService";
 import * as buildingService from "../../../../services/buildingService";
 import type { Tenant } from "../../../../types";
-import type { Building } from "../../../../types";
-import type { Apartment } from "../../../../types";
 import { useDebounce } from "../../../../hooks/useDebounce";
 import { useOnOff } from "../../../../hooks/useOnOff";
 import { usePagination } from "../../../../hooks/usePagination";
+import { useSort } from "../../../../hooks/useSort";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import { useDeleteTenant } from "./useDeleteTenant";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
-
-// lấy hợp đồng đang ACTIVE nếu không có thì lấy hợp đồng đầu tiên
-export function getTenantActiveContract(tenant: Tenant) {
-  return tenant.contracts?.find((c) => c.status === "ACTIVE") ?? tenant.contracts?.[0];
-}
+import { queryKeys } from "../../../../constants/queryKeys";
+import { getPreferredContract } from "../../../../utils/contract";
 
 export function useTenantPage() {
   const { role, managedBuildingId } = useUserRole();
@@ -39,29 +34,29 @@ export function useTenantPage() {
   const [viewItem, setViewItem] = useState<Tenant | null>(null);
 
   const { data: tenantsRes, isLoading: loadingTenants, refetch: refetchTenants } = useQuery({
-    queryKey: QUERY_KEYS.TENANTS,
+    queryKey: queryKeys.tenants.all,
     queryFn: () => tenantService.getAllPage(),
-    select: (res) => res.data as unknown as Tenant[],
+    select: (res) => res.data,
   });
   const tenants = tenantsRes || [];
 
   const { data: contractsRes, isLoading: loadingContracts, refetch: refetchContracts } = useQuery({
-    queryKey: QUERY_KEYS.CONTRACTS,
-    queryFn: () => contractService.getAllContractsPage(),
+    queryKey: queryKeys.contracts.all,
+    queryFn: () => contractService.getAllPage(),
     select: (res) => res.data,
   });
   const contracts = contractsRes || [];
 
   const { data: apartments = [], isLoading: loadingApartments, refetch: refetchApartments } = useQuery({
-    queryKey: QUERY_KEYS.APARTMENTS,
+    queryKey: queryKeys.apartments.all,
     queryFn: () => apartmentService.getAllPage(),
-    select: (res) => res.data as unknown as Apartment[],
+    select: (res) => res.data,
   });
 
   const { data: buildings = [], isLoading: loadingBuildings, refetch: refetchBuildings } = useQuery({
-    queryKey: QUERY_KEYS.BUILDINGS,
+    queryKey: queryKeys.buildings.all,
     queryFn: () => buildingService.getAllPage(),
-    select: (res) => res.data as unknown as Building[],
+    select: (res) => res.data,
   });
 
   const loading = loadingTenants || loadingContracts || loadingApartments || loadingBuildings;
@@ -120,9 +115,9 @@ export function useTenantPage() {
               : undefined,
           },
         ],
-      } as unknown as Tenant;
+      };
     }
-    return { ...t, contracts: [] } as unknown as Tenant;
+    return { ...t, contracts: [] };
   });
 
   const availableFloors = useMemo(() => {
@@ -170,9 +165,21 @@ export function useTenantPage() {
     return nameNorm.includes(term) || citizenNorm.includes(term);
   });
 
+  const { items: sorted, requestSort, sortConfig } = useSort(filtered, null, {
+    name: (tenant) => tenant.full_name,
+    apartment: (tenant) => {
+      const apartment = getPreferredContract(tenant.contracts)?.apartment;
+      return apartment
+        ? `${apartment.building?.branch_name || ""}-${apartment.floor}-${apartment.room_number}`
+        : "";
+    },
+    phone: (tenant) => tenant.phone || "",
+    citizen_id: (tenant) => tenant.citizen_id,
+  });
+
   // Pagination
   const { currentPage, setCurrentPage, totalPages, startIdx, endIdx } = usePagination({
-    totalItems: filtered.length,
+    totalItems: sorted.length,
     initialPageSize: 10,
   });
 
@@ -201,7 +208,7 @@ export function useTenantPage() {
     });
   }
 
-  const paginated = filtered.slice(startIdx, endIdx);
+  const paginated = sorted.slice(startIdx, endIdx);
 
   return {
     search,
@@ -221,6 +228,8 @@ export function useTenantPage() {
     setViewItem,
     filtered,
     paginated,
+    requestSort,
+    sortConfig,
     loadData,
     handleDelete,
     loading,

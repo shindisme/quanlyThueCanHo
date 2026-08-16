@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import * as apartmentService from "../../../../services/apartmentService";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 import type { Apartment } from "../../../../types";
 import { buildingService } from "../../../../services";
 
@@ -25,7 +25,7 @@ export function useBuildingDetail() {
     isError: isErrorBuilding,
     refetch: refetchBuilding,
   } = useQuery({
-    queryKey: [...QUERY_KEYS.BUILDINGS, id],
+    queryKey: queryKeys.buildings.detail(id),
     queryFn: () => buildingService.getById(buildingId),
     enabled: Boolean(id) && !isNaN(buildingId),
   });
@@ -37,7 +37,7 @@ export function useBuildingDetail() {
     isError: isErrorApartments,
     refetch: refetchApartments,
   } = useQuery({
-    queryKey: [...QUERY_KEYS.APARTMENTS, "building", id],
+    queryKey: queryKeys.apartments.list({ buildingId: id }),
     queryFn: () => apartmentService.getAllPage({ building_id: buildingId }),
     select: (res) => res.data,
     enabled: Boolean(id) && !isNaN(buildingId),

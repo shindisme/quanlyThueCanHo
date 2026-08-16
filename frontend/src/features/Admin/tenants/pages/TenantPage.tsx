@@ -32,6 +32,8 @@ export default function TenantPage() {
     setViewItem,
     filtered,
     paginated,
+    requestSort,
+    sortConfig,
     handleDelete,
     loading,
     role,
@@ -147,6 +149,9 @@ export default function TenantPage() {
           paginatedTenants={paginated}
           role={role}
           startIdx={startIdx}
+          totalItems={filtered.length}
+          sortConfig={sortConfig}
+          onSort={(key) => { requestSort(key); setCurrentPage(1); }}
           setViewItem={setViewItem}
           setEditItem={setEditItem}
           onOpenModifyModal={modifyModal.onOpen}

@@ -12,6 +12,7 @@ import * as notificationService from "../services/notificationService";
 import * as paymentService from "../services/paymentService";
 import * as scheduleService from "../services/scheduleService";
 import * as utilityService from "../services/utilityService";
+import { queryKeys } from "../constants/queryKeys";
 
 export function useSystemPrefetch(role: string | null) {
   const queryClient = useQueryClient();
@@ -22,65 +23,65 @@ export function useSystemPrefetch(role: string | null) {
     const prefetchData = async () => {
       try {
         await queryClient.prefetchQuery({
-          queryKey: ["buildings"],
-          queryFn: () => buildingService.getAllBuildingsPage(),
+          queryKey: queryKeys.buildings.all,
+          queryFn: () => buildingService.getAllPage(),
         });
 
         await queryClient.prefetchQuery({
-          queryKey: ["apartments"],
-          queryFn: () => apartmentService.getAllApartmentsPage(),
+          queryKey: queryKeys.apartments.all,
+          queryFn: () => apartmentService.getAllPage(),
         });
         await queryClient.prefetchQuery({
-          queryKey: ["contracts"],
-          queryFn: () => contractService.getAllContractsPage(),
-        });
-
-        await queryClient.prefetchQuery({
-          queryKey: ["invoices"],
-          queryFn: () => invoiceService.getAllInvoicesPage(),
+          queryKey: queryKeys.contracts.all,
+          queryFn: () => contractService.getAllPage(),
         });
 
         await queryClient.prefetchQuery({
-          queryKey: ["schedules"],
-          queryFn: () => scheduleService.getAllSchedulesPage(),
+          queryKey: queryKeys.invoices.all,
+          queryFn: () => invoiceService.getAllPage(),
         });
 
         await queryClient.prefetchQuery({
-          queryKey: ["notifications", "", ""],
-          queryFn: () => notificationService.getAllNotificationsPage(),
+          queryKey: queryKeys.schedules.all,
+          queryFn: () => scheduleService.getAllPage(),
+        });
+
+        await queryClient.prefetchQuery({
+          queryKey: queryKeys.notifications.list(),
+          queryFn: () => notificationService.getAllPage(),
         });
 
         if (role === "ADMIN" || role === "MANAGER" || role === "STAFF") {
           await queryClient.prefetchQuery({
-            queryKey: ["tenants"],
-            queryFn: () => tenantService.getAllTenantsPage(),
+            queryKey: queryKeys.tenants.all,
+            queryFn: () => tenantService.getAllPage(),
           });
 
           await queryClient.prefetchQuery({
-            queryKey: ["staff"],
-            queryFn: () => staffService.getAllStaffsPage(),
+            queryKey: queryKeys.staff.all,
+            queryFn: () => staffService.getAllPage(),
           });
 
           await queryClient.prefetchQuery({
-            queryKey: ["users"],
-            queryFn: () => authService.getAllUsersPage(),
+            queryKey: queryKeys.users.all,
+            queryFn: () => authService.getAllPage(),
           });
 
           await queryClient.prefetchQuery({
-            queryKey: ["payments", "", "", "", ""],
-            queryFn: () => paymentService.getAllPaymentsPage(),
+            queryKey: queryKeys.payments.list(),
+            queryFn: () => paymentService.getAllPage(),
           });
 
           const curM = String(new Date().getMonth() + 1);
           const curY = String(new Date().getFullYear());
           await queryClient.prefetchQuery({
-            queryKey: ["utilityReadings", role, undefined, "", curM, curY],
-            queryFn: () => utilityService.getAllUtilityReadingsPage({ month: Number(curM), year: Number(curY) }),
+            queryKey: queryKeys.utilities.list({ role, month: Number(curM), year: Number(curY) }),
+            queryFn: () => utilityService.getAllPage({ month: Number(curM), year: Number(curY) }),
           });
 
           await queryClient.prefetchQuery({
-            queryKey: ["adminMaintenanceRequests", "", "", "", role, undefined],
-            queryFn: () => maintenanceService.getAllMaintenanceRequests(),
+            queryKey: queryKeys.maintenance.list({ role }),
+            queryFn: () => maintenanceService.getAll(),
           });
         }
       } catch (error) {

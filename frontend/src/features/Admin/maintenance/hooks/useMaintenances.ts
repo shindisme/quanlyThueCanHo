@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 import * as maintenanceService from "../../../../services/maintenanceService";
 import { useAuthStore } from "../../../../stores/auth.store";
 
@@ -14,9 +14,9 @@ export function useMaintenances(filters: UseMaintenancesParams = {}) {
   const { statusFilter, priorityFilter, buildingFilter } = filters;
 
   return useQuery({
-    queryKey: [QUERY_KEYS.MAINTENANCE[0], statusFilter, priorityFilter, buildingFilter, role, managedBuildingId],
+    queryKey: queryKeys.maintenance.list({ statusFilter, priorityFilter, buildingFilter, role, managedBuildingId }),
     queryFn: () => {
-      const params: Parameters<typeof maintenanceService.getAll>[0] = {};
+      const params: Parameters<typeof maintenanceService.getAllPage>[0] = {};
       if (statusFilter) params.status = statusFilter;
       if (priorityFilter) params.priority = priorityFilter;
 
@@ -25,7 +25,7 @@ export function useMaintenances(filters: UseMaintenancesParams = {}) {
       } else if (buildingFilter) {
         params.building_id = Number(buildingFilter);
       }
-      return maintenanceService.getAll(params);
+      return maintenanceService.getAllPage(params);
     },
     enabled: !!token,
     select: (res) => res.data || [],

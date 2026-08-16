@@ -53,7 +53,7 @@ router.get(
 
 router.post(
     "/",
-    authorizeRole(paymentRoles),
+    authorizeRole([Role.ADMIN, Role.MANAGER]),
     validate(createPaymentRequestSchema),
     paymentController.create
 );

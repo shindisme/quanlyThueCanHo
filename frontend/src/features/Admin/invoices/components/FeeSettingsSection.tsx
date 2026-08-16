@@ -10,9 +10,6 @@ interface FeeSettingsSectionProps {
   setManagementFeePerM2: (val: string) => void;
 }
 
-const ELECTRIC_LABELS = ["B1", "B2", "B3", "B4", "B5", "B6"];
-const WATER_LABELS = ["B1", "B2", "B3"];
-
 export default function FeeSettingsSection({
   feeSettings,
   internetFee,
@@ -33,8 +30,8 @@ export default function FeeSettingsSection({
           <span className="font-semibold text-gray-600 block mb-1">Điện 6 bậc (đ/kWh):</span>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
             {feeSettings.electricityRates.map((rate, idx) => (
-              <div key={ELECTRIC_LABELS[idx]} className="bg-gray-100 border border-gray-200 rounded-lg p-2 text-center">
-                <span className="text-[10px] text-gray-400 font-bold block">{ELECTRIC_LABELS[idx]}</span>
+              <div key={`electric-tier-${idx + 1}`} className="bg-gray-100 border border-gray-200 rounded-lg p-2 text-center">
+                <span className="text-[10px] text-gray-400 font-bold block">B{idx + 1}</span>
                 <span className="font-bold text-gray-800">{formatCurrency(rate)}</span>
               </div>
             ))}
@@ -45,8 +42,8 @@ export default function FeeSettingsSection({
           <span className="font-semibold text-gray-600 block mb-1">Nước 3 bậc (đ/m³):</span>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {feeSettings.waterRates.map((rate, idx) => (
-              <div key={WATER_LABELS[idx]} className="bg-gray-100 border border-gray-200 rounded-lg p-2 text-center">
-                <span className="text-[10px] text-gray-400 font-bold block">{WATER_LABELS[idx]}</span>
+              <div key={`water-tier-${idx + 1}`} className="bg-gray-100 border border-gray-200 rounded-lg p-2 text-center">
+                <span className="text-[10px] text-gray-400 font-bold block">B{idx + 1}</span>
                 <span className="font-bold text-gray-800">{formatCurrency(rate)}</span>
               </div>
             ))}

@@ -3,7 +3,7 @@ import { Search } from "lucide-react";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import Badge from "../../../../components/ui/Badge";
 import Combobox from "../../../../components/ui/Combobox";
-import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../../../constants/enums";
+import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../../../constants";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatApartmentDisplay } from "../../../../utils/string";
 

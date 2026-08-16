@@ -17,7 +17,7 @@ import { usePagination } from "../../../../hooks/usePagination";
 import { removeVietnameseTones } from "../../../../utils/string";
 import type { User, Tenant, Staff, RentalContract, Apartment, Building } from "../../../../types";
 import { toast } from "sonner";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 
 const ROLE_SORT_MAP: Record<string, string> = {
   ADMIN: "1_Admin",
@@ -45,31 +45,31 @@ export function useUserPage() {
   const { data: users = [], isLoading: loadingUsers, refetch: fetchUsers } = useUsers();
 
   const { data: tenants = [], isLoading: loadingTenants } = useQuery({
-    queryKey: QUERY_KEYS.TENANTS,
+    queryKey: queryKeys.tenants.all,
     queryFn: () => tenantService.getAllPage(),
     select: (res) => res.data || [],
   });
 
   const { data: staff = [], isLoading: loadingStaff } = useQuery({
-    queryKey: QUERY_KEYS.STAFF,
+    queryKey: queryKeys.staff.all,
     queryFn: () => staffService.getAllPage(),
     select: (res) => res.data || [],
   });
 
   const { data: contracts = [], isLoading: loadingContracts } = useQuery({
-    queryKey: QUERY_KEYS.CONTRACTS,
-    queryFn: () => contractService.getAllContractsPage(),
+    queryKey: queryKeys.contracts.all,
+    queryFn: () => contractService.getAllPage(),
     select: (res) => res.data || [],
   });
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
-    queryKey: QUERY_KEYS.APARTMENTS,
+    queryKey: queryKeys.apartments.all,
     queryFn: () => apartmentService.getAllPage(),
     select: (res) => res.data || [],
   });
 
   const { data: buildings = [], isLoading: loadingBuildings } = useQuery({
-    queryKey: QUERY_KEYS.BUILDINGS,
+    queryKey: queryKeys.buildings.all,
     queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data || [],
   });

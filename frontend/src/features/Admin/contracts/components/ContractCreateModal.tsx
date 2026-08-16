@@ -38,7 +38,6 @@ export default function ContractCreateModal({
   buildings,
   apartments,
   tenants,
-  currentUser,
   role,
   managerBuildingId,
   initialData,
@@ -73,9 +72,7 @@ export default function ContractCreateModal({
     buildingApartments,
   } = useContractCreate({
     isOpen,
-    onClose,
     onSuccess,
-    currentUser: currentUser || { id: 1 },
     role,
     managerBuildingId,
     initialTenantId: resolvedTenantId,
@@ -121,9 +118,9 @@ export default function ContractCreateModal({
                 options={buildings.map((b) => ({ value: String(b.id), label: b.branch_name }))}
                 value={buildingIdValue ? String(buildingIdValue) : ""}
                 onChange={(val) => {
-                  setValue("building_id", val ? Number(val) : (undefined as unknown as number));
-                  setValue("floor", undefined as unknown as number);
-                  setValue("apartment_id", undefined as unknown as number);
+                  setValue("building_id", val ? Number(val) : undefined);
+                  setValue("floor", undefined);
+                  setValue("apartment_id", undefined);
                 }}
                 disabled={role === "MANAGER"}
                 placeholder="Chọn chi nhánh"
@@ -140,8 +137,8 @@ export default function ContractCreateModal({
               options={formFloors.map((floor) => ({ value: String(floor), label: `Tầng ${floor}` }))}
               value={floorValue !== undefined && floorValue !== null ? String(floorValue) : ""}
               onChange={(val) => {
-                setValue("floor", val !== "" ? Number(val) : (undefined as unknown as number));
-                setValue("apartment_id", undefined as unknown as number);
+                setValue("floor", val !== "" ? Number(val) : undefined);
+                setValue("apartment_id", undefined);
               }}
               disabled={loadingApartments || !buildingIdValue}
               placeholder="Chọn tầng"
@@ -156,7 +153,7 @@ export default function ContractCreateModal({
               label="Căn hộ *"
               options={formApartments.map((a) => ({ value: String(a.id), label: `P.${a.room_number} (${a.area}m²)` }))}
               value={apartmentIdValue ? String(apartmentIdValue) : ""}
-              onChange={(val) => setValue("apartment_id", val ? Number(val) : (undefined as unknown as number))}
+              onChange={(val) => setValue("apartment_id", val ? Number(val) : undefined)}
               disabled={!floorValue || loadingApartments}
               placeholder={loadingApartments ? "Đang tải căn hộ..." : "Chọn căn hộ"}
               searchPlaceholder="Tìm căn hộ..."

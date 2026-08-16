@@ -8,7 +8,7 @@ export interface NotificationMetaItem {
   label: string;
 }
 
-export const NOTIFICATION_META: Record<string, NotificationMetaItem> = {
+export const NOTIFICATION_META = {
   INVOICE: {
     icon: React.createElement(Receipt, { size: 14, className: "text-emerald-600" }),
     bgClass: "bg-emerald-50",
@@ -24,13 +24,25 @@ export const NOTIFICATION_META: Record<string, NotificationMetaItem> = {
     bgClass: "bg-blue-50",
     label: "Hệ thống",
   },
+  GENERAL: {
+    icon: React.createElement(Mail, { size: 14, className: "text-gray-500" }),
+    bgClass: "bg-gray-100",
+    label: "Thông báo",
+  },
+  CHAT: {
+    icon: React.createElement(Mail, { size: 14, className: "text-violet-600" }),
+    bgClass: "bg-violet-50",
+    label: "Tin nhắn",
+  },
   DEFAULT: {
     icon: React.createElement(Mail, { size: 14, className: "text-gray-500" }),
     bgClass: "bg-gray-100",
     label: "Thông báo",
   },
-};
+} satisfies Record<NotificationType | "DEFAULT", NotificationMetaItem>;
 
 export function getNotificationMeta(type: NotificationType | string): NotificationMetaItem {
-  return NOTIFICATION_META[type] || NOTIFICATION_META.DEFAULT;
+  return type in NOTIFICATION_META
+    ? NOTIFICATION_META[type as keyof typeof NOTIFICATION_META]
+    : NOTIFICATION_META.DEFAULT;
 }

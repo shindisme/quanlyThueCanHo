@@ -5,7 +5,7 @@ import Combobox from "../../../../components/ui/Combobox";
 import CurrencyInput from "../../../../components/ui/CurrencyInput";
 import Button from "../../../../components/ui/Button";
 import type { Building } from "../../../../types";
-import { APARTMENT_STATUS_OPTIONS } from "../../../../constants/enums";
+import { APARTMENT_MANAGEABLE_STATUS_OPTIONS, APARTMENT_STATUS_OPTIONS } from "../../../../constants";
 import type { ApartmentFormValues } from "../../../../schemas/apartment.schema";
 
 interface ApartmentFormFieldsProps {
@@ -36,6 +36,11 @@ export default function ApartmentFormFields({
   const { register, control, watch, formState: { errors } } = form;
 
   const selectedBuildingId = watch("building_id");
+  const currentStatus = watch("status");
+  const isSystemManagedStatus = isEdit && ["RESERVED", "RENTED", "VACATING_SOON"].includes(currentStatus);
+  const statusOptions = isSystemManagedStatus
+    ? APARTMENT_STATUS_OPTIONS.filter((option) => option.value === currentStatus)
+    : APARTMENT_MANAGEABLE_STATUS_OPTIONS;
   const selectedBuilding = useMemo(
     () => buildings.find((b) => Number(b.id) === Number(selectedBuildingId)),
     [buildings, selectedBuildingId]
@@ -157,17 +162,25 @@ export default function ApartmentFormFields({
           control={control}
           name="status"
           render={({ field, fieldState: { error } }) => (
-            <Combobox
-              label="Trạng thái *"
-              options={APARTMENT_STATUS_OPTIONS}
-              value={field.value}
-              onChange={field.onChange}
-              placeholder="Chọn trạng thái"
-              searchable={false}
-              triggerClassName="rounded-md"
-              clearable={false}
-              error={error?.message}
-            />
+            <div>
+              <Combobox
+                label="Trạng thái *"
+                options={statusOptions}
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Chọn trạng thái"
+                searchable={false}
+                triggerClassName="rounded-md"
+                clearable={false}
+                disabled={isSystemManagedStatus}
+                error={error?.message}
+              />
+              {isSystemManagedStatus && (
+                <p className="mt-1.5 text-xs text-gray-500">
+                  Trạng thái này được hệ thống cập nhật theo quy trình giữ chỗ, hợp đồng và trả phòng.
+                </p>
+              )}
+            </div>
           )}
         />
       </div>

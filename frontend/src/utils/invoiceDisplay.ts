@@ -1,6 +1,14 @@
 import type { Invoice } from "../types";
-import type { InvoiceType } from "../constants/enums";
+import type { InvoiceStatus, InvoiceType } from "../constants/enums";
 import { formatApartmentDisplay } from "./string";
+
+const SUPPORTED_INVOICE_TYPES: readonly InvoiceType[] = [
+  "DEPOSIT",
+  "FIRST_RENT",
+  "MONTHLY",
+  "MAINTENANCE",
+  "FINAL_SETTLEMENT",
+];
 
 export function getInvoiceType(invoice: Pick<Invoice, "type" | "invoice_code">): InvoiceType {
   if (invoice.invoice_code?.startsWith("MNT-")) {
@@ -12,7 +20,20 @@ export function getInvoiceType(invoice: Pick<Invoice, "type" | "invoice_code">):
   if (invoice.invoice_code?.startsWith("DEP-")) {
     return "DEPOSIT";
   }
-  return (invoice.type as InvoiceType) || "MONTHLY";
+  return SUPPORTED_INVOICE_TYPES.includes(invoice.type as InvoiceType)
+    ? invoice.type as InvoiceType
+    : "MONTHLY";
+}
+
+export function getInvoiceStatus(
+  invoice: Pick<Invoice, "status" | "due_date">
+): InvoiceStatus {
+  if (invoice.status !== "UNPAID") return invoice.status;
+
+  const dueDate = new Date(invoice.due_date);
+  if (Number.isNaN(dueDate.getTime())) return invoice.status;
+  dueDate.setHours(23, 59, 59, 999);
+  return dueDate.getTime() < Date.now() ? "OVERDUE" : "UNPAID";
 }
 
 export function getInvoiceApartment(invoice: Invoice) {

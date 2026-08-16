@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { APARTMENT_STATUS_VALUES } from "../constants/enums";
 
 export const apartmentSchema = z.object({
   room_number: z
@@ -32,8 +33,7 @@ export const apartmentSchema = z.object({
     .max(5000, { message: "Mô tả tối đa 5000 ký tự" })
     .optional()
     .nullable(),
-  status: z
-    .string(),
+  status: z.enum(APARTMENT_STATUS_VALUES),
 });
 
 export type ApartmentFormValues = z.infer<typeof apartmentSchema>;

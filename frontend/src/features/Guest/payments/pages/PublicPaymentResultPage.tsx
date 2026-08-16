@@ -42,7 +42,7 @@ export default function PublicPaymentResultPage() {
               ? "Giao dịch thanh toán tiền cọc/hóa đơn đã được ghi nhận thành công. Vui lòng kiểm tra thông tin hoặc Email xác nhận."
               : isCancelled
               ? "Bạn đã hủy thao tác thanh toán trên cổng VNPay."
-              : "Thao tác thanh toán không thành công. Vui lòng kiểm tra lại tài khoản ngân hàng hoặc thử lại sau."}
+              : "Thao tác thanh toán VNPay không thành công. Vui lòng kiểm tra lại thông tin hoặc thử lại sau."}
           </p>
         </div>
 

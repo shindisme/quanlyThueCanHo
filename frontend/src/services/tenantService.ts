@@ -57,6 +57,16 @@ export async function update(id: number, data: Partial<Tenant>): Promise<Tenant>
   return res.data.data || (res.data as unknown as Tenant);
 }
 
+export async function getMyProfile(): Promise<Tenant> {
+  const res = await api.get<{ data: Tenant }>(`${TENANT_API}/me`);
+  return res.data.data;
+}
+
+export async function updateMyProfile(data: Pick<Tenant, "full_name"> & { phone?: string | null }): Promise<Tenant> {
+  const res = await api.put<{ data: Tenant }>(`${TENANT_API}/me`, data);
+  return res.data.data;
+}
+
 export async function remove(id: number): Promise<void> {
   await api.delete(`${TENANT_API}/${id}`);
 }
@@ -89,6 +99,8 @@ export const tenantService = {
   create,
   getById,
   update,
+  getMyProfile,
+  updateMyProfile,
   remove,
   getMyOccupants,
   createMyOccupant,

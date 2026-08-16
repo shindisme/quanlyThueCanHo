@@ -157,8 +157,9 @@ export default function UtilitiesPage() {
         filterYear={filterYear}
         currentPage={currentPage}
         pageSize={pageSize}
+        totalItems={filteredRentedApartments.length}
         sortConfig={sortConfig}
-        onSort={requestSort}
+        onSort={(key) => { requestSort(key); setCurrentPage(1); }}
         isLockedMonth={isLockedMonth}
         isWritable={isWritable}
         handleOpenCreateModal={handleOpenCreateModal}

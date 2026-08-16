@@ -6,12 +6,11 @@ import type {
   ContractTermination,
   TerminationDamageItem,
   DepositPolicy,
-  Invoice,
   RentalContract,
   TerminationInspectionPayload,
 } from "../../../../types";
 import { contractTerminationService, invoiceService, utilityService } from "../../../../services";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 
 const MAX_METER_VALUE = 100000;
 const MAX_INPUT_METER = 99999;
@@ -97,7 +96,7 @@ async function fetchCheckoutInitialData(contract: RentalContract | null, current
     waterNew = waterOld;
   }
 
-  const unpaidInvoices = (invoicesContractRes.data || []) as unknown as Invoice[];
+  const unpaidInvoices = invoicesContractRes.data || [];
   const unpaidAmount = unpaidInvoices.reduce((sum, inv) => sum + Number(inv.total_amount), 0);
 
   return {
@@ -161,7 +160,7 @@ export function useCheckout({ contract, termination, isOpen, onClose }: UseCheck
   }, [isOpen, resetState]);
 
   const { data: initialData, isLoading: loadingData } = useQuery({
-    queryKey: ["checkout-initial-data", contract?.id],
+    queryKey: queryKeys.terminations.checkout(contract?.id),
     queryFn: () => fetchCheckoutInitialData(contract, currentMonth, currentYear),
     enabled: isOpen && !!contract,
   });
@@ -264,10 +263,10 @@ export function useCheckout({ contract, termination, isOpen, onClose }: UseCheck
     onSuccess: async () => {
       toast.success("Hoàn tất bàn giao và thanh lý hợp đồng thành công!");
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.TERMINATIONS }),
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CONTRACTS }),
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.APARTMENTS }),
-        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.INVOICES }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.terminations.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.contracts.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.apartments.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all }),
       ]);
       onClose({ completed: true });
     },
@@ -399,4 +398,3 @@ export function useCheckout({ contract, termination, isOpen, onClose }: UseCheck
     },
   };
 }
-

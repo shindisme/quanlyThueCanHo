@@ -1,5 +1,5 @@
 import api from "../lib/api";
-import type { Payment, PaymentFilters, CreatePaymentPayload, CreateVnpayPaymentPayload, CreateVnpayPaymentResult, ApiPagination } from "../types";
+import type { Payment, PaymentFilters, CreatePaymentPayload, CreateVnpayPaymentPayload, CreateVnpayPaymentResult, PaymentMethod, PaymentMethodOption, PaymentStatus, ApiPagination } from "../types";
 export type { PaymentFilters, CreatePaymentPayload, CreateVnpayPaymentPayload, CreateVnpayPaymentResult };
 import { fetchAllPages } from "./apiHelper";
 
@@ -32,7 +32,7 @@ interface CreateVnpayPaymentResponse {
     payment_id: number;
     invoice_id: number;
     transaction_code: string;
-    payment_method: string;
+    payment_method: PaymentMethod;
     amount: number;
     payment_url: string;
     qr_code_data_url?: string;
@@ -55,13 +55,13 @@ export async function createVnpayPayment(payload: CreateVnpayPaymentPayload): Pr
   };
 }
 
-export async function updateStatus(id: number, status: string): Promise<Payment> {
+export async function updateStatus(id: number, status: PaymentStatus): Promise<Payment> {
   const res = await api.patch<{ data: Payment }>(`${PAYMENT_API}/${id}/status`, { status });
   return res.data.data;
 }
 
-export async function getPaymentMethods(): Promise<string[]> {
-  const res = await api.get<{ data: string[] }>(`${PAYMENT_API}/methods`);
+export async function getPaymentMethods(): Promise<PaymentMethodOption[]> {
+  const res = await api.get<{ data: PaymentMethodOption[] }>(`${PAYMENT_API}/methods`);
   return res.data.data || [];
 }
 

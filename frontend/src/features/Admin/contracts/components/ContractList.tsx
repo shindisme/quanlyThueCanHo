@@ -3,21 +3,24 @@ import { Eye, FileText, Calendar as CalendarIcon, XCircle, CheckCircle, Clipboar
 import Badge from "../../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import {
-  CONTRACT_STATUS_LABELS,
-  CONTRACT_STATUS_COLORS,
   CONTRACT_STATUS_CONFIG,
   CONTRACT_TERMINATION_STATUS_CONFIG,
   type ContractStatus,
-} from "../../../../constants/enums";
+} from "../../../../constants";
 import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import type { ContractTermination, RentalContract } from "../../../../types";
 import type { Tenant } from "../../../../types";
 import type { Apartment } from "../../../../types";
 import type { Building } from "../../../../types";
+import { getTableRowNumber } from "../../../../utils/table";
 
 interface ContractListProps {
   paginatedContracts: RentalContract[];
+  startIdx: number;
+  totalItems: number;
+  sortConfig: { key: string; direction: "asc" | "desc" } | null;
+  onSort: (key: string) => void;
   tenants: Tenant[];
   apartments: Apartment[];
   buildings: Building[];
@@ -49,6 +52,10 @@ function getTerminationStatusPrefix(termination: ContractTermination) {
 
 export default function ContractList({
   paginatedContracts,
+  startIdx,
+  totalItems,
+  sortConfig,
+  onSort,
   tenants,
   apartments,
   buildings,
@@ -72,10 +79,7 @@ export default function ContractList({
 
   const getStatusBadge = useCallback((status: ContractStatus) => {
     const config = CONTRACT_STATUS_CONFIG[status];
-    if (config) return <Badge variant={config.badge}>{config.label}</Badge>;
-    const label = CONTRACT_STATUS_LABELS[status] || status;
-    const variant = CONTRACT_STATUS_COLORS[status] || "gray";
-    return <Badge variant={variant}>{label}</Badge>;
+    return <Badge variant={config.badge}>{config.label}</Badge>;
   }, []);
 
   const tenantName = useCallback(
@@ -137,13 +141,13 @@ export default function ContractList({
         );
       }
 
-      if (contract.status === "ACTIVE" || overdueCandidateIds.has(contract.id)) {
+      if (overdueCandidateIds.has(contract.id)) {
         return (
           <button
             disabled={isTerminationActionPending}
             onClick={() => onCreateOverdueTermination(contract)}
             className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer disabled:opacity-60"
-            title="Thanh lý hợp đồng"
+            title="Thanh lý do nợ quá hạn trên 7 ngày"
           >
             <XCircle size={16} />
           </button>
@@ -170,7 +174,8 @@ export default function ContractList({
         key: "index",
         label: "STT",
         className: "w-4",
-        render: (_, index: number) => <span className="font-semibold text-gray-800 w-2">{index + 1}</span>,
+        preserveRenderIndex: true,
+        render: (_, index: number) => <span className="font-semibold text-gray-800 w-2">{getTableRowNumber(index, startIdx, totalItems, sortConfig)}</span>,
       },
       {
         key: "id",
@@ -181,6 +186,7 @@ export default function ContractList({
       {
         key: "tenant",
         label: "Người thuê",
+        sortable: false,
         sortValue: (c) => tenantName(c),
         render: (c) => <span className="font-medium text-gray-700">{tenantName(c) || "-"}</span>,
       },
@@ -216,6 +222,7 @@ export default function ContractList({
       {
         key: "status",
         label: "Trạng thái",
+        sortable: false,
         sortValue: (c) => openTerminationsByContractId.get(c.id)?.status || c.status,
         render: (c) => {
           const termination = openTerminationsByContractId.get(c.id);
@@ -230,7 +237,12 @@ export default function ContractList({
                   {getTerminationStatusPrefix(termination)}: {getTerminationLabel(termination)}
                 </Badge>
               ) : (
-                getStatusBadge(c.status as ContractStatus)
+                <>
+                  {getStatusBadge(c.status as ContractStatus)}
+                  {overdueCandidateIds.has(c.id) && (
+                    <Badge variant="danger">Nợ quá hạn trên 7 ngày</Badge>
+                  )}
+                </>
               )}
             </div>
           );
@@ -289,9 +301,13 @@ export default function ContractList({
       contractApartment,
       contractBuilding,
       getStatusBadge,
+      overdueCandidateIds,
       openTerminationsByContractId,
       renderTerminationActions,
       role,
+      startIdx,
+      totalItems,
+      sortConfig,
       setExtendEndDate,
       setSelectedDetailContract,
       setSelectedDocContract,
@@ -303,7 +319,13 @@ export default function ContractList({
 
   return (
     <div className="mt-6">
-      <DataTable columns={columns} data={paginatedContracts} emptyMessage="Không tìm thấy hợp đồng nào." />
+      <DataTable
+        columns={columns}
+        data={paginatedContracts}
+        sortConfig={sortConfig}
+        onSort={onSort}
+        emptyMessage="Không tìm thấy hợp đồng nào."
+      />
     </div>
   );
 }

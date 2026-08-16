@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 
 interface MaintenanceMutationOptions<TData, TVariables> {
   mutationFn: (variables: TVariables) => Promise<TData>;
@@ -23,7 +23,7 @@ export function useMaintenanceMutation<TData = unknown, TVariables = unknown>({
     mutationFn,
     onSuccess: (data, variables) => {
       toast.success(successMessage);
-      void queryClient.invalidateQueries({ queryKey: QUERY_KEYS.MAINTENANCE });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.maintenance.all });
       for (const key of additionalInvalidateKeys) {
         void queryClient.invalidateQueries({ queryKey: key });
       }

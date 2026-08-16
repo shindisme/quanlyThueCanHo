@@ -8,6 +8,7 @@ type ButtonVariant =
   | "outline"
   | "ghost"
   | "danger"
+  | "warning"
   | "default"
   | "destructive"
   | "link"
@@ -28,6 +29,7 @@ const variantStyles: Record<ButtonVariant, string> = {
   ghost: "hover:bg-gray-100 hover:text-gray-900",
   destructive: "bg-danger-500 text-white hover:bg-danger-500/90 shadow-sm",
   danger: "bg-danger-500 text-white hover:bg-danger-500/90 shadow-sm",
+  warning: "bg-warning-500 text-white hover:bg-warning-600 shadow-sm",
   link: "text-primary-600 underline-offset-4 hover:underline",
 }
 
@@ -82,4 +84,3 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = "Button"
 
 export default Button
-

@@ -8,6 +8,10 @@ import {
 } from "./common.schema.js";
 
 const positiveNumberSchema = z.coerce.number().positive();
+const manageableApartmentStatusSchema = z.enum([
+    ApartmentStatus.AVAILABLE,
+    ApartmentStatus.MAINTENANCE
+]);
 
 const apartmentFields = {
     building_id: positiveIdSchema,
@@ -48,7 +52,7 @@ export const createApartmentRequestSchema = z.object({
     body: z.object({
         ...apartmentFields,
         building_id: apartmentFields.building_id.optional(),
-        status: apartmentFields.status.default(ApartmentStatus.AVAILABLE)
+        status: manageableApartmentStatusSchema.default(ApartmentStatus.AVAILABLE)
     }).strict()
 }).strict();
 

@@ -8,7 +8,7 @@ import { usePagination } from "../../../../hooks/usePagination";
 import { removeVietnameseTones, formatApartmentDisplay } from "../../../../utils/string";
 import { getMonthOptions, getYearOptions } from "../../../../utils/date";
 import { getApiErrorMessage } from "../../../../utils/apiError";
-import { QUERY_KEYS } from "../../../../constants/queryKeys";
+import { queryKeys } from "../../../../constants/queryKeys";
 import * as utilityService from "../../../../services/utilityService";
 import type { UtilityReadingData } from "../../../../services/utilityService";
 import * as buildingService from "../../../../services/buildingService";
@@ -23,7 +23,7 @@ export function useUtilityList() {
   const isWritable = role === "MANAGER" || role === "STAFF";
 
   const { data: maintenanceData } = useQuery({
-    queryKey: ["maintenanceRequestsFallback"],
+    queryKey: queryKeys.maintenance.fallback(),
     queryFn: () => maintenanceService.getAll({ limit: 50 }),
     enabled: (role === "MANAGER" || role === "STAFF") && !managedBuildingId,
   });
@@ -72,14 +72,14 @@ export function useUtilityList() {
   if (selectedBuildingId !== undefined) readingsParams.building_id = selectedBuildingId;
 
   const { data: readingsRes, isLoading: loadingReadings, refetch: refetchReadings } = useQuery({
-    queryKey: [...QUERY_KEYS.UTILITIES, role, managedBuildingId, filterBuilding, filterMonth, filterYear],
+    queryKey: queryKeys.utilities.list({ role, managedBuildingId, filterBuilding, filterMonth, filterYear }),
     queryFn: () => utilityService.getAllPage(readingsParams),
     select: (res) => res.data,
   });
-  const readings = readingsRes || [];
+  const readings = useMemo(() => readingsRes || [], [readingsRes]);
 
   const { data: buildings = [], isLoading: loadingBuildings, refetch: refetchBuildings } = useQuery({
-    queryKey: QUERY_KEYS.BUILDINGS,
+    queryKey: queryKeys.buildings.all,
     queryFn: () => buildingService.getAllPage(),
     select: (res) => res.data,
   });
@@ -90,7 +90,7 @@ export function useUtilityList() {
   }
 
   const { data: apartments = [], isLoading: loadingApartments, refetch: refetchApartments } = useQuery({
-    queryKey: [...QUERY_KEYS.APARTMENTS, role, managedBuildingId],
+    queryKey: queryKeys.apartments.list({ role, managedBuildingId }),
     queryFn: () => apartmentService.getAllPage(aptParams),
     select: (res) => res.data,
   });
@@ -169,8 +169,13 @@ export function useUtilityList() {
     () => ({
       index: (apt: ApartmentData) => aptIndexMap.get(apt.id) ?? apt.id,
       room: (apt: ApartmentData) => formatApartmentDisplay(apt.room_number, apt.floor),
+      period: () => Number(filterYear) * 100 + Number(filterMonth),
+      created_at: (apt: ApartmentData) => {
+        const reading = readings.find((item) => item.apartment_id === apt.id);
+        return reading?.created_at ? new Date(reading.created_at).getTime() : 0;
+      },
     }),
-    [aptIndexMap]
+    [aptIndexMap, filterMonth, filterYear, readings]
   );
 
   const { items: sortedApartments, requestSort, getSortIcon, sortConfig } = useSort(

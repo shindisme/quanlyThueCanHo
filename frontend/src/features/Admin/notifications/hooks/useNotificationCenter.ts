@@ -7,6 +7,7 @@ import { usePagination } from "../../../../hooks/usePagination";
 import { useSort } from "../../../../hooks/useSort";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import type { Notification } from "../../../../types";
+import { queryKeys } from "../../../../constants/queryKeys";
 
 export function useNotificationCenter() {
   const queryClient = useQueryClient();
@@ -18,13 +19,12 @@ export function useNotificationCenter() {
 
   // Lấy danh sách thông báo đã nhận
   const { data: notifications = [], isLoading, refetch } = useQuery({
-    queryKey: ["notifications", isReadFilter, debouncedSearch],
+    queryKey: queryKeys.notifications.list({ isReadFilter, search: debouncedSearch }),
     queryFn: () => {
       const isReadVal = isReadFilter === "true" ? true : isReadFilter === "false" ? false : undefined;
-      return notificationService.getAll({
+      return notificationService.getAllPage({
         is_read: isReadVal,
         search: debouncedSearch || undefined,
-        limit: 100,
       });
     },
     select: (res) => res.data,
@@ -51,8 +51,8 @@ export function useNotificationCenter() {
     mutationFn: ({ id, isRead }: { id: number; isRead: boolean }) =>
       notificationService.markNotificationRead(id, isRead),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      queryClient.invalidateQueries({ queryKey: ["header-notifications"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.header() });
     },
     onError: (err) => {
       const error = err as { response?: { data?: { message?: string } } };
@@ -63,7 +63,7 @@ export function useNotificationCenter() {
   const markAllReadMutation = useMutation({
     mutationFn: () => notificationService.markAllNotificationsRead(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
       toast.success("Đã đánh dấu đọc tất cả thông báo");
     },
     onError: (err) => {
@@ -75,7 +75,7 @@ export function useNotificationCenter() {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => notificationService.remove(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
       toast.success("Đã xóa thông báo");
     },
     onError: (err) => {

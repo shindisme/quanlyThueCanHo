@@ -1,5 +1,5 @@
 import Combobox from "../../../../components/ui/Combobox";
-import { APARTMENT_STATUS_OPTIONS } from "../../../../constants/enums";
+import { APARTMENT_STATUS_OPTIONS } from "../../../../constants";
 import type { Building } from "../../../../types";
 
 interface ApartmentFilterBarProps {

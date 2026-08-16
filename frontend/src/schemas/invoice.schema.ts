@@ -1,11 +1,12 @@
 import { z } from "zod";
+import { citizenIdSchema, requiredPhoneSchema } from "./common.schema";
 
 export const depositFormSchema = z.object({
   apartment_id: z.string().min(1, "Vui lòng chọn căn hộ đặt cọc"),
   full_name: z.string().trim().min(1, "Vui lòng nhập họ tên người thuê"),
-  phone: z.string().trim().min(1, "Vui lòng nhập số điện thoại người thuê"),
+  phone: requiredPhoneSchema,
   email: z.string().trim().min(1, "Vui lòng nhập địa chỉ email người thuê").email("Địa chỉ email không hợp lệ"),
-  citizen_id: z.string().trim().min(1, "Vui lòng nhập số CCCD người thuê"),
+  citizen_id: citizenIdSchema,
   move_in_date: z.string().min(1, "Vui lòng chọn ngày dọn vào").refine((val) => {
     const d = new Date(val);
     const today = new Date();
@@ -13,6 +14,7 @@ export const depositFormSchema = z.object({
     return !isNaN(d.getTime()) && d >= today;
   }, "Ngày dọn vào không được ở trong quá khứ"),
   deposit_amount: z.number().gt(0, "Số tiền cọc phải lớn hơn 0"),
+  payment_method: z.enum(["VNPAY", "CASH"]),
 });
 
 export const generateMonthlyInvoiceSchema = z.object({

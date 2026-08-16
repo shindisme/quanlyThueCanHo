@@ -3,6 +3,7 @@ import { useAuthStore } from "../../../../stores/auth.store";
 import { parseJwt } from "../../../../utils/jwt";
 import * as staffService from "../../../../services/staffService";
 import * as contractService from "../../../../services/contractService";
+import { queryKeys } from "../../../../constants/queryKeys";
 
 export interface HeaderUser {
   userId: number | null;
@@ -18,7 +19,7 @@ export function useHeaderUser(): HeaderUser {
   const userId = decoded ? (decoded.userId ? Number(decoded.userId) : (decoded.sub ? Number(decoded.sub) : null)) : null;
 
   const { data: staffData } = useQuery({
-    queryKey: ["header-user-staff", userId],
+    queryKey: queryKeys.staff.byUser(userId ?? undefined),
     queryFn: async () => {
       if (!userId) return null;
       const res = await staffService.getAllPage();
@@ -29,9 +30,9 @@ export function useHeaderUser(): HeaderUser {
   });
 
   const { data: tenantContract } = useQuery({
-    queryKey: ["header-user-tenant", userId],
+    queryKey: queryKeys.contracts.list({ scope: "header-user", userId }),
     queryFn: async () => {
-      const contracts = await contractService.getAllContracts();
+      const { data: contracts } = await contractService.getAllPage();
       return contracts && contracts.length > 0 ? contracts[0] : null;
     },
     enabled: !!token && !!userId && role === "TENANT",

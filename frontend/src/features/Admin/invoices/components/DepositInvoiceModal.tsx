@@ -11,6 +11,7 @@ import { formatCurrency } from "../../../../utils/currency";
 import { formatDateToISO } from "../../../../utils/date";
 
 export interface DepositInvoiceModalProps {
+  role?: string | null;
   controller?: DepositInvoiceController;
   isOpen?: boolean;
   onClose?: () => void;
@@ -188,6 +189,23 @@ export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
             disabled={isPending}
           />
         </div>
+
+        <Combobox
+          label="Phương thức thanh toán tiền cọc *"
+          options={[
+            { value: "VNPAY", label: "VNPay (gửi liên kết thanh toán qua email)" },
+            { value: "CASH", label: "Tiền mặt (đã thu tại quầy)" },
+          ]}
+          value={form?.payment_method || "VNPAY"}
+          onChange={(value) => setForm((prev) => ({
+            ...prev,
+            payment_method: value as DepositForm["payment_method"],
+          }))}
+          searchable={false}
+          clearable={false}
+          disabled={isPending}
+          triggerClassName="h-10 rounded-xl border-gray-300 px-3.5"
+        />
 
         <div className="flex justify-end gap-2 pt-4 border-t border-gray-100">
           <Button variant="outline" type="button" onClick={modalOnClose} disabled={isPending} className="rounded-xl">

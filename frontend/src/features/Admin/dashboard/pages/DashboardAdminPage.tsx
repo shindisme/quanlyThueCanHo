@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import {
-  Users, DollarSign, AlertTriangle, ArrowUpRight, Percent, Wrench, ShieldAlert
+  Users, DollarSign, AlertTriangle, ArrowUpRight, Wrench, ShieldAlert
 } from "lucide-react";
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
