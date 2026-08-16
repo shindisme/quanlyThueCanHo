@@ -39,15 +39,29 @@ const tenantSchema = z.object({
     address: z.string().trim().max(500).nullable().optional()
 }).strict();
 
+const reservationDepositBaseSchema = z.object({
+    apartment_id: positiveIdSchema,
+    deposit_amount: depositAmountSchema,
+    move_in_date: dateOnlySchema
+});
+
+const existingTenantReservationSchema = reservationDepositBaseSchema.extend({
+    tenant_id: positiveIdSchema,
+    tenant: z.never().optional()
+}).strict();
+
+const newTenantReservationSchema = reservationDepositBaseSchema.extend({
+    tenant: tenantSchema,
+    tenant_id: z.never().optional()
+}).strict();
+
 export const createReservationRequestSchema = z.object({
     params: emptyObjectSchema,
     query: emptyObjectSchema,
-    body: z.object({
-        apartment_id: positiveIdSchema,
-        deposit_amount: depositAmountSchema,
-        move_in_date: dateOnlySchema,
-        tenant: tenantSchema
-    }).strict()
+    body: z.union([
+        existingTenantReservationSchema,
+        newTenantReservationSchema
+    ])
 }).strict();
 
 export const listReservationsRequestSchema = z.object({

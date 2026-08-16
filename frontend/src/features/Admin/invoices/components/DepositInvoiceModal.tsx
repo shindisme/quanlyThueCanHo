@@ -1,14 +1,16 @@
 import React from "react";
+import { UserPlus, Users } from "lucide-react";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
 import Combobox from "../../../../components/ui/Combobox";
 import DatePicker from "../../../../components/ui/DatePicker";
-import type { Apartment } from "../../../../types";
-import type { DepositForm, DepositInvoiceController } from "../hooks/useDepositInvoice";
+import type { Apartment, Tenant } from "../../../../types";
+import type { DepositForm, DepositInvoiceController, DepositTenantMode } from "../hooks/useDepositInvoice";
 import { formatApartmentDisplay } from "../../../../utils/string";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatDateToISO } from "../../../../utils/date";
+import { cn } from "../../../../lib/utils";
 
 export interface DepositInvoiceModalProps {
   controller?: DepositInvoiceController;
@@ -22,12 +24,29 @@ export interface DepositInvoiceModalProps {
   buildingOptions?: { value: string; label: string }[];
   floorOptions?: { value: string; label: string }[];
   apartmentOptions?: { value: string; label: string }[];
+  tenantOptions?: { value: string; label: string }[];
+  selectedTenant?: Tenant | null;
+  isLoadingTenants?: boolean;
+  onTenantModeChange?: (value: DepositTenantMode) => void;
+  onTenantChange?: (value: string) => void;
   onBuildingChange?: (value: string) => void;
   onFloorChange?: (value: string) => void;
   onApartmentChange?: (value: string) => void;
   onSubmit?: (e: React.FormEvent) => void;
   isPending?: boolean;
+  role?: string | null;
 }
+
+const tenantModeOptions: Array<{
+  value: DepositTenantMode;
+  label: string;
+  icon: React.ElementType;
+}> = [
+  { value: "existing", label: "Chọn khách thuê đã tồn tại", icon: Users },
+  { value: "new", label: "Thêm khách thuê mới", icon: UserPlus },
+];
+
+const tenantFieldValue = (value?: string | null) => value || "Chưa cập nhật";
 
 export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
   const modalIsOpen = props.controller ? props.controller.isOpen : (props.isOpen ?? false);
@@ -40,6 +59,11 @@ export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
   const buildingOptions = props.controller ? props.controller.buildingOptions : (props.buildingOptions ?? []);
   const floorOptions = props.controller ? props.controller.floorOptions : (props.floorOptions ?? []);
   const apartmentOptions = props.controller ? props.controller.apartmentOptions : (props.apartmentOptions ?? []);
+  const tenantOptions = props.controller ? props.controller.tenantOptions : (props.tenantOptions ?? []);
+  const selectedTenant = props.controller ? props.controller.selectedTenant : props.selectedTenant;
+  const isLoadingTenants = props.controller ? props.controller.isLoadingTenants : (props.isLoadingTenants ?? false);
+  const onTenantModeChange = props.controller ? props.controller.handleTenantModeChange : props.onTenantModeChange;
+  const onTenantChange = props.controller ? props.controller.handleTenantChange : props.onTenantChange;
   const onBuildingChange = props.controller ? props.controller.handleBuildingChange : props.onBuildingChange;
   const onFloorChange = props.controller ? props.controller.handleFloorChange : props.onFloorChange;
   const onApartmentChange = props.controller ? props.controller.handleApartmentChange : props.onApartmentChange;
@@ -48,6 +72,7 @@ export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
   const isManager = props.controller ? props.controller.isManager : (props.role === "MANAGER");
 
   const targetApartment = fixedApartment || selectedApartment;
+  const isExistingTenantMode = form?.tenant_mode === "existing";
 
   const handleChange = (key: keyof DepositForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
@@ -116,56 +141,108 @@ export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
           </div>
         )}
 
-        <Input
-          label="Họ tên người thuê"
-          value={form?.full_name || ""}
-          onChange={handleChange("full_name")}
-          required
-          disabled={isPending}
-        />
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Input
-            label="Số điện thoại"
-            value={form?.phone || ""}
-            onChange={handleChange("phone")}
-            disabled={isPending}
-          />
-          <Input
-            label="Email"
-            type="email"
-            value={form?.email || ""}
-            onChange={handleChange("email")}
-            required
-            disabled={isPending}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Input
-            label="CCCD"
-            value={form?.citizen_id || ""}
-            onChange={handleChange("citizen_id")}
-            required
-            disabled={isPending}
-          />
-          <div>
-            <label className="text-sm font-semibold text-gray-850 mb-1.5 block">Ngày sinh</label>
-            <DatePicker
-              value={form?.date_of_birth || ""}
-              onChange={(date) => setForm((prev) => ({ ...prev, date_of_birth: formatDateToISO(date) }))}
-              placeholder="Chọn ngày sinh"
-              disabled={isPending}
-            />
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {tenantModeOptions.map(({ value, label, icon: Icon }) => {
+              const isActive = form?.tenant_mode === value;
+              return (
+                <Button
+                  key={value}
+                  type="button"
+                  variant={isActive ? "primary" : "outline"}
+                  onClick={() => onTenantModeChange && onTenantModeChange(value)}
+                  disabled={isPending}
+                  className={cn("h-auto min-h-11 justify-start px-3 text-left", isActive && "shadow-md")}
+                >
+                  <Icon size={18} className="shrink-0" />
+                  <span className="whitespace-normal leading-snug">{label}</span>
+                </Button>
+              );
+            })}
           </div>
-        </div>
 
-        <Input
-          label="Địa chỉ thường trú"
-          value={form?.address || ""}
-          onChange={handleChange("address")}
-          disabled={isPending}
-        />
+          {isExistingTenantMode ? (
+            <div className="space-y-3">
+              <Combobox
+                label="Khách thuê đã tồn tại"
+                options={tenantOptions}
+                value={form?.tenant_id || ""}
+                onChange={(val) => onTenantChange && onTenantChange(val)}
+                placeholder={isLoadingTenants ? "Đang tải..." : "Chọn khách thuê"}
+                searchPlaceholder="Tìm theo tên hoặc CCCD"
+                disabled={isLoadingTenants || isPending}
+                triggerClassName="h-11 rounded-xl border-gray-300 px-3.5"
+                clearable={true}
+              />
+
+              {selectedTenant && (
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                    <p><span className="font-semibold text-gray-800">Họ tên:</span> {selectedTenant.full_name}</p>
+                    <p><span className="font-semibold text-gray-800">CCCD:</span> {selectedTenant.citizen_id}</p>
+                    <p><span className="font-semibold text-gray-800">Số điện thoại:</span> {tenantFieldValue(selectedTenant.phone)}</p>
+                    <p><span className="font-semibold text-gray-800">Email:</span> {tenantFieldValue(selectedTenant.email)}</p>
+                    <p><span className="font-semibold text-gray-800">Ngày sinh:</span> {tenantFieldValue(selectedTenant.date_of_birth?.slice(0, 10))}</p>
+                    <p><span className="font-semibold text-gray-800">Địa chỉ:</span> {tenantFieldValue(selectedTenant.address)}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <Input
+                label="Họ tên người thuê"
+                value={form?.full_name || ""}
+                onChange={handleChange("full_name")}
+                required
+                disabled={isPending}
+              />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Input
+                  label="Số điện thoại"
+                  value={form?.phone || ""}
+                  onChange={handleChange("phone")}
+                  disabled={isPending}
+                />
+                <Input
+                  label="Email"
+                  type="email"
+                  value={form?.email || ""}
+                  onChange={handleChange("email")}
+                  required
+                  disabled={isPending}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Input
+                  label="CCCD"
+                  value={form?.citizen_id || ""}
+                  onChange={handleChange("citizen_id")}
+                  required
+                  disabled={isPending}
+                />
+                <div>
+                  <label className="text-sm font-semibold text-gray-850 mb-1.5 block">Ngày sinh</label>
+                  <DatePicker
+                    value={form?.date_of_birth || ""}
+                    onChange={(date) => setForm((prev) => ({ ...prev, date_of_birth: formatDateToISO(date) }))}
+                    placeholder="Chọn ngày sinh"
+                    disabled={isPending}
+                  />
+                </div>
+              </div>
+
+              <Input
+                label="Địa chỉ thường trú"
+                value={form?.address || ""}
+                onChange={handleChange("address")}
+                disabled={isPending}
+              />
+            </div>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
@@ -193,8 +270,8 @@ export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
           <Button variant="outline" type="button" onClick={modalOnClose} disabled={isPending} className="rounded-xl">
             Hủy bỏ
           </Button>
-          <Button type="submit" disabled={isPending} className="rounded-xl">
-            {isPending ? "Đang xử lý..." : "Xác nhận & Lập hóa đơn cọc"}
+          <Button type="submit" isLoading={isPending} className="rounded-xl">
+            Xác nhận & Lập hóa đơn cọc
           </Button>
         </div>
       </form>
