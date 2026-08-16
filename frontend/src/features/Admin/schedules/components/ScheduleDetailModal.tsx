@@ -3,7 +3,7 @@ import Button from "../../../../components/ui/Button";
 import Badge from "../../../../components/ui/Badge";
 import type { ViewingSchedule, Building } from "../../../../types";
 import { formatApartmentDisplay, parseGuestName } from "../../../../utils/string";
-import { formatDateTime } from "../../../../utils/date";
+import { formatVietnamDate, formatDateTime } from "../../../../utils/date";
 import { SCHEDULE_STATUS_LABELS, ATTENDANCE_STATUS_LABELS } from "../../../../constants/labels";
 import { SCHEDULE_STATUS_COLORS, ATTENDANCE_STATUS_COLORS } from "../../../../constants/badges";
 import type { ScheduleStatus, AttendanceStatus } from "../../../../constants/enums";
@@ -97,9 +97,9 @@ export default function ScheduleDetailModal({
               </span>
             </div>
             <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Thời gian hẹn:</span>
+              <span className="text-gray-500 font-medium">Ngày xem:</span>
               <span className="font-semibold text-gray-800">
-                {formatDateTime(schedule.schedule_time)}
+                {formatVietnamDate(schedule.schedule_time)}
               </span>
             </div>
             <div className="flex justify-between border-b pb-2 border-gray-100">

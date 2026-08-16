@@ -257,6 +257,13 @@ export function DatePicker({
 
   const handleSelectToday = () => {
     const now = new Date();
+    if (effectiveMinDate) {
+      const endOfToday = new Date(now);
+      endOfToday.setHours(23, 59, 59, 999);
+      const minCompare = new Date(effectiveMinDate);
+      minCompare.setHours(0, 0, 0, 0);
+      if (endOfToday.getTime() < minCompare.getTime()) return;
+    }
     setSelectedDate(now);
     setCurrentDate(now);
     setInputValue(formatToDMY(now, showTime));

@@ -21,12 +21,6 @@ import type { ReviewData } from "../../../../services/reviewService";
 import type { ApartmentImage } from "../../../../types";
 import { useApartmentBooking } from "../hooks/useApartmentBooking";
 
-const timeSlots = [
-  "09h00",
-  "11h00",
-  "13h00",
-  "15h00"
-];
 
 export default function GuestApartmentDetail() {
   const { id } = useParams();
@@ -35,40 +29,28 @@ export default function GuestApartmentDetail() {
   const [building, setBuilding] = useState<BuildingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [images, setImages] = useState<ApartmentImage[]>([]);
+  const minViewingDate = useMemo(() => {
+    const tomorrow = new Date();
+    tomorrow.setHours(0, 0, 0, 0);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow;
+  }, []);
 
   const {
     showScheduleForm,
     setShowScheduleForm,
     selectedDate,
     setSelectedDate,
-    selectedTimeSlot,
-    setSelectedTimeSlot,
     isPending,
     bookingForm,
     setBookingForm,
-    checkIsSlotBooked,
+    availability,
+    isAvailabilityLoading,
+    isSelectedDateFull,
     handleBookingScheduleSubmit,
-    holdTimeRemaining,
-    handleSelectBookingSlot,
     handleResetBooking,
   } = useApartmentBooking({ apartment });
 
-  const isSlotDisabled = (slot: string) => {
-    if (checkIsSlotBooked(slot)) return true;
-    if (!selectedDate) return false;
-
-    const [hoursStr, minutesStr] = slot.split("h");
-    const slotHours = parseInt(hoursStr, 10);
-    const slotMinutes = parseInt(minutesStr, 10);
-
-    const [year, month, day] = selectedDate.split("-").map(Number);
-    const slotDateObj = new Date(year, month - 1, day, slotHours, slotMinutes);
-
-    const minSelectableDateObj = new Date();
-    minSelectableDateObj.setHours(minSelectableDateObj.getHours() + 6);
-
-    return slotDateObj < minSelectableDateObj;
-  };
 
   const [reviews, setReviews] = useState<ReviewData[]>([]);
   const [, setReviewMeta] = useState<{ averageRating: number; totalReviews: number }>({ averageRating: 0, totalReviews: 0 });
@@ -152,7 +134,7 @@ export default function GuestApartmentDetail() {
 
   if (loading) {
     return (
-      <div className="pt-24 text-center font-sans flex flex-col items-center justify-center min-h-[300px]">
+      <div className="pt-24 text-center font-sans flex flex-col items-center justify-center min-h-75">
         <LoadingSpinner className="mb-2" size={32} />
         <p className="text-gray-500">Đang tải thông tin căn hộ...</p>
       </div>
@@ -387,7 +369,7 @@ export default function GuestApartmentDetail() {
         footer={
           <>
             <Button variant="outline" onClick={handleResetBooking}>Hủy</Button>
-            <Button onClick={handleBookingScheduleSubmit} isLoading={isPending}>Gửi yêu cầu</Button>
+            <Button onClick={handleBookingScheduleSubmit} isLoading={isPending} disabled={isAvailabilityLoading || isSelectedDateFull}>Gửi yêu cầu</Button>
           </>
         }
       >
@@ -440,7 +422,6 @@ export default function GuestApartmentDetail() {
                 onChange={(date) => {
                   if (!date) {
                     setSelectedDate("");
-                    setSelectedTimeSlot("");
                     return;
                   }
                   const today = new Date();
@@ -449,45 +430,32 @@ export default function GuestApartmentDetail() {
                     toast.error("Không thể chọn ngày trong quá khứ");
                     return;
                   }
+                  if (date < minViewingDate) {
+                    toast.error("Khách hàng chỉ có thể đặt lịch xem trước ít nhất 1 ngày.");
+                    return;
+                  }
                   const y = date.getFullYear();
                   const m = String(date.getMonth() + 1).padStart(2, "0");
                   const d = String(date.getDate()).padStart(2, "0");
                   setSelectedDate(`${y}-${m}-${d}`);
-                  setSelectedTimeSlot("");
                 }}
                 placeholder="Chọn ngày xem..."
               />
             </div>
-
             {selectedDate && (
-              <div className="col-span-12">
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Chọn giờ xem *</label>
-                <div className="grid grid-cols-2 gap-3 mt-2">
-                  {timeSlots.map((slot) => {
-                    const booked = checkIsSlotBooked(slot);
-                    const disabled = isSlotDisabled(slot);
-                    const selected = selectedTimeSlot === slot;
-                    return (
-                      <button
-                        key={slot}
-                        type="button"
-                        disabled={disabled}
-                        onClick={() => handleSelectBookingSlot(slot)}
-                        className={`py-2.5 px-3 border rounded-md text-xs font-semibold text-center transition-all cursor-pointer ${disabled
-                          ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                          : selected
-                            ? "bg-primary-600 text-white border-primary-600 shadow-sm"
-                            : "bg-white text-gray-700 border-gray-300 hover:border-primary-500 hover:text-primary-600"
-                          }`}
-                      >
-                        {slot} {selected && `(Giữ chỗ ${Math.floor(holdTimeRemaining / 60)}:${String(holdTimeRemaining % 60).padStart(2, "0")})`} {booked && " (Đã đặt)"}
-                      </button>
-                    );
-                  })}
-                </div>
+              <div
+                className={`col-span-12 rounded-md border px-3 py-2 text-xs font-semibold ${isSelectedDateFull
+                  ? "border-red-200 bg-red-50 text-red-700"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-700"
+                  }`}
+              >
+                {isAvailabilityLoading
+                  ? "Đang kiểm tra số lượt đặt lịch..."
+                  : isSelectedDateFull
+                    ? "Lịch xem trong ngày này đã đầy, hãy đặt lịch xem vào ngày hôm sau."
+                    : `Còn ${availability?.remaining ?? 0} lượt đặt lịch xem trong ngày này.`}
               </div>
             )}
-
             <div className="col-span-12">
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ghi chú</label>
               <textarea

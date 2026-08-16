@@ -11,7 +11,7 @@ export const staffSchema = z.object({
     .optional()
     .or(z.literal(""))
     .nullable(),
-  position: z.enum(["Quản lý", "Bảo vệ", "Vệ sinh", "Kỹ thuật", "Kế toán"], {
+  position: z.enum(["Quản lý", "Bảo vệ", "Vệ sinh", "Kỹ thuật", "Tiếp thị"], {
     message: "Vui lòng chọn chức vụ hợp lệ",
   }),
   buildingId: z.union([z.number(), z.string(), z.null()]).optional(),

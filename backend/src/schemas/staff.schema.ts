@@ -11,7 +11,7 @@ export const staffPositionSchema = z.enum([
     "Bảo vệ",
     "Vệ sinh",
     "Kỹ thuật",
-    "Kế toán"
+    "Tiếp thị"
 ]);
 
 const staffFields = {
@@ -32,7 +32,7 @@ export const listStaffRequestSchema = z.object({
         position: staffPositionSchema.optional(),
         building_id: positiveIdSchema.optional(),
         page: z.coerce.number().int().positive().default(1),
-        limit: z.coerce.number().int().positive().max(100).default(10)
+        limit: z.coerce.number().int().positive().max(100).default(100)
     }).strict(),
     body: optionalEmptyBodySchema
 }).strict();

@@ -3,6 +3,15 @@ import type { ScheduleData, ScheduleFilters, BookViewingPayload, ApiPagination }
 export type { ScheduleData, ScheduleFilters, BookViewingPayload };
 import { fetchAllPages } from "./apiHelper";
 
+export interface ViewingAvailability {
+  apartment_id: number;
+  building_id: number;
+  date: string;
+  capacity: number;
+  booked: number;
+  remaining: number;
+  is_full: boolean;
+}
 const SCHEDULE_API = "/schedules";
 
 export async function bookViewing(data: BookViewingPayload): Promise<unknown> {
@@ -10,8 +19,8 @@ export async function bookViewing(data: BookViewingPayload): Promise<unknown> {
   return res.data;
 }
 
-export async function getViewingAvailability(apartmentId: number, date: string): Promise<{ available_hours: number[] }> {
-  const res = await api.get<{ data: { available_hours: number[] } }>(
+export async function getViewingAvailability(apartmentId: number, date: string): Promise<ViewingAvailability> {
+  const res = await api.get<{ data: ViewingAvailability }>(
     `${SCHEDULE_API}/availability`,
     { params: { apartment_id: apartmentId, date } },
   );

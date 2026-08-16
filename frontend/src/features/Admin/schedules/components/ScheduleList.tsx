@@ -4,7 +4,7 @@ import Badge from "../../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import type { ViewingSchedule, Building } from "../../../../types";
 import { formatApartmentDisplay, parseGuestName } from "../../../../utils/string";
-import { formatDateTime } from "../../../../utils/date";
+import { formatVietnamDate } from "../../../../utils/date";
 import { SCHEDULE_STATUS_LABELS, ATTENDANCE_STATUS_LABELS } from "../../../../constants/labels";
 import { SCHEDULE_STATUS_COLORS, ATTENDANCE_STATUS_COLORS } from "../../../../constants/badges";
 import type { ScheduleStatus, AttendanceStatus } from "../../../../constants/enums";
@@ -185,11 +185,11 @@ export default function ScheduleList({
       },
       {
         key: "schedule_time",
-        label: "Thời gian",
+        label: "Ngày xem",
         sortable: true,
         sortValue: (s: ViewingSchedule) => new Date(s.schedule_time).getTime(),
         render: (s: ViewingSchedule) => (
-          <span className="text-gray-650 font-medium">{formatDateTime(s.schedule_time)}</span>
+          <span className="text-gray-650 font-medium">{formatVietnamDate(s.schedule_time)}</span>
         ),
       },
       {
