@@ -91,13 +91,13 @@ export const PaginationPrevious = React.forwardRef<HTMLButtonElement, Pagination
         ref={ref}
         aria-label="Go to previous page"
         size="default"
-        className={cn("gap-1 pl-2.5 h-9 w-auto px-3", className)}
+        className={cn("h-9 w-9 gap-1 px-0 sm:w-auto sm:px-3 sm:pl-2.5", className)}
         onClick={onClick}
         disabled={disabled}
         {...props}
       >
         <ChevronLeft className="h-4 w-4" />
-        <span>Trước</span>
+        <span className="hidden sm:inline">Trước</span>
       </PaginationLink>
     )
   }
@@ -111,12 +111,12 @@ export const PaginationNext = React.forwardRef<HTMLButtonElement, PaginationLink
         ref={ref}
         aria-label="Go to next page"
         size="default"
-        className={cn("gap-1 pr-2.5 h-9 w-auto px-3", className)}
+        className={cn("h-9 w-9 gap-1 px-0 sm:w-auto sm:px-3 sm:pr-2.5", className)}
         onClick={onClick}
         disabled={disabled}
         {...props}
       >
-        <span>Sau</span>
+        <span className="hidden sm:inline">Sau</span>
         <ChevronRight className="h-4 w-4" />
       </PaginationLink>
     )
@@ -182,7 +182,10 @@ export function DefaultPagination({
         </PaginationItem>
 
         {getPageNumbers().map((page, index) => (
-          <PaginationItem key={page === "..." ? `dots-${index}` : page}>
+          <PaginationItem
+            key={page === "..." ? `dots-${index}` : page}
+            className={page === Number(currentPage) ? undefined : "max-sm:hidden"}
+          >
             {page === "..." ? (
               <PaginationEllipsis />
             ) : (
@@ -208,5 +211,4 @@ export function DefaultPagination({
 }
 
 export default DefaultPagination
-
 

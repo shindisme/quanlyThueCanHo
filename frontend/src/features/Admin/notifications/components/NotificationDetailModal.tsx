@@ -95,7 +95,7 @@ export default function NotificationDetailModal({
                         </div>
 
                         <div className="p-4 space-y-3 text-xs">
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div>
                                     <span className="text-gray-400 block mb-0.5">Căn hộ:</span>
                                     <span className="font-semibold text-gray-800">

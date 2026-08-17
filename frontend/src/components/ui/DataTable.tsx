@@ -138,8 +138,13 @@ function DataTableInner<T>({
       {/* Mobile Card View */}
       <div className="grid grid-cols-1 gap-4 md:hidden">
         {sortedData.map((item, index) => {
-          const headerCol = columns.find((col) => col.isTitle) || columns[0];
           const actionsCol = columns.find((col) => col.isAction || col.accessorKey === "actions" || col.key === "actions");
+          const headerCol = columns.find((col) => col.isTitle)
+            ?? columns.find((col) => {
+              const key = col.accessorKey || col.key;
+              return col !== actionsCol && key !== "index";
+            })
+            ?? columns[0];
           const otherCols = columns.filter((col) => col !== headerCol && col !== actionsCol);
 
           return (
@@ -147,15 +152,15 @@ function DataTableInner<T>({
               key={getRowKey(item, index)}
               onClick={() => onRowClick?.(item)}
               className={cn(
-                "bg-white p-4 border border-gray-200 shadow-sm space-y-3",
+                "min-w-0 space-y-3 rounded-none border border-gray-200 bg-white p-4 shadow-sm",
                 onRowClick && "cursor-pointer hover:bg-primary-50/10 transition-colors",
                 typeof rowClassName === "function" ? rowClassName(item) : rowClassName
               )}
             >
               {/* Card Header */}
               {headerCol && (
-                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                  <div className="font-semibold text-primary-600 text-base">
+                <div className="flex min-w-0 items-center justify-between border-b border-gray-100 pb-2">
+                  <div className="min-w-0 break-words text-base font-semibold text-primary-600">
                     {headerCol.render(item, getRenderIndex(headerCol, index))}
                   </div>
                 </div>
@@ -164,10 +169,10 @@ function DataTableInner<T>({
               {/* Card Body */}
               <div className="space-y-2 text-sm text-gray-500">
                 {otherCols.map((col, cIdx) => (
-                  <div key={col.accessorKey || col.key || cIdx} className="flex justify-between items-center gap-4">
+                  <div key={col.accessorKey || col.key || cIdx} className="grid min-w-0 grid-cols-[minmax(6rem,40%)_minmax(0,1fr)] items-start gap-3">
                     <span className="font-semibold text-gray-700">{col.label}:</span>
                     <div className={cn(
-                      "text-gray-600 font-sans text-right",
+                      "min-w-0 break-words text-right font-sans text-gray-600",
                       typeof cellClassName === "function" ? cellClassName(item, col) : cellClassName
                     )}>
                       {col.render(item, getRenderIndex(col, index))}
@@ -178,7 +183,7 @@ function DataTableInner<T>({
 
               {/* Card Footer */}
               {actionsCol && (
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                <div className="flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-2">
                   {actionsCol.render(item, getRenderIndex(actionsCol, index))}
                 </div>
               )}
@@ -188,8 +193,8 @@ function DataTableInner<T>({
       </div>
 
       {/* Desktop Table View */}
-      <div className={cn("hidden md:block border border-gray-200 overflow-hidden bg-white shadow-xl rounded-none", className)}>
-        <Table className={cn(density === "compact" && "[&_td]:p-2 [&_td]:text-xs [&_th]:h-8 [&_th]:px-3")}>
+      <div className={cn("hidden overflow-hidden rounded-none border border-gray-200 bg-white shadow-sm md:block", className)}>
+        <Table className={cn("min-w-[720px]", density === "compact" && "[&_td]:p-2 [&_td]:text-xs [&_th]:h-8 [&_th]:px-3")}>
           <TableHeader>
             <TableRow>
               {columns.map((col, cIdx) => {

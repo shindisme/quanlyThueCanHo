@@ -129,7 +129,7 @@ export const DropdownMenuContent = React.forwardRef<HTMLDivElement, DropdownMenu
       <div
         ref={setRefs}
         className={cn(
-          "absolute right-0 mt-2 z-50 min-w-32 overflow-hidden rounded-md border border-gray-200 bg-white p-1 text-gray-700 shadow-md animate-scale-in focus:outline-none",
+          "absolute right-0 z-50 mt-2 min-w-32 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-md border border-gray-200 bg-white p-1 text-gray-700 shadow-md animate-scale-in focus:outline-none",
           className
         )}
         {...props}
@@ -168,6 +168,5 @@ export const DropdownMenuItem = React.forwardRef<HTMLDivElement, DropdownMenuIte
   }
 )
 DropdownMenuItem.displayName = "DropdownMenuItem"
-
 
 

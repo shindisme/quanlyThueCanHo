@@ -65,7 +65,7 @@ export default function MaintenancePage() {
         subtitle="Tiếp nhận, phân công nhân viên kỹ thuật và giám sát quá trình xử lý sự cố thiết bị"
         count={requests.length}
         actions={
-          <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm..." className="w-64 sm:w-80 flex-1 min-w-0" />
+          <SearchInput value={search} onChange={setSearch} placeholder="Tìm kiếm..." className="w-full min-w-0 flex-1 sm:w-80" />
         }
       />
 

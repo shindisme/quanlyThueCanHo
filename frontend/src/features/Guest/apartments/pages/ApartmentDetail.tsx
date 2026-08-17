@@ -5,6 +5,7 @@ import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import Card from "../../../../components/ui/Card";
 import Button from "../../../../components/ui/Button";
 import Badge from "../../../../components/ui/Badge";
+import RefreshButton from "../../../../components/ui/RefreshButton";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../../../constants";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatApartmentDisplay } from "../../../../utils/string";
@@ -200,9 +201,12 @@ export default function GuestApartmentDetail() {
                     <span>{building?.name} - {building?.address}</span>
                   </div>
                 </div>
-                <Badge variant={APARTMENT_STATUS_COLORS[apartment.status as keyof typeof APARTMENT_STATUS_COLORS] as "success" | "info" | "warning"}>
-                  {APARTMENT_STATUS_LABELS[apartment.status as keyof typeof APARTMENT_STATUS_LABELS]}
-                </Badge>
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                  <RefreshButton />
+                  <Badge variant={APARTMENT_STATUS_COLORS[apartment.status as keyof typeof APARTMENT_STATUS_COLORS] as "success" | "info" | "warning"}>
+                    {APARTMENT_STATUS_LABELS[apartment.status as keyof typeof APARTMENT_STATUS_LABELS]}
+                  </Badge>
+                </div>
               </div>
 
               <p className="text-2xl font-bold text-primary-600 mt-4">

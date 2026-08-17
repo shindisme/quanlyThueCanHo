@@ -50,6 +50,8 @@ export function NotificationDropdown() {
         ref={btnRef}
         type="button"
         onClick={() => setOpen(!open)}
+        aria-label="Thông báo"
+        aria-expanded={open}
         className="p-2.5 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors relative cursor-pointer"
         title="Thông báo"
       >
@@ -64,7 +66,7 @@ export function NotificationDropdown() {
       {open && (
         <div
           ref={dropdownRef}
-          className="absolute right-0 mt-2 w-95 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden animate-scale-in"
+          className="absolute right-0 z-50 mt-2 w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl animate-scale-in"
         >
           {/* Header */}
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">

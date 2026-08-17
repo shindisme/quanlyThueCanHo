@@ -15,6 +15,19 @@ export default function GuestNavbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    setIsMobileOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isMobileOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsMobileOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [isMobileOpen]);
+
   const navLinks = [
     { label: "Trang chủ", path: "/" },
     { label: "Căn hộ", path: "/apartments" },
@@ -60,8 +73,12 @@ export default function GuestNavbar() {
 
           {/* Mobile toggle */}
           <button
+            type="button"
             onClick={() => setIsMobileOpen(!isMobileOpen)}
-            className="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 cursor-pointer"
+            aria-label={isMobileOpen ? "Đóng menu" : "Mở menu"}
+            aria-expanded={isMobileOpen}
+            aria-controls="guest-mobile-menu"
+            className="cursor-pointer rounded-lg p-2 text-gray-600 hover:bg-gray-100 lg:hidden"
           >
             {isMobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
@@ -69,7 +86,7 @@ export default function GuestNavbar() {
 
         {/* Mobile menu */}
         {isMobileOpen && (
-          <div className="lg:hidden py-4 border-t border-gray-100 animate-slide-in-up">
+          <div id="guest-mobile-menu" className="border-t border-gray-100 py-4 animate-slide-in-up lg:hidden">
             {navLinks.map((link) => (
               <Link
                 key={link.path}

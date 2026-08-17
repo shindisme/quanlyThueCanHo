@@ -61,8 +61,8 @@ export function maskCCCD(cccd: string): string {
 
 export function parseGuestName(fullName: string): { name: string; note: string } {
   if (!fullName) return { name: "", note: "" };
-  const match = fullName.match(/^(.*?)\s*[\(\[]\s*(?:Ghi chú|Note):\s*(.*?)\s*[\)\]]$/i) ||
-                fullName.match(/(.*?)\s*[\(\[]\s*(?:Ghi chú|Note):\s*(.*?)\s*[\)\]]/i);
+  const match = fullName.match(/^(.*?)\s*(?:\(|\[)\s*(?:Ghi chú|Note):\s*(.*?)\s*(?:\)|\])$/i) ||
+                fullName.match(/(.*?)\s*(?:\(|\[)\s*(?:Ghi chú|Note):\s*(.*?)\s*(?:\)|\])/i);
   if (match) {
     return {
       name: match[1].trim(),

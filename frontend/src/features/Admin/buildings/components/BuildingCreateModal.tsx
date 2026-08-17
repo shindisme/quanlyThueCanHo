@@ -58,8 +58,12 @@ export default function BuildingCreateModal({
     }
 
     createMutation.mutate(fd, {
-      onSuccess: () => {
-        toast.success("Đã thêm tòa nhà mới");
+      onSuccess: (building) => {
+        if (building.latitude === null || building.longitude === null) {
+          toast.warning("Đã thêm tòa nhà nhưng chưa xác định được tọa độ");
+        } else {
+          toast.success("Đã thêm tòa nhà mới");
+        }
         onSuccess();
         onClose();
       },

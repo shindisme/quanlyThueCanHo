@@ -149,7 +149,7 @@ export default function Contract() {
                             value={search}
                             onChange={(v) => { setSearch(v); setCurrentPage(1); }}
                             placeholder="Tìm kiếm theo mã, khách, phòng..."
-                            className="w-64 sm:w-80 flex-1 min-w-0"
+                            className="w-full min-w-0 flex-1 sm:w-80"
                         />
                         {(role === "ADMIN" || role === "MANAGER") && (
                             <Button onClick={() => createContractModal.onOpen()}>

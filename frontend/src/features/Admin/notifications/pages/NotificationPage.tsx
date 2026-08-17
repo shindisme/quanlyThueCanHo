@@ -47,7 +47,7 @@ export default function NotificationPage() {
               value={search}
               onChange={setSearch}
               placeholder="Tìm kiếm tiêu đề hoặc nội dung thông báo..."
-              className="w-64 sm:w-80 flex-1 min-w-0"
+              className="w-full min-w-0 flex-1 sm:w-80"
             />
             {isOperator && (
               <Button onClick={sendModal.broadcastModal.onOpen} className="flex items-center gap-2 rounded-xl shrink-0 shadow-md font-semibold">

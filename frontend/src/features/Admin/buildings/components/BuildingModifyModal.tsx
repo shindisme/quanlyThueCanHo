@@ -61,10 +61,22 @@ export default function BuildingModifyModal({
     const isImageRemoved = Boolean(editItem.thumbnail_url) && !previewUrl && !file;
 
     updateMutation.mutate(
-      { id: editItem.id, data, image: file, removeImage: isImageRemoved },
       {
-        onSuccess: () => {
-          toast.success("Đã cập nhật tòa nhà");
+        id: editItem.id,
+        data,
+        image: file,
+        removeImage: isImageRemoved,
+        originalAddress: editItem.address,
+        originalLatitude: editItem.latitude,
+        originalLongitude: editItem.longitude,
+      },
+      {
+        onSuccess: (building) => {
+          if (building.latitude === null || building.longitude === null) {
+            toast.warning("Đã cập nhật tòa nhà nhưng chưa xác định được tọa độ");
+          } else {
+            toast.success("Đã cập nhật tòa nhà");
+          }
           onSuccess?.();
           onClose();
         },

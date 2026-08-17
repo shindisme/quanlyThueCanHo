@@ -14,8 +14,11 @@ export function HeaderBreadcrumb() {
   if (!parts || parts.length === 0) return null;
 
   return (
-    <Breadcrumb className="hidden sm:block">
-      <BreadcrumbList>
+    <Breadcrumb className="min-w-0">
+      <p className="max-w-[45vw] truncate text-sm font-semibold text-gray-700 sm:hidden">
+        {parts[parts.length - 1]}
+      </p>
+      <BreadcrumbList className="hidden sm:flex">
         {parts.map((part, i) => {
           const isLast = i === parts.length - 1;
           return (

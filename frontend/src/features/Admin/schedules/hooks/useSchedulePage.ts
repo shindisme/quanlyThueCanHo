@@ -7,7 +7,6 @@ import type { ViewingSchedule } from "../../../../types";
 import { useDebounce } from "../../../../hooks/useDebounce";
 import { usePagination } from "../../../../hooks/usePagination";
 import { useUserRole } from "../../../../hooks/useUserRole";
-import { useSort } from "../../../../hooks/useSort";
 import { removeVietnameseTones, parseGuestName } from "../../../../utils/string";
 import { getApiErrorMessage } from "../../../../utils/apiError";
 import { useConfirmSchedule } from "./useConfirmSchedule";
@@ -101,36 +100,10 @@ export function useSchedulePage() {
     filterYear,
   ]);
 
-  const filteredIndexMap = useMemo(() => {
-    const map = new Map<number, number>();
-    filtered.forEach((item, idx) => map.set(item.id, idx + 1));
-    return map;
-  }, [filtered]);
-
-  const customSortExtractors = useMemo(
-    () => ({
-      index: (s: ViewingSchedule) => filteredIndexMap.get(s.id) ?? s.id,
-      guest_name: (s: ViewingSchedule) => parseGuestName(s.guest_name).name.trim(),
-      apartment_id: (s: ViewingSchedule) => s.apartment?.room_number || String(s.apartment_id),
-      schedule_time: (s: ViewingSchedule) => new Date(s.schedule_time).getTime(),
-      created_at: (s: ViewingSchedule) => (s.created_at ? new Date(s.created_at).getTime() : s.id),
-    }),
-    [filteredIndexMap]
-  );
-
-  const { items: sortedSchedules, requestSort, getSortIcon, sortConfig } = useSort(
-    filtered,
-    { key: "created_at", direction: "desc" },
-    customSortExtractors
-  );
-
-  // Pagination
-  const { currentPage, setCurrentPage, totalPages, startIdx, endIdx } = usePagination({
+  const { currentPage, setCurrentPage, totalPages } = usePagination({
     totalItems: filtered.length,
     initialPageSize: 10,
   });
-
-  const paginatedSchedules = sortedSchedules.slice(startIdx, endIdx);
 
   const confirmMutation = useConfirmSchedule();
   const cancelMutation = useCancelSchedule();
@@ -223,14 +196,9 @@ export function useSchedulePage() {
     buildings,
     buildingMap,
     filtered,
-    sortedSchedules,
-    sortConfig,
-    requestSort,
-    getSortIcon,
     currentPage,
     setCurrentPage,
     totalPages,
-    paginatedSchedules,
     handleConfirm,
     handleMarkAttended,
     handleMarkAbsent,

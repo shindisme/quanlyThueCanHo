@@ -17,8 +17,8 @@ export default function ContractExpirationTracker({
   contractsRoute = "/manager/contracts",
 }: ContractExpirationTrackerProps) {
   return (
-    <div className="bg-white border border-gray-200 p-5 shadow-sm font-sans">
-      <div className="flex items-center justify-between mb-4">
+    <section className="rounded-none border border-gray-200 bg-white p-4 font-sans shadow-sm sm:p-5">
+      <div className="mb-4 flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
         <div>
           <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
             Theo dõi thời hạn hợp đồng đến hạn
@@ -65,6 +65,6 @@ export default function ContractExpirationTracker({
           <p className="text-2xl font-black text-blue-700 mt-1">{expiring90Count}</p>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

@@ -19,6 +19,7 @@ import OperationalTasksCard from "../components/OperationalTasksCard";
 import Badge from "../../../../components/ui/Badge";
 import { formatDashboardCurrency } from "../utils/dashboardHelpers";
 import { parseGuestName } from "../../../../utils/string";
+import RefreshButton from "../../../../components/ui/RefreshButton";
 import {
   PRIORITY_CONFIG,
   REQUEST_STATUS_CONFIG,
@@ -100,6 +101,7 @@ export default function DashboardManager() {
             Tổng quan chi nhánh{managedBuildingName ? `: ${managedBuildingName}` : ""}
           </p>
         </div>
+        <RefreshButton />
       </div>
 
       {/* Cảnh báo và nhắc nhở nghiệp vụ */}
@@ -310,7 +312,7 @@ export default function DashboardManager() {
               </div>
             ) : (
               <div className="overflow-x-auto min-h-60">
-                <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm font-sans">
+                <table className="min-w-[620px] divide-y divide-gray-200 text-xs font-sans sm:text-sm">
                   <thead>
                     <tr className="text-left text-gray-500 font-bold uppercase tracking-wider text-[11px]">
                       <th className="pb-3 pt-2">Khách hàng</th>
@@ -375,7 +377,7 @@ export default function DashboardManager() {
               </div>
             ) : (
               <div className="overflow-x-auto min-h-60">
-                <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm font-sans">
+                <table className="min-w-[560px] divide-y divide-gray-200 text-xs font-sans sm:text-sm">
                   <thead>
                     <tr className="text-left text-gray-500 font-bold uppercase tracking-wider text-[11px]">
                       <th className="pb-3 pt-2">Căn hộ</th>

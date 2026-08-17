@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import Badge from "../../../../components/ui/Badge";
 import Combobox from "../../../../components/ui/Combobox";
+import RefreshButton from "../../../../components/ui/RefreshButton";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../../../constants";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatApartmentDisplay } from "../../../../utils/string";
@@ -44,14 +45,17 @@ export default function GuestApartmentListing() {
     <div className="pt-20 pb-16 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Tieu de */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Danh sách căn hộ</h1>
-          <p className="text-gray-500 mt-1">Tìm căn hộ phù hợp với nhu cầu của bạn</p>
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Danh sách căn hộ</h1>
+            <p className="text-gray-500 mt-1">Tìm căn hộ phù hợp với nhu cầu của bạn</p>
+          </div>
+          <RefreshButton />
         </div>
 
         {/* Bo loc */}
-        <div className="flex flex-col sm:flex-row gap-3 w-full mb-8">
-          <div className="relative flex-1 min-w-50 h-10.5">
+        <div className="mb-8 grid w-full grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="relative h-10.5 min-w-0">
             <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
@@ -78,7 +82,7 @@ export default function GuestApartmentListing() {
             onChange={(val) => setPriceFilter(val)}
             placeholder="Mức giá"
             searchable={false}
-            className="flex-1 min-w-37.5"
+            className="min-w-0"
             triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
             clearable={true}
           />
@@ -92,7 +96,7 @@ export default function GuestApartmentListing() {
             }}
             placeholder="Tất cả chi nhánh"
             searchPlaceholder="Tìm chi nhánh..."
-            className="flex-1 min-w-40"
+            className="min-w-0"
             triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
             clearable={true}
           />
@@ -104,7 +108,7 @@ export default function GuestApartmentListing() {
             disabled={!buildingFilter}
             placeholder="Tầng"
             searchPlaceholder="Tìm tầng..."
-            className="flex-1 min-w-37.5"
+            className="min-w-0"
             triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
             clearable={true}
           />
@@ -118,7 +122,7 @@ export default function GuestApartmentListing() {
             onChange={(val) => setStatusFilter(val)}
             placeholder="Tất cả trạng thái"
             searchable={false}
-            className="flex-1 min-w-37.5"
+            className="min-w-0"
             triggerClassName="h-[42px] rounded-xl border-gray-300 px-4 py-2.5"
             clearable={true}
           />

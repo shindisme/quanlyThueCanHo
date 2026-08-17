@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import RefreshButton from "../ui/RefreshButton";
 
 export interface PageHeaderProps {
   title: string;
@@ -16,10 +17,10 @@ export function PageHeader({
   children,
 }: PageHeaderProps) {
   return (
-    <div className="flex flex-col gap-4 mb-8 md:mb-10">
+    <div className="mb-6 flex min-w-0 flex-col gap-4 md:mb-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+        <div className="min-w-0">
+          <h1 className="flex flex-wrap items-baseline gap-2 text-xl font-bold text-gray-800 sm:text-2xl">
             {title}
             {count !== undefined && (
               <span className="text-sm font-normal text-gray-400">({count})</span>
@@ -30,7 +31,10 @@ export function PageHeader({
           )}
         </div>
 
-        {actions && <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">{actions}</div>}
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-3 sm:w-auto">
+          <RefreshButton />
+          {actions}
+        </div>
       </div>
 
       {children && <div className="w-full">{children}</div>}

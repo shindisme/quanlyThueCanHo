@@ -60,16 +60,17 @@ export default function GuestChatbox() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const nextMessageIdRef = useRef(2);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   async function handleSend(textToSend: string) {
-    if (!textToSend.trim()) return;
+    if (!textToSend.trim() || isTyping) return;
 
     const userMessage: Message = {
-      id: messages.length + 1,
+      id: nextMessageIdRef.current++,
       text: textToSend,
       sender: "user",
       time: "Vừa xong",
@@ -84,7 +85,7 @@ export default function GuestChatbox() {
       const responseText = res.data.data.reply || "Tôi chưa có câu trả lời cho vấn đề này.";
 
       const botMessage: Message = {
-        id: messages.length + 2,
+        id: nextMessageIdRef.current++,
         text: responseText,
         sender: "bot",
         time: "Vừa xong",
@@ -92,7 +93,7 @@ export default function GuestChatbox() {
       setMessages((prev) => [...prev, botMessage]);
     } catch {
       const errorMessage: Message = {
-        id: messages.length + 2,
+        id: nextMessageIdRef.current++,
         text: "Xin lỗi, hệ thống trợ lý ảo đang bận hoặc gặp sự cố kết nối. Vui lòng thử lại sau.",
         sender: "bot",
         time: "Vừa xong",
@@ -104,12 +105,12 @@ export default function GuestChatbox() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 font-sans">
+    <div className="fixed inset-x-3 bottom-3 z-50 font-sans sm:inset-x-auto sm:bottom-6 sm:right-6">
       {/* NÚT CHAT */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="w-14 h-14 rounded-full flex items-center justify-center text-white shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer animate-bounce-slow"
+          className="ml-auto flex h-14 w-14 cursor-pointer items-center justify-center rounded-full text-white shadow-xl transition-all duration-300 hover:scale-105 animate-bounce-slow"
           style={{ background: "linear-gradient(135deg, #7C3AED, #6D28D9)" }}
           title="Trợ lý ảo YuKi"
         >
@@ -120,7 +121,7 @@ export default function GuestChatbox() {
       {/* CHATBOX */}
       {isOpen && (
         <div
-          className="w-90 sm:w-95 h-130 bg-white rounded-2xl border border-gray-250 shadow-2xl flex flex-col overflow-hidden animate-scale-in"
+          className="flex h-[min(32.5rem,calc(100dvh-1.5rem))] w-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl animate-scale-in sm:w-95"
           style={{ boxShadow: "0 12px 30px rgba(0,0,0,0.15)" }}
         >
           {/* HEADER */}
@@ -141,7 +142,9 @@ export default function GuestChatbox() {
               </div>
             </div>
             <button
+              type="button"
               onClick={() => setIsOpen(false)}
+              aria-label="Đóng trợ lý ảo"
               className="p-1 rounded-md hover:bg-white/10 text-white transition-colors cursor-pointer"
             >
               <X size={18} />
@@ -313,11 +316,12 @@ export default function GuestChatbox() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Nhập nội dung thắc mắc..."
-              className="flex-1 bg-gray-100 rounded-xl px-4 py-2.5 text-xs text-gray-800 border-none focus:outline-none focus:ring-1 focus:ring-primary-500"
+              className="min-w-0 flex-1 rounded-xl border-none bg-gray-100 px-4 py-2.5 text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-primary-500"
             />
             <button
               type="submit"
-              disabled={!input.trim()}
+              disabled={!input.trim() || isTyping}
+              aria-label="Gửi tin nhắn"
               className="p-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
               <Send size={14} />

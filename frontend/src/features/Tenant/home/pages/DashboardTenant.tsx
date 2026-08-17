@@ -4,6 +4,7 @@ import ApartmentInfoCard from "../components/ApartmentInfoCard";
 import DashboardShortcuts from "../components/DashboardShortcuts";
 import RoommatesCard from "../components/RoommatesCard";
 import ReviewApartmentModal from "../components/ReviewApartmentModal";
+import RefreshButton from "../../../../components/ui/RefreshButton";
 
 export default function DashboardTenant() {
   const {
@@ -49,14 +50,17 @@ export default function DashboardTenant() {
   return (
     <div className="space-y-5 sm:space-y-6 font-sans">
       {/* header*/}
-      <div>
-        <p className="text-[11px] sm:text-xs text-gray-400 uppercase tracking-wider mb-1">
-          {new Date().toLocaleDateString("vi-VN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-        </p>
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
-          Xin chào, <span className="text-primary-600">{displayName}</span>
-        </h1>
-        <p className="text-xs sm:text-sm text-gray-500 mt-1">Thông tin tổng quan nơi cư trú của bạn</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-[11px] sm:text-xs text-gray-400 uppercase tracking-wider mb-1">
+            {new Date().toLocaleDateString("vi-VN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+          </p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">
+            Xin chào, <span className="text-primary-600">{displayName}</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">Thông tin tổng quan nơi cư trú của bạn</p>
+        </div>
+        <RefreshButton />
       </div>
 
       <ApartmentInfoCard

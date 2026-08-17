@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useAuthStore } from "../../../stores/auth.store";
 import { useSidebarStore } from "../../../stores/sidebar.store";
 import { getSidebarMenu } from "../../../constants/sidebar";
@@ -7,6 +8,23 @@ import { cn } from "../../../lib/utils";
 export function Sidebar() {
   const { role } = useAuthStore();
   const { isOpen, isMobileOpen, setMobileOpen } = useSidebarStore();
+
+  useEffect(() => {
+    if (!isMobileOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isMobileOpen, setMobileOpen]);
 
   if (!role) return null;
 
@@ -29,11 +47,16 @@ export function Sidebar() {
       {/* MOBILE DRAWER */}
       {isMobileOpen && (
         <>
-          <div
-            className="lg:hidden fixed inset-0 bg-black/40 z-40 animate-fade-in transition-opacity"
+          <button
+            type="button"
+            aria-label="Đóng menu"
+            className="fixed inset-0 z-40 bg-black/40 transition-opacity animate-fade-in lg:hidden"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="lg:hidden fixed left-0 top-0 bottom-0 w-72 bg-white z-50 shadow-xl animate-slide-in-left">
+          <aside
+            aria-label="Điều hướng chính"
+            className="fixed inset-y-0 left-0 z-50 w-[min(18rem,calc(100vw-3rem))] bg-white shadow-xl animate-slide-in-left lg:hidden"
+          >
             <SidebarContent menuGroups={menuGroups} isOpen={true} />
           </aside>
         </>

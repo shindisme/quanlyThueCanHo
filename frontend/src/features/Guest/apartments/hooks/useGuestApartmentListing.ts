@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import * as buildingService from "../../../../services/buildingService";
@@ -7,10 +7,9 @@ import { useDebounce } from "../../../../hooks/useDebounce";
 import { queryKeys } from "../../../../constants/queryKeys";
 import { removeVietnameseTones } from "../../../../utils/string";
 import {
-  findBuildingsWithinRadiusAsync,
+  findNearestBuildingAsync,
   geocodeLocationSearch,
   getLocationSuggestionMessage,
-  isNonHCMCQuery,
   normalizeLocationText,
 } from "../../../../utils/locationSearch";
 
@@ -86,7 +85,7 @@ export function useGuestApartmentListing() {
     return Array.from({ length: building.total_floors }, (_, i) => i + 1);
   })();
 
-  const filteredByControls = apartments.filter((a) => {
+  const filteredByControls = useMemo(() => apartments.filter((a) => {
     if (buildingFilter && a.building_id !== Number(buildingFilter)) {
       return false;
     }
@@ -105,16 +104,27 @@ export function useGuestApartmentListing() {
     const matchStatus = !statusFilter || a.status === statusFilter;
 
     return matchPrice && matchFloor && matchStatus;
-  });
+  }), [apartments, buildingFilter, floorFilter, priceFilter, statusFilter]);
+
+  const locationTerm = normalizeLocationText(debouncedSearch);
+  const exactLocationBuildings = useMemo(
+    () => locationTerm
+      ? buildings.filter((building) =>
+        [building.address, building.branch_name, building.name]
+          .some((value) => normalizeLocationText(value || "").includes(locationTerm))
+      )
+      : [],
+    [buildings, locationTerm]
+  );
+  const exactLocationBuildingIds = new Set(
+    exactLocationBuildings.map((building) => building.id)
+  );
 
   const exactFiltered = filteredByControls.filter((a) => {
     const building = buildings.find((b) => b.id === a.building_id);
     if (isLocationSearch) {
-      const locationTerm = normalizeLocationText(debouncedSearch);
       if (!locationTerm) return true;
-
-      return [building?.address, building?.branch_name, building?.name]
-        .some((value) => normalizeLocationText(value || "").includes(locationTerm));
+      return exactLocationBuildingIds.has(a.building_id);
     }
 
     const term = removeVietnameseTones(debouncedSearch);
@@ -133,6 +143,8 @@ export function useGuestApartmentListing() {
     );
   });
 
+  const hasExactSearchMatch = exactFiltered.length > 0;
+
   useEffect(() => {
     let cancelled = false;
     const searchText = debouncedSearch.trim();
@@ -148,51 +160,58 @@ export function useGuestApartmentListing() {
       return;
     }
 
-    if (isNonHCMCQuery(searchText)) {
-      setLocationSearching(false);
-      setLocationSuggestion({
-        search: searchText,
-        buildingIds: [],
-        message: getLocationSuggestionMessage(searchText, undefined, true, true),
-      });
-      return;
-    }
-
-    if (exactFiltered.length > 0) {
+    if (hasExactSearchMatch) {
       setLocationSearching(false);
       return;
     }
 
     setLocationSearching(true);
-    geocodeLocationSearch(searchText, import.meta.env.VITE_MAPBOX_ACCESS_TOKEN)
+    const matchedBuildingAddress = exactLocationBuildings.find(
+      (building) => building.address.trim().length > searchText.length
+    )?.address;
+    const geocodingText = matchedBuildingAddress || searchText;
+
+    geocodeLocationSearch(geocodingText, import.meta.env.VITE_MAPBOX_ACCESS_TOKEN)
       .then(async (geocodedLocation) => {
         if (cancelled) return;
 
-        if (!geocodedLocation || !geocodedLocation.isInHCMC) {
+        if (!geocodedLocation) {
           setLocationSuggestion({
             search: searchText,
             buildingIds: [],
-            message: getLocationSuggestionMessage(searchText, undefined, true, true),
+            message: getLocationSuggestionMessage(searchText, { isUnresolved: true }),
           });
           return;
         }
 
-        const nearbyBuildings = await findBuildingsWithinRadiusAsync(
+        if (!geocodedLocation.isInServiceArea) {
+          setLocationSuggestion({
+            search: searchText,
+            buildingIds: [],
+            message: getLocationSuggestionMessage(searchText, { isOutsideServiceArea: true }),
+          });
+          return;
+        }
+
+        const buildingIdsWithApartments = new Set(
+          filteredByControls.map((apartment) => apartment.building_id)
+        );
+        const candidateBuildings = buildings.filter((building) =>
+          buildingIdsWithApartments.has(building.id)
+        );
+        const nearestBuilding = await findNearestBuildingAsync(
           geocodedLocation.coordinates,
-          buildings,
-          import.meta.env.VITE_MAPBOX_ACCESS_TOKEN,
+          candidateBuildings,
           15
         );
         if (cancelled) return;
 
         setLocationSuggestion({
           search: searchText,
-          buildingIds: nearbyBuildings.map((result) => result.building.id),
-          message: getLocationSuggestionMessage(
-            searchText,
-            nearbyBuildings[0]?.distanceKm,
-            nearbyBuildings.length > 0
-          ),
+          buildingIds: nearestBuilding ? [nearestBuilding.building.id] : [],
+          message: getLocationSuggestionMessage(searchText, {
+            nearestBranchName: nearestBuilding?.building.branch_name,
+          }),
         });
       })
       .finally(() => {
@@ -202,7 +221,15 @@ export function useGuestApartmentListing() {
     return () => {
       cancelled = true;
     };
-  }, [buildings, buildingFilter, debouncedSearch, exactFiltered.length, loading]);
+  }, [
+    buildings,
+    buildingFilter,
+    debouncedSearch,
+    exactLocationBuildings,
+    filteredByControls,
+    hasExactSearchMatch,
+    loading,
+  ]);
 
   const activeLocationSuggestion =
     locationSuggestion?.search === debouncedSearch.trim()

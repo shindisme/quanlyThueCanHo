@@ -72,6 +72,8 @@ model Building {
   thumbnail_url      String?
   created_at         DateTime       @default(now())
   address            String
+  latitude           Float?
+  longitude          Float?
   apartments         Apartment[]
   assigned_staff     Staff[]        @relation("BuildingStaff")
   onboarding_tenants Tenant[]       @relation("TenantOnboardingBuilding")

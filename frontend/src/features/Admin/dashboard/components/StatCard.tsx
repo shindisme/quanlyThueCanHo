@@ -24,7 +24,7 @@ export default function StatCard({
   const isGreen = variant === "green";
   return (
     <div
-      className={`border transition-all duration-200 p-5 shadow-md hover:shadow-lg rounded-none h-full flex flex-col justify-between ${
+      className={`flex h-full flex-col justify-between rounded-none border p-4 shadow-sm transition-all duration-200 hover:shadow-md sm:p-5 ${
         isGreen ? "bg-emerald-600 border-emerald-600 text-white" : "bg-white border-gray-200"
       }`}
     >
@@ -45,7 +45,7 @@ export default function StatCard({
             </div>
           )}
         </div>
-        <div className={`w-12 h-12 rounded-none flex items-center justify-center shrink-0 ${isGreen ? "bg-white/20" : iconBg}`}>
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-none sm:h-12 sm:w-12 ${isGreen ? "bg-white/20" : iconBg}`}>
           <Icon size={22} className={isGreen ? "text-white" : iconColor} />
         </div>
       </div>

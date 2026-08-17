@@ -7,6 +7,7 @@ export function HeaderMenuButton() {
   return (
     <button
       type="button"
+      aria-label="Mở hoặc thu gọn menu"
       onClick={() => {
         if (window.innerWidth < 1024) {
           setMobileOpen(true);

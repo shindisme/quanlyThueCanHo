@@ -72,7 +72,7 @@ export default function TenantPage() {
                 setCurrentPage(1);
               }}
               placeholder="Tìm kiếm..."
-              className="w-64 sm:w-80"
+              className="w-full sm:w-80"
             />
             {role !== "STAFF" && (
               <Button onClick={createModal.onOpen}>

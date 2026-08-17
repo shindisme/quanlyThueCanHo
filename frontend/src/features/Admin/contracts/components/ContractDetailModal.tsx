@@ -106,7 +106,7 @@ export default function ContractDetailModal({
                 <span className="text-gray-400 block text-xs">Số CMND/CCCD</span>
                 <span className="font-medium text-gray-800">{tenant?.citizen_id || "Chưa cập nhật"}</span>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <span className="text-gray-400 block text-xs">Số điện thoại</span>
                   <span className="font-medium text-gray-800">{tenantUser?.phone || tenant?.phone || "Chưa cập nhật"}</span>
@@ -116,7 +116,7 @@ export default function ContractDetailModal({
                   <span className="font-medium text-gray-800 break-all">{tenant?.email || "Chưa cập nhật"}</span>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <span className="text-gray-400 block text-xs">Ngày sinh</span>
                   <span className="font-medium text-gray-800">
@@ -143,7 +143,7 @@ export default function ContractDetailModal({
                   {bld?.branch_name || "Yuki House"}
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <span className="text-gray-400 block text-xs">Số phòng</span>
                   <span className="font-bold text-gray-800">
@@ -155,7 +155,7 @@ export default function ContractDetailModal({
                   <span className="font-medium text-gray-800">Tầng {apt?.floor || "..."}</span>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <div>
                   <span className="text-gray-400 block text-xs">Diện tích</span>
                   <span className="font-medium text-gray-800">{apt?.area || "..."} m²</span>
@@ -182,7 +182,7 @@ export default function ContractDetailModal({
               <h4 className="font-bold text-gray-800">Thời hạn & Pháp lý</h4>
             </div>
             <div className="space-y-3 text-xs sm:text-sm">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <span className="text-gray-400 block text-xs">Ngày bắt đầu</span>
                   <span className="font-semibold text-gray-800">{formatDate(contract.start_date)}</span>
@@ -192,7 +192,7 @@ export default function ContractDetailModal({
                   <span className="font-semibold text-gray-800">{formatDate(contract.end_date)}</span>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <span className="text-gray-400 block text-xs">Ngày ký kết</span>
                   <span className="font-medium text-gray-800">
@@ -213,7 +213,7 @@ export default function ContractDetailModal({
               <h4 className="font-bold text-gray-800">Tài chính & Quy mô</h4>
             </div>
             <div className="space-y-3 text-xs sm:text-sm">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <span className="text-gray-400 block text-xs">Tiền thuê / tháng</span>
                   <span className="font-bold text-primary-600 text-base">
@@ -228,7 +228,7 @@ export default function ContractDetailModal({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 pt-1 border-t border-gray-50">
+              <div className="grid grid-cols-1 gap-4 border-t border-gray-50 pt-1 sm:grid-cols-2">
                 <div>
                   <span className="text-gray-400 block text-xs">Số người ở thực tế</span>
                   <span className="font-semibold text-gray-800">{actOcc} người</span>

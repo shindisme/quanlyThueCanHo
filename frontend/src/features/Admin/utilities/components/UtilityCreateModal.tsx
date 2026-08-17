@@ -141,7 +141,7 @@ export default function UtilityCreateModal({
           <h4 className="font-bold text-amber-800 text-sm flex items-center gap-1.5">
             Chỉ số Điện (kWh)
           </h4>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input
               label="Chỉ số điện cũ"
               type="number"
@@ -164,7 +164,7 @@ export default function UtilityCreateModal({
           <h4 className="font-bold text-blue-800 text-sm flex items-center gap-1.5">
             Chỉ số Nước (m³)
           </h4>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input
               label="Chỉ số nước cũ"
               type="number"

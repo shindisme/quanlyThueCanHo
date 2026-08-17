@@ -25,7 +25,7 @@ export default function ApartmentInfoCard({
   onOpenReviewModal,
 }: ApartmentInfoCardProps) {
   return (
-    <div className="w-full bg-white border border-gray-100 p-4 sm:p-5 shadow-lg">
+    <section className="w-full rounded-none border border-gray-100 bg-white p-4 shadow-sm sm:p-5">
       {activeContract ? (
         <div className="flex flex-col gap-3">
           <div className="flex items-start justify-between gap-3">
@@ -115,6 +115,6 @@ export default function ApartmentInfoCard({
           <p className="text-xs text-gray-400 mt-1">Liên hệ với ban quản lý nếu có thắc mắc.</p>
         </div>
       )}
-    </div>
+    </section>
   );
 }

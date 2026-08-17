@@ -110,7 +110,7 @@ export default function UserPage() {
               value={search}
               onChange={setSearch}
               placeholder="Tìm kiếm tài khoản..."
-              className="w-64 sm:w-80 flex-1 min-w-0"
+              className="w-full min-w-0 flex-1 sm:w-80"
             />
             {isAdmin && (
               <Button onClick={createModal.onOpen} className="rounded-xl font-semibold gap-1.5 shadow-xs cursor-pointer">

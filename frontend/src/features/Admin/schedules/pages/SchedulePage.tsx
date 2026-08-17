@@ -73,7 +73,7 @@ export default function SchedulePage() {
                 setCurrentPage(1);
               }}
               placeholder="Tìm theo khách, SĐT, phòng, tòa nhà..."
-              className="w-64 sm:w-80 flex-1 min-w-0"
+              className="w-full min-w-0 flex-1 sm:w-80"
             />
           </div>
         }

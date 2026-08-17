@@ -236,7 +236,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
     return createPortal(
       <div
         className={cn(
-          "fixed inset-0 z-50 flex items-center justify-center p-4 font-sans transition-all duration-150",
+          "fixed inset-0 z-50 flex items-center justify-center p-2 font-sans transition-all duration-150 sm:p-4",
           isClosing ? "opacity-0 scale-95" : "opacity-100 scale-100"
         )}
         onPointerDown={handleOverlayPointerDown}
@@ -255,7 +255,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
           tabIndex={-1}
           onKeyDown={handleKeyDown}
           className={cn(
-            "relative w-full bg-white rounded-xl shadow-2xl animate-scale-in max-h-[90vh] flex flex-col overflow-hidden border border-gray-200 focus:outline-none z-10",
+            "relative z-10 flex max-h-[calc(100dvh-1rem)] w-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl animate-scale-in focus:outline-none sm:max-h-[calc(100dvh-2rem)]",
             sizeStyles[size],
             className
           )}
@@ -275,7 +275,7 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
 
           {/* Header */}
           {title && (
-            <div className="border-b border-gray-100 px-6 py-5">
+            <div className="border-b border-gray-100 px-4 py-4 sm:px-6 sm:py-5">
               <h3 id={titleId} className="text-lg font-bold text-gray-900 leading-none pr-8">
                 {title}
               </h3>
@@ -283,11 +283,11 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
           )}
 
           {/* Body */}
-          <div className="overflow-y-auto flex-1 p-6 md:p-8">{children}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">{children}</div>
 
           {/* Footer */}
           {footer && (
-            <div className="border-t border-gray-100 bg-gray-50/50 px-6 py-4 flex justify-end gap-3">
+            <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50/50 px-4 py-3 sm:flex-row sm:justify-end sm:gap-3 sm:px-6 sm:py-4 [&>button]:w-full sm:[&>button]:w-auto">
               {footer}
             </div>
           )}
@@ -301,7 +301,6 @@ export const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
 Modal.displayName = "Modal"
 
 export default Modal
-
 
 
 

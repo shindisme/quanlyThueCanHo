@@ -17,7 +17,7 @@ export default function OperationalTasksCard({
   title = "Nhiệm vụ vận hành chi nhánh",
 }: OperationalTasksCardProps) {
   return (
-    <div className="bg-white border border-gray-200 p-5 shadow-sm font-sans">
+    <section className="rounded-none border border-gray-200 bg-white p-4 font-sans shadow-sm sm:p-5">
       <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
         <CalendarDays size={18} className="text-primary-600" />
         {title}
@@ -26,7 +26,7 @@ export default function OperationalTasksCard({
         {tasks.map((task) => (
           <div
             key={task.id}
-            className={`p-4 border rounded-none flex items-start gap-3 transition-colors ${
+            className={`flex items-start gap-3 rounded-none border p-4 transition-colors ${
               task.urgent
                 ? "border-orange-200 bg-orange-50/30 hover:bg-orange-50/55"
                 : "border-gray-200 bg-gray-50/20 hover:bg-gray-50/50"
@@ -50,6 +50,6 @@ export default function OperationalTasksCard({
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }

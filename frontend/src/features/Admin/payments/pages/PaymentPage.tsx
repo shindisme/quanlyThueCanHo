@@ -44,7 +44,7 @@ export default function PaymentPage() {
             value={filters.search}
             onChange={(val) => updateFilter("search", val)}
             placeholder="Tìm theo mã giao dịch, mã hóa đơn, tên khách thuê..."
-            className="w-64 sm:w-80 flex-1 min-w-0"
+            className="w-full min-w-0 flex-1 sm:w-80"
           />
         }
       />

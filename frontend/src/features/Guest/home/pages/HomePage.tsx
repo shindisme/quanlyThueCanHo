@@ -26,9 +26,9 @@ export default function GuestHomePage() {
   return (
     <div className="font-sans text-gray-900 bg-white">
       {/* HERO SECTION */}
-      <section className="relative pt-12 pb-20 overflow-hidden bg-gray-50 border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-12 lg:py-16">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      <section className="relative overflow-hidden border-b border-gray-200 bg-gray-50 pb-24 pt-12 sm:pt-10 lg:pb-20 lg:pt-12">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-8 sm:py-12 lg:px-12 lg:py-16">
+          <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12">
             {/* Hero Left */}
             <div className="lg:col-span-7">
               {/* Badge */}
@@ -36,7 +36,7 @@ export default function GuestHomePage() {
                 Nền tảng quản lý căn hộ #1 TP.HCM
               </div>
 
-              <h1 className="text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight mb-6 whitespace-pre-line">
+              <h1 className="mb-5 whitespace-pre-line text-3xl font-extrabold leading-tight text-gray-900 sm:text-4xl lg:mb-6 lg:text-5xl">
                 {heroTitle}
               </h1>
               <p className="text-base text-gray-600 mb-8 leading-relaxed max-w-xl">
@@ -57,7 +57,7 @@ export default function GuestHomePage() {
                         handleSearchSubmit();
                       }
                     }}
-                    placeholder="Tìm kiếm theo địa chỉ..."
+                    placeholder="Tìm kiếm theo địa chỉ sau sáp nhập..."
                     className="w-full pl-10 pr-3 py-3 text-sm bg-transparent focus:outline-none text-gray-800"
                   />
                 </div>
@@ -71,14 +71,14 @@ export default function GuestHomePage() {
               </div>
 
               {/* Stats */}
-              <div className="grid grid-cols-3 gap-6 mt-12 pt-8 border-t border-gray-200 max-w-lg">
+              <div className="mt-10 grid max-w-lg grid-cols-3 gap-3 border-t border-gray-200 pt-6 sm:mt-12 sm:gap-6 sm:pt-8">
                 {[
                   { value: "5+", label: "Tòa nhà chi nhánh" },
                   { value: "1000+", label: "Căn hộ cao cấp" },
                   { value: "98%", label: "Khách thuê hài lòng" },
                 ].map((stat, i) => (
                   <div key={i}>
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                    <p className="text-xl font-bold text-gray-900 sm:text-2xl">{stat.value}</p>
                     <p className="text-xs text-gray-500 font-medium mt-0.5">{stat.label}</p>
                   </div>
                 ))}
@@ -91,7 +91,7 @@ export default function GuestHomePage() {
                 <img
                   src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1000&q=80"
                   alt="YuKi House Building"
-                  className="w-full h-105 object-cover"
+                  className="h-72 w-full object-cover sm:h-96 lg:h-105"
                 />
                 <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent flex items-end p-6">
                   <div className="text-white">
@@ -102,7 +102,7 @@ export default function GuestHomePage() {
               </div>
 
               {/* hình ảnh gthieu */}
-              <div className="absolute -bottom-18 -left-6 bg-white border rounded-lg border-gray-300 shadow-xl p-1 flex items-center gap-3 sm:flex">
+              <div className="absolute -bottom-14 left-3 right-3 flex items-center gap-3 rounded-lg border border-gray-300 bg-white p-1 shadow-xl sm:-bottom-18 sm:-left-6 sm:right-auto">
                 <img
                   src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=200&q=80"
                   alt="Phòng mẫu"

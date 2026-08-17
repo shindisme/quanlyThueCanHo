@@ -27,6 +27,8 @@ const publicBuildingSelect = {
     id: true,
     branch_name: true,
     address: true,
+    latitude: true,
+    longitude: true,
     description: true,
     status: true,
     total_floors: true,

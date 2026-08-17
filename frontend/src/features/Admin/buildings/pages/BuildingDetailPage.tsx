@@ -4,6 +4,7 @@ import Badge from "../../../../components/ui/Badge";
 import Button from "../../../../components/ui/Button";
 import Card from "../../../../components/ui/Card";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
+import RefreshButton from "../../../../components/ui/RefreshButton";
 
 import BuildingModifyModal from "../components/BuildingModifyModal";
 import ApartmentCreateModal from "../../apartments/components/ApartmentCreateModal";
@@ -109,11 +110,14 @@ export default function BuildingDetailPage() {
                 })()}
               </div>
             </div>
-            {role === "ADMIN" && (
-              <Button variant="outline" size="sm" onClick={() => setShowModifyModal(true)}>
-                <Pencil size={14} /> Chỉnh sửa
-              </Button>
-            )}
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+              <RefreshButton />
+              {role === "ADMIN" && (
+                <Button variant="outline" size="sm" onClick={() => setShowModifyModal(true)}>
+                  <Pencil size={14} /> Chỉnh sửa
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2 text-sm text-gray-600 mb-4">

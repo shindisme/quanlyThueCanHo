@@ -96,7 +96,7 @@ export function useDashboardManager() {
     select: (response) => response.data,
     enabled: !!activeBuildingId,
   });
-  const maintenanceRequests = maintenanceData || [];
+  const maintenanceRequests = useMemo(() => maintenanceData ?? [], [maintenanceData]);
 
   const isLoading =
     loadingStaff ||

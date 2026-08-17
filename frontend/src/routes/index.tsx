@@ -1,54 +1,45 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import Login from "../pages/Login";
-import AdminLayout from "../layouts/AdminLayout";
-import TenantLayout from "../layouts/TenantLayout";
-import GuestLayout from "../layouts/GuestLayout";
 import RoleRoute from "./RoleRoute";
 import RouteErrorBoundary from "../components/ui/RouteErrorBoundary";
-
-// Trang Admin
-import AdminDashboard from "../features/Admin/dashboard/pages/DashboardAdminPage";
-import BuildingsPage from "../features/Admin/buildings/pages/BuildingPage";
-import BuildingDetailPage from "../features/Admin/buildings/pages/BuildingDetailPage";
-import ApartmentsPage from "../features/Admin/apartments/pages/ApartmentPage";
-import ApartmentDetailPage from "../features/Admin/apartments/pages/ApartmentDetailPage";
-import TenantsPage from "../features/Admin/tenants/pages/TenantPage";
-import StaffPage from "../features/Admin/staffs/pages/StaffPage";
-import ContractsPage from "../features/Admin/contracts/pages/ContractPage";
-import InvoicesPage from "../features/Admin/invoices/pages/InvoicePage";
-import PaymentsPage from "../features/Admin/payments/pages/PaymentPage";
-import MaintenancePage from "../features/Admin/maintenance/pages/MaintenancePage";
-import SchedulesPage from "../features/Admin/schedules/pages/SchedulePage";
-import UtilitiesPage from "../features/Admin/utilities/pages/UtilitiesPage";
-import NotificationsPage from "../features/Admin/notifications/pages/NotificationPage";
-import UsersPage from "../features/Admin/users/pages/UserPage";
-
-// Trang Manager
-import ManagerDashboard from "../features/Manager/dashboard/pages/DashboardManager";
-
-// Trang Staff
-import StaffDashboard from "../features/Staff/dashboard/pages/DashboardStaff";
-
-// Trang Tenant
-import DashboardTenant from "../features/Tenant/home/pages/DashboardTenant";
-import TenantContracts from "../features/Tenant/contracts/pages/MyContracts";
-import MyInvoices from "../features/Tenant/invoices/pages/MyInvoices";
-import MyPayments from "../features/Tenant/payments/pages/MyPayments";
-import MyMaintenance from "../features/Tenant/maintenance/pages/MyMaintenance";
-import MyUtilities from "../features/Tenant/utilities/pages/MyUtilities";
-import MyOccupants from "../features/Tenant/occupants/pages/MyOccupants";
-import ProfilePage from "../features/Tenant/profile/pages/ProfilePage";
-
-// Trang Guest
-import GuestHomePage from "../features/Guest/home/pages/HomePage";
-import GuestApartmentListing from "../features/Guest/apartments/pages/ApartmentListing";
-import GuestApartmentDetail from "../features/Guest/apartments/pages/ApartmentDetail";
-import GuestContact from "../features/Guest/contact/pages/Contact";
-import GuestAbout from "../features/Guest/about/pages/About";
-import SettingsPage from "../features/Admin/settings/pages/SettingsPage";
-
-import PublicPaymentResultPage from "../features/Guest/payments/pages/PublicPaymentResultPage";
-import PublicDepositSuccessPage from "../features/Guest/payments/pages/PublicDepositSuccessPage";
+import {
+  AdminDashboard,
+  AdminLayout,
+  ApartmentDetailPage,
+  ApartmentsPage,
+  BuildingDetailPage,
+  BuildingsPage,
+  ContractsPage,
+  DashboardTenant,
+  GuestAbout,
+  GuestApartmentDetail,
+  GuestApartmentListing,
+  GuestContact,
+  GuestHomePage,
+  GuestLayout,
+  InvoicesPage,
+  Login,
+  MaintenancePage,
+  ManagerDashboard,
+  MyInvoices,
+  MyMaintenance,
+  MyOccupants,
+  MyPayments,
+  MyUtilities,
+  NotificationsPage,
+  PaymentsPage,
+  ProfilePage,
+  PublicDepositSuccessPage,
+  PublicPaymentResultPage,
+  SchedulesPage,
+  SettingsPage,
+  StaffDashboard,
+  StaffPage,
+  TenantContracts,
+  TenantLayout,
+  TenantsPage,
+  UsersPage,
+  UtilitiesPage,
+} from "./lazyPages";
 
 const router = createBrowserRouter([
   // Đăng nhập
@@ -116,14 +107,14 @@ const router = createBrowserRouter([
   {
     path: "/manager",
     element: (
-      <RoleRoute allowedRoles={["MANAGER", "STAFF"]}>
+      <RoleRoute allowedRoles={["MANAGER"]}>
         <AdminLayout />
       </RoleRoute>
     ),
     errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <Navigate to="dashboard" replace /> },
-      { path: "dashboard", element: <RoleRoute allowedRoles={["MANAGER", "STAFF"]}><ManagerDashboard /></RoleRoute> },
+      { path: "dashboard", element: <ManagerDashboard /> },
       { path: "apartments", element: <RoleRoute allowedRoles={["MANAGER"]}><ApartmentsPage /></RoleRoute> },
       { path: "apartments/:id", element: <RoleRoute allowedRoles={["MANAGER"]}><ApartmentDetailPage /></RoleRoute> },
       { path: "tenants", element: <RoleRoute allowedRoles={["MANAGER"]}><TenantsPage /></RoleRoute> },

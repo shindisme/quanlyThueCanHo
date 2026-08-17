@@ -1,3 +1,5 @@
+import type { Role } from "./enums";
+
 export const ROUTES = {
   ADMIN: {
     ROOT: "/admin",
@@ -62,3 +64,21 @@ export function buildRoleRoute(role: string, page: string): string {
   const cleanPage = page.startsWith("/") ? page.slice(1) : page;
   return `/${cleanRole}/${cleanPage}`;
 }
+
+const ROLE_HOME_ROUTES: Record<Role, string> = {
+  ADMIN: ROUTES.ADMIN.DASHBOARD,
+  MANAGER: ROUTES.MANAGER.DASHBOARD,
+  STAFF: ROUTES.STAFF.DASHBOARD,
+  TENANT: ROUTES.TENANT.HOME,
+};
+
+const ROLE_PROFILE_ROUTES: Record<Role, string> = {
+  ADMIN: "/admin/profile",
+  MANAGER: ROUTES.MANAGER.PROFILE,
+  STAFF: ROUTES.STAFF.PROFILE,
+  TENANT: ROUTES.TENANT.PROFILE,
+};
+
+export const getRoleHomeRoute = (role: Role): string => ROLE_HOME_ROUTES[role];
+
+export const getRoleProfileRoute = (role: Role): string => ROLE_PROFILE_ROUTES[role];

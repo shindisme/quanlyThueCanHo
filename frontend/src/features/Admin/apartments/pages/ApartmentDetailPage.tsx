@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Trash2, Plus, Star, ArrowRight } from "lucide-react";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
+import RefreshButton from "../../../../components/ui/RefreshButton";
 import Card from "../../../../components/ui/Card";
 import Badge from "../../../../components/ui/Badge";
 import Button from "../../../../components/ui/Button";
@@ -151,11 +152,14 @@ export default function ApartmentDetailPage() {
                 )}
               </div>
             </div>
-            {role !== "STAFF" && (
-              <Button variant="outline" size="sm" onClick={() => setShowModifyModal(true)}>
-                <Pencil size={14} /> Chỉnh sửa
-              </Button>
-            )}
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+              <RefreshButton />
+              {role !== "STAFF" && (
+                <Button variant="outline" size="sm" onClick={() => setShowModifyModal(true)}>
+                  <Pencil size={14} /> Chỉnh sửa
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2 text-sm text-gray-600 mb-4">

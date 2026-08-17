@@ -3,6 +3,7 @@ import { User, LogOut, ChevronDown } from "lucide-react";
 import { useAuthStore } from "../../../stores/auth.store";
 import { useHeaderUser } from "./hooks/useHeaderUser";
 import Avatar from "../../ui/Avatar";
+import { getRoleProfileRoute } from "../../../constants";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -21,11 +22,7 @@ export function UserDropdown() {
   };
 
   const handleProfileClick = () => {
-    const profilePath =
-      role === "STAFF" || role === "MANAGER"
-        ? "/manager/profile"
-        : `/${(role || "TENANT").toLowerCase()}/profile`;
-    navigate(profilePath);
+    if (role) navigate(getRoleProfileRoute(role));
   };
 
   return (

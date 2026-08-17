@@ -76,7 +76,7 @@ export default function UtilitiesPage() {
                 setCurrentPage(1);
               }}
               placeholder="Tìm phòng, tòa nhà, người ghi..."
-              className="w-64 sm:w-80 flex-1 min-w-0"
+              className="w-full min-w-0 flex-1 sm:w-80"
             />
           </div>
         }

@@ -175,7 +175,7 @@ export default function StaffPage() {
                 setCurrentPage(1);
               }}
               placeholder="Tìm theo họ tên hoặc SĐT..."
-              className="w-64 sm:w-80"
+              className="w-full sm:w-80"
             />
             <Button onClick={createModal.onOpen}>
               <Plus size={18} /> Thêm nhân viên

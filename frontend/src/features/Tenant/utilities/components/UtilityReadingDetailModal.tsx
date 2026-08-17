@@ -12,7 +12,7 @@ export default function UtilityReadingDetailModal({ reading, onClose }: Props) {
   return (
     <Modal isOpen={Boolean(reading)} onClose={onClose} title="Chi tiết chỉ số điện nước" size="md">
       {reading && (
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
           <Detail label="Kỳ ghi" value={`Tháng ${reading.month}/${reading.year}`} />
           <Detail label="Ngày ghi" value={formatDate(reading.created_at)} />
           <Detail label="Điện cũ" value={String(meter(reading.electric_old))} />

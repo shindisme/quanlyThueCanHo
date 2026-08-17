@@ -7,31 +7,11 @@ import { toast } from "sonner"
 import { loginSchema } from "../schemas/auth.schema"
 import { useAuthStore } from "../stores/auth.store"
 import { login } from "../services/authService"
-import { getAllPage as getAllStaff } from "../services/staffService"
-import { getAllPage as getAllBuildings } from "../services/buildingService"
+import { getRoleHomeRoute } from "../constants"
 
 interface LoginForm {
   username: string
   password: string
-}
-
-function parseJwt(token: string) {
-  try {
-    const base64Url = token.split(".")[1]
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
-    const jsonPayload = decodeURIComponent(
-      window
-        .atob(base64)
-        .split("")
-        .map(function (c) {
-          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)
-        })
-        .join("")
-    )
-    return JSON.parse(jsonPayload)
-  } catch {
-    return null
-  }
 }
 
 export function useLogin() {
@@ -40,14 +20,8 @@ export function useLogin() {
   const [showPassword, setShowPassword] = useState(false)
 
   useEffect(() => {
-    if (token) {
-      const redirectPath =
-        role === "ADMIN"
-          ? "/admin/dashboard"
-          : role === "MANAGER" || role === "STAFF"
-            ? "/manager/dashboard"
-            : "/tenant/home"
-      navigate(redirectPath, { replace: true })
+    if (token && role) {
+      navigate(getRoleHomeRoute(role), { replace: true })
     }
   }, [token, role, navigate])
 
@@ -61,52 +35,11 @@ export function useLogin() {
 
   const loginMutation = useMutation({
     mutationFn: (data: LoginForm) => login(data.username.trim(), data.password),
-    onSuccess: async (result, variables) => {
+    onSuccess: (result, variables) => {
       const username = variables.username.trim()
-      const decoded = parseJwt(result.token)
-      const userId = decoded ? (decoded.userId ? Number(decoded.userId) : (decoded.sub ? Number(decoded.sub) : null)) : null
-      let managedBuildingId: number | null = null
-      let managedBuildingName: string | null = null
-
-      if (result.role === "MANAGER" && userId) {
-        try {
-          const staffRes = await getAllStaff()
-          const currentStaff = staffRes.data.find((s) => s.user_id === userId)
-
-          if (currentStaff && currentStaff.building_id) {
-            managedBuildingId = currentStaff.building_id
-
-            // Get building name
-            const buildingsRes = await getAllBuildings()
-            const currentBld = buildingsRes.data.find((b) => b.id === managedBuildingId)
-            if (currentBld) {
-              managedBuildingName = currentBld.branch_name
-            }
-          }
-        } catch (err) {
-          console.error("Lỗi khi lấy thông tin tòa nhà quản lý:", err)
-        }
-      }
-
-      setAuth(result.token, result.role, username, managedBuildingId, managedBuildingName)
+      setAuth(result.token, result.role, username)
       toast.success("Đăng nhập thành công!")
-
-      switch (result.role) {
-        case "ADMIN":
-          navigate("/admin/dashboard")
-          break
-        case "MANAGER":
-          navigate("/manager/dashboard")
-          break
-        case "STAFF":
-          navigate("/staff/dashboard")
-          break
-        case "TENANT":
-          navigate("/tenant/home")
-          break
-        default:
-          navigate("/")
-      }
+      navigate(getRoleHomeRoute(result.role))
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { error?: string } } };

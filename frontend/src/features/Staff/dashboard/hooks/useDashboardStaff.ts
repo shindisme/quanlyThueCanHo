@@ -1,96 +1,47 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useAuthStore } from "../../../../stores/auth.store";
-import * as apartmentService from "../../../../services/apartmentService";
-import * as contractService from "../../../../services/contractService";
-import * as scheduleService from "../../../../services/scheduleService";
+import { queryKeys } from "../../../../constants/queryKeys";
 import * as maintenanceService from "../../../../services/maintenanceService";
 import * as staffService from "../../../../services/staffService";
+import { useAuthStore } from "../../../../stores/auth.store";
 import { parseJwt } from "../../../../utils/jwt";
-import { queryKeys } from "../../../../constants/queryKeys";
 
 export function useDashboardStaff() {
-  const { email, token, role, managedBuildingId } = useAuthStore();
-
+  const { email, token, managedBuildingId } = useAuthStore();
   const decoded = useMemo(() => (token ? parseJwt(token) : null), [token]);
-  const userId = decoded ? (decoded.userId ? Number(decoded.userId) : (decoded.sub ? Number(decoded.sub) : null)) : null;
+  const userId = decoded?.userId ?? decoded?.sub;
+  const numericUserId = userId === undefined ? null : Number(userId);
 
-  // Lấy thông tin staff theo userId để xác định building_id
-  const { data: staffRes, isLoading: loadingStaff } = useQuery({
-    queryKey: queryKeys.staff.list({ scope: "staff-dashboard", userId }),
+  const { data: staff = [], isLoading: loadingStaff, isError: errorStaff } = useQuery({
+    queryKey: queryKeys.staff.list({ scope: "staff-dashboard", userId: numericUserId }),
     queryFn: () => staffService.getAllPage(),
     select: (response) => response.data,
-    enabled: !!userId,
+    enabled: Number.isSafeInteger(numericUserId),
   });
 
-  const currentStaff = useMemo(() => {
-    return userId && staffRes ? staffRes.find((s) => s.user_id === userId) : null;
-  }, [userId, staffRes]);
+  const currentStaff = useMemo(
+    () => staff.find((item) => item.user_id === numericUserId) ?? null,
+    [numericUserId, staff]
+  );
+  const buildingId = managedBuildingId ?? currentStaff?.building_id ?? undefined;
 
-  const displayName = currentStaff?.full_name || email?.split("@")[0] || "Nhân viên";
-
-  // Xác định buildingId đang phụ trách
-  const activeBuildingId = managedBuildingId || currentStaff?.building_id || undefined;
-
-  // Query danh sách yêu cầu bảo trì theo building
-  const { data: maintenanceData, isLoading: loadingMaintenance, isError: errorMaintenance } = useQuery({
-    queryKey: queryKeys.maintenance.list({
-      scope: "staff-dashboard",
-      buildingId: activeBuildingId,
-    }),
-    queryFn: () =>
-      maintenanceService.getAllPage({
-        building_id: activeBuildingId!,
-      }),
+  const {
+    data: maintenanceData,
+    isLoading: loadingMaintenance,
+    isError: errorMaintenance,
+  } = useQuery({
+    queryKey: queryKeys.maintenance.list({ scope: "staff-dashboard", buildingId }),
+    queryFn: () => maintenanceService.getAllPage({ building_id: buildingId! }),
     select: (response) => response.data,
-    enabled: !!activeBuildingId,
+    enabled: Boolean(buildingId),
   });
-  const maintenanceRequests = maintenanceData || [];
-
-  // Query thêm dữ liệu vận hành nếu nhân viên có role khác kỹ thuật thuần
-  const canLoadOperations = !!activeBuildingId && role !== "STAFF";
-
-  const { data: apartments = [], isLoading: loadingApartments, isError: errorApartments } = useQuery({
-    queryKey: queryKeys.apartments.list({ buildingId: activeBuildingId }),
-    queryFn: () => apartmentService.getAllPage({ building_id: activeBuildingId! }),
-    select: (res) => res.data,
-    enabled: canLoadOperations,
-  });
-
-  const { data: contracts = [], isLoading: loadingContracts, isError: errorContracts } = useQuery({
-    queryKey: queryKeys.contracts.list({ buildingId: activeBuildingId }),
-    queryFn: () => contractService.getAllPage({ buildingId: activeBuildingId! }),
-    select: (res) => res.data,
-    enabled: canLoadOperations,
-  });
-
-  const { data: schedules = [], isLoading: loadingSchedules, isError: errorSchedules } = useQuery({
-    queryKey: queryKeys.schedules.list({ buildingId: activeBuildingId }),
-    queryFn: () => scheduleService.getAllPage({ building_id: activeBuildingId! }),
-    select: (res) => res.data,
-    enabled: canLoadOperations,
-  });
-
-  const isLoading =
-    loadingStaff ||
-    (!!activeBuildingId &&
-      (loadingMaintenance ||
-        (canLoadOperations && (loadingApartments || loadingContracts || loadingSchedules))));
-
-  const isError =
-    errorMaintenance || (canLoadOperations && (errorApartments || errorContracts || errorSchedules));
+  const maintenanceRequests = useMemo(() => maintenanceData ?? [], [maintenanceData]);
 
   return {
-    email,
-    displayName,
-    managedBuildingId: activeBuildingId,
-    apartments,
-    contracts,
-    schedules,
-    maintenanceRequests,
-    isLoading,
-    isError,
+    displayName: currentStaff?.full_name || email?.split("@")[0] || "Nhân viên",
     currentStaff,
-    role,
+    maintenanceRequests,
+    isLoading: loadingStaff || (Boolean(buildingId) && loadingMaintenance),
+    isError: errorStaff || errorMaintenance,
   };
 }

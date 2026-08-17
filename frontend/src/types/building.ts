@@ -4,6 +4,8 @@ export interface Building {
   id: number;
   name: string;
   address: string;
+  latitude: number | null;
+  longitude: number | null;
   description: string | null;
   status: string;
   total_floors: number;
@@ -28,6 +30,8 @@ export interface RawBuildingData {
   id: number;
   name: string;
   address: string;
+  latitude: number | null;
+  longitude: number | null;
   total_floors: number;
   total_apartments: number;
   description: string | null;
@@ -58,6 +62,8 @@ export interface BuildingQuery {
 export interface CreateBuildingRequest {
   name: string;
   address: string;
+  latitude?: number | null;
+  longitude?: number | null;
   total_floors: number;
   total_apartments?: number;
   description?: string | null;

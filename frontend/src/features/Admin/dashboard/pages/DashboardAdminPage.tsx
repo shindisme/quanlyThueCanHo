@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import StatCard from "../components/StatCard";
 import ChartCard from "../components/ChartCard";
+import RefreshButton from "../../../../components/ui/RefreshButton";
 
 export default function DashboardAdmin() {
   const {
@@ -76,8 +77,9 @@ export default function DashboardAdmin() {
           <p className="text-sm text-gray-500 mt-0.5">Tổng quan hệ thống</p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="w-60">
+        <div className="flex w-full items-center gap-3 md:w-auto">
+          <RefreshButton />
+          <div className="w-full md:w-60">
             <Combobox
               value={selectedBranch}
               onChange={(val) => {

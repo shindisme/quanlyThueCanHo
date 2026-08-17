@@ -3,7 +3,7 @@ import { FileText, Receipt, Zap, Wrench, Users } from "lucide-react";
 
 export default function DashboardShortcuts() {
   return (
-    <div className="w-full bg-white border border-gray-100 p-4 sm:p-5 shadow-lg">
+    <section className="w-full rounded-none border border-gray-100 bg-white p-4 shadow-sm sm:p-5">
       <h4 className="font-semibold text-gray-800 text-sm sm:text-base mb-3 sm:mb-4">Lối tắt chức năng</h4>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
         <Link
@@ -56,6 +56,6 @@ export default function DashboardShortcuts() {
           <span className="text-xs font-semibold text-gray-700">Hồ sơ & Người ở</span>
         </Link>
       </div>
-    </div>
+    </section>
   );
 }
