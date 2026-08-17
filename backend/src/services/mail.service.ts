@@ -54,6 +54,20 @@ const formatScheduleTime = (date: Date) =>
         timeZone: "Asia/Ho_Chi_Minh"
     }).format(date);
 
+const VIEWING_OFFICE_HOURS_TEXT = [
+    "Vui lòng đến xem phòng trong giờ hành chính:",
+    "8h00 - 11h30",
+    "13h30 - 17h00"
+];
+
+const VIEWING_OFFICE_HOURS_HTML = `
+                <div style="margin: 16px 0; padding: 12px 14px; background: #f9fafb; border-left: 4px solid #2563eb;">
+                    <p style="margin: 0 0 6px;"><strong>Vui lòng đến xem phòng trong giờ hành chính:</strong></p>
+                    <p style="margin: 0;">8h00 - 11h30</p>
+                    <p style="margin: 0;">13h30 - 17h00</p>
+                </div>
+`;
+
 export const sendViewingScheduleConfirmedEmail = async (data: ViewingScheduleEmailData) => {
     const scheduleTime = formatScheduleTime(data.scheduleTime);
     const guestName = escapeHtml(data.guestName);
@@ -67,24 +81,33 @@ export const sendViewingScheduleConfirmedEmail = async (data: ViewingScheduleEma
         text: [
             `Xin chào ${data.guestName},`,
             "",
-            "Quản lý đã xác nhận lịch xem phòng của bạn.",
+            "Ban quản lý đã xác nhận lịch xem phòng của bạn. Thông tin chi tiết như sau:",
             `Căn hộ: ${data.apartmentLabel}`,
             `Địa chỉ tòa nhà: ${data.buildingAddress}`,
             `Ngày xem: ${scheduleTime}`,
             "Trạng thái: Đã xác nhận.",
             "",
-            "Vui lòng chuẩn bị theo lịch đã xác nhận. Cảm ơn bạn đã quan tâm."
+            ...VIEWING_OFFICE_HOURS_TEXT,
+            "",
+            "Khi đến nơi, vui lòng mang theo giấy tờ tùy thân và liên hệ bộ phận quản lý/tư vấn để được hỗ trợ xem phòng.",
+            "Nếu cần thay đổi lịch hẹn, vui lòng phản hồi email này hoặc liên hệ ban quản lý trước thời gian đã hẹn.",
+            "",
+            "Trân trọng,",
+            "Ban quản lý căn hộ"
         ].join("\n"),
         html: `
             <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
                 <h2 style="margin: 0 0 16px;">Lịch xem phòng đã được xác nhận</h2>
                 <p>Xin chào <strong>${guestName}</strong>,</p>
-                <p>Quản lý đã xác nhận lịch xem phòng của bạn.</p>
+                <p>Ban quản lý đã xác nhận lịch xem phòng của bạn. Thông tin chi tiết như sau:</p>
                 <p><strong>Căn hộ:</strong> ${apartmentLabel}</p>
                 <p><strong>Địa chỉ tòa nhà:</strong> ${buildingAddress}</p>
                 <p><strong>Ngày xem:</strong> ${escapeHtml(scheduleTime)}</p>
                 <p><strong>Trạng thái:</strong> Đã xác nhận.</p>
-                <p>Vui lòng chuẩn bị theo lịch đã xác nhận. Cảm ơn bạn đã quan tâm.</p>
+                ${VIEWING_OFFICE_HOURS_HTML}
+                <p>Khi đến nơi, vui lòng mang theo giấy tờ tùy thân và liên hệ bộ phận quản lý/tư vấn để được hỗ trợ xem phòng.</p>
+                <p>Nếu cần thay đổi lịch hẹn, vui lòng phản hồi email này hoặc liên hệ ban quản lý trước thời gian đã hẹn.</p>
+                <p>Trân trọng,<br/>Ban quản lý căn hộ</p>
             </div>
         `
     });
@@ -95,9 +118,9 @@ export const sendViewingScheduleCancelledEmail = async (data: ViewingScheduleEma
     const guestName = escapeHtml(data.guestName);
     const apartmentLabel = escapeHtml(data.apartmentLabel);
     const buildingAddress = escapeHtml(data.buildingAddress);
-    const reasonText = data.cancelReason ? `Lý do hủy: ${data.cancelReason}` : "";
+    const reasonText = data.cancelReason ? `Lý do hủy lịch: ${data.cancelReason}` : "";
     const reasonHtml = data.cancelReason
-        ? `<p style="color: #dc2626; margin-top: 8px;"><strong>Lý do hủy:</strong> ${escapeHtml(data.cancelReason)}</p>`
+        ? `<p style="color: #dc2626; margin-top: 8px;"><strong>Lý do hủy lịch:</strong> ${escapeHtml(data.cancelReason)}</p>`
         : "";
 
     await getTransporter().sendMail({
@@ -107,26 +130,30 @@ export const sendViewingScheduleCancelledEmail = async (data: ViewingScheduleEma
         text: [
             `Xin chào ${data.guestName},`,
             "",
-            "Quản lý đã hủy lịch xem phòng của bạn.",
+            "Rất tiếc, lịch xem phòng của bạn đã được ban quản lý hủy. Thông tin lịch đã hủy:",
             `Căn hộ: ${data.apartmentLabel}`,
             `Địa chỉ tòa nhà: ${data.buildingAddress}`,
             `Ngày xem: ${scheduleTime}`,
             "Trạng thái: Đã hủy.",
             reasonText,
             "",
-            "Vui lòng liên hệ với chúng tôi nếu bạn cần thêm thông tin."
+            "Nếu bạn vẫn quan tâm đến căn hộ này hoặc muốn đặt lại lịch xem phòng, vui lòng phản hồi email này để được hỗ trợ.",
+            "",
+            "Trân trọng,",
+            "Ban quản lý căn hộ"
         ].filter(Boolean).join("\n"),
         html: `
             <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
                 <h2 style="margin: 0 0 16px;">Lịch xem phòng đã bị hủy</h2>
                 <p>Xin chào <strong>${guestName}</strong>,</p>
-                <p>Quản lý đã hủy lịch xem phòng của bạn.</p>
+                <p>Rất tiếc, lịch xem phòng của bạn đã được ban quản lý hủy. Thông tin lịch đã hủy:</p>
                 <p><strong>Căn hộ:</strong> ${apartmentLabel}</p>
                 <p><strong>Địa chỉ tòa nhà:</strong> ${buildingAddress}</p>
                 <p><strong>Ngày xem:</strong> ${escapeHtml(scheduleTime)}</p>
                 <p><strong>Trạng thái:</strong> Đã hủy.</p>
                 ${reasonHtml}
-                <p style="margin-top: 16px;">Vui lòng liên hệ với chúng tôi nếu bạn cần thêm thông tin.</p>
+                <p style="margin-top: 16px;">Nếu bạn vẫn quan tâm đến căn hộ này hoặc muốn đặt lại lịch xem phòng, vui lòng phản hồi email này để được hỗ trợ.</p>
+                <p>Trân trọng,<br/>Ban quản lý căn hộ</p>
             </div>
         `
     });
@@ -145,24 +172,33 @@ export const sendViewingScheduleConfirmationEmail = async (data: ViewingSchedule
         text: [
             `Xin chào ${data.guestName},`,
             "",
-            "Hệ thống đã nhận yêu cầu đặt lịch xem phòng của bạn.",
+            "Hệ thống đã tiếp nhận yêu cầu đặt lịch xem phòng của bạn. Ban quản lý sẽ kiểm tra và gửi email xác nhận khi lịch được duyệt.",
             `Căn hộ: ${data.apartmentLabel}`,
             `Địa chỉ tòa nhà: ${data.buildingAddress}`,
             `Ngày xem: ${scheduleTime}`,
             "Trạng thái: Đang chờ quản trị viên xác nhận.",
             "",
-            "Cảm ơn bạn đã quan tâm."
+            ...VIEWING_OFFICE_HOURS_TEXT,
+            "",
+            "Lưu ý: thời gian xem phòng sẽ được sắp xếp trong khung giờ hành chính nêu trên. Nếu thời gian bạn chọn chưa phù hợp, ban quản lý sẽ liên hệ để điều chỉnh.",
+            "Cảm ơn bạn đã quan tâm đến căn hộ.",
+            "",
+            "Trân trọng,",
+            "Ban quản lý căn hộ"
         ].join("\n"),
         html: `
             <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
                 <h2 style="margin: 0 0 16px;">Xác nhận yêu cầu đặt lịch xem phòng</h2>
                 <p>Xin chào <strong>${guestName}</strong>,</p>
-                <p>Hệ thống đã nhận yêu cầu đặt lịch xem phòng của bạn.</p>
+                <p>Hệ thống đã tiếp nhận yêu cầu đặt lịch xem phòng của bạn. Ban quản lý sẽ kiểm tra và gửi email xác nhận khi lịch được duyệt.</p>
                 <p><strong>Căn hộ:</strong> ${apartmentLabel}</p>
                 <p><strong>Địa chỉ tòa nhà:</strong> ${buildingAddress}</p>
                 <p><strong>Ngày xem:</strong> ${escapeHtml(scheduleTime)}</p>
                 <p><strong>Trạng thái:</strong> Đang chờ quản trị viên xác nhận.</p>
-                <p>Cảm ơn bạn đã quan tâm.</p>
+                ${VIEWING_OFFICE_HOURS_HTML}
+                <p>Lưu ý: thời gian xem phòng sẽ được sắp xếp trong khung giờ hành chính nêu trên. Nếu thời gian bạn chọn chưa phù hợp, ban quản lý sẽ liên hệ để điều chỉnh.</p>
+                <p>Cảm ơn bạn đã quan tâm đến căn hộ.</p>
+                <p>Trân trọng,<br/>Ban quản lý căn hộ</p>
             </div>
         `
     });
@@ -191,18 +227,22 @@ export const sendTenantActivationEmail = async (
         text: [
             `Xin chào ${data.tenantName},`,
             "",
-            "Hợp đồng thuê căn hộ của bạn đã được lập thành công.",
+            "Hợp đồng thuê căn hộ của bạn đã được lập thành công. Hệ thống đã tạo tài khoản người thuê để bạn theo dõi hợp đồng, hóa đơn và các thông báo liên quan.",
             `Tên đăng nhập: ${data.username}`,
             `Mật khẩu tạm thời: ${data.initialPassword}`,
             `Link kích hoạt: ${data.activationUrl}`,
             "",
-            "Vui lòng bấm link kích hoạt trước khi đăng nhập."
+            "Vui lòng truy cập link kích hoạt, đăng nhập bằng thông tin trên và đổi mật khẩu sau lần đăng nhập đầu tiên.",
+            "Để bảo mật tài khoản, vui lòng không chia sẻ mật khẩu tạm thời cho người khác.",
+            "",
+            "Trân trọng,",
+            "Ban quản lý căn hộ"
         ].join("\n"),
         html: `
             <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
                 <h2 style="margin: 0 0 16px;">Kích hoạt tài khoản thuê căn hộ</h2>
                 <p>Xin chào <strong>${tenantName}</strong>,</p>
-                <p>Hợp đồng thuê căn hộ của bạn đã được lập thành công.</p>
+                <p>Hợp đồng thuê căn hộ của bạn đã được lập thành công. Hệ thống đã tạo tài khoản người thuê để bạn theo dõi hợp đồng, hóa đơn và các thông báo liên quan.</p>
                 <p><strong>Tên đăng nhập:</strong> ${username}</p>
                 <p><strong>Mật khẩu tạm thời:</strong> ${initialPassword}</p>
                 <p>
@@ -210,7 +250,9 @@ export const sendTenantActivationEmail = async (
                         Kích hoạt tài khoản
                     </a>
                 </p>
-                <p>Vui lòng kích hoạt tài khoản trước khi đăng nhập.</p>
+                <p>Vui lòng truy cập link kích hoạt, đăng nhập bằng thông tin trên và đổi mật khẩu sau lần đăng nhập đầu tiên.</p>
+                <p>Để bảo mật tài khoản, vui lòng không chia sẻ mật khẩu tạm thời cho người khác.</p>
+                <p>Trân trọng,<br/>Ban quản lý căn hộ</p>
             </div>
         `
     });
@@ -266,7 +308,7 @@ export const sendReservationDepositPaymentEmail = async (
         text: [
             `Xin chào ${data.tenantName},`,
             "",
-            "Hệ thống đã tạo hóa đơn đặt cọc phòng cho bạn.",
+            "Hệ thống đã tạo hóa đơn thanh toán tiền cọc để giữ căn hộ cho bạn. Vui lòng kiểm tra thông tin chi tiết bên dưới:",
             `Mã hóa đơn: ${data.invoiceCode}`,
             `Căn hộ: ${data.apartmentLabel}`,
             `Địa chỉ: ${data.buildingAddress}`,
@@ -274,13 +316,16 @@ export const sendReservationDepositPaymentEmail = async (
             `Hạn nhận phòng/ký hợp đồng: ${moveInDeadline}`,
             `Link thanh toán: ${data.paymentUrl}`,
             "",
-            "Vui lòng thanh toán tiền cọc để giữ phòng."
+            "Vui lòng hoàn tất thanh toán tiền cọc đúng hạn để giữ quyền ưu tiên thuê căn hộ. Sau khi thanh toán thành công, hệ thống sẽ gửi email xác nhận.",
+            "",
+            "Trân trọng,",
+            "Ban quản lý căn hộ"
         ].join("\n"),
         html: `
             <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
                 <h2 style="margin: 0 0 16px;">Thông tin thanh toán tiền cọc</h2>
                 <p>Xin chào <strong>${tenantName}</strong>,</p>
-                <p>Hệ thống đã tạo hóa đơn đặt cọc phòng cho bạn.</p>
+                <p>Hệ thống đã tạo hóa đơn thanh toán tiền cọc để giữ căn hộ cho bạn. Vui lòng kiểm tra thông tin chi tiết bên dưới:</p>
                 <p><strong>Mã hóa đơn:</strong> ${invoiceCode}</p>
                 <p><strong>Căn hộ:</strong> ${apartmentLabel}</p>
                 <p><strong>Địa chỉ:</strong> ${buildingAddress}</p>
@@ -291,7 +336,8 @@ export const sendReservationDepositPaymentEmail = async (
                         Thanh toán tiền cọc
                     </a>
                 </p>
-                <p>Vui lòng thanh toán tiền cọc để giữ phòng.</p>
+                <p>Vui lòng hoàn tất thanh toán tiền cọc đúng hạn để giữ quyền ưu tiên thuê căn hộ. Sau khi thanh toán thành công, hệ thống sẽ gửi email xác nhận.</p>
+                <p>Trân trọng,<br/>Ban quản lý căn hộ</p>
             </div>
         `
     });
@@ -314,7 +360,7 @@ export const sendReservationDepositPaidEmail = async (
         text: [
             `Xin chào ${data.tenantName},`,
             "",
-            "Hệ thống đã ghi nhận bạn thanh toán tiền cọc thành công.",
+            "Hệ thống đã ghi nhận thanh toán tiền cọc của bạn thành công. Thông tin giao dịch và căn hộ như sau:",
             `Mã hóa đơn: ${data.invoiceCode}`,
             `Căn hộ: ${data.apartmentLabel}`,
             `Địa chỉ: ${data.buildingAddress}`,
@@ -323,13 +369,16 @@ export const sendReservationDepositPaidEmail = async (
             "",
             "Quy định giữ phòng:",
             `Bạn cần đến nhận phòng và ký hợp đồng chậm nhất vào ${moveInDeadline}.`,
-            "Nếu sau ngày này bạn không đến nhận phòng và ký hợp đồng, hệ thống xem như bạn bỏ cọc và không thuê căn hộ. Tiền cọc đã thanh toán sẽ không được hoàn lại."
+            "Nếu quá thời hạn trên mà bạn chưa đến nhận phòng và ký hợp đồng, hệ thống sẽ xem như bạn không tiếp tục thuê căn hộ. Tiền cọc đã thanh toán sẽ không được hoàn lại theo quy định giữ phòng.",
+            "",
+            "Trân trọng,",
+            "Ban quản lý căn hộ"
         ].join("\n"),
         html: `
             <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
                 <h2 style="margin: 0 0 16px;">Đã thanh toán tiền cọc</h2>
                 <p>Xin chào <strong>${tenantName}</strong>,</p>
-                <p>Hệ thống đã ghi nhận bạn thanh toán tiền cọc thành công.</p>
+                <p>Hệ thống đã ghi nhận thanh toán tiền cọc của bạn thành công. Thông tin giao dịch và căn hộ như sau:</p>
                 <p><strong>Mã hóa đơn:</strong> ${invoiceCode}</p>
                 <p><strong>Căn hộ:</strong> ${apartmentLabel}</p>
                 <p><strong>Địa chỉ:</strong> ${buildingAddress}</p>
@@ -337,7 +386,8 @@ export const sendReservationDepositPaidEmail = async (
                 <p><strong>Ngày nhận phòng/ký hợp đồng chậm nhất:</strong> ${escapeHtml(moveInDeadline)}</p>
                 <h3 style="margin: 18px 0 8px;">Quy định giữ phòng</h3>
                 <p>Bạn cần đến nhận phòng và ký hợp đồng chậm nhất vào <strong>${escapeHtml(moveInDeadline)}</strong>.</p>
-                <p>Nếu sau ngày này bạn không đến nhận phòng và ký hợp đồng, hệ thống xem như bạn bỏ cọc và không thuê căn hộ. Tiền cọc đã thanh toán sẽ không được hoàn lại.</p>
+                <p>Nếu quá thời hạn trên mà bạn chưa đến nhận phòng và ký hợp đồng, hệ thống sẽ xem như bạn không tiếp tục thuê căn hộ. Tiền cọc đã thanh toán sẽ không được hoàn lại theo quy định giữ phòng.</p>
+                <p>Trân trọng,<br/>Ban quản lý căn hộ</p>
             </div>
         `
     });
@@ -353,26 +403,32 @@ export const sendReservationExpiredEmail = async (
     await getTransporter().sendMail({
         from: getRequiredEnv("SMTP_FROM"),
         to: data.to,
-        subject: `Đã hết thời gian giữ chỗ căn hộ ${data.apartmentLabel}`,
+        subject: `Thông báo hết thời gian giữ chỗ căn hộ ${data.apartmentLabel}`,
         text: [
             `Xin chào ${data.tenantName},`,
             "",
-            "Thời gian giữ chỗ căn hộ của bạn đã hết.",
+            "Thời gian giữ chỗ căn hộ của bạn đã kết thúc do chưa hoàn tất nhận phòng và ký hợp đồng đúng hạn.",
             `Căn hộ: ${data.apartmentLabel}`,
             `Địa chỉ: ${data.buildingAddress}`,
             `Hạn nhận phòng/ký hợp đồng: ${moveInDeadline}`,
             "",
-            "Do bạn chưa đến nhận phòng và ký hợp đồng đúng hạn, hệ thống đã chuyển căn hộ về trạng thái còn trống. Tiền cọc đã thanh toán được ghi nhận là bỏ cọc theo quy định."
+            "Theo quy định giữ phòng, căn hộ đã được chuyển về trạng thái còn trống để tiếp tục cho thuê. Tiền cọc đã thanh toán được ghi nhận là bỏ cọc và không được hoàn lại.",
+            "Nếu bạn cần trao đổi thêm về trường hợp này, vui lòng liên hệ ban quản lý để được hỗ trợ.",
+            "",
+            "Trân trọng,",
+            "Ban quản lý căn hộ"
         ].join("\n"),
         html: `
             <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
-                <h2 style="margin: 0 0 16px;">Đã hết thời gian giữ chỗ căn hộ</h2>
+                <h2 style="margin: 0 0 16px;">Thông báo hết thời gian giữ chỗ căn hộ</h2>
                 <p>Xin chào <strong>${tenantName}</strong>,</p>
-                <p>Thời gian giữ chỗ căn hộ của bạn đã hết.</p>
+                <p>Thời gian giữ chỗ căn hộ của bạn đã kết thúc do chưa hoàn tất nhận phòng và ký hợp đồng đúng hạn.</p>
                 <p><strong>Căn hộ:</strong> ${apartmentLabel}</p>
                 <p><strong>Địa chỉ:</strong> ${buildingAddress}</p>
                 <p><strong>Hạn nhận phòng/ký hợp đồng:</strong> ${escapeHtml(moveInDeadline)}</p>
-                <p>Do bạn chưa đến nhận phòng và ký hợp đồng đúng hạn, hệ thống đã chuyển căn hộ về trạng thái còn trống. Tiền cọc đã thanh toán được ghi nhận là bỏ cọc theo quy định.</p>
+                <p>Theo quy định giữ phòng, căn hộ đã được chuyển về trạng thái còn trống để tiếp tục cho thuê. Tiền cọc đã thanh toán được ghi nhận là bỏ cọc và không được hoàn lại.</p>
+                <p>Nếu bạn cần trao đổi thêm về trường hợp này, vui lòng liên hệ ban quản lý để được hỗ trợ.</p>
+                <p>Trân trọng,<br/>Ban quản lý căn hộ</p>
             </div>
         `
     });
