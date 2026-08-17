@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { FileText, Star, XCircle } from "lucide-react";
+import { FileText, XCircle } from "lucide-react";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import Badge from "../../../../components/ui/Badge";
 import { formatCurrency } from "../../../../utils/currency";
@@ -16,7 +16,6 @@ interface ContractListProps {
   contracts: RentalContract[];
   terminations: ContractTermination[];
   onViewContract: (contract: RentalContract) => void;
-  onOpenReview: (contract: RentalContract) => void;
   onOpenTermination: (contract: RentalContract) => void;
   onCancelTermination: (termination: ContractTermination) => void;
   startIdx?: number;
@@ -29,7 +28,6 @@ export default function ContractList({
   contracts,
   terminations,
   onViewContract,
-  onOpenReview,
   onOpenTermination,
   onCancelTermination,
   startIdx = 0,
@@ -138,17 +136,6 @@ export default function ContractList({
             >
               <FileText size={16} />
             </button>
-            {c.status === "ENDED" && (
-              <button
-                type="button"
-                onClick={() => onOpenReview(c)}
-                className="p-2 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 cursor-pointer transition-colors"
-                title="Đánh giá"
-                aria-label="Đánh giá"
-              >
-                <Star size={16} />
-              </button>
-            )}
             {c.status === "ACTIVE" && (
               <button
                 type="button"

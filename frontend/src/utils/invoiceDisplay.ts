@@ -72,3 +72,26 @@ export function hideInvoicesCoveredByFinalSettlement(invoices: Invoice[]) {
       || !settledContractIds.has(invoice.contract_id)
   );
 }
+
+//Tính số ngày thanh toán trễ của hóa đơn (nếu đã thanh toán sau hạn)
+export function getInvoiceLateDays(
+  invoice: Pick<Invoice, "status" | "due_date" | "paid_at">
+): number {
+  if (invoice.status !== "PAID" || !invoice.paid_at || !invoice.due_date) return 0;
+  const paidDate = new Date(invoice.paid_at);
+  const dueDate = new Date(invoice.due_date);
+  if (Number.isNaN(paidDate.getTime()) || Number.isNaN(dueDate.getTime())) return 0;
+
+  // Hạn thanh toán tính đến hết ngày
+  dueDate.setHours(23, 59, 59, 999);
+  const diffMs = paidDate.getTime() - dueDate.getTime();
+  if (diffMs <= 0) return 0;
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+}
+
+// Kiểm tra xem hóa đơn có phải là thanh toán trễ hạn hay không
+export function isInvoicePaidLate(
+  invoice: Pick<Invoice, "status" | "due_date" | "paid_at">
+): boolean {
+  return getInvoiceLateDays(invoice) > 0;
+}

@@ -16,6 +16,12 @@ export const listApartmentReviewsRequestSchema = z.object({
     body: optionalEmptyBodySchema
 }).strict();
 
+export const getMyReviewsRequestSchema = z.object({
+    params: emptyObjectSchema,
+    query: emptyObjectSchema,
+    body: optionalEmptyBodySchema
+}).strict();
+
 export const createReviewRequestSchema = z.object({
     params: emptyObjectSchema,
     query: emptyObjectSchema,
@@ -28,6 +34,9 @@ export const createReviewRequestSchema = z.object({
 
 export type ListApartmentReviewsRequest = z.infer<
     typeof listApartmentReviewsRequestSchema
+>;
+export type GetMyReviewsRequest = z.infer<
+    typeof getMyReviewsRequestSchema
 >;
 export type CreateReviewRequest = z.infer<
     typeof createReviewRequestSchema

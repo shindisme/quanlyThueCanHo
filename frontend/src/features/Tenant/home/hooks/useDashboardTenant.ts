@@ -26,6 +26,8 @@ export function useDashboardTenant() {
     setComment,
     submittingReview,
     handleReviewSubmit,
+    existingReview,
+    isAlreadyReviewed,
   } = useTenantReview({
     activeContract,
     endedContract,
@@ -53,5 +55,7 @@ export function useDashboardTenant() {
     setComment,
     submittingReview,
     handleReviewSubmit,
+    existingReview,
+    isAlreadyReviewed,
   };
 }

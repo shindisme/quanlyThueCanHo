@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { reviewService } from "../../../../services";
-import type { Apartment, RentalContract } from "../../../../types";
-
+import type { Apartment, MyReviewData, RentalContract } from "../../../../types";
 import { queryKeys } from "../../../../constants/queryKeys";
+import { useAuthStore } from "../../../../stores/auth.store";
 
 interface UseTenantReviewProps {
   activeContract: RentalContract | null;
@@ -18,6 +18,7 @@ export function useTenantReview({
   endedApartment,
 }: UseTenantReviewProps) {
   const queryClient = useQueryClient();
+  const { token, role } = useAuthStore();
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
@@ -25,14 +26,26 @@ export function useTenantReview({
   const endedContractId = endedContract?.id;
   const hasActiveContract = Boolean(activeContract);
 
+  const myReviewsQuery = useQuery<MyReviewData[]>({
+    queryKey: queryKeys.reviews.myReviews(),
+    queryFn: () => reviewService.getMyReviews(),
+    enabled: !!token && role === "TENANT",
+  });
+
+  const existingReview = myReviewsQuery.data?.find(
+    (r) => r.apartment_id === endedApartment?.id
+  ) || null;
+
+  const isAlreadyReviewed = Boolean(existingReview);
+
   useEffect(() => {
-    if (endedContractId && !hasActiveContract) {
+    if (endedContractId && !hasActiveContract && !isAlreadyReviewed && !myReviewsQuery.isLoading) {
       const alreadyDealtWith = localStorage.getItem("has_ignored_review_contract_" + endedContractId);
       if (!alreadyDealtWith) {
         setReviewModalOpen(true);
       }
     }
-  }, [endedContractId, hasActiveContract]);
+  }, [endedContractId, hasActiveContract, isAlreadyReviewed, myReviewsQuery.isLoading]);
 
   const reviewMutation = useMutation({
     mutationFn: (data: { apartment_id: number; rating: number; comment: string }) => reviewService.create(data),
@@ -44,7 +57,8 @@ export function useTenantReview({
       setReviewModalOpen(false);
       setComment("");
       setRating(5);
-      queryClient.invalidateQueries({ queryKey: queryKeys.contracts.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.reviews.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.contracts.all });
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string } }; message?: string };
@@ -53,7 +67,7 @@ export function useTenantReview({
   });
 
   const handleReviewSubmit = () => {
-    if (!endedApartment) return;
+    if (!endedApartment || isAlreadyReviewed) return;
     reviewMutation.mutate({
       apartment_id: endedApartment.id,
       rating,
@@ -70,5 +84,7 @@ export function useTenantReview({
     setComment,
     submittingReview: reviewMutation.isPending,
     handleReviewSubmit,
+    existingReview,
+    isAlreadyReviewed,
   };
 }

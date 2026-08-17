@@ -25,6 +25,8 @@ export default function DashboardTenant() {
     setComment,
     submittingReview,
     handleReviewSubmit,
+    existingReview,
+    isAlreadyReviewed,
   } = useDashboardTenant();
 
   if (isLoading) {
@@ -72,6 +74,7 @@ export default function DashboardTenant() {
         endedBuilding={endedBuilding}
         daysUntilExpiry={daysUntilExpiry}
         onOpenReviewModal={() => setReviewModalOpen(true)}
+        isAlreadyReviewed={isAlreadyReviewed}
       />
 
       <DashboardShortcuts />
@@ -90,6 +93,7 @@ export default function DashboardTenant() {
         setComment={setComment}
         onSubmit={handleReviewSubmit}
         isSubmitting={submittingReview}
+        existingReview={existingReview}
       />
     </div>
   );

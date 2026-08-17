@@ -7,7 +7,7 @@ import {
   INVOICE_TYPE_CONFIG,
 } from "../../constants";
 import { getInvoicePeriod, getInvoicePeriodSortValue } from "../../utils/invoicePeriod";
-import { getInvoiceRoomDisplay, getInvoiceStatus, getInvoiceTenant, getInvoiceType } from "../../utils/invoiceDisplay";
+import { getInvoiceLateDays, getInvoiceRoomDisplay, getInvoiceStatus, getInvoiceTenant, getInvoiceType } from "../../utils/invoiceDisplay";
 import { formatCurrency } from "../../utils/currency";
 import { formatDate } from "../../utils/date";
 import { getTableRowNumber } from "../../utils/table";
@@ -68,7 +68,32 @@ export default function InvoiceList({
         label: "Mã hóa đơn",
         sortable: false,
         sortValue: (inv) => inv.invoice_code,
-        render: (inv) => <span className="font-semibold text-gray-800">{inv.invoice_code}</span>,
+        render: (inv) => {
+          const lateDays = getInvoiceLateDays(inv);
+          const isOverdue = getInvoiceStatus(inv) === "OVERDUE";
+
+          if (lateDays > 0) {
+            return (
+              <span
+                className="font-semibold text-amber-600"
+                title={`Đã thanh toán trễ ${lateDays} ngày so với hạn`}
+              >
+                {inv.invoice_code}
+              </span>
+            );
+          }
+          if (isOverdue) {
+            return (
+              <span
+                className="font-semibold text-red-700"
+                title="Hóa đơn chưa thanh toán và đã quá hạn"
+              >
+                {inv.invoice_code}
+              </span>
+            );
+          }
+          return <span className="font-semibold text-gray-800">{inv.invoice_code}</span>;
+        },
       },
       {
         key: "room",

@@ -7,7 +7,7 @@ import { formatCurrency, formatNumber } from "../../utils/currency";
 import { formatApartmentDisplay } from "../../utils/string";
 import { getInvoicePeriod } from "../../utils/invoicePeriod";
 import { getDisplayItemAmount, getDisplayTierDetails } from "../../utils/feeSettings";
-import { getInvoiceApartment, getInvoiceStatus, getInvoiceTenant, getInvoiceType } from "../../utils/invoiceDisplay";
+import { getInvoiceApartment, getInvoiceLateDays, getInvoiceStatus, getInvoiceTenant, getInvoiceType } from "../../utils/invoiceDisplay";
 import {
   INVOICE_STATUS_CONFIG,
   INVOICE_TYPE_CONFIG,
@@ -58,6 +58,7 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
   const displayTotalAmount = invoice.items && invoice.items.length > 0
     ? invoice.items.reduce((sum, item) => sum + getDisplayItemAmount(item, occupantCount), 0)
     : Number(invoice.total_amount);
+  const lateDays = getInvoiceLateDays(invoice);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Chi Tiết Hóa Đơn" size="lg">
@@ -70,13 +71,19 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
             <p className="text-xs text-gray-400">Hạn thanh toán: {formatDate(invoice.due_date)}</p>
           </div>
           <div className="flex flex-col items-start md:items-end gap-1.5">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {getTypeBadge(invoice)}
               {getStatusBadge(getInvoiceStatus(invoice))}
+              {lateDays > 0 && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                  Trễ {lateDays} ngày
+                </span>
+              )}
             </div>
             {invoice.paid_at && (
-              <span className="text-[10px] text-gray-400 font-medium">
+              <span className={`text-[11px] font-medium ${lateDays > 0 ? "text-amber-700 font-semibold" : "text-gray-500"}`}>
                 Thanh toán lúc: {formatDate(invoice.paid_at)}
+                {lateDays > 0 && ` (Trễ ${lateDays} ngày so với hạn ${formatDate(invoice.due_date)})`}
               </span>
             )}
           </div>

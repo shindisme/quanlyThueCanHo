@@ -39,8 +39,31 @@ export interface Reservation {
   expires_at: string;
   status: ReservationStatus;
   created_at: string;
-  tenant?: Pick<Tenant, "id" | "user_id" | "full_name" | "phone" | "email" | "citizen_id" | "is_verified">;
-  apartment?: Pick<Apartment, "id" | "building_id" | "floor" | "room_number" | "status">;
+  tenant?: Pick<Tenant, "id" | "user_id" | "full_name" | "phone" | "email" | "citizen_id" | "is_verified"> & {
+    address?: string | null;
+    date_of_birth?: string | null;
+    user?: {
+      username: string;
+      role: string;
+      status: string;
+    } | null;
+  };
+  apartment?: Pick<Apartment, "id" | "building_id" | "floor" | "room_number" | "status"> & {
+    building?: {
+      id: number;
+      branch_name: string;
+      address: string;
+    };
+  };
+  invoices?: Array<{
+    id: number;
+    invoice_code: string;
+    total_amount: number | string;
+    status: string;
+    due_date?: string | null;
+    paid_at?: string | null;
+    type?: string;
+  }>;
 }
 
 export interface ReservationQuery {

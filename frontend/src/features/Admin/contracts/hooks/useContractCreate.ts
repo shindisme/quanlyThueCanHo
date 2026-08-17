@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as contractService from "../../../../services/contractService";
 import * as apartmentService from "../../../../services/apartmentService";
+import * as reservationService from "../../../../services/reservationService";
 import { contractSchema, type ContractFormValues } from "../../../../schemas/contract.schema";
 import { queryKeys } from "../../../../constants/queryKeys";
 import type { Apartment } from "../../../../types";
@@ -69,6 +70,14 @@ export function useContractCreate({
   const actualOccupantsValue = formValues.actual_occupants;
   const monthlyRentValue = formValues.monthly_rent;
 
+  // Lấy danh sách phiếu đặt cọc đang hoạt động
+  const { data: activeReservations = [] } = useQuery({
+    queryKey: queryKeys.reservations.list({ status: "ACTIVE" }),
+    queryFn: () => reservationService.getReservations({ status: "ACTIVE" }),
+    select: (res) => res.data || [],
+    enabled: isOpen,
+  });
+
   // Lấy danh sách căn hộ theo chi nhánh được chọn
   const { data: buildingApartments = [], isLoading: loadingApartments } = useQuery({
     queryKey: queryKeys.apartments.list({ buildingId: buildingIdValue }),
@@ -86,6 +95,16 @@ export function useContractCreate({
       null
     );
   }, [apartmentIdValue, buildingApartments, apartments]);
+
+  // Tìm phiếu đặt cọc của căn hộ được chọn
+  const activeReservationForApartment = useMemo(() => {
+    if (!apartmentIdValue) return null;
+    return (
+      activeReservations.find(
+        (r) => r.apartment_id === apartmentIdValue && r.status === "ACTIVE"
+      ) || null
+    );
+  }, [activeReservations, apartmentIdValue]);
 
   // Danh sách tầng thuộc tòa nhà
   const formFloors = useMemo(() => {
@@ -126,10 +145,28 @@ export function useContractCreate({
   }, [isOpen, initialTenantId, initialBuildingId, initialApartmentId, initialFloor, role, managerBuildingId, reset]);
 
   useEffect(() => {
+    if (activeReservationForApartment?.tenant_id && !initialTenantId) {
+      setValue("tenant_id", activeReservationForApartment.tenant_id);
+    }
+  }, [activeReservationForApartment, initialTenantId, setValue]);
+
+  useEffect(() => {
     if (selectedApartment?.rental_price) {
       setValue("monthly_rent", selectedApartment.rental_price);
     }
   }, [selectedApartment, setValue]);
+
+  const isTenantLocked = Boolean(
+    initialTenantId || activeReservationForApartment?.tenant_id
+  );
+  const isBuildingLocked = Boolean(
+    role === "MANAGER" || initialBuildingId
+  );
+  const isFloorLocked = Boolean(initialFloor !== undefined);
+  const isApartmentLocked = Boolean(initialApartmentId);
+  const hasReservationContext = Boolean(
+    initialTenantId || activeReservationForApartment || initialApartmentId
+  );
 
   const createMutation = useMutation({
     mutationFn: (data: ContractFormValues) =>
@@ -144,6 +181,7 @@ export function useContractCreate({
       queryClient.invalidateQueries({ queryKey: queryKeys.contracts.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.apartments.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.tenants.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.reservations.all });
       toast.success("Tạo hợp đồng thành công!");
       onSuccess();
     },
@@ -188,5 +226,11 @@ export function useContractCreate({
     monthlyRentValue,
     maxOccupants,
     buildingApartments,
+    isTenantLocked,
+    isBuildingLocked,
+    isFloorLocked,
+    isApartmentLocked,
+    hasReservationContext,
+    activeReservationForApartment,
   };
 }

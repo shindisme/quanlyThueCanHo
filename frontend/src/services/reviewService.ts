@@ -1,7 +1,6 @@
 import api from "../lib/api";
-import type { ReviewData, ReviewMeta, GetReviewsResponse, CreateReviewRequest } from "../types";
-export type { ReviewData, ReviewMeta, GetReviewsResponse, CreateReviewRequest };
-
+import type { ReviewData, MyReviewData, ReviewMeta, GetReviewsResponse, CreateReviewRequest } from "../types";
+export type { ReviewData, MyReviewData, ReviewMeta, GetReviewsResponse, CreateReviewRequest };
 
 const REVIEW_API = "/reviews";
 
@@ -36,6 +35,11 @@ export async function getApartmentReviews(
   };
 }
 
+export async function getMyReviews(): Promise<MyReviewData[]> {
+  const res = await api.get<{ success: boolean; data: MyReviewData[] }>(`${REVIEW_API}/my-reviews`);
+  return res.data.data || [];
+}
+
 export async function create(data: CreateReviewRequest): Promise<unknown> {
   const res = await api.post(REVIEW_API, data);
   return res.data;
@@ -43,5 +47,6 @@ export async function create(data: CreateReviewRequest): Promise<unknown> {
 
 export const reviewService = {
   getApartmentReviews,
+  getMyReviews,
   create,
 };

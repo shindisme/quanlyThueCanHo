@@ -1,11 +1,12 @@
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Trash2, Plus, Star, ArrowRight } from "lucide-react";
+import { ArrowLeft, MapPin, Maximize2, DollarSign, BedDouble, Bath, Layers, Pencil, Trash2, Plus, Star, ArrowRight, Eye } from "lucide-react";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import RefreshButton from "../../../../components/ui/RefreshButton";
 import Card from "../../../../components/ui/Card";
 import Badge from "../../../../components/ui/Badge";
 import Button from "../../../../components/ui/Button";
 import ApartmentModifyModal from "../components/ApartmentModifyModal";
+import TenantDetailModal from "../../tenants/components/TenantDetailModal";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay, maskCCCD } from "../../../../utils/string";
@@ -43,7 +44,10 @@ export default function ApartmentDetailPage() {
     activeTenantUser,
     activeReservation,
     reservedTenant,
+    targetTenant,
     tenantContracts,
+    showTenantDetailModal,
+    setShowTenantDetailModal,
     fetchData,
     handleImageUpload,
     handleSetThumbnail,
@@ -280,7 +284,17 @@ export default function ApartmentDetailPage() {
               : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
               }`}
           >
-            Người thuê hiện tại {activeContract && <span className="ml-1.5 w-2 h-2 rounded-full bg-success-500 inline-block animate-pulse" />}
+            {activeContract ? (
+              <>
+                Người thuê hiện tại <span className="ml-1.5 w-2 h-2 rounded-full bg-success-500 inline-block animate-pulse" />
+              </>
+            ) : activeReservation ? (
+              <>
+                Khách đặt cọc <span className="ml-1.5 w-2 h-2 rounded-full bg-amber-500 inline-block animate-pulse" />
+              </>
+            ) : (
+              <>Người thuê hiện tại</>
+            )}
           </button>
           <button
             onClick={() => setActiveTab("tenantHistory")}
@@ -289,7 +303,7 @@ export default function ApartmentDetailPage() {
               : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
               }`}
           >
-            Lịch sử hợp đồng ({activeTenant ? tenantContracts.length : 0})
+            Lịch sử hợp đồng ({targetTenant ? tenantContracts.length : 0})
           </button>
           <button
             onClick={() => setActiveTab("reviews")}
@@ -310,12 +324,11 @@ export default function ApartmentDetailPage() {
                 <h3 className="font-semibold text-gray-800 text-base">Thông tin người thuê</h3>
                 {activeContract && activeTenant ? (
                   <div className="space-y-4 text-sm font-sans">
-                    <div className="bg-primary-50/50 p-4 shadow-sm space-y-2 border border-primary-100 rounded-xl">
+                    <div className="bg-primary-50/50 p-4 shadow-sm space-y-3 border border-primary-100 rounded-xl">
                       <div className="flex justify-between items-center">
                         <p className="font-semibold text-gray-800">
                           Chủ hợp đồng: <span className="text-primary-700 font-bold ml-1">{activeTenant.full_name}</span>
                         </p>
-                        {/* Hiển thị phân loại Hợp đồng ban đầu hay Hợp đồng đã gia hạn */}
                         {activeContract.extended_at ? (
                           <Badge variant="warning" showDot>
                             Đã gia hạn ({formatDate(activeContract.extended_at)})
@@ -332,40 +345,101 @@ export default function ApartmentDetailPage() {
                         <p>Email: <span className="font-medium">{activeTenantUser?.email || activeTenant.email || "-"}</span></p>
                         <p>Thời hạn thuê: <span className="font-medium">{formatDate(activeContract.start_date)} - {formatDate(activeContract.end_date)}</span></p>
                       </div>
-                      <div className="pt-2 border-t border-primary-100 flex items-center justify-between text-xs">
-                        <span className="text-gray-500 font-medium">Tình trạng thanh toán:</span>
-                        <Badge variant="success" showDot>Lịch sử thanh toán</Badge>
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-primary-100">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowTenantDetailModal(true)}
+                          className="h-8 text-xs font-semibold rounded-lg bg-white border-primary-200 text-primary-700 hover:bg-primary-50"
+                        >
+                          <Eye size={13} className="mr-1" /> Xem chi tiết người thuê
+                        </Button>
+                        {role !== "TENANT" && (
+                          <Link
+                            to={role === "ADMIN" ? "/admin/contracts" : "/manager/contracts"}
+                            state={{ search: `HD-${String(activeContract.id).padStart(5, "0")}` }}
+                            className="inline-flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-semibold"
+                          >
+                            Đi tới quản lý hợp đồng <ArrowRight size={12} />
+                          </Link>
+                        )}
                       </div>
                     </div>
-                    {role !== "TENANT" && (
-                      <div className="mt-2 text-right">
-                        <Link
-                          to={role === "ADMIN" ? "/admin/contracts" : "/manager/contracts"}
-                          state={{ search: `HD-${String(activeContract.id).padStart(5, "0")}` }}
-                          className="inline-flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-semibold"
-                        >
-                          Đi tới trang quản lý hợp đồng <ArrowRight size={12} />
-                        </Link>
-                      </div>
-                    )}
                   </div>
-                ) : apartment.status === "RESERVED" || activeReservation ? (
+                ) : activeReservation ? (
                   /* Hiển thị thẻ thông tin khách đặt cọc */
                   <div className="space-y-4 text-sm font-sans">
-                    <div className="bg-amber-50/70 p-4 shadow-sm space-y-2.5 border border-amber-200 rounded-xl">
-                      <div className="flex justify-between items-center">
-                        <h4 className="font-bold text-amber-900 flex items-center gap-1.5">
-                          Khách Đã Đặt Cọc Phòng
-                        </h4>
+                    <div className="bg-amber-50/70 p-4 shadow-sm space-y-3 border border-amber-200 rounded-xl">
+                      <div className="flex justify-between items-center pb-2 border-b border-amber-200/60">
+                        <div>
+                          <h4 className="font-bold text-amber-900 text-base flex items-center gap-1.5">
+                            Khách Đã Đặt Cọc Giữ Phòng
+                          </h4>
+                          <p className="text-xs text-amber-700 mt-0.5">
+                            Hạn giữ cọc phòng đến: <span className="font-bold">{activeReservation.expires_at ? formatDate(activeReservation.expires_at) : "Đang cập nhật"}</span>
+                          </p>
+                        </div>
                         <Badge variant="warning" showDot>Đã giữ cọc</Badge>
                       </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 pt-1">
-                        <p>Họ và tên: <span className="font-bold text-gray-900">{reservedTenant?.full_name || activeReservation?.tenant?.full_name || "Khách cọc"}</span></p>
-                        <p>SĐT: <span className="font-medium">{reservedTenant?.phone || activeReservation?.tenant?.phone || "-"}</span></p>
-                        <p>Số tiền cọc: <span className="font-bold text-emerald-600">{formatCurrency(Number(activeReservation?.deposit_amount || apartment.rental_price))}</span></p>
-                        <p>Hạn cọc giữ phòng: <span className="font-bold text-amber-700">{activeReservation?.expires_at ? formatDate(activeReservation.expires_at) : "3 ngày"}</span></p>
+
+                      {/* Chi tiết thông tin khách cọc */}
+                      <div className="grid grid-cols-2 gap-2.5 text-xs text-gray-700 pt-1">
+                        <div>
+                          <p className="text-gray-500 font-medium">Họ và tên khách cọc:</p>
+                          <p className="font-bold text-gray-900 text-sm">
+                            {reservedTenant?.full_name || activeReservation.tenant?.full_name || "Chưa có tên"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500 font-medium">Email:</p>
+                          <p className="font-medium text-gray-900">
+                            {reservedTenant?.email || activeReservation.tenant?.email || "-"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500 font-medium">Số tiền cọc:</p>
+                          <p className="font-bold text-emerald-600 text-sm">
+                            {formatCurrency(Number(activeReservation.deposit_amount || apartment.rental_price))}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500 font-medium">Ngày đặt cọc:</p>
+                          <p className="font-medium text-gray-900">
+                            {activeReservation.reserved_at ? formatDate(activeReservation.reserved_at) : formatDate(activeReservation.created_at)}
+                          </p>
+                        </div>
+                        {activeReservation.invoices && activeReservation.invoices.length > 0 && (
+                          <div>
+                            <p className="text-gray-500 font-medium">Hóa đơn cọc:</p>
+                            <p className="font-semibold text-primary-700">
+                              {activeReservation.invoices[0].invoice_code} (
+                              <span className={activeReservation.invoices[0].status === "PAID" ? "text-success-600" : "text-amber-600"}>
+                                {activeReservation.invoices[0].status === "PAID" ? "Đã thanh toán" : "Chưa thanh toán"}
+                              </span>
+                              )
+                            </p>
+                          </div>
+                        )}
                       </div>
-                      <div className="pt-2 border-t border-amber-200/60 text-right">
+
+                      <div className="pt-2.5 border-t border-amber-200/60 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {targetTenant && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setShowTenantDetailModal(true)}
+                              className="h-8 text-xs font-semibold rounded-lg bg-white border-amber-300 text-amber-900 hover:bg-amber-100"
+                            >
+                              <Eye size={13} className="mr-1" /> Xem chi tiết người cọc
+                            </Button>
+                          )}
+                          <span className="text-xs text-amber-800 italic">
+                            * Tiền cọc sẽ tự động chuyển sang tiền cọc hợp đồng khi tạo hợp đồng.
+                          </span>
+                        </div>
                         <Link
                           to={role === "ADMIN" ? "/admin/contracts" : "/manager/contracts"}
                           state={{
@@ -450,16 +524,19 @@ export default function ApartmentDetailPage() {
           {/* Tab 2: Lịch sử */}
           {activeTab === "tenantHistory" && (
             <div className="space-y-4">
-              <h3 className="font-semibold text-gray-800 text-base mb-2">Lịch sử hợp đồng thuê của người thuê hiện tại</h3>
-              {activeTenant ? (
+              <h3 className="font-semibold text-gray-800 text-base mb-2">
+                Lịch sử hợp đồng thuê của {targetTenant ? targetTenant.full_name : "người thuê hiện tại"}
+              </h3>
+              {targetTenant ? (
                 tenantContracts.length > 0 ? (
                   <div className="overflow-x-auto shadow-md">
                     <table className="min-w-full divide-y divide-gray-150 text-xs">
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="px-3 py-2.5 text-left font-semibold text-gray-650">Mã HĐ</th>
-                          <th className="px-3 py-2.5 text-left font-semibold text-gray-650">Chủ hợp đồng</th>
+                          <th className="px-3 py-2.5 text-left font-semibold text-gray-650">Căn hộ</th>
                           <th className="px-3 py-2.5 text-left font-semibold text-gray-650">Thời hạn</th>
+                          <th className="px-3 py-2.5 text-left font-semibold text-gray-650">Tiền thuê/tháng</th>
                           <th className="px-3 py-2.5 text-right font-semibold text-gray-650">Trạng thái</th>
                         </tr>
                       </thead>
@@ -467,9 +544,16 @@ export default function ApartmentDetailPage() {
                         {tenantContracts.map((c) => (
                           <tr key={c.id} className="hover:bg-gray-50">
                             <td className="px-3 py-2.5 font-medium text-gray-700">HD-{String(c.id).padStart(5, "0")}</td>
-                            <td className="px-3 py-2.5 text-gray-800 font-semibold">{activeTenant.full_name}</td>
+                            <td className="px-3 py-2.5 text-gray-800 font-semibold">
+                              {c.apartment
+                                ? formatApartmentDisplay(c.apartment.room_number, c.apartment.floor, c.apartment.building?.branch_name)
+                                : formatApartmentDisplay(apartment.room_number, apartment.floor)}
+                            </td>
                             <td className="px-3 py-2.5 text-gray-600">
                               {formatDate(c.start_date)} - {formatDate(c.end_date)}
+                            </td>
+                            <td className="px-3 py-2.5 text-gray-700 font-medium">
+                              {formatCurrency(c.monthly_rent)}
                             </td>
                             <td className="px-3 py-2.5 text-right">
                               {(() => {
@@ -487,10 +571,10 @@ export default function ApartmentDetailPage() {
                     </table>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400 py-6 text-center">Không có lịch sử hợp đồng nào khác với người thuê này</p>
+                  <p className="text-sm text-gray-400 py-6 text-center">Không có lịch sử hợp đồng nào khác của người này</p>
                 )
               ) : (
-                <p className="text-sm text-gray-400 py-6 text-center">Chưa có người thuê hiện tại</p>
+                <p className="text-sm text-gray-400 py-6 text-center">Chưa có người thuê hoặc khách đặt cọc hiện tại</p>
               )}
             </div>
           )}
@@ -577,6 +661,11 @@ export default function ApartmentDetailPage() {
         buildings={buildings}
         role={role}
         activeContractId={activeContract?.id}
+      />
+      <TenantDetailModal
+        isOpen={showTenantDetailModal}
+        onClose={() => setShowTenantDetailModal(false)}
+        tenant={targetTenant}
       />
     </div>
   );

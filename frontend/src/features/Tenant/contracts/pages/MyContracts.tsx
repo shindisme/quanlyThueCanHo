@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Star, Sparkles } from "lucide-react";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Combobox from "../../../../components/ui/Combobox";
 import PageHeader from "../../../../components/layout/PageHeader";
@@ -11,6 +12,7 @@ import { useSort } from "../../../../hooks/useSort";
 import { usePagination } from "../../../../hooks/usePagination";
 import { removeVietnameseTones } from "../../../../utils/string";
 import { useTenantContracts } from "../hooks/useTenantContracts";
+import { useMyReviews } from "../hooks/useContractReview";
 import ContractList from "../components/ContractList";
 import ContractDocModal from "../../../../components/ContractDocModal";
 import ContractReviewModal from "../components/ContractReviewModal";
@@ -24,15 +26,36 @@ import type { ContractTermination, RentalContract } from "../../../../types";
 
 export default function MyContracts() {
   const { contracts, terminations, isLoading, isError, refetch } = useTenantContracts();
+  const { data: myReviews = [] } = useMyReviews();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ContractStatus | "">("");
   const [viewContractDoc, setViewContractDoc] = useState<RentalContract | null>(null);
-  const [reviewContract, setReviewContract] = useState<RentalContract | null>(null);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [terminateContract, setTerminateContract] = useState<RentalContract | null>(null);
   const [cancelTermination, setCancelTermination] = useState<ContractTermination | null>(null);
 
   const debouncedSearch = useDebounce(search, 300);
+
+  const endedContracts = useMemo(
+    () => contracts.filter((c) => c.status === "ENDED"),
+    [contracts]
+  );
+
+  const endedApartmentIds = useMemo(() => {
+    const ids = new Set<number>();
+    endedContracts.forEach((c) => {
+      if (c.apartment_id) ids.add(c.apartment_id);
+    });
+    return Array.from(ids);
+  }, [endedContracts]);
+
+  const hasUnreviewedApartment = useMemo(() => {
+    if (endedApartmentIds.length === 0) return false;
+    return endedApartmentIds.some(
+      (aptId) => !myReviews.some((r) => r.apartment_id === aptId)
+    );
+  }, [endedApartmentIds, myReviews]);
 
   const filteredContracts = useMemo(() => {
     return contracts.filter((c) => {
@@ -98,19 +121,62 @@ export default function MyContracts() {
         subtitle="Danh sách các hợp đồng thuê nhà hiện tại và đã thanh lý"
         count={contracts.length}
         actions={
-          <SearchInput
-            value={search}
-            onChange={(value) => {
-              setSearch(value);
-              setCurrentPage(1);
-            }}
-            placeholder="Tìm theo mã HĐ, phòng, chi nhánh..."
-            className="w-full sm:w-72"
-          />
+          <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+            {endedContracts.length > 0 && (
+              <Button
+                type="button"
+                variant={hasUnreviewedApartment ? "primary" : "outline"}
+                onClick={() => setIsReviewModalOpen(true)}
+                className={`rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${hasUnreviewedApartment
+                  ? "bg-amber-500 hover:bg-amber-600 text-white shadow-xs"
+                  : "border-amber-300 bg-amber-50/50 hover:bg-amber-100/70 text-amber-800"
+                  }`}
+              >
+                <Star
+                  size={15}
+                  className={hasUnreviewedApartment ? "fill-white text-white" : "fill-amber-500 text-amber-500"}
+                />
+                {hasUnreviewedApartment ? "Đánh giá căn hộ" : "Xem lại đánh giá"}
+              </Button>
+            )}
+            <SearchInput
+              value={search}
+              onChange={(value) => {
+                setSearch(value);
+                setCurrentPage(1);
+              }}
+              placeholder="Tìm theo mã HĐ, phòng, chi nhánh..."
+              className="w-full sm:w-64"
+            />
+          </div>
         }
       />
 
-      {/* Filter Combobox above Table */}
+      {hasUnreviewedApartment && (
+        <div className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-amber-50/90 to-orange-50/90 border border-amber-200/80 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Sparkles size={20} />
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm font-bold text-amber-950">
+                Chia sẻ trải nghiệm thuê phòng của bạn
+              </p>
+              <p className="text-[11px] sm:text-xs text-amber-800 mt-0.5">
+                Bạn có hợp đồng đã hoàn tất. Hãy để lại đánh giá để giúp chúng tôi nâng cao chất lượng dịch vụ nhé!
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => setIsReviewModalOpen(true)}
+            className="rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shrink-0 cursor-pointer shadow-xs"
+          >
+            Đánh giá ngay
+          </Button>
+        </div>
+      )}
+
       <div className="grid w-full grid-cols-12 gap-3">
         <div className="col-span-12 sm:col-span-6 md:col-span-3">
           <Combobox
@@ -137,7 +203,6 @@ export default function MyContracts() {
           contracts={paginatedContracts}
           terminations={terminations}
           onViewContract={setViewContractDoc}
-          onOpenReview={setReviewContract}
           onOpenTermination={setTerminateContract}
           onCancelTermination={setCancelTermination}
           startIdx={startIdx}
@@ -165,8 +230,10 @@ export default function MyContracts() {
       />
 
       <ContractReviewModal
-        contract={reviewContract}
-        onClose={() => setReviewContract(null)}
+        isOpen={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        endedContracts={endedContracts}
+        myReviews={myReviews}
       />
 
       <ContractTerminationModal
