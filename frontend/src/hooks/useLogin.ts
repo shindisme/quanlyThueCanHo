@@ -8,6 +8,7 @@ import { loginSchema } from "../schemas/auth.schema"
 import { useAuthStore } from "../stores/auth.store"
 import { login } from "../services/authService"
 import { getRoleHomeRoute } from "../constants"
+import { getApiErrorMessage } from "../utils/apiError"
 
 interface LoginForm {
   username: string
@@ -42,9 +43,7 @@ export function useLogin() {
       navigate(getRoleHomeRoute(result.role))
     },
     onError: (error: unknown) => {
-      const err = error as { response?: { data?: { error?: string } } };
-      const msg = err.response?.data?.error || "Đăng nhập thất bại!"
-      toast.error(msg)
+      toast.error(getApiErrorMessage(error, "Đăng nhập thất bại!"))
     }
   })
 

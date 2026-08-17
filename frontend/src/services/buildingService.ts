@@ -7,14 +7,19 @@ import { fetchAllPages } from "./apiHelper";
 const BUILDING_API = "/buildings";
 
 function mapBuildingWithManager(building: RawBuildingData, staff: Staff | undefined): BuildingData {
+  const assignedManager = building.assigned_staff?.find(
+    (s) => s.position === "Quản lý" || s.user?.role === "MANAGER"
+  );
+  const managerStaff = assignedManager || staff;
+
   return {
     ...building,
-    manager_id: staff ? staff.id : null,
-    manager: staff ? {
-      id: staff.id,
-      username: staff.user?.username || staff.full_name,
-      fullName: staff.full_name,
-      role: staff.user?.role || "MANAGER",
+    manager_id: managerStaff ? managerStaff.id : null,
+    manager: managerStaff ? {
+      id: managerStaff.id,
+      username: managerStaff.user?.username || managerStaff.full_name,
+      fullName: managerStaff.full_name,
+      role: managerStaff.user?.role || "MANAGER",
     } : null,
   };
 }

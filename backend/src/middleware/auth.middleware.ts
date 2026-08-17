@@ -1,4 +1,4 @@
-﻿import {
+import {
     Role,
     UserStatus
 } from "@prisma/client";
@@ -96,6 +96,26 @@ export const authenticate: RequestHandler = async (request, _response, next) => 
             "ACCOUNT_DISABLED",
             "Tài khoản này đã bị vô hiệu hóa"
         );
+    }
+
+    if (user.role === Role.MANAGER) {
+        if (!user.staff || user.staff.building_id === null) {
+            throw new AppError(
+                401,
+                "MANAGER_NOT_ASSIGNED",
+                "Tài khoản Quản lý chưa được bàn giao chi nhánh tòa nhà nào. Phiên đăng nhập đã bị chấm dứt."
+            );
+        }
+    }
+
+    if (user.role === Role.STAFF) {
+        if (!user.staff || user.staff.building_id === null) {
+            throw new AppError(
+                401,
+                "STAFF_NOT_ASSIGNED",
+                "Tài khoản Nhân viên chưa được phân công chi nhánh tòa nhà nào. Phiên đăng nhập đã bị chấm dứt."
+            );
+        }
     }
 
     const actor: Actor = {

@@ -43,7 +43,18 @@ api.interceptors.response.use(
       error.message = error.response.data.error.message;
       error.response.data.error = error.message;
     }
-    if (error.response?.status === 401 && !error.config.url?.includes("/auth/login")) {
+
+    const status = error.response?.status;
+    const errorCode = error.response?.data?.error?.code || error.response?.data?.code;
+    const isAuthRevoked =
+      status === 401 ||
+      (status === 403 &&
+        (errorCode === "MANAGER_NOT_ASSIGNED" ||
+          errorCode === "STAFF_NOT_ASSIGNED" ||
+          errorCode === "ACCOUNT_DISABLED" ||
+          errorCode === "MANAGER_BUILDING_REQUIRED"));
+
+    if (isAuthRevoked && !error.config?.url?.includes("/auth/login")) {
       localStorage.removeItem("auth-storage");
 
       const publicPaths = ["/", "/apartments", "/buildings", "/about", "/contact", "/system/login", "/login"];

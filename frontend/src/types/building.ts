@@ -43,6 +43,7 @@ export interface RawBuildingData {
   assigned_staff?: {
     id: number;
     full_name: string;
+    position?: string;
     user?: {
       username: string;
       role: string;

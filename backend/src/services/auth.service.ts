@@ -1,4 +1,4 @@
-﻿import {
+import {
     ContractStatus,
     Role,
     UserStatus,
@@ -371,7 +371,16 @@ export const getAllUsersService = async (actor: Actor) => {
 
 export const loginService = async (username: string, password: string) => {
     const user = await prisma.user.findUnique({
-        where: { username }
+        where: { username },
+        include: {
+            staff: {
+                select: {
+                    id: true,
+                    building_id: true,
+                    position: true
+                }
+            }
+        }
     });
     const isMatch = await bcrypt.compare(
         password,
@@ -388,6 +397,26 @@ export const loginService = async (username: string, password: string) => {
             "ACCOUNT_DISABLED",
             "Tài khoản này đã bị vô hiệu hóa"
         );
+    }
+
+    if (user.role === Role.MANAGER) {
+        if (!user.staff || user.staff.building_id === null) {
+            throw new AppError(
+                403,
+                "MANAGER_NOT_ASSIGNED",
+                "Tài khoản Quản lý chưa được bàn giao chi nhánh tòa nhà nào. Vui lòng liên hệ Quản trị viên."
+            );
+        }
+    }
+
+    if (user.role === Role.STAFF) {
+        if (!user.staff || user.staff.building_id === null) {
+            throw new AppError(
+                403,
+                "STAFF_NOT_ASSIGNED",
+                "Tài khoản Nhân viên chưa được phân công chi nhánh tòa nhà nào. Vui lòng liên hệ Quản trị viên."
+            );
+        }
     }
 
     const token = jwt.sign(

@@ -15,6 +15,7 @@ const staffSummarySelect = {
     id: true,
     full_name: true,
     phone: true,
+    position: true,
     user: {
         select: {
             username: true,
@@ -37,15 +38,13 @@ const publicBuildingSelect = {
     created_at: true,
     _count: {
         select: { apartments: true }
-    }
-} satisfies Prisma.BuildingSelect;
-
-const privateBuildingSelect = {
-    ...publicBuildingSelect,
+    },
     assigned_staff: {
         select: staffSummarySelect
     }
 } satisfies Prisma.BuildingSelect;
+
+const privateBuildingSelect = publicBuildingSelect;
 
 const notFound = () => new AppError(
     404,

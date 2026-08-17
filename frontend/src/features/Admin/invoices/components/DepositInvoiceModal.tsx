@@ -35,7 +35,6 @@ export interface DepositInvoiceModalProps {
   onApartmentChange?: (value: string) => void;
   onSubmit?: (e: React.FormEvent) => void;
   isPending?: boolean;
-  role?: string | null;
 }
 
 const tenantModeOptions: Array<{
