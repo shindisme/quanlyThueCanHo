@@ -50,7 +50,9 @@ export default function ScheduleDetailModal({
         const building = schedule.apartment?.building_id
           ? buildingMap?.[schedule.apartment.building_id] || buildings.find((b) => b.id === schedule.apartment?.building_id)
           : undefined;
-        const { name: guestName, note: guestNote } = parseGuestName(schedule.guest_name);
+        const { name: parsedName, note: parsedNote } = parseGuestName(schedule.guest_name);
+        const guestName = parsedName || schedule.guest_name;
+        const guestNote = schedule.note || parsedNote;
         return (
           <div className="space-y-4 font-sans text-sm">
             <div className="flex justify-between border-b pb-2 border-gray-100">

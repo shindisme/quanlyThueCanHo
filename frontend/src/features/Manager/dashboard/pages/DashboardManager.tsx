@@ -1,145 +1,75 @@
-import { DollarSign, CalendarDays, Clock, AlertCircle } from "lucide-react";
-import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  AreaChart, Area
-} from "recharts";
+  Users,
+  DollarSign,
+  AlertTriangle,
+  Wrench,
+  ShieldAlert,
+  CalendarCheck,
+  ArrowRight,
+} from "lucide-react";
 import { useDashboardManager } from "../hooks/useDashboardManager";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
-import { useAuthStore } from "../../../../stores/auth.store";
-import DashboardStaff from "./DashboardStaff";
+import StatCard from "../../../Admin/dashboard/components/StatCard";
 import ChartCard from "../../../Admin/dashboard/components/ChartCard";
-import DashboardStatGrid from "../components/DashboardStatGrid";
 import ApartmentStatusChart from "../components/ApartmentStatusChart";
+import RevenueAreaChart from "../components/RevenueAreaChart";
+import ContractExpirationTracker from "../components/ContractExpirationTracker";
+import OperationalTasksCard from "../components/OperationalTasksCard";
+import Badge from "../../../../components/ui/Badge";
+import { formatDashboardCurrency } from "../utils/dashboardHelpers";
+import { parseGuestName } from "../../../../utils/string";
+import {
+  PRIORITY_CONFIG,
+  REQUEST_STATUS_CONFIG,
+  SCHEDULE_STATUS_CONFIG,
+  type Priority,
+  type RequestStatus,
+  type ScheduleStatus,
+} from "../../../../constants";
 
-export default function DashboardManager() {
-  const { role } = useAuthStore();
-
-  if (role === "STAFF") {
-    return <DashboardStaff />;
-  }
-
-  return <ManagerDashboardView />;
+function getPriorityBadge(priority: string) {
+  const config = PRIORITY_CONFIG[priority as Priority];
+  return <Badge variant={config?.badge || "gray"}>{config?.label || priority}</Badge>;
 }
 
-function ManagerDashboardView() {
-  const dashboardData = useDashboardManager();
-  const [timeFrame, setTimeFrame] = useState<"month" | "year">("month");
+function getRequestStatusBadge(status: string) {
+  const config = REQUEST_STATUS_CONFIG[status as RequestStatus];
+  return <Badge variant={config?.badge || "gray"}>{config?.label || status}</Badge>;
+}
 
+function getScheduleStatusBadge(status: string) {
+  const config = SCHEDULE_STATUS_CONFIG[status as ScheduleStatus];
+  return <Badge variant={config?.badge || "gray"}>{config?.label || status}</Badge>;
+}
+
+export default function DashboardManager() {
   const {
     displayName,
-    managedBuildingId,
-    apartments,
-    tenants,
-    contracts,
-    schedules,
-    invoices,
-    maintenanceRequests,
-    isLoading
-  } = dashboardData;
-
-  function formatCurrency(amount: number) {
-    if (amount >= 1000000000) return (amount / 1000000000).toFixed(1) + " tỷ";
-    if (amount >= 1000000) return (amount / 1000000).toFixed(0) + " tr";
-    return new Intl.NumberFormat("vi-VN").format(amount) + " đ";
-  }
-
-  const today = new Date().toLocaleDateString("vi-VN", {
-    weekday: "long", year: "numeric", month: "long", day: "numeric",
-  });
-
-  // Filter apartments in manager's building
-  const buildingApartments = managedBuildingId
-    ? apartments.filter((a) => a.building_id === managedBuildingId)
-    : apartments;
-
-  const totalApartmentsCount = buildingApartments.length;
-
-  const rentedApts = buildingApartments.filter((a) => a.status === "RENTED");
-  const availableApts = buildingApartments.filter((a) => a.status === "AVAILABLE");
-  const maintenanceApts = buildingApartments.filter((a) => a.status === "MAINTENANCE");
-
-  const rentedCount = rentedApts.length;
-  const availableCount = availableApts.length;
-  const maintenanceCount = maintenanceApts.length;
-
-  const buildingContracts = contracts.filter((c) => {
-    const isRoomInBuilding = buildingApartments.some((a) => a.id === c.apartment_id);
-    return c.status === "ACTIVE" && isRoomInBuilding;
-  });
-
-  const buildingTenantIds = new Set(buildingContracts.map((c) => c.tenant_id));
-  const activeTenantsCount = managedBuildingId ? buildingTenantIds.size : tenants.length;
-
-  const filteredInvoices = managedBuildingId
-    ? invoices.filter((inv) => inv.contract?.apartment?.building_id === managedBuildingId)
-    : invoices;
-
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
-
-  const currentMonthPaidInvoices = filteredInvoices.filter((inv) => {
-    if (inv.status !== "PAID") return false;
-    const date = new Date(inv.paid_at || inv.created_at);
-    return date.getMonth() + 1 === currentMonth && date.getFullYear() === currentYear;
-  });
-
-  const monthlyRevenue = currentMonthPaidInvoices.reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
-
-  const now = new Date();
-  const thirtyDaysLater = new Date();
-  thirtyDaysLater.setDate(thirtyDaysLater.getDate() + 30);
-  const expiringContractsCount = buildingContracts.filter((c) => {
-    const endDate = new Date(c.end_date);
-    return endDate >= now && endDate <= thirtyDaysLater;
-  }).length;
-
-  const pendingSchedulesCount = schedules.filter((s) => {
-    const matchesBuilding = !managedBuildingId || s.apartment?.building_id === managedBuildingId;
-    return s.status === "PENDING" && matchesBuilding;
-  }).length;
-
-  const pendingMaintenanceRequests = maintenanceRequests.filter(
-    (r) => r.status === "PENDING" || r.status === "PROCESSING" || r.status === "NEEDS_RESCHEDULE"
-  ).length;
-
-  const months = ["T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10", "T11", "T12"];
-  const monthlyRevenueData = months.map((m, index) => {
-    const monthVal = index + 1;
-    const revenue = filteredInvoices.filter((inv) => {
-      if (inv.status !== "PAID") return false;
-      const date = new Date(inv.paid_at || inv.created_at);
-      return date.getMonth() + 1 === monthVal && date.getFullYear() === currentYear;
-    }).reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
-
-    return { name: m, "Doanh thu": revenue };
-  });
-
-  const years = [currentYear - 2, currentYear - 1, currentYear];
-  const yearlyRevenueData = years.map(yr => {
-    const revenue = filteredInvoices.filter((inv) => {
-      if (inv.status !== "PAID") return false;
-      const date = new Date(inv.paid_at || inv.created_at);
-      return date.getFullYear() === yr;
-    }).reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
-
-    return { name: String(yr), "Doanh thu": revenue };
-  });
-
-  const chartData = timeFrame === "month" ? monthlyRevenueData : yearlyRevenueData;
-
-  const apartmentStatus = [
-    { name: "Đang thuê", value: rentedCount, color: "#7C3AED" },
-    { name: "Còn trống", value: availableCount, color: "#10B981" },
-    { name: "Bảo trì", value: maintenanceCount, color: "#F59E0B" },
-  ];
-
-  const upcomingTasks = [
-    { text: `Kiểm tra căn hộ sắp hết hạn (${expiringContractsCount} HĐ)`, time: "Tuần này", urgent: expiringContractsCount > 0 },
-    { text: `Xử lý lịch hẹn xem phòng (${pendingSchedulesCount} lịch chờ)`, time: "Hôm nay", urgent: pendingSchedulesCount > 0 },
-    { text: "Bảo trì định kỳ hệ thống điện nước hành lang", time: "Thứ 5", urgent: false },
-    { text: "Ghi nhận chỉ số điện nước định kỳ cuối tháng", time: "Hàng tháng", urgent: false },
-  ];
+    managedBuildingName,
+    isLoading,
+    isError,
+    today,
+    timeFrame,
+    setTimeFrame,
+    currentYear,
+    totalApartmentsCount,
+    rentedCount,
+    availableCount,
+    maintenanceCount,
+    occupancyRate,
+    roomStatusData,
+    activeTenantsCount,
+    contractExpirations,
+    revenueStats,
+    chartData,
+    pendingSchedulesCount,
+    recentPendingSchedules,
+    pendingMaintenanceRequests,
+    unresolvedMaintenance,
+    upcomingTasks,
+    hasAlerts,
+  } = useDashboardManager();
 
   if (isLoading) {
     return (
@@ -149,115 +79,349 @@ function ManagerDashboardView() {
     );
   }
 
+  if (isError) {
+    return (
+      <div className="p-6 text-center text-sm text-red-600 bg-red-50 border border-red-200">
+        Không thể tải toàn bộ dữ liệu thống kê bảng điều khiển. Vui lòng thử tải lại trang.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 font-sans">
-      <div>
-        <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{today}</p>
-        <h1 className="text-2xl font-bold text-gray-800">
-          Xin chào, <span className="text-primary-600">{displayName}</span>
-        </h1>
+      {/* Header  */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{today}</p>
+          <h1 className="text-2xl font-bold text-gray-800">
+            Xin chào, <span className="text-primary-600">{displayName}</span>
+          </h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Tổng quan chi nhánh{managedBuildingName ? `: ${managedBuildingName}` : ""}
+          </p>
+        </div>
       </div>
 
-      <DashboardStatGrid
-        totalApartments={totalApartmentsCount}
-        pendingMaintenance={pendingMaintenanceRequests}
-        activeTenants={activeTenantsCount}
-        availableApartments={availableCount}
-        pendingSchedules={pendingSchedulesCount}
-        finalCard={{
-          icon: DollarSign,
-          label: "Doanh thu tháng này",
-          value: formatCurrency(monthlyRevenue),
-          iconColor: "text-white",
-          iconBg: "bg-white/20",
-          variant: "green",
-        }}
-      />
+      {/* Cảnh báo và nhắc nhở nghiệp vụ */}
+      {hasAlerts && (
+        <div className="p-4 bg-amber-50/80 border border-amber-200/80 shadow-sm space-y-2">
+          <div className="flex items-center gap-2 text-amber-800 font-bold text-xs uppercase tracking-wider">
+            <ShieldAlert size={16} className="text-amber-600" />
+            <span>Chú ý & Cảnh báo nghiệp vụ</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-amber-900 pt-1">
+            {pendingSchedulesCount > 0 && (
+              <Link
+                to="/manager/schedules"
+                className="flex items-center gap-1.5 hover:underline text-indigo-700 bg-indigo-100/70 px-2.5 py-1 border border-indigo-200"
+              >
+                <CalendarCheck size={14} />
+                <span>
+                  <strong>{pendingSchedulesCount}</strong> lịch xem phòng chờ duyệt
+                </span>
+              </Link>
+            )}
+            {pendingMaintenanceRequests > 0 && (
+              <Link
+                to="/manager/maintenance"
+                className="flex items-center gap-1.5 hover:underline text-amber-800 bg-amber-100/70 px-2.5 py-1 border border-amber-200"
+              >
+                <Wrench size={14} />
+                <span>
+                  <strong>{pendingMaintenanceRequests}</strong> sự cố cần phân công / xử lý
+                </span>
+              </Link>
+            )}
+            {contractExpirations.expiring30Count > 0 && (
+              <Link
+                to="/manager/contracts"
+                className="flex items-center gap-1.5 hover:underline text-orange-700 bg-orange-100/60 px-2.5 py-1 border border-orange-200/60"
+              >
+                <span>
+                  <strong>{contractExpirations.expiring30Count}</strong> hợp đồng sắp hết hạn (30 ngày)
+                </span>
+              </Link>
+            )}
+            {revenueStats.unpaidInvoicesCount > 0 && (
+              <Link
+                to="/manager/invoices"
+                className="flex items-center gap-1.5 hover:underline text-rose-700 bg-rose-100/60 px-2.5 py-1 border border-rose-200/60"
+              >
+                <span>
+                  <strong>{revenueStats.unpaidInvoicesCount}</strong> hóa đơn chưa thu ({formatDashboardCurrency(revenueStats.unpaidRevenue)})
+                </span>
+              </Link>
+            )}
+            {maintenanceCount > 0 && (
+              <Link
+                to="/manager/apartments"
+                className="flex items-center gap-1.5 hover:underline text-amber-700 bg-amber-100/60 px-2.5 py-1 border border-amber-200/60"
+              >
+                <Wrench size={14} />
+                <span>
+                  <strong>{maintenanceCount}</strong> căn hộ đang bảo trì
+                </span>
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-12 gap-6 items-stretch">
-        {/* Left panel: Revenue Chart or Maintenance Table */}
-        <div className="col-span-12 lg:col-span-8">
-          <ChartCard
-            title={`Doanh thu (${timeFrame === "month" ? `Năm ${currentYear}` : "Theo năm"})`}
-            action={
-              <div className="flex bg-gray-100 rounded-lg p-0.5 border border-gray-200">
-                <button
-                  onClick={() => setTimeFrame("month")}
-                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${timeFrame === "month"
-                    ? "bg-white text-emerald-600 shadow-sm"
-                    : "text-gray-500 hover:text-gray-800"
-                    }`}
-                >
-                  Theo tháng
-                </button>
-                <button
-                  onClick={() => setTimeFrame("year")}
-                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${timeFrame === "year"
-                    ? "bg-white text-emerald-600 shadow-sm"
-                    : "text-gray-500 hover:text-gray-800"
-                    }`}
-                >
-                  Theo năm
-                </button>
+      {/* Thao tác nhanh */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-white border border-gray-200 shadow-sm">
+        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+          Thao tác nhanh
+        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            to="/manager/schedules"
+            className="px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-all flex items-center gap-1"
+          >
+            Duyệt lịch xem phòng
+          </Link>
+          <Link
+            to="/manager/maintenance"
+            className="px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-all flex items-center gap-1"
+          >
+            Phân công bảo trì
+          </Link>
+          <Link
+            to="/manager/contracts"
+            className="px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all flex items-center gap-1"
+          >
+            Tạo hợp đồng
+          </Link>
+          <Link
+            to="/manager/invoices"
+            className="px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all flex items-center gap-1"
+          >
+            Tạo hóa đơn
+          </Link>
+          <Link
+            to="/manager/tenants"
+            className="px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all flex items-center gap-1"
+          >
+            Thêm cư dân
+          </Link>
+          <Link
+            to="/manager/apartments"
+            className="px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-all flex items-center gap-1"
+          >
+            Thêm căn hộ
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-12 gap-5 items-stretch">
+        {/* Tỷ lệ lấp đầy */}
+        <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+          <div className="bg-white border border-gray-200 p-4 shadow-sm hover:shadow-md h-full flex flex-col justify-between">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">
+                  Tỷ lệ lấp đầy
+                </p>
+                <p className="text-2xl font-bold text-gray-900">{occupancyRate}%</p>
+                <p className="text-xs text-gray-500 mt-1 font-medium">
+                  {rentedCount} / {totalApartmentsCount} căn ({availableCount} căn trống)
+                </p>
               </div>
+            </div>
+            {/* Progress bar */}
+            <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden mt-3">
+              <div
+                className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, occupancyRate)}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Doanh thu tháng  */}
+        <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+          <StatCard
+            icon={DollarSign}
+            label="Doanh thu tháng"
+            value={formatDashboardCurrency(revenueStats.currentMonthRevenue)}
+            trend={revenueStats.revenueTrend}
+            trendValue={revenueStats.revenueTrendValue}
+            iconColor="text-white"
+            iconBg="bg-white/20"
+            variant="green"
+          />
+        </div>
+
+        {/* Tiền chưa thu */}
+        <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+          <StatCard
+            icon={AlertTriangle}
+            label={`Tiền chưa thu (${revenueStats.unpaidInvoicesCount} HĐ)`}
+            value={formatDashboardCurrency(revenueStats.unpaidRevenue)}
+            iconColor="text-rose-600"
+            iconBg="bg-rose-50"
+          />
+        </div>
+
+        {/* Người thuê đang ở */}
+        <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+          <StatCard
+            icon={Users}
+            label="Người thuê đang ở"
+            value={activeTenantsCount}
+            iconColor="text-info-600"
+            iconBg="bg-info-50"
+          />
+        </div>
+      </div>
+
+      {/* Biểu đồ doanh thu */}
+      <div className="grid grid-cols-12 gap-5 items-stretch">
+        <div className="col-span-12 lg:col-span-8">
+          <RevenueAreaChart
+            data={chartData}
+            timeFrame={timeFrame}
+            setTimeFrame={setTimeFrame}
+            currentYear={currentYear}
+          />
+        </div>
+        <div className="col-span-12 lg:col-span-4">
+          <ApartmentStatusChart data={roomStatusData} />
+        </div>
+      </div>
+
+      {/* Bảng lịch xem phòng và sự cố bảo trì */}
+      <div className="grid grid-cols-12 gap-5 items-stretch">
+        <div className="col-span-12 lg:col-span-6">
+          <ChartCard
+            title="Lịch xem phòng gần đây"
+            subtitle={`Có ${pendingSchedulesCount} lịch hẹn đang chờ quản lý xác nhận`}
+            action={
+              <Link
+                to="/manager/schedules"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-700 hover:underline"
+              >
+                Xem tất cả <ArrowRight size={13} />
+              </Link>
             }
           >
-            <ResponsiveContainer width="100%" height={280} debounce={150}>
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="gradientRevenueManager" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="#9CA3AF" />
-                <YAxis tick={{ fontSize: 11 }} stroke="#9CA3AF" tickFormatter={(v) => `${(v / 1000000).toFixed(0)}tr`} />
-                <Tooltip formatter={(value) => [formatCurrency(Number(value) || 0), ""]}
-                  contentStyle={{ borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "13px" }} />
-                <Area type="monotone" dataKey="Doanh thu" stroke="#10B981" strokeWidth={2.5}
-                  fill="url(#gradientRevenueManager)" name="Doanh thu" dot={{ fill: "#10B981", r: 4 }} />
-              </AreaChart>
-            </ResponsiveContainer>
+            {recentPendingSchedules.length === 0 ? (
+              <div className="text-center py-12 text-gray-400 text-sm">
+                Chưa có lịch hẹn xem phòng nào trong chi nhánh.
+              </div>
+            ) : (
+              <div className="overflow-x-auto min-h-60">
+                <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm font-sans">
+                  <thead>
+                    <tr className="text-left text-gray-500 font-bold uppercase tracking-wider text-[11px]">
+                      <th className="pb-3 pt-2">Khách hàng</th>
+                      <th className="pb-3 pt-2">Căn hộ</th>
+                      <th className="pb-3 pt-2">Ngày xem</th>
+                      <th className="pb-3 pt-2">Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-150">
+                    {recentPendingSchedules.map((sch) => {
+                      const roomStr = sch.apartment ? `P.${sch.apartment.floor}${sch.apartment.room_number}` : `Căn hộ #${sch.apartment_id}`;
+                      const { name } = parseGuestName(sch.guest_name);
+
+                      return (
+                        <tr key={sch.id} className="hover:bg-gray-50/60 transition-colors">
+                          <td className="py-3 font-semibold text-gray-800">
+                            <div>{name}</div>
+                            <div className="text-[11px] text-gray-400 font-normal">{sch.guest_phone}</div>
+                          </td>
+                          <td className="py-3 font-semibold text-gray-700">{roomStr}</td>
+                          <td className="py-3 text-xs text-gray-500 font-medium">
+                            {sch.schedule_time ? (
+                              <span className="text-primary-600 font-semibold">
+                                {new Date(sch.schedule_time).toLocaleDateString("vi-VN", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                })}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">Chưa hẹn ngày</span>
+                            )}
+                          </td>
+                          <td className="py-3">{getScheduleStatusBadge(sch.status)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </ChartCard>
         </div>
 
-        <div className="col-span-12 lg:col-span-4">
-          <ApartmentStatusChart data={apartmentStatus} />
+        {/* Sự cố & bảo trì cần xử lý */}
+        <div className="col-span-12 lg:col-span-6">
+          <ChartCard
+            title="Sự cố & bảo trì cần xử lý"
+            subtitle={`Có ${pendingMaintenanceRequests} sự cố đang chờ xử lý hoặc đang sửa chữa`}
+            action={
+              <Link
+                to="/manager/maintenance"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-700 hover:underline"
+              >
+                Xem tất cả <ArrowRight size={13} />
+              </Link>
+            }
+          >
+            {unresolvedMaintenance.length === 0 ? (
+              <div className="text-center py-12 text-gray-400 text-sm">
+                Không có sự cố bảo trì nào cần xử lý ngay.
+              </div>
+            ) : (
+              <div className="overflow-x-auto min-h-60">
+                <table className="min-w-full divide-y divide-gray-200 text-xs sm:text-sm font-sans">
+                  <thead>
+                    <tr className="text-left text-gray-500 font-bold uppercase tracking-wider text-[11px]">
+                      <th className="pb-3 pt-2">Căn hộ</th>
+                      <th className="pb-3 pt-2">Sự cố</th>
+                      <th className="pb-3 pt-2">Mức độ</th>
+                      <th className="pb-3 pt-2">Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-150">
+                    {unresolvedMaintenance.map((req) => {
+                      const roomStr = req.apartment ? `P.${req.apartment.floor}${req.apartment.room_number}` : `Phòng #${req.apartment_id}`;
+
+                      return (
+                        <tr key={req.id} className="hover:bg-gray-50/60 transition-colors">
+                          <td className="py-3 font-semibold text-gray-800">{roomStr}</td>
+                          <td className="py-3 font-medium text-gray-700">
+                            <div className="font-semibold text-gray-800 truncate max-w-44" title={req.title}>
+                              {req.title}
+                            </div>
+                            <div className="text-xs text-gray-400 truncate max-w-52" title={req.description}>
+                              {req.description}
+                            </div>
+                          </td>
+                          <td className="py-3">{getPriorityBadge(req.priority)}</td>
+                          <td className="py-3">{getRequestStatusBadge(req.status)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </ChartCard>
         </div>
       </div>
 
-      {/* Operational Tasks Row */}
-      <div className="grid grid-cols-1 gap-6">
-        <div className="bg-white border border-gray-200 p-5 shadow-lg rounded-none">
-          <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <CalendarDays size={18} className="text-primary-600" />
-            Nhiệm vụ vận hành chi nhánh
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {upcomingTasks.map((task, i) => (
-              <div key={i} className={`p-4 border rounded-none flex items-start gap-3 transition-colors ${task.urgent
-                ? "border-orange-200 bg-orange-50/30 hover:bg-orange-50/55"
-                : "border-gray-200 bg-gray-50/20 hover:bg-gray-50/50"
-                }`}>
-                {task.urgent ? (
-                  <AlertCircle className="text-orange-500 mt-0.5 shrink-0" size={16} />
-                ) : (
-                  <Clock className="text-gray-400 mt-0.5 shrink-0" size={16} />
-                )}
-                <div className="flex-1">
-                  <p className="text-sm text-gray-700 font-medium">{task.text}</p>
-                  <span className={`text-[10px] font-bold uppercase mt-1 inline-block ${task.urgent ? "text-orange-600" : "text-gray-400"
-                    }`}>
-                    {task.time}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      {/* Theo dõi thời hạn hợp đồng */}
+      <ContractExpirationTracker
+        expiredCount={contractExpirations.expiredCount}
+        expiring30Count={contractExpirations.expiring30Count}
+        expiring60Count={contractExpirations.expiring60Count}
+        expiring90Count={contractExpirations.expiring90Count}
+        contractsRoute="/manager/contracts"
+      />
+
+      <OperationalTasksCard tasks={upcomingTasks} />
     </div>
   );
 }

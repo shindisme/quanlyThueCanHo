@@ -21,6 +21,7 @@ export const bookViewingRequestSchema = z.object({
         guest_name: z.string().trim().min(2).max(200),
         guest_phone: z.string().trim().min(8).max(30),
         guest_email: z.email().max(320),
+        note: z.string().trim().max(500).optional(),
         schedule_time: strictRfc3339DateSchema
     }).strict()
 }).strict();

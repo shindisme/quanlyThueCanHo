@@ -7,6 +7,7 @@ export interface ViewingSchedule {
   guest_name: string;
   guest_phone: string;
   guest_email: string | null;
+  note?: string | null;
   schedule_time: string;
   status: ScheduleStatus;
   attendance_status?: AttendanceStatus;

@@ -303,6 +303,7 @@ model ViewingSchedule {
   guest_name        String
   guest_phone       String
   guest_email       String?
+  note              String?
   schedule_time     DateTime
   status            ScheduleStatus   @default(PENDING)
   attendance_status AttendanceStatus @default(NOT_YET)

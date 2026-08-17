@@ -264,6 +264,7 @@ export const bookViewingService = async (
                     guest_name: data.guest_name,
                     guest_phone: data.guest_phone,
                     guest_email: data.guest_email,
+                    note: data.note,
                     schedule_time: requestedDate,
                     status: ScheduleStatus.PENDING
                 }

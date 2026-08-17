@@ -93,11 +93,10 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
 
     handleSubmitSchedule.mutate({
       apartment_id: apartment.id,
-      guest_name: bookingForm.note
-        ? `${bookingForm.guest_name} (Ghi chú: ${bookingForm.note})`
-        : bookingForm.guest_name,
+      guest_name: bookingForm.guest_name,
       guest_phone: bookingForm.guest_phone,
       guest_email: bookingForm.guest_email,
+      note: bookingForm.note || undefined,
       schedule_time: combinedTime,
     });
   };

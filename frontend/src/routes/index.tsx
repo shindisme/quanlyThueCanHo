@@ -26,6 +26,9 @@ import UsersPage from "../features/Admin/users/pages/UserPage";
 // Trang Manager
 import ManagerDashboard from "../features/Manager/dashboard/pages/DashboardManager";
 
+// Trang Staff
+import StaffDashboard from "../features/Staff/dashboard/pages/DashboardStaff";
+
 // Trang Tenant
 import DashboardTenant from "../features/Tenant/home/pages/DashboardTenant";
 import TenantContracts from "../features/Tenant/contracts/pages/MyContracts";
@@ -147,7 +150,7 @@ const router = createBrowserRouter([
     errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: <Navigate to="dashboard" replace /> },
-      { path: "dashboard", element: <ManagerDashboard /> },
+      { path: "dashboard", element: <StaffDashboard /> },
       { path: "maintenance", element: <MaintenancePage /> },
       { path: "utilities", element: <UtilitiesPage /> },
       { path: "notifications", element: <NotificationsPage /> },

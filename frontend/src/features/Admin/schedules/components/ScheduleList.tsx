@@ -157,7 +157,7 @@ export default function ScheduleList({
         sortable: true,
         sortValue: (s: ViewingSchedule) => parseGuestName(s.guest_name).name.trim(),
         render: (s: ViewingSchedule) => (
-          <span className="font-semibold text-gray-805">{parseGuestName(s.guest_name).name}</span>
+          <span className="font-semibold text-gray-800">{parseGuestName(s.guest_name).name}</span>
         ),
       },
       {

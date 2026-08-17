@@ -100,10 +100,7 @@ export default function MaintenanceList({
         sortValue: (req) => req.assigned_staff?.full_name || "",
         render: (req) =>
           req.assigned_staff ? (
-            <div className="flex flex-col text-xs">
-              <span className="font-medium text-gray-800">{req.assigned_staff.full_name}</span>
-              <span className="text-gray-400 font-normal">{req.assigned_staff.phone}</span>
-            </div>
+            <span className="font-medium text-gray-800">{req.assigned_staff.full_name}</span>
           ) : (
             <span className="text-xs text-gray-400 italic">Chưa phân công</span>
           ),

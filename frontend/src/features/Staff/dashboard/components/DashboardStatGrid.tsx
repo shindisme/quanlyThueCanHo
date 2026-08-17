@@ -36,7 +36,7 @@ export default function DashboardStatGrid({
   ];
 
   return (
-    <div className="grid grid-cols-12 items-stretch gap-6">
+    <div className="grid grid-cols-12 items-stretch gap-6 font-sans">
       {cards.map((card) => (
         <div key={card.label} className="col-span-12 sm:col-span-6 lg:col-span-4">
           <StatCard {...card} />
