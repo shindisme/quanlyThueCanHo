@@ -1,19 +1,13 @@
-import { useSearchParams, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { CheckCircle2, Home, ArrowLeft, ShieldCheck, Calendar, Building2, CreditCard } from "lucide-react";
 import Button from "../../../../components/ui/Button";
 import Card from "../../../../components/ui/Card";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatDate } from "../../../../utils/date";
+import { usePublicDepositSuccess } from "../hooks/usePublicDepositSuccess";
 
 export default function PublicDepositSuccessPage() {
-  const [searchParams] = useSearchParams();
-
-  const invoiceCode = searchParams.get("invoice_code") || searchParams.get("vnp_TxnRef") || "DEP-SUCCESS";
-  const amount = searchParams.get("amount") ? Number(searchParams.get("amount")) : 5000000;
-  const roomNumber = searchParams.get("room") || searchParams.get("room_number") || "P.102";
-  const branchName = searchParams.get("branch") || "Chi nhánh Trung tâm";
-  const customerName = searchParams.get("customer") || "Khách hàng đặt cọc";
-  const expiresAt = searchParams.get("expires_at") || new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+  const { invoiceCode, amount, roomNumber, branchName, customerName, expiresAt } = usePublicDepositSuccess();
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans pt-20 pb-16">

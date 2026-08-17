@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS "public"."viewing_schedules_one_active_slot_key";

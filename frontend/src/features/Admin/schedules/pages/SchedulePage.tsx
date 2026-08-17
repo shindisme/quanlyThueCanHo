@@ -17,7 +17,6 @@ export default function SchedulePage() {
     role,
     buildings,
     buildingMap,
-    viewingCapacityByBuilding,
     schedules,
     filtered,
     loading,
@@ -79,17 +78,6 @@ export default function SchedulePage() {
           </div>
         }
       />
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {viewingCapacityByBuilding.map((capacity) => (
-          <div key={capacity.buildingId} className="border border-gray-200 bg-white px-4 py-3">
-            <p className="text-sm font-semibold text-gray-800">{capacity.branchName}</p>
-            <p className="mt-1 text-xs text-gray-500">
-              Giới hạn tối đa {capacity.dailyCapacity} lượt đặt lịch/ngày
-            </p>
-          </div>
-        ))}
-      </div>
 
       {/* Filters Bar */}
       <div className="grid grid-cols-12 gap-3 w-full">

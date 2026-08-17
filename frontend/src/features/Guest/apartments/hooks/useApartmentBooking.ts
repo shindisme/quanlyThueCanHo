@@ -14,48 +14,28 @@ interface UseApartmentBookingProps {
 export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState("");
+  const [selectedTime, setSelectedTime] = useState("");
   const [bookingForm, setBookingForm] = useState({
     guest_name: "",
     guest_phone: "",
     guest_email: "",
-    schedule_time: "",
     note: "",
   });
 
-  // Fetch availability
   const availabilityQuery = useQuery({
     queryKey: queryKeys.schedules.availability(apartment?.id, selectedDate),
     queryFn: () => getViewingAvailability(apartment!.id, selectedDate),
     enabled: showScheduleForm && !!apartment && !!selectedDate,
   });
 
-  const availability = availabilityQuery.data
-    ? {
-      date: selectedDate,
-      hours: availabilityQuery.data.available_hours,
-      dailyCapacity: availabilityQuery.data.daily_capacity,
-      bookedCount: availabilityQuery.data.booked_count,
-      isDayFull: availabilityQuery.data.is_day_full,
-    }
-    : null;
-
-  const checkIsSlotUnavailable = () =>
-    availability?.date === selectedDate && availability.isDayFull;
-
-  const handleSelectBookingSlot = (slot: string) => {
-    if (selectedTimeSlot === slot) {
-      setSelectedTimeSlot("");
-    } else {
-      setSelectedTimeSlot(slot);
-    }
-  };
+  const availability = availabilityQuery.data ?? null;
+  const isSelectedDateFull = Boolean(availability?.is_full);
 
   const handleResetBooking = () => {
-    setSelectedTimeSlot("");
     setShowScheduleForm(false);
-    setBookingForm({ guest_name: "", guest_phone: "", guest_email: "", schedule_time: "", note: "" });
+    setBookingForm({ guest_name: "", guest_phone: "", guest_email: "", note: "" });
     setSelectedDate("");
+    setSelectedTime("");
   };
 
   const handleSubmitSchedule = useMutation({
@@ -75,12 +55,13 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
       toast.error("Căn hộ đã được thuê, không thể đặt lịch xem phòng!");
       return;
     }
+
     const payload = {
       guest_name: bookingForm.guest_name,
       guest_phone: bookingForm.guest_phone,
       guest_email: bookingForm.guest_email,
       selectedDate,
-      selectedSlot: selectedTimeSlot,
+      selectedTime,
       note: bookingForm.note,
     };
     const validationResult = scheduleSchema.safeParse(payload);
@@ -101,27 +82,17 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
       return;
     }
 
-    const isTooCloseOrBooked = () => {
-      if (checkIsSlotUnavailable()) return true;
-
-      if (!selectedDate || !selectedTimeSlot) return true;
-      const [hoursStr, minutesStr] = selectedTimeSlot.split("h");
-      const slotHours = parseInt(hoursStr, 10);
-      const slotMinutes = parseInt(minutesStr, 10);
-      const [year, month, day] = selectedDate.split("-").map(Number);
-      const slotDateObj = new Date(year, month - 1, day, slotHours, slotMinutes);
-
-      const minSelectableDateObj = new Date();
-      minSelectableDateObj.setHours(minSelectableDateObj.getHours() + 6);
-      return slotDateObj < minSelectableDateObj;
-    };
-
-    if (isTooCloseOrBooked()) {
-      toast.error("Ngày đã đủ lượt đặt lịch hoặc thời gian xem còn cách hiện tại dưới 6 tiếng.");
+    if (selectedDate === todayStr) {
+      toast.error("Khách hàng chỉ có thể đặt lịch xem trước ít nhất 1 ngày.");
       return;
     }
 
-    const combinedTime = `${selectedDate}T${selectedTimeSlot.replace("h", ":")}:00+07:00`;
+    if (isSelectedDateFull) {
+      toast.error("Lịch xem trong ngày này đã đầy, hãy đặt lịch xem vào ngày hôm sau.");
+      return;
+    }
+
+    const combinedTime = `${selectedDate}T${selectedTime}:00+07:00`;
 
     handleSubmitSchedule.mutate({
       apartment_id: apartment.id,
@@ -139,15 +110,15 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
     setShowScheduleForm,
     selectedDate,
     setSelectedDate,
-    selectedTimeSlot,
-    setSelectedTimeSlot,
+    selectedTime,
+    setSelectedTime,
     isPending: handleSubmitSchedule.isPending,
     bookingForm,
     setBookingForm,
-    checkIsSlotUnavailable,
+    availability,
+    isAvailabilityLoading: availabilityQuery.isFetching,
+    isSelectedDateFull,
     handleBookingScheduleSubmit,
-    handleSelectBookingSlot,
     handleResetBooking,
-    dayAvailability: availability,
   };
 }

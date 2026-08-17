@@ -8,6 +8,17 @@ export function formatDate(dateStr?: string | Date | null): string {
     year: "numeric",
   });
 }
+export function formatVietnamDate(dateStr?: string | Date | null): string {
+  if (!dateStr) return "-";
+  const date = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
+  if (isNaN(date.getTime())) return "-";
+  return date.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "Asia/Ho_Chi_Minh",
+  });
+}
 
 export function formatDateTime(dateStr?: string | Date | null): string {
   if (!dateStr) return "-";

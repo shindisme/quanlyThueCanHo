@@ -1,13 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, MapPin, Maximize2, Phone, User, Star, Mail, X, ChevronLeft, ChevronRight, ImageOff, Layers, BedDouble, Bath } from "lucide-react";
+import { ArrowLeft, MapPin, Maximize2, Star, X, ChevronLeft, ChevronRight, ImageOff, Layers, BedDouble, Bath } from "lucide-react";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import Card from "../../../../components/ui/Card";
 import Button from "../../../../components/ui/Button";
 import Badge from "../../../../components/ui/Badge";
-import Modal from "../../../../components/ui/Modal";
-import Input from "../../../../components/ui/Input";
-import { DatePicker } from "../../../../components/ui/DatePicker";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../../../constants";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatApartmentDisplay } from "../../../../utils/string";
@@ -20,13 +17,7 @@ import { getApartmentReviews } from "../../../../services/reviewService";
 import type { ReviewData } from "../../../../services/reviewService";
 import type { ApartmentImage } from "../../../../types";
 import { useApartmentBooking } from "../hooks/useApartmentBooking";
-
-const timeSlots = [
-  "09h00",
-  "11h00",
-  "13h00",
-  "15h00"
-];
+import ApartmentBookingModal from "../components/ApartmentBookingModal";
 
 export default function GuestApartmentDetail() {
   const { id } = useParams();
@@ -35,40 +26,9 @@ export default function GuestApartmentDetail() {
   const [building, setBuilding] = useState<BuildingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [images, setImages] = useState<ApartmentImage[]>([]);
+  const booking = useApartmentBooking({ apartment });
+  const { setShowScheduleForm } = booking;
 
-  const {
-    showScheduleForm,
-    setShowScheduleForm,
-    selectedDate,
-    setSelectedDate,
-    selectedTimeSlot,
-    setSelectedTimeSlot,
-    isPending,
-    bookingForm,
-    setBookingForm,
-    checkIsSlotUnavailable,
-    handleBookingScheduleSubmit,
-    handleSelectBookingSlot,
-    handleResetBooking,
-    dayAvailability,
-  } = useApartmentBooking({ apartment });
-
-  const isSlotDisabled = (slot: string) => {
-    if (checkIsSlotUnavailable()) return true;
-    if (!selectedDate) return false;
-
-    const [hoursStr, minutesStr] = slot.split("h");
-    const slotHours = parseInt(hoursStr, 10);
-    const slotMinutes = parseInt(minutesStr, 10);
-
-    const [year, month, day] = selectedDate.split("-").map(Number);
-    const slotDateObj = new Date(year, month - 1, day, slotHours, slotMinutes);
-
-    const minSelectableDateObj = new Date();
-    minSelectableDateObj.setHours(minSelectableDateObj.getHours() + 6);
-
-    return slotDateObj < minSelectableDateObj;
-  };
 
   const [reviews, setReviews] = useState<ReviewData[]>([]);
   const [, setReviewMeta] = useState<{ averageRating: number; totalReviews: number }>({ averageRating: 0, totalReviews: 0 });
@@ -152,7 +112,7 @@ export default function GuestApartmentDetail() {
 
   if (loading) {
     return (
-      <div className="pt-24 text-center font-sans flex flex-col items-center justify-center min-h-[300px]">
+      <div className="pt-24 text-center font-sans flex flex-col items-center justify-center min-h-75">
         <LoadingSpinner className="mb-2" size={32} />
         <p className="text-gray-500">Đang tải thông tin căn hộ...</p>
       </div>
@@ -176,15 +136,13 @@ export default function GuestApartmentDetail() {
   return (
     <div className="pt-20 pb-16 font-sans">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Quay lai */}
         <Link to="/apartments" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6">
           <ArrowLeft size={16} /> Quay lại danh sách
         </Link>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left - Thong tin chi tiet */}
+          {/* Left */}
           <div className={`${apartment.status === "RENTED" ? "lg:col-span-3" : "lg:col-span-2"} space-y-6`}>
-            {/* Hinh anh */}
             {images.length > 0 ? (
               <div className="flex flex-col gap-2">
                 <div
@@ -252,7 +210,6 @@ export default function GuestApartmentDetail() {
               </p>
             </div>
 
-            {/* Thong so */}
             <Card>
               <h3 className="font-semibold text-gray-800 mb-4 font-sans">Thông tin căn hộ</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -279,13 +236,11 @@ export default function GuestApartmentDetail() {
               </div>
             </Card>
 
-            {/* Mo ta */}
             <Card className="rounded-none">
               <h3 className="font-semibold text-gray-800 mb-3">Mô tả</h3>
               <p className="text-sm text-gray-600 leading-relaxed">{apartment.description}</p>
             </Card>
 
-            {/* Đánh giá & Nhận xét */}
             <Card>
               <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
                 <span>Đánh giá & Nhận xét</span>
@@ -365,7 +320,7 @@ export default function GuestApartmentDetail() {
             </Card>
           </div>
 
-          {/*Right - Dat lich xem phong */}
+          {/*Right */}
           {apartment.status === "AVAILABLE" && (
             <div className="lg:col-span-1">
               <Card className="sticky top-24">
@@ -379,137 +334,13 @@ export default function GuestApartmentDetail() {
         </div>
       </div>
 
-      <Modal
-        isOpen={showScheduleForm}
-        onClose={() => setShowScheduleForm(false)}
-        title="Đặt lịch xem phòng"
-        size="md"
-        footer={
-          <>
-            <Button variant="outline" onClick={handleResetBooking}>Hủy</Button>
-            <Button onClick={handleBookingScheduleSubmit} isLoading={isPending}>Gửi yêu cầu</Button>
-          </>
-        }
-      >
-        <div className="space-y-5">
-          <p className="text-sm text-gray-500 mb-2">
-            Căn hộ: <span className="font-semibold text-gray-800">{formatApartmentDisplay(apartment.room_number, apartment.floor, "ADMIN", building?.branch_name)}</span>
-          </p>
-          <div className="grid grid-cols-12 gap-4">
-            <div className="col-span-12">
-              <Input
-                label="Họ tên *"
-                type="text"
-                value={bookingForm.guest_name}
-                onChange={(e) => setBookingForm({ ...bookingForm, guest_name: e.target.value })}
-                placeholder="Nhập họ và tên..."
-                icon={<User size={16} />}
-                className="rounded-md text-xs"
-              />
-            </div>
+      <ApartmentBookingModal
+        apartmentLabel={formatApartmentDisplay(apartment.room_number, apartment.floor, "ADMIN", building?.branch_name)}
+        booking={booking}
+      />
 
-            <div className="col-span-12">
-              <Input
-                label="Số điện thoại *"
-                type="tel"
-                value={bookingForm.guest_phone}
-                onChange={(e) => setBookingForm({ ...bookingForm, guest_phone: e.target.value })}
-                placeholder="Nhập số điện thoại..."
-                icon={<Phone size={16} />}
-                className="rounded-md text-xs"
-              />
-            </div>
-
-            <div className="col-span-12">
-              <Input
-                label="Email *"
-                type="email"
-                value={bookingForm.guest_email}
-                onChange={(e) => setBookingForm({ ...bookingForm, guest_email: e.target.value })}
-                placeholder="Nhập email..."
-                icon={<Mail size={16} />}
-                className="rounded-md text-xs"
-              />
-            </div>
-
-            <div className="col-span-12">
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ngày muốn xem *</label>
-              <DatePicker
-                value={selectedDate || null}
-                disablePast={true}
-                onChange={(date) => {
-                  if (!date) {
-                    setSelectedDate("");
-                    setSelectedTimeSlot("");
-                    return;
-                  }
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-                  if (date < today) {
-                    toast.error("Không thể chọn ngày trong quá khứ");
-                    return;
-                  }
-                  const y = date.getFullYear();
-                  const m = String(date.getMonth() + 1).padStart(2, "0");
-                  const d = String(date.getDate()).padStart(2, "0");
-                  setSelectedDate(`${y}-${m}-${d}`);
-                  setSelectedTimeSlot("");
-                }}
-                placeholder="Chọn ngày xem..."
-              />
-            </div>
-
-            {selectedDate && (
-              <div className="col-span-12">
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Chọn giờ xem *</label>
-                {dayAvailability?.isDayFull && (
-                  <div className="mb-3 border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                    Tòa nhà đã đủ {dayAvailability.dailyCapacity} lịch xem trong ngày này. Vui lòng chọn ngày khác.
-                  </div>
-                )}
-                <div className="grid grid-cols-2 gap-3 mt-2">
-                  {timeSlots.map((slot) => {
-                    const disabled = isSlotDisabled(slot);
-                    const selected = selectedTimeSlot === slot;
-                    return (
-                      <button
-                        key={slot}
-                        type="button"
-                        disabled={disabled}
-                        onClick={() => handleSelectBookingSlot(slot)}
-                        className={`py-2.5 px-3 border rounded-md text-xs font-semibold text-center transition-all cursor-pointer ${disabled
-                          ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                          : selected
-                            ? "bg-primary-600 text-white border-primary-600 shadow-sm"
-                            : "bg-white text-gray-700 border-gray-300 hover:border-primary-500 hover:text-primary-600"
-                          }`}
-                      >
-                        {slot} {dayAvailability?.isDayFull && " (Ngày đã đủ lịch)"}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className="col-span-12">
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Ghi chú</label>
-              <textarea
-                rows={3}
-                value={bookingForm.note}
-                onChange={(e) => setBookingForm({ ...bookingForm, note: e.target.value })}
-                placeholder="Lưu ý gì thêm..."
-                className="premium-input rounded-md resize-none text-xs"
-              />
-            </div>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Lightbox Modal */}
       {isLightboxOpen && images.length > 0 && (
         <div className="fixed inset-0 bg-black/95 z-9999 flex flex-col justify-between p-4 font-sans select-none">
-          {/* Top Bar */}
           <div className="flex items-center justify-between text-white py-2 px-4">
             <span className="text-sm font-semibold text-gray-300">
               Ảnh căn hộ {apartment.room_number} ({activeImageIndex + 1} / {images.length})

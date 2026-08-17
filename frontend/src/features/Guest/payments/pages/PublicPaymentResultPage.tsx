@@ -1,16 +1,12 @@
-import { useSearchParams, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { CheckCircle2, XCircle, AlertCircle, Home, ArrowLeft, CreditCard } from "lucide-react";
 import Button from "../../../../components/ui/Button";
-import { useUserRole } from "../../../../hooks/useUserRole";
+import { usePublicPaymentResult } from "../hooks/usePublicPaymentResult";
 
 export default function PublicPaymentResultPage() {
-  const [searchParams] = useSearchParams();
-  const { role, isTenant } = useUserRole();
-  const paymentStatus = searchParams.get("payment_status");
-  const responseCode = searchParams.get("response_code");
-
-  const isSuccess = paymentStatus === "SUCCESS" || responseCode === "00";
-  const isCancelled = paymentStatus === "CANCELLED" || responseCode === "24";
+  const { status, title, description, dashboardUrl } = usePublicPaymentResult();
+  const isSuccess = status === "success";
+  const isCancelled = status === "cancelled";
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-sans pt-20 pb-16">
@@ -31,24 +27,16 @@ export default function PublicPaymentResultPage() {
 
         <div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">
-            {isSuccess
-              ? "Thanh Toán Thành Công!"
-              : isCancelled
-              ? "Đã Hủy Giao Dịch"
-              : "Thanh Toán Thất Bại"}
+            {title}
           </h1>
           <p className="text-sm text-gray-600 leading-relaxed">
-            {isSuccess
-              ? "Giao dịch thanh toán tiền cọc/hóa đơn đã được ghi nhận thành công. Vui lòng kiểm tra thông tin hoặc Email xác nhận."
-              : isCancelled
-              ? "Bạn đã hủy thao tác thanh toán trên cổng VNPay."
-              : "Thao tác thanh toán VNPay không thành công. Vui lòng kiểm tra lại thông tin hoặc thử lại sau."}
+            {description}
           </p>
         </div>
 
         <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-          {role ? (
-            <Link to={isTenant ? "/tenant/payments" : "/admin/payments"} className="w-full">
+          {dashboardUrl ? (
+            <Link to={dashboardUrl} className="w-full">
               <Button className="w-full justify-center">
                 <CreditCard size={16} /> Về Quản lý Thanh toán
               </Button>

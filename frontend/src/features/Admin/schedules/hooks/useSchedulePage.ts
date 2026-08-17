@@ -16,7 +16,6 @@ import { useDeleteSchedule } from "./useDeleteSchedule";
 import { useMarkAttendedSchedule } from "./useMarkAttendedSchedule";
 import { useMarkAbsentSchedule } from "./useMarkAbsentSchedule";
 import { queryKeys } from "../../../../constants/queryKeys";
-import { VIEWING_DAILY_CAPACITY_PER_BUILDING } from "../../../../constants";
 
 export function useSchedulePage() {
   const { role, managedBuildingId } = useUserRole();
@@ -50,19 +49,6 @@ export function useSchedulePage() {
   const buildingMap = useMemo(() => {
     return Object.fromEntries(buildings.map((b) => [b.id, b]));
   }, [buildings]);
-
-  const viewingCapacityByBuilding = useMemo(() => {
-    return buildings
-      .filter((building) => role !== "MANAGER" || building.id === managedBuildingId)
-      .map((building) => {
-        return {
-          buildingId: building.id,
-          branchName: building.branch_name,
-          dailyCapacity: VIEWING_DAILY_CAPACITY_PER_BUILDING,
-        };
-      });
-  }, [buildings, managedBuildingId, role]);
-
 
   const displaySchedules = useMemo(() => {
     if (role === "MANAGER" && managedBuildingId) {
@@ -236,7 +222,6 @@ export function useSchedulePage() {
     setViewItem,
     buildings,
     buildingMap,
-    viewingCapacityByBuilding,
     filtered,
     sortedSchedules,
     sortConfig,

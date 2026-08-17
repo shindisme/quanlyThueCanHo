@@ -109,27 +109,7 @@ export function DatePicker({
     }
     return null;
   }, [minDate, disablePast]);
-
   const effectiveMaxDate = useMemo(() => parseValueToDate(maxDate), [maxDate]);
-
-  const isDateOutsideRange = useCallback((date: Date) => {
-    const target = new Date(date);
-    target.setHours(0, 0, 0, 0);
-
-    if (effectiveMinDate) {
-      const minimum = new Date(effectiveMinDate);
-      minimum.setHours(0, 0, 0, 0);
-      if (target < minimum) return true;
-    }
-
-    if (effectiveMaxDate) {
-      const maximum = new Date(effectiveMaxDate);
-      maximum.setHours(0, 0, 0, 0);
-      if (target > maximum) return true;
-    }
-
-    return false;
-  }, [effectiveMaxDate, effectiveMinDate]);
 
   // Sync state with value prop
   useEffect(() => {
@@ -196,7 +176,7 @@ export function DatePicker({
     setInputValue(val);
 
     const parsed = parseDMY(val, showTime);
-    if (parsed && !isDateOutsideRange(parsed)) {
+    if (parsed) {
       setSelectedDate(parsed);
       setCurrentDate(parsed);
       onChange?.(parsed);
@@ -247,8 +227,24 @@ export function DatePicker({
     return arr;
   }, [year, month, adjustedFirstDayIndex, daysInMonth]);
 
-  const isDayDisabled = (day: number, monthOffset: number) =>
-    isDateOutsideRange(new Date(year, month + monthOffset, day));
+  const isDayDisabled = (day: number, monthOffset: number) => {
+    const targetDate = new Date(year, month + monthOffset, day);
+    targetDate.setHours(0, 0, 0, 0);
+
+    if (effectiveMinDate) {
+      const minCompare = new Date(effectiveMinDate);
+      minCompare.setHours(0, 0, 0, 0);
+      if (targetDate.getTime() < minCompare.getTime()) return true;
+    }
+
+    if (effectiveMaxDate) {
+      const maxCompare = new Date(effectiveMaxDate);
+      maxCompare.setHours(0, 0, 0, 0);
+      if (targetDate.getTime() > maxCompare.getTime()) return true;
+    }
+
+    return false;
+  };
 
   const selectDate = (day: number, monthOffset: number) => {
     if (isDayDisabled(day, monthOffset)) return;
@@ -275,7 +271,13 @@ export function DatePicker({
 
   const handleSelectToday = () => {
     const now = new Date();
-    if (isDateOutsideRange(now)) return;
+    if (effectiveMinDate) {
+      const endOfToday = new Date(now);
+      endOfToday.setHours(23, 59, 59, 999);
+      const minCompare = new Date(effectiveMinDate);
+      minCompare.setHours(0, 0, 0, 0);
+      if (endOfToday.getTime() < minCompare.getTime()) return;
+    }
     setSelectedDate(now);
     setCurrentDate(now);
     setInputValue(formatToDMY(now, showTime));
@@ -498,8 +500,7 @@ export function DatePicker({
               <button
                 type="button"
                 onClick={handleSelectToday}
-                disabled={isDateOutsideRange(new Date())}
-                className="font-bold text-primary-600 hover:text-primary-700 hover:underline cursor-pointer disabled:text-gray-300 disabled:no-underline disabled:cursor-not-allowed"
+                className="font-bold text-primary-600 hover:text-primary-700 hover:underline cursor-pointer"
               >
                 Hôm nay
               </button>

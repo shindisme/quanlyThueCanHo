@@ -1,20 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Search, ArrowRight, Building2, Shield, Users, MapPin, Maximize2, Phone } from "lucide-react";
-import { formatCurrency } from "../../../../utils/currency";
-import { formatApartmentDisplay } from "../../../../utils/string";
-import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
+import { Search, ArrowRight, Building2, Shield, Users, Phone } from "lucide-react";
 import { useHomePage } from "../hooks/useHomePage";
-import type { ApartmentData } from "../../../../services/apartmentService";
-import type { ApartmentImage } from "../../../../types";
-
-function getApartmentThumbnail(apt: ApartmentData): string {
-  if (apt && apt.images && Array.isArray(apt.images) && apt.images.length > 0) {
-    const thumb = (apt.images as ApartmentImage[]).find((img) => img.is_thumbnail);
-    if (thumb) return thumb.image_url;
-    return apt.images[0].image_url;
-  }
-  return "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80";
-}
+import AvailableApartmentsSection from "../components/AvailableApartmentsSection";
 
 export default function GuestHomePage() {
   const navigate = useNavigate();
@@ -163,71 +150,11 @@ export default function GuestHomePage() {
         </div>
       </section>
 
-      {/* AVAILABLE APARTMENTS*/}
-      <section className="py-16 bg-gray-50/50">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200">
-            <div>
-              <p className="text-xs font-semibold text-primary-600 uppercase tracking-wider mb-2">Căn hộ</p>
-              <h2 className="text-3xl font-bold text-gray-900">Căn hộ còn trống</h2>
-              <p className="text-gray-500 mt-1">Các căn hộ còn trống đang sẵn sàng cho thuê</p>
-            </div>
-            <Link
-              to="/apartments"
-              className="text-primary-600 font-medium text-sm hover:text-primary-700 flex items-center gap-1 transition-colors"
-            >
-              Xem tất cả <ArrowRight size={14} />
-            </Link>
-          </div>
-
-          {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <LoadingSpinner size={32} />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {availableApartments.map((apt: ApartmentData) => {
-                const building = buildings.find((b) => b.id === apt.building_id);
-                return (
-                  <Link
-                    key={apt.id}
-                    to={`/apartments/${apt.id}`}
-                    className="bg-white rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 border border-gray-200 hover:border-primary-200 group block"
-                  >
-                    <div className="w-full h-48 bg-gray-100 overflow-hidden relative">
-                      <img
-                        src={getApartmentThumbnail(apt)}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-350"
-                        alt="Ảnh căn hộ"
-                      />
-                      <span className="absolute top-3 left-3 text-xs px-2.5 py-1 rounded-full bg-success-500 text-white font-semibold">
-                        Còn trống
-                      </span>
-                    </div>
-                    <div className="p-5">
-                      <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors">
-                        {formatApartmentDisplay(apt.room_number, apt.floor, "ADMIN", building?.branch_name)}
-                      </h3>
-                      <div className="flex items-center gap-1.5 mt-1.5 text-xs text-gray-400">
-                        <MapPin size={12} />
-                        <span>{building?.address}</span>
-                      </div>
-                      <p className="text-sm text-gray-500 mt-2 line-clamp-2">{apt.description}</p>
-                      <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100">
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                          <Maximize2 size={12} />
-                          <span>{apt.area} m²</span>
-                        </div>
-                        <span className="text-lg font-bold text-primary-600">{formatCurrency(apt.rental_price)}/tháng</span>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </section>
+      <AvailableApartmentsSection
+        apartments={availableApartments}
+        buildings={buildings}
+        loading={loading}
+      />
 
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">

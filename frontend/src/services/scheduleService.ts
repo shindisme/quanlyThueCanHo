@@ -3,18 +3,20 @@ import type { ScheduleData, ScheduleFilters, BookViewingPayload, ApiPagination }
 export type { ScheduleData, ScheduleFilters, BookViewingPayload };
 import { fetchAllPages } from "./apiHelper";
 
+export interface ViewingAvailability {
+  apartment_id: number;
+  building_id: number;
+  date: string;
+  capacity: number;
+  booked: number;
+  remaining: number;
+  is_full: boolean;
+}
 const SCHEDULE_API = "/schedules";
 
 export async function bookViewing(data: BookViewingPayload): Promise<unknown> {
   const res = await api.post(`${SCHEDULE_API}/book`, data);
   return res.data;
-}
-
-export interface ViewingAvailability {
-  available_hours: number[];
-  daily_capacity: number;
-  booked_count: number;
-  is_day_full: boolean;
 }
 
 export async function getViewingAvailability(apartmentId: number, date: string): Promise<ViewingAvailability> {
@@ -72,3 +74,4 @@ export const scheduleService = {
   markAbsent,
   remove,
 };
+

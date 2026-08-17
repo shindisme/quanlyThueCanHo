@@ -51,7 +51,6 @@ const escapeHtml = (value: string) =>
 const formatScheduleTime = (date: Date) =>
     new Intl.DateTimeFormat("vi-VN", {
         dateStyle: "full",
-        timeStyle: "short",
         timeZone: "Asia/Ho_Chi_Minh"
     }).format(date);
 
@@ -71,10 +70,10 @@ export const sendViewingScheduleConfirmedEmail = async (data: ViewingScheduleEma
             "Quản lý đã xác nhận lịch xem phòng của bạn.",
             `Căn hộ: ${data.apartmentLabel}`,
             `Địa chỉ tòa nhà: ${data.buildingAddress}`,
-            `Thời gian xem: ${scheduleTime}`,
+            `Ngày xem: ${scheduleTime}`,
             "Trạng thái: Đã xác nhận.",
             "",
-            "Vui lòng có mặt đúng giờ. Cảm ơn bạn đã quan tâm."
+            "Vui lòng chuẩn bị theo lịch đã xác nhận. Cảm ơn bạn đã quan tâm."
         ].join("\n"),
         html: `
             <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
@@ -83,9 +82,9 @@ export const sendViewingScheduleConfirmedEmail = async (data: ViewingScheduleEma
                 <p>Quản lý đã xác nhận lịch xem phòng của bạn.</p>
                 <p><strong>Căn hộ:</strong> ${apartmentLabel}</p>
                 <p><strong>Địa chỉ tòa nhà:</strong> ${buildingAddress}</p>
-                <p><strong>Thời gian xem:</strong> ${escapeHtml(scheduleTime)}</p>
+                <p><strong>Ngày xem:</strong> ${escapeHtml(scheduleTime)}</p>
                 <p><strong>Trạng thái:</strong> Đã xác nhận.</p>
-                <p>Vui lòng có mặt đúng giờ. Cảm ơn bạn đã quan tâm.</p>
+                <p>Vui lòng chuẩn bị theo lịch đã xác nhận. Cảm ơn bạn đã quan tâm.</p>
             </div>
         `
     });
@@ -111,7 +110,7 @@ export const sendViewingScheduleCancelledEmail = async (data: ViewingScheduleEma
             "Quản lý đã hủy lịch xem phòng của bạn.",
             `Căn hộ: ${data.apartmentLabel}`,
             `Địa chỉ tòa nhà: ${data.buildingAddress}`,
-            `Thời gian xem: ${scheduleTime}`,
+            `Ngày xem: ${scheduleTime}`,
             "Trạng thái: Đã hủy.",
             reasonText,
             "",
@@ -124,7 +123,7 @@ export const sendViewingScheduleCancelledEmail = async (data: ViewingScheduleEma
                 <p>Quản lý đã hủy lịch xem phòng của bạn.</p>
                 <p><strong>Căn hộ:</strong> ${apartmentLabel}</p>
                 <p><strong>Địa chỉ tòa nhà:</strong> ${buildingAddress}</p>
-                <p><strong>Thời gian xem:</strong> ${escapeHtml(scheduleTime)}</p>
+                <p><strong>Ngày xem:</strong> ${escapeHtml(scheduleTime)}</p>
                 <p><strong>Trạng thái:</strong> Đã hủy.</p>
                 ${reasonHtml}
                 <p style="margin-top: 16px;">Vui lòng liên hệ với chúng tôi nếu bạn cần thêm thông tin.</p>
@@ -149,7 +148,7 @@ export const sendViewingScheduleConfirmationEmail = async (data: ViewingSchedule
             "Hệ thống đã nhận yêu cầu đặt lịch xem phòng của bạn.",
             `Căn hộ: ${data.apartmentLabel}`,
             `Địa chỉ tòa nhà: ${data.buildingAddress}`,
-            `Thời gian xem: ${scheduleTime}`,
+            `Ngày xem: ${scheduleTime}`,
             "Trạng thái: Đang chờ quản trị viên xác nhận.",
             "",
             "Cảm ơn bạn đã quan tâm."
@@ -161,7 +160,7 @@ export const sendViewingScheduleConfirmationEmail = async (data: ViewingSchedule
                 <p>Hệ thống đã nhận yêu cầu đặt lịch xem phòng của bạn.</p>
                 <p><strong>Căn hộ:</strong> ${apartmentLabel}</p>
                 <p><strong>Địa chỉ tòa nhà:</strong> ${buildingAddress}</p>
-                <p><strong>Thời gian xem:</strong> ${escapeHtml(scheduleTime)}</p>
+                <p><strong>Ngày xem:</strong> ${escapeHtml(scheduleTime)}</p>
                 <p><strong>Trạng thái:</strong> Đang chờ quản trị viên xác nhận.</p>
                 <p>Cảm ơn bạn đã quan tâm.</p>
             </div>

@@ -1,18 +1,16 @@
-import {
-  Home, Users, DollarSign, Wrench,
-  CalendarDays, Clock, AlertCircle
-} from "lucide-react";
+import { DollarSign, CalendarDays, Clock, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  AreaChart, Area, PieChart, Pie, Cell
+  AreaChart, Area
 } from "recharts";
 import { useDashboardManager } from "../hooks/useDashboardManager";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import { useAuthStore } from "../../../../stores/auth.store";
 import DashboardStaff from "./DashboardStaff";
-import StatCard from "../../../Admin/dashboard/components/StatCard";
 import ChartCard from "../../../Admin/dashboard/components/ChartCard";
+import DashboardStatGrid from "../components/DashboardStatGrid";
+import ApartmentStatusChart from "../components/ApartmentStatusChart";
 
 export default function DashboardManager() {
   const { role } = useAuthStore();
@@ -160,33 +158,21 @@ function ManagerDashboardView() {
         </h1>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-12 gap-6 items-stretch">
-        <div className="col-span-12 sm:col-span-6 lg:col-span-4">
-          <StatCard icon={Home} label="Tổng căn hộ" value={totalApartmentsCount}
-            iconColor="text-primary-600" iconBg="bg-primary-50" />
-        </div>
-        <div className="col-span-12 sm:col-span-6 lg:col-span-4">
-          <StatCard icon={Wrench} label="Yêu cầu sửa chữa" value={pendingMaintenanceRequests}
-            iconColor="text-warning-600" iconBg="bg-warning-50" />
-        </div>
-        <div className="col-span-12 sm:col-span-6 lg:col-span-4">
-          <StatCard icon={Users} label="Người thuê" value={activeTenantsCount}
-            iconColor="text-info-600" iconBg="bg-info-50" />
-        </div>
-        <div className="col-span-12 sm:col-span-6 lg:col-span-4">
-          <StatCard icon={Home} label="Còn trống" value={availableCount}
-            iconColor="text-emerald-600" iconBg="bg-emerald-50" />
-        </div>
-        <div className="col-span-12 sm:col-span-6 lg:col-span-4">
-          <StatCard icon={CalendarDays} label="Lịch hẹn chờ duyệt" value={pendingSchedulesCount}
-            iconColor="text-danger-600" iconBg="bg-danger-50" />
-        </div>
-        <div className="col-span-12 sm:col-span-6 lg:col-span-4">
-          <StatCard icon={DollarSign} label="Doanh thu tháng này" value={formatCurrency(monthlyRevenue)}
-            iconColor="text-white" iconBg="bg-white/20" variant="green" />
-        </div>
-      </div>
+      <DashboardStatGrid
+        totalApartments={totalApartmentsCount}
+        pendingMaintenance={pendingMaintenanceRequests}
+        activeTenants={activeTenantsCount}
+        availableApartments={availableCount}
+        pendingSchedules={pendingSchedulesCount}
+        finalCard={{
+          icon: DollarSign,
+          label: "Doanh thu tháng này",
+          value: formatCurrency(monthlyRevenue),
+          iconColor: "text-white",
+          iconBg: "bg-white/20",
+          variant: "green",
+        }}
+      />
 
       {/* Charts Row */}
       <div className="grid grid-cols-12 gap-6 items-stretch">
@@ -237,34 +223,8 @@ function ManagerDashboardView() {
           </ChartCard>
         </div>
 
-        {/* Apartment status pie chart */}
         <div className="col-span-12 lg:col-span-4">
-          <ChartCard title="Tình trạng căn hộ" subtitle="Cơ cấu căn hộ hiện tại">
-            <div className="flex flex-col items-center justify-between h-full">
-              <ResponsiveContainer width="100%" height={280} debounce={150}>
-                <PieChart>
-                  <Pie data={apartmentStatus} dataKey="value" nameKey="name" cx="50%" cy="50%"
-                    innerRadius={60} outerRadius={85} paddingAngle={4}>
-                    {apartmentStatus.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="space-y-2 mt-2 w-full">
-                {apartmentStatus.map((item) => (
-                  <div key={item.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                      <span className="text-xs text-gray-600">{item.name}</span>
-                    </div>
-                    <span className="text-xs font-semibold text-gray-800">{item.value} căn</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </ChartCard>
+          <ApartmentStatusChart data={apartmentStatus} />
         </div>
       </div>
 

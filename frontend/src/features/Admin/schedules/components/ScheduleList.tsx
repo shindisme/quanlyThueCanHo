@@ -4,20 +4,17 @@ import Badge from "../../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import type { ViewingSchedule, Building } from "../../../../types";
 import { formatApartmentDisplay, parseGuestName } from "../../../../utils/string";
-import { formatDateTime } from "../../../../utils/date";
-import {
-  ATTENDANCE_STATUS_CONFIG,
-  SCHEDULE_STATUS_CONFIG,
-  type AttendanceStatus,
-  type ScheduleStatus,
-} from "../../../../constants";
+import { formatVietnamDate } from "../../../../utils/date";
+import { SCHEDULE_STATUS_LABELS, ATTENDANCE_STATUS_LABELS } from "../../../../constants/labels";
+import { SCHEDULE_STATUS_COLORS, ATTENDANCE_STATUS_COLORS } from "../../../../constants/badges";
+import type { ScheduleStatus, AttendanceStatus } from "../../../../constants/enums";
 import { useSort } from "../../../../hooks/useSort";
-import { getTableRowNumber } from "../../../../utils/table";
 
 interface ScheduleListProps {
   schedules: ViewingSchedule[];
   currentPage: number;
   pageSize?: number;
+  onSortResetPage?: () => void;
   role: string | null;
   buildingMap: Partial<Record<number, Building>>;
   onView: (schedule: ViewingSchedule) => void;
@@ -26,13 +23,13 @@ interface ScheduleListProps {
   onMarkAttended: (id: number) => void;
   onMarkAbsent: (id: number) => void;
   onDelete: (schedule: ViewingSchedule) => void;
-  onSortResetPage: () => void;
 }
 
 export default function ScheduleList({
   schedules,
   currentPage,
   pageSize = 10,
+  onSortResetPage,
   role,
   buildingMap,
   onView,
@@ -41,7 +38,6 @@ export default function ScheduleList({
   onMarkAttended,
   onMarkAbsent,
   onDelete,
-  onSortResetPage,
 }: ScheduleListProps) {
   const startIdx = (currentPage - 1) * pageSize;
 
@@ -75,14 +71,16 @@ export default function ScheduleList({
 
   const columns = useMemo<Column<ViewingSchedule>[]>(() => {
     function getStatusBadge(status: ScheduleStatus) {
-      const config = SCHEDULE_STATUS_CONFIG[status];
-      return <Badge variant={config.badge}>{config.label}</Badge>;
+      const label = SCHEDULE_STATUS_LABELS[status] || status;
+      const color = SCHEDULE_STATUS_COLORS[status] || "gray";
+      return <Badge variant={color}>{label}</Badge>;
     }
 
     function getAttendanceBadge(attendance?: AttendanceStatus) {
       const key = (attendance || "NOT_YET") as AttendanceStatus;
-      const config = ATTENDANCE_STATUS_CONFIG[key];
-      return <Badge variant={config.badge}>{config.label}</Badge>;
+      const label = ATTENDANCE_STATUS_LABELS[key] || key;
+      const color = ATTENDANCE_STATUS_COLORS[key] || "gray";
+      return <Badge variant={color}>{label}</Badge>;
     }
 
     function renderActions(s: ViewingSchedule) {
@@ -147,17 +145,16 @@ export default function ScheduleList({
         key: "index",
         label: "STT",
         sortable: true,
-        preserveRenderIndex: true,
         sortValue: (s: ViewingSchedule) => scheduleIndexMap.get(s.id) ?? s.id,
         render: (_: ViewingSchedule, index: number) => (
-          <span className="text-gray-650 font-medium">{getTableRowNumber(index, startIdx, schedules.length, sortConfig)}</span>
+          <span className="text-gray-650 font-medium">{startIdx + index + 1}</span>
         ),
       },
       {
         key: "guest_name",
         label: "Họ tên",
         isTitle: true,
-        sortable: false,
+        sortable: true,
         sortValue: (s: ViewingSchedule) => parseGuestName(s.guest_name).name.trim(),
         render: (s: ViewingSchedule) => (
           <span className="font-semibold text-gray-805">{parseGuestName(s.guest_name).name}</span>
@@ -190,11 +187,11 @@ export default function ScheduleList({
       },
       {
         key: "schedule_time",
-        label: "Thời gian",
+        label: "Ngày xem",
         sortable: true,
         sortValue: (s: ViewingSchedule) => new Date(s.schedule_time).getTime(),
         render: (s: ViewingSchedule) => (
-          <span className="text-gray-650 font-medium">{formatDateTime(s.schedule_time)}</span>
+          <span className="text-gray-650 font-medium">{formatVietnamDate(s.schedule_time)}</span>
         ),
       },
       {
@@ -239,8 +236,6 @@ export default function ScheduleList({
     onMarkAttended,
     onMarkAbsent,
     onDelete,
-    schedules.length,
-    sortConfig,
   ]);
 
   return (
@@ -248,7 +243,10 @@ export default function ScheduleList({
       columns={columns}
       data={paginatedSchedules}
       sortConfig={sortConfig}
-      onSort={(key) => { requestSort(key); onSortResetPage(); }}
+      onSort={(key) => {
+        requestSort(key);
+        onSortResetPage?.();
+      }}
       emptyMessage="Chưa có lịch xem phòng nào"
     />
   );

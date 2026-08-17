@@ -17,19 +17,16 @@ import {
     sendViewingScheduleConfirmedEmail
 } from "./mail.service.js";
 
-const VALID_HOURS = [9, 11, 13, 15];
-const DAILY_VIEWING_CAPACITY_PER_BUILDING = 5;
+const TEMP_LOCK_DURATION_MS = 10 * 60_000;
 const VIETNAM_TIME_ZONE = "Asia/Ho_Chi_Minh";
 const VIETNAM_OFFSET = "+07:00";
 const DAY_MS = 24 * 60 * 60_000;
+const MARKETING_POSITION = "Tiếp thị";
+const VIEWINGS_PER_MARKETING_STAFF = 5;
+const MIN_VIEWING_ADVANCE_DAYS = 1;
+const MIN_VIEWING_ADVANCE_MESSAGE =
+    "Khách hàng chỉ có thể đặt lịch xem trước ít nhất 1 ngày.";
 
-const vietnamTimeFormatter = new Intl.DateTimeFormat("en-GB", {
-    timeZone: VIETNAM_TIME_ZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hourCycle: "h23"
-});
 const vietnamDateFormatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: VIETNAM_TIME_ZONE,
     year: "numeric",
@@ -37,20 +34,19 @@ const vietnamDateFormatter = new Intl.DateTimeFormat("en-CA", {
     day: "2-digit"
 });
 
-const getVietnamTimeParts = (date: Date) => {
-    const parts = vietnamTimeFormatter.formatToParts(date);
+const getVietnamDateString = (date: Date) => {
+    const parts = vietnamDateFormatter.formatToParts(date);
     const getPart = (type: Intl.DateTimeFormatPartTypes) =>
-        Number(parts.find((part) => part.type === type)?.value);
+        parts.find((part) => part.type === type)?.value;
 
-    return {
-        hour: getPart("hour"),
-        minute: getPart("minute"),
-        second: getPart("second")
-    };
+    return `${getPart("year")}-${getPart("month")}-${getPart("day")}`;
 };
 
-const getVietnamDayBounds = (date: string) => {
-    const start = new Date(`${date}T00:00:00${VIETNAM_OFFSET}`);
+const getVietnamDayBounds = (date: string | Date) => {
+    const day = typeof date === "string"
+        ? date
+        : getVietnamDateString(date);
+    const start = new Date(`${day}T00:00:00${VIETNAM_OFFSET}`);
 
     return {
         start,
@@ -58,13 +54,17 @@ const getVietnamDayBounds = (date: string) => {
     };
 };
 
-const getVietnamDateString = (date: Date) => {
-    const parts = vietnamDateFormatter.formatToParts(date);
-    const value = (type: Intl.DateTimeFormatPartTypes) =>
-        parts.find((part) => part.type === type)?.value ?? "";
-
-    return `${value("year")}-${value("month")}-${value("day")}`;
-};
+const getActiveScheduleWhere = (
+    now: Date
+): Prisma.ViewingScheduleWhereInput => ({
+    OR: [
+        { status: ScheduleStatus.CONFIRMED },
+        {
+            status: ScheduleStatus.PENDING,
+            temp_locked_until: { gt: now }
+        }
+    ]
+});
 
 const scheduleInclude = {
     apartment: {
@@ -91,17 +91,12 @@ const conflict = (message: string) => new AppError(
     message
 );
 
-const dayCapacityReached = () => new AppError(
+const viewingDayFull = () => new AppError(
     409,
-    "VIEWING_DAY_FULL",
-    `Tòa nhà đã đủ ${DAILY_VIEWING_CAPACITY_PER_BUILDING} lịch xem trong ngày này. Vui lòng chọn ngày khác.`
+    "SCHEDULE_DAY_FULL",
+    "Lịch xem trong ngày này đã đầy, hãy đặt lịch xem vào ngày hôm sau."
 );
 
-const countedScheduleWhere: Prisma.ViewingScheduleWhereInput = ({
-    status: {
-        in: [ScheduleStatus.PENDING, ScheduleStatus.CONFIRMED]
-    }
-});
 
 const concurrentModification = () => new AppError(
     409,
@@ -176,6 +171,7 @@ const getBuildingAddress = (
 || (apartment.building as { address?: string; address_new?: string })?.address_new
     || "Chưa cập nhật";
 
+
 const getScheduleById = async (
     id: number,
     actor: Actor
@@ -220,25 +216,25 @@ export const bookViewingService = async (
     data: BookViewingRequest["body"]
 ) => {
     const requestedDate = data.schedule_time;
-    if (requestedDate.getTime() <= Date.now()) {
+    const requestedDay = getVietnamDayBounds(requestedDate);
+    const todayBounds = getVietnamDayBounds(new Date());
+
+    if (requestedDay.start.getTime() < todayBounds.start.getTime()) {
         throw new AppError(
             400,
             "VALIDATION_ERROR",
-            "Thời gian xem phải ở tương lai"
+            "Không thể đặt lịch xem phòng ở ngày trong quá khứ"
         );
     }
 
-    const vietnamTime = getVietnamTimeParts(requestedDate);
-    if (
-        !VALID_HOURS.includes(vietnamTime.hour)
-        || vietnamTime.minute !== 0
-        || vietnamTime.second !== 0
-        || requestedDate.getUTCMilliseconds() !== 0
-    ) {
+    const minBookableDayStart = new Date(
+        todayBounds.start.getTime() + MIN_VIEWING_ADVANCE_DAYS * DAY_MS
+    );
+    if (requestedDay.start.getTime() < minBookableDayStart.getTime()) {
         throw new AppError(
             400,
             "VALIDATION_ERROR",
-            "Thời gian xem phải chọn khung giờ khả dụng"
+            MIN_VIEWING_ADVANCE_MESSAGE
         );
     }
 
@@ -257,35 +253,69 @@ export const bookViewingService = async (
 
     const schedule = await runSerializableTransaction(
         async (transaction) => {
-                const requestedDay = getVietnamDayBounds(
-                    getVietnamDateString(requestedDate)
-                );
-                const bookedToday = await transaction.viewingSchedule.count({
-                    where: {
-                        apartment: {
-                            building_id: apartment.building_id
-                        },
-                        schedule_time: {
-                            gte: requestedDay.start,
-                            lt: requestedDay.end
-                        },
-                        ...countedScheduleWhere
-                    }
-                });
-                if (bookedToday >= DAILY_VIEWING_CAPACITY_PER_BUILDING) {
-                    throw dayCapacityReached();
-                }
+            const now = new Date();
 
-                return transaction.viewingSchedule.create({
-                    data: {
-                        apartment_id: data.apartment_id,
-                        guest_name: data.guest_name,
-                        guest_phone: data.guest_phone,
-                        guest_email: data.guest_email,
-                        schedule_time: requestedDate,
-                        status: ScheduleStatus.PENDING
-                    }
-                });
+            await transaction.viewingSchedule.updateMany({
+                where: {
+                    schedule_time: {
+                        gte: requestedDay.start,
+                        lt: requestedDay.end
+                    },
+                    apartment: {
+                        building_id: apartment.building_id
+                    },
+                    status: ScheduleStatus.PENDING,
+                    OR: [
+                        { temp_locked_until: null },
+                        { temp_locked_until: { lte: now } }
+                    ]
+                },
+                data: {
+                    status: ScheduleStatus.CANCELLED,
+                    temp_locked_until: null
+                }
+            });
+
+            const marketingStaffCount = await transaction.staff.count({
+                where: {
+                    building_id: apartment.building_id,
+                    position: MARKETING_POSITION
+                }
+            });
+            const dailyLimit =
+                marketingStaffCount * VIEWINGS_PER_MARKETING_STAFF;
+            const dailyBookedCount = await transaction.viewingSchedule.count({
+                where: {
+                    schedule_time: {
+                        gte: requestedDay.start,
+                        lt: requestedDay.end
+                    },
+                    apartment: {
+                        building_id: apartment.building_id
+                    },
+                    ...getActiveScheduleWhere(now)
+                }
+            });
+
+            if (dailyBookedCount >= dailyLimit) {
+                throw viewingDayFull();
+            }
+
+            return transaction.viewingSchedule.create({
+                data: {
+                    apartment_id: data.apartment_id,
+                    guest_name: data.guest_name,
+                    guest_phone: data.guest_phone,
+                    guest_email: data.guest_email,
+                    schedule_time: requestedDate,
+                    status: ScheduleStatus.PENDING,
+                    temp_locked_until:
+                        new Date(
+                            now.getTime()
+                            + TEMP_LOCK_DURATION_MS
+                        )
+                }
+            });
         }
     );
 
@@ -308,7 +338,8 @@ export const bookViewingService = async (
             prisma.viewingSchedule.deleteMany({
                 where: {
                     id: schedule.id,
-                    status: ScheduleStatus.PENDING
+                    status: ScheduleStatus.PENDING,
+                    temp_locked_until: schedule.temp_locked_until
                 }
             })
         ).catch(() => undefined);
@@ -321,15 +352,12 @@ export const bookViewingService = async (
 
     return schedule;
 };
-
 export const getViewingAvailabilityService = async (
     apartmentId: number,
     date: string
 ) => {
     const { start, end } = getVietnamDayBounds(date);
-    const now = new Date();
-    const todayStr = getVietnamDateString(now);
-    const todayBounds = getVietnamDayBounds(todayStr);
+    const todayBounds = getVietnamDayBounds(new Date());
 
     if (start.getTime() < todayBounds.start.getTime()) {
         throw new AppError(
@@ -339,33 +367,67 @@ export const getViewingAvailabilityService = async (
         );
     }
 
-    const apartment = await prisma.apartment.findUnique({
-        where: { id: apartmentId },
-        select: { id: true, building_id: true }
-    });
-    if (!apartment) {
-        throw new AppError(404, "NOT_FOUND", "Căn hộ không tồn tại");
+    const minBookableDayStart = new Date(
+        todayBounds.start.getTime() + MIN_VIEWING_ADVANCE_DAYS * DAY_MS
+    );
+    if (start.getTime() < minBookableDayStart.getTime()) {
+        throw new AppError(
+            400,
+            "VALIDATION_ERROR",
+            MIN_VIEWING_ADVANCE_MESSAGE
+        );
     }
 
-    const bookedToday = await prisma.viewingSchedule.count({
-        where: {
-            apartment: { building_id: apartment.building_id },
-            schedule_time: { gte: start, lt: end },
-            ...countedScheduleWhere
+    const apartment = await prisma.apartment.findUnique({
+        where: { id: apartmentId },
+        select: {
+            id: true,
+            building_id: true
         }
     });
-    const isDayFull = bookedToday >= DAILY_VIEWING_CAPACITY_PER_BUILDING;
+
+    if (!apartment) {
+        throw new AppError(
+            404,
+            "NOT_FOUND",
+            "Căn hộ không tồn tại"
+        );
+    }
+
+    const now = new Date();
+    const [marketingStaffCount, bookedCount] = await prisma.$transaction([
+        prisma.staff.count({
+            where: {
+                building_id: apartment.building_id,
+                position: MARKETING_POSITION
+            }
+        }),
+        prisma.viewingSchedule.count({
+            where: {
+                schedule_time: {
+                    gte: start,
+                    lt: end
+                },
+                apartment: {
+                    building_id: apartment.building_id
+                },
+                ...getActiveScheduleWhere(now)
+            }
+        })
+    ]);
+    const capacity = marketingStaffCount * VIEWINGS_PER_MARKETING_STAFF;
+    const remaining = Math.max(capacity - bookedCount, 0);
 
     return {
         apartment_id: apartmentId,
+        building_id: apartment.building_id,
         date: start,
-        daily_capacity: DAILY_VIEWING_CAPACITY_PER_BUILDING,
-        booked_count: bookedToday,
-        is_day_full: isDayFull,
-        available_hours: isDayFull ? [] : VALID_HOURS
+        capacity,
+        booked: bookedCount,
+        remaining,
+        is_full: remaining === 0
     };
 };
-
 export const getSchedulesAdminService = async (
     filters: ListSchedulesRequest["query"],
     actor: Actor
@@ -443,7 +505,10 @@ export const confirmScheduleService = async (
 
     const confirmed = await prisma.viewingSchedule.update({
         where: getScopedUniqueWhere(schedule, actor),
-        data: { status: ScheduleStatus.CONFIRMED },
+        data: {
+            status: ScheduleStatus.CONFIRMED,
+            temp_locked_until: null
+        },
         include: scheduleInclude
     });
 
@@ -457,7 +522,6 @@ export const confirmScheduleService = async (
 
     return confirmed;
 };
-
 export const cancelScheduleService = async (
     id: number,
     actor: Actor,
@@ -473,7 +537,8 @@ export const cancelScheduleService = async (
         where: getScopedUniqueWhere(schedule, actor),
         data: {
             status: ScheduleStatus.CANCELLED,
-            cancel_reason: cancelReason || null
+            cancel_reason: cancelReason || null,
+            temp_locked_until: null
         } as any,
         include: scheduleInclude
     });
@@ -536,7 +601,8 @@ export const markAttendedScheduleService = async (
     return prisma.viewingSchedule.update({
         where: getScopedUniqueWhere(schedule, actor),
         data: {
-            attendance_status: "ATTENDED"
+            attendance_status: "ATTENDED",
+            temp_locked_until: null
         } as any,
         include: scheduleInclude
     });
@@ -551,7 +617,8 @@ export const markAbsentScheduleService = async (
     return prisma.viewingSchedule.update({
         where: getScopedUniqueWhere(schedule, actor),
         data: {
-            attendance_status: "ABSENT"
+            attendance_status: "ABSENT",
+            temp_locked_until: null
         } as any,
         include: scheduleInclude
     });

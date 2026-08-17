@@ -3,13 +3,10 @@ import Button from "../../../../components/ui/Button";
 import Badge from "../../../../components/ui/Badge";
 import type { ViewingSchedule, Building } from "../../../../types";
 import { formatApartmentDisplay, parseGuestName } from "../../../../utils/string";
-import { formatDateTime } from "../../../../utils/date";
-import {
-  ATTENDANCE_STATUS_CONFIG,
-  SCHEDULE_STATUS_CONFIG,
-  type AttendanceStatus,
-  type ScheduleStatus,
-} from "../../../../constants";
+import { formatVietnamDate, formatDateTime } from "../../../../utils/date";
+import { SCHEDULE_STATUS_LABELS, ATTENDANCE_STATUS_LABELS } from "../../../../constants/labels";
+import { SCHEDULE_STATUS_COLORS, ATTENDANCE_STATUS_COLORS } from "../../../../constants/badges";
+import type { ScheduleStatus, AttendanceStatus } from "../../../../constants/enums";
 
 interface ScheduleDetailModalProps {
   isOpen: boolean;
@@ -29,14 +26,16 @@ export default function ScheduleDetailModal({
   buildingMap,
 }: ScheduleDetailModalProps) {
   function getStatusBadge(status: ScheduleStatus) {
-    const config = SCHEDULE_STATUS_CONFIG[status];
-    return <Badge variant={config.badge}>{config.label}</Badge>;
+    const label = SCHEDULE_STATUS_LABELS[status] || status;
+    const color = SCHEDULE_STATUS_COLORS[status] || "gray";
+    return <Badge variant={color}>{label}</Badge>;
   }
 
   function getAttendanceBadge(attendance?: AttendanceStatus) {
     const key = (attendance || "NOT_YET") as AttendanceStatus;
-    const config = ATTENDANCE_STATUS_CONFIG[key];
-    return <Badge variant={config.badge}>{config.label}</Badge>;
+    const label = ATTENDANCE_STATUS_LABELS[key] || key;
+    const color = ATTENDANCE_STATUS_COLORS[key] || "gray";
+    return <Badge variant={color}>{label}</Badge>;
   }
 
   return (
@@ -98,9 +97,9 @@ export default function ScheduleDetailModal({
               </span>
             </div>
             <div className="flex justify-between border-b pb-2 border-gray-100">
-              <span className="text-gray-500 font-medium">Thời gian hẹn:</span>
+              <span className="text-gray-500 font-medium">Ngày xem:</span>
               <span className="font-semibold text-gray-800">
-                {formatDateTime(schedule.schedule_time)}
+                {formatVietnamDate(schedule.schedule_time)}
               </span>
             </div>
             <div className="flex justify-between border-b pb-2 border-gray-100">
