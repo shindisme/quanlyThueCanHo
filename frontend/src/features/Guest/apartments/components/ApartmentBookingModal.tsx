@@ -1,11 +1,9 @@
 import { useMemo } from "react";
 import { Mail, Phone, User } from "lucide-react";
 import Button from "../../../../components/ui/Button";
-import Combobox from "../../../../components/ui/Combobox";
 import { DatePicker } from "../../../../components/ui/DatePicker";
 import Input from "../../../../components/ui/Input";
 import Modal from "../../../../components/ui/Modal";
-import { VIEWING_TIME_OPTIONS } from "../../../../constants";
 import type { useApartmentBooking } from "../hooks/useApartmentBooking";
 
 type ApartmentBookingState = ReturnType<typeof useApartmentBooking>;
@@ -34,8 +32,6 @@ export default function ApartmentBookingModal({ apartmentLabel, booking }: Apart
     showScheduleForm,
     selectedDate,
     setSelectedDate,
-    selectedTime,
-    setSelectedTime,
     isPending,
     bookingForm,
     setBookingForm,
@@ -106,27 +102,20 @@ export default function ApartmentBookingModal({ apartmentLabel, booking }: Apart
             <DatePicker
               value={selectedDate || null}
               minDate={minViewingDate}
-              onChange={(date) => setSelectedDate(date ? formatLocalDate(date) : "")}
+              onChange={(date) => {
+                const nextDate = date ? formatLocalDate(date) : "";
+                setSelectedDate(nextDate);
+              }}
               placeholder="Chọn ngày xem..."
             />
           </div>
-          <div className="col-span-12">
-            <Combobox
-              label="Giờ muốn xem *"
-              options={VIEWING_TIME_OPTIONS}
-              value={selectedTime}
-              onChange={setSelectedTime}
-              placeholder="Chọn giờ xem phòng"
-              className="w-full"
-              triggerClassName="h-10 border-gray-300"
-              searchable={false}
-            />
-          </div>
+
           {selectedDate && isSelectedDateFull && (
             <div className="col-span-12 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">
-              Lịch xem trong ngày này đã đầy, hãy đặt lịch xem vào ngày hôm sau.
+              Hiện tại lịch xem trong ngày không còn trống, vui lòng chọn ngày khác.
             </div>
           )}
+
           <div className="col-span-12">
             <label className="mb-1.5 block text-sm font-semibold text-gray-700">Ghi chú</label>
             <textarea

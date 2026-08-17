@@ -4,10 +4,12 @@ import Badge from "../../../../components/ui/Badge";
 import type { ViewingSchedule, Building } from "../../../../types";
 import { formatApartmentDisplay, parseGuestName } from "../../../../utils/string";
 import { formatVietnamDate, formatDateTime } from "../../../../utils/date";
-import { SCHEDULE_STATUS_LABELS, ATTENDANCE_STATUS_LABELS } from "../../../../constants/labels";
-import { SCHEDULE_STATUS_COLORS, ATTENDANCE_STATUS_COLORS } from "../../../../constants/badges";
-import type { ScheduleStatus, AttendanceStatus } from "../../../../constants/enums";
-
+import {
+  ATTENDANCE_STATUS_CONFIG,
+  SCHEDULE_STATUS_CONFIG,
+  type AttendanceStatus,
+  type ScheduleStatus,
+} from "../../../../constants";
 interface ScheduleDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -26,16 +28,14 @@ export default function ScheduleDetailModal({
   buildingMap,
 }: ScheduleDetailModalProps) {
   function getStatusBadge(status: ScheduleStatus) {
-    const label = SCHEDULE_STATUS_LABELS[status] || status;
-    const color = SCHEDULE_STATUS_COLORS[status] || "gray";
-    return <Badge variant={color}>{label}</Badge>;
+    const config = SCHEDULE_STATUS_CONFIG[status];
+    return <Badge variant={config.badge}>{config.label}</Badge>;
   }
 
   function getAttendanceBadge(attendance?: AttendanceStatus) {
     const key = (attendance || "NOT_YET") as AttendanceStatus;
-    const label = ATTENDANCE_STATUS_LABELS[key] || key;
-    const color = ATTENDANCE_STATUS_COLORS[key] || "gray";
-    return <Badge variant={color}>{label}</Badge>;
+    const config = ATTENDANCE_STATUS_CONFIG[key];
+    return <Badge variant={config.badge}>{config.label}</Badge>;
   }
 
   return (

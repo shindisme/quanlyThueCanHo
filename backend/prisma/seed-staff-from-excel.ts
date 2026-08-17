@@ -1,4 +1,4 @@
-﻿/// <reference types="node" />
+/// <reference types="node" />
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
@@ -191,11 +191,12 @@ const modeFromArgs = (): Mode =>
 const nextRoleName = (position: StaffPosition, index: number) => {
     const names = ROLE_NAME_POOLS[position];
 
-    if (index >= names.length) {
-        throw new Error(`Không đủ tên cho vị trí "${position}".`);
+    if (index < names.length) {
+        return names[index];
     }
 
-    return names[index];
+    const baseName = names[index % names.length];
+    return `${baseName} ${Math.floor(index / names.length) + 1}`;
 };
 
 const applyGenderedNames = (staffRows: StaffRow[]) => {
@@ -232,7 +233,21 @@ const countByPosition = (
 
 const readStaffRows = () => {
     if (!existsSync(EXCEL_PATH)) {
-        throw new Error(`Không tìm thấy file Excel: ${EXCEL_PATH}`);
+        const staffRows: StaffRow[] = [];
+        let stt = 1;
+        let phoneCounter = 901000001;
+        for (const position of STAFF_POSITIONS) {
+            const totalNeeded = STAFF_QUOTA[position] * 10;
+            for (let i = 0; i < totalNeeded; i++) {
+                staffRows.push({
+                    stt: stt++,
+                    fullName: nextRoleName(position, i),
+                    phone: `0${phoneCounter++}`,
+                    position: position
+                });
+            }
+        }
+        return staffRows;
     }
 
     const workbook = xlsx.readFile(EXCEL_PATH, {

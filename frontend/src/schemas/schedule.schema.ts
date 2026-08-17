@@ -13,8 +13,5 @@ export const scheduleSchema = z.object({
     .email({ message: "Email không hợp lệ" })
     .max(320, { message: "Email tối đa 320 ký tự" }),
   selectedDate: z.string().min(1, { message: "Vui lòng chọn ngày xem phòng" }),
-  selectedTime: z
-    .string()
-    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, { message: "Vui lòng chọn giờ xem phòng" }),
   note: z.string().optional(),
 });

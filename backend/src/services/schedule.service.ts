@@ -1,4 +1,5 @@
 import {
+    AttendanceStatus,
     Prisma,
     Role,
     ScheduleStatus
@@ -17,7 +18,6 @@ import {
     sendViewingScheduleConfirmedEmail
 } from "./mail.service.js";
 
-const TEMP_LOCK_DURATION_MS = 10 * 60_000;
 const VIETNAM_TIME_ZONE = "Asia/Ho_Chi_Minh";
 const VIETNAM_OFFSET = "+07:00";
 const DAY_MS = 24 * 60 * 60_000;
@@ -54,16 +54,10 @@ const getVietnamDayBounds = (date: string | Date) => {
     };
 };
 
-const getActiveScheduleWhere = (
-    now: Date
-): Prisma.ViewingScheduleWhereInput => ({
-    OR: [
-        { status: ScheduleStatus.CONFIRMED },
-        {
-            status: ScheduleStatus.PENDING,
-            temp_locked_until: { gt: now }
-        }
-    ]
+const getActiveScheduleWhere = (): Prisma.ViewingScheduleWhereInput => ({
+    status: {
+        in: [ScheduleStatus.CONFIRMED, ScheduleStatus.PENDING]
+    }
 });
 
 const scheduleInclude = {
@@ -94,7 +88,7 @@ const conflict = (message: string) => new AppError(
 const viewingDayFull = () => new AppError(
     409,
     "SCHEDULE_DAY_FULL",
-    "Lịch xem trong ngày này đã đầy, hãy đặt lịch xem vào ngày hôm sau."
+    "Vui lòng chọn ngày đặt lịch khác do không còn trống"
 );
 
 
@@ -197,20 +191,6 @@ const getScheduleById = async (
     return schedule;
 };
 
-const getScopedUniqueWhere = (
-    schedule: ScheduleWithApartment,
-    actor: Actor
-): Prisma.ViewingScheduleWhereUniqueInput =>
-    actor.role === Role.ADMIN
-        ? {
-            id: schedule.id,
-            status: schedule.status
-        }
-        : {
-            id: schedule.id,
-            status: schedule.status,
-            apartment: getManagerApartmentScope(actor)
-        };
 
 export const bookViewingService = async (
     data: BookViewingRequest["body"]
@@ -253,29 +233,6 @@ export const bookViewingService = async (
 
     const schedule = await runSerializableTransaction(
         async (transaction) => {
-            const now = new Date();
-
-            await transaction.viewingSchedule.updateMany({
-                where: {
-                    schedule_time: {
-                        gte: requestedDay.start,
-                        lt: requestedDay.end
-                    },
-                    apartment: {
-                        building_id: apartment.building_id
-                    },
-                    status: ScheduleStatus.PENDING,
-                    OR: [
-                        { temp_locked_until: null },
-                        { temp_locked_until: { lte: now } }
-                    ]
-                },
-                data: {
-                    status: ScheduleStatus.CANCELLED,
-                    temp_locked_until: null
-                }
-            });
-
             const marketingStaffCount = await transaction.staff.count({
                 where: {
                     building_id: apartment.building_id,
@@ -293,7 +250,7 @@ export const bookViewingService = async (
                     apartment: {
                         building_id: apartment.building_id
                     },
-                    ...getActiveScheduleWhere(now)
+                    ...getActiveScheduleWhere()
                 }
             });
 
@@ -308,12 +265,7 @@ export const bookViewingService = async (
                     guest_phone: data.guest_phone,
                     guest_email: data.guest_email,
                     schedule_time: requestedDate,
-                    status: ScheduleStatus.PENDING,
-                    temp_locked_until:
-                        new Date(
-                            now.getTime()
-                            + TEMP_LOCK_DURATION_MS
-                        )
+                    status: ScheduleStatus.PENDING
                 }
             });
         }
@@ -338,8 +290,7 @@ export const bookViewingService = async (
             prisma.viewingSchedule.deleteMany({
                 where: {
                     id: schedule.id,
-                    status: ScheduleStatus.PENDING,
-                    temp_locked_until: schedule.temp_locked_until
+                    status: ScheduleStatus.PENDING
                 }
             })
         ).catch(() => undefined);
@@ -394,7 +345,6 @@ export const getViewingAvailabilityService = async (
         );
     }
 
-    const now = new Date();
     const [marketingStaffCount, bookedCount] = await prisma.$transaction([
         prisma.staff.count({
             where: {
@@ -411,7 +361,7 @@ export const getViewingAvailabilityService = async (
                 apartment: {
                     building_id: apartment.building_id
                 },
-                ...getActiveScheduleWhere(now)
+                ...getActiveScheduleWhere()
             }
         })
     ]);
@@ -504,10 +454,9 @@ export const confirmScheduleService = async (
     }
 
     const confirmed = await prisma.viewingSchedule.update({
-        where: getScopedUniqueWhere(schedule, actor),
+        where: { id: schedule.id },
         data: {
-            status: ScheduleStatus.CONFIRMED,
-            temp_locked_until: null
+            status: ScheduleStatus.CONFIRMED
         },
         include: scheduleInclude
     });
@@ -534,12 +483,11 @@ export const cancelScheduleService = async (
     }
 
     const cancelled = await prisma.viewingSchedule.update({
-        where: getScopedUniqueWhere(schedule, actor),
+        where: { id: schedule.id },
         data: {
             status: ScheduleStatus.CANCELLED,
-            cancel_reason: cancelReason || null,
-            temp_locked_until: null
-        } as any,
+            cancel_reason: cancelReason || null
+        },
         include: scheduleInclude
     });
 
@@ -598,12 +546,15 @@ export const markAttendedScheduleService = async (
 ) => {
     const schedule = await getScheduleById(id, actor);
 
+    if (schedule.status === ScheduleStatus.CANCELLED) {
+        throw conflict("Không thể ghi nhận kết quả xem phòng cho lịch đã hủy");
+    }
+
     return prisma.viewingSchedule.update({
-        where: getScopedUniqueWhere(schedule, actor),
+        where: { id: schedule.id },
         data: {
-            attendance_status: "ATTENDED",
-            temp_locked_until: null
-        } as any,
+            attendance_status: AttendanceStatus.ATTENDED
+        },
         include: scheduleInclude
     });
 };
@@ -614,12 +565,15 @@ export const markAbsentScheduleService = async (
 ) => {
     const schedule = await getScheduleById(id, actor);
 
+    if (schedule.status === ScheduleStatus.CANCELLED) {
+        throw conflict("Không thể ghi nhận kết quả xem phòng cho lịch đã hủy");
+    }
+
     return prisma.viewingSchedule.update({
-        where: getScopedUniqueWhere(schedule, actor),
+        where: { id: schedule.id },
         data: {
-            attendance_status: "ABSENT",
-            temp_locked_until: null
-        } as any,
+            attendance_status: AttendanceStatus.ABSENT
+        },
         include: scheduleInclude
     });
 };

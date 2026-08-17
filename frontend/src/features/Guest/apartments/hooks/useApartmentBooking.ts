@@ -14,7 +14,6 @@ interface UseApartmentBookingProps {
 export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
-  const [selectedTime, setSelectedTime] = useState("");
   const [bookingForm, setBookingForm] = useState({
     guest_name: "",
     guest_phone: "",
@@ -35,7 +34,6 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
     setShowScheduleForm(false);
     setBookingForm({ guest_name: "", guest_phone: "", guest_email: "", note: "" });
     setSelectedDate("");
-    setSelectedTime("");
   };
 
   const handleSubmitSchedule = useMutation({
@@ -61,7 +59,6 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
       guest_phone: bookingForm.guest_phone,
       guest_email: bookingForm.guest_email,
       selectedDate,
-      selectedTime,
       note: bookingForm.note,
     };
     const validationResult = scheduleSchema.safeParse(payload);
@@ -88,11 +85,11 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
     }
 
     if (isSelectedDateFull) {
-      toast.error("Lịch xem trong ngày này đã đầy, hãy đặt lịch xem vào ngày hôm sau.");
+      toast.error("Vui lòng chọn ngày đặt lịch khác do không còn trống");
       return;
     }
 
-    const combinedTime = `${selectedDate}T${selectedTime}:00+07:00`;
+    const combinedTime = `${selectedDate}T00:00:00+07:00`;
 
     handleSubmitSchedule.mutate({
       apartment_id: apartment.id,
@@ -110,8 +107,6 @@ export function useApartmentBooking({ apartment }: UseApartmentBookingProps) {
     setShowScheduleForm,
     selectedDate,
     setSelectedDate,
-    selectedTime,
-    setSelectedTime,
     isPending: handleSubmitSchedule.isPending,
     bookingForm,
     setBookingForm,
