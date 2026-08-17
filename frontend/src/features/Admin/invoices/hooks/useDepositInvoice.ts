@@ -3,11 +3,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as apartmentService from "../../../../services/apartmentService";
 import * as reservationService from "../../../../services/reservationService";
+import * as tenantService from "../../../../services/tenantService";
 import type { Apartment } from "../../../../types";
 import { depositFormSchema } from "../../../../schemas/invoice.schema";
 import { queryKeys } from "../../../../constants/queryKeys";
 
+export type DepositTenantMode = "existing" | "new";
+
 export type DepositForm = {
+  tenant_mode: DepositTenantMode;
+  tenant_id: string;
   building_id: string;
   floor: string;
   apartment_id: string;
@@ -23,6 +28,8 @@ export type DepositForm = {
 };
 
 export const emptyDepositForm = (): DepositForm => ({
+  tenant_mode: "new",
+  tenant_id: "",
   building_id: "",
   floor: "",
   apartment_id: "",
@@ -50,12 +57,36 @@ export const createDepositForm = (presetApartment?: Apartment | null): DepositFo
   return emptyDepositForm();
 };
 
+const depositCommonSchema = depositFormSchema.pick({
+  apartment_id: true,
+  move_in_date: true,
+  deposit_amount: true,
+});
+
 export const validateDepositForm = (form: DepositForm, fixedApartment?: Apartment): string | null => {
   const targetAptId = fixedApartment ? String(fixedApartment.id) : form.apartment_id;
+  const commonPayload = {
+    apartment_id: targetAptId,
+    move_in_date: form.move_in_date,
+    deposit_amount: Number(form.deposit_amount),
+  };
+
+  if (form.tenant_mode === "existing") {
+    const commonResult = depositCommonSchema.safeParse(commonPayload);
+    if (!commonResult.success) {
+      return commonResult.error.issues[0]?.message || "Thông tin không hợp lệ";
+    }
+
+    if (!form.tenant_id) {
+      return "Vui lòng chọn khách thuê đã tồn tại";
+    }
+
+    return null;
+  }
+
   const result = depositFormSchema.safeParse({
     ...form,
-    apartment_id: targetAptId,
-    deposit_amount: Number(form.deposit_amount),
+    ...commonPayload,
   });
 
   if (!result.success) {
@@ -68,6 +99,12 @@ export const availableApartmentKeys = {
   all: ["available-apartments-for-deposit"] as const,
   list: (role?: string | null, managedBuildingId?: number) =>
     [...availableApartmentKeys.all, role, managedBuildingId] as const,
+};
+
+const depositTenantKeys = {
+  all: ["deposit-tenants"] as const,
+  list: (role?: string | null, managedBuildingId?: number) =>
+    [...depositTenantKeys.all, role, managedBuildingId] as const,
 };
 
 export interface UseDepositInvoiceOptions {
@@ -99,10 +136,34 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
     enabled: !fixedApartment && (role === "ADMIN" || (role === "MANAGER" && !!managedBuildingId)),
   });
 
+  const {
+    data: tenants = [],
+    isLoading: isLoadingTenants,
+    refetch: refetchTenants,
+  } = useQuery({
+    queryKey: depositTenantKeys.list(role, managedBuildingId),
+    queryFn: () => tenantService.getAllPage(),
+    select: (res) => res.data,
+    enabled: isOpen,
+  });
+
   const selectedApartment = useMemo(() => {
     if (fixedApartment) return fixedApartment;
     return availableApartments.find((apt) => String(apt.id) === form.apartment_id) || null;
   }, [fixedApartment, availableApartments, form.apartment_id]);
+
+  const selectedTenant = useMemo(() => {
+    return tenants.find((tenant) => String(tenant.id) === form.tenant_id) || null;
+  }, [tenants, form.tenant_id]);
+
+  const tenantOptions = useMemo(() => {
+    return tenants
+      .map((tenant) => ({
+        value: String(tenant.id),
+        label: `${tenant.full_name} (${tenant.citizen_id})`,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, "vi"));
+  }, [tenants]);
 
   const buildingOptions = useMemo(() => {
     return Array.from(
@@ -141,12 +202,23 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
   }, [availableApartments, form.building_id, form.floor]);
 
   const depositMutation = useMutation({
-    mutationFn: () =>
-      reservationService.createReservationDeposit({
+    mutationFn: () => {
+      const basePayload = {
         apartment_id: fixedApartment ? fixedApartment.id : Number(form.apartment_id),
         deposit_amount: Number(form.deposit_amount),
         payment_method: form.payment_method,
         move_in_date: form.move_in_date,
+      };
+
+      if (form.tenant_mode === "existing") {
+        return reservationService.createReservationDeposit({
+          ...basePayload,
+          tenant_id: Number(form.tenant_id),
+        });
+      }
+
+      return reservationService.createReservationDeposit({
+        ...basePayload,
         tenant: {
           full_name: form.full_name.trim(),
           phone: form.phone.trim() || null,
@@ -155,7 +227,8 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
           date_of_birth: form.date_of_birth || null,
           address: form.address.trim() || null,
         },
-      }),
+      });
+    },
     onSuccess: async () => {
       toast.success(form.payment_method === "CASH"
         ? "Đã lập hóa đơn và ghi nhận tiền cọc tiền mặt"
@@ -164,6 +237,7 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all }),
         queryClient.invalidateQueries({ queryKey: availableApartmentKeys.all }),
+        queryClient.invalidateQueries({ queryKey: ["reservations"] }),
       ]);
       if (onSuccessCallback) onSuccessCallback();
     },
@@ -183,13 +257,29 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
     if (!targetApt) {
       void refetchAvailableApartments();
     }
+    void refetchTenants();
     setIsOpen(true);
-  }, [fixedApartment, role, managedBuildingId, refetchAvailableApartments]);
+  }, [fixedApartment, role, managedBuildingId, refetchAvailableApartments, refetchTenants]);
 
   const closeModal = useCallback(() => {
     if (depositMutation.isPending) return;
     setIsOpen(false);
   }, [depositMutation.isPending]);
+
+  const handleTenantModeChange = useCallback((tenantMode: DepositTenantMode) => {
+    setForm((prev) => ({
+      ...prev,
+      tenant_mode: tenantMode,
+      tenant_id: tenantMode === "existing" ? prev.tenant_id : "",
+    }));
+  }, []);
+
+  const handleTenantChange = useCallback((value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      tenant_id: value,
+    }));
+  }, []);
 
   const handleBuildingChange = useCallback((value: string) => {
     setForm((prev) => ({
@@ -237,10 +327,16 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
     setForm,
     availableApartments,
     isLoadingAvailableApartments,
+    tenants,
+    isLoadingTenants,
+    tenantOptions,
+    selectedTenant,
     buildingOptions,
     floorOptions,
     apartmentOptions,
     selectedApartment,
+    handleTenantModeChange,
+    handleTenantChange,
     handleBuildingChange,
     handleFloorChange,
     handleApartmentChange,

@@ -1,5 +1,6 @@
 import {
     ApartmentStatus,
+    ContractStatus,
     InvoiceStatus,
     InvoiceType,
     PaymentStatus,
@@ -24,12 +25,23 @@ import {
 } from "./mail.service.js";
 import { buildDepositPaymentUrl } from "./payment.service.js";
 import { runSerializableTransaction } from "../utils/prisma-transaction.js";
+import {
+    getReservationDepositBlockReason,
+    type ReservationDepositBlockReason
+} from "../utils/reservation-deposit.rules.js";
 
 type CreateReservationInput = CreateReservationRequest["body"];
 type ListReservationsInput = ListReservationsRequest["query"];
 
-const TENANT_USERNAME_RETRY_LIMIT = 3;
+type CreatedTenantUser = {
+    id: number;
+    username: string;
+    role: Role;
+    status: UserStatus;
+    created_at: Date;
+};
 
+const TENANT_USERNAME_RETRY_LIMIT = 3;
 
 const apartmentUnavailable = () => new AppError(
     409,
@@ -42,6 +54,45 @@ const reservationConcurrentModification = () => new AppError(
     "CONCURRENT_MODIFICATION",
     "Đặt cọc đã bị thay đổi trong quá trình thực hiện"
 );
+
+const tenantNotFound = () => new AppError(
+    404,
+    "TENANT_NOT_FOUND",
+    "Người thuê không tồn tại"
+);
+
+const tenantActiveContractExists = () => new AppError(
+    409,
+    "TENANT_ACTIVE_CONTRACT_EXISTS",
+    "Người thuê đang có hợp đồng hoạt động"
+);
+
+const tenantActiveReservationExists = () => new AppError(
+    409,
+    "TENANT_ACTIVE_RESERVATION_EXISTS",
+    "Người thuê đang có đặt cọc hoạt động"
+);
+
+const tenantExists = () => new AppError(
+    409,
+    "TENANT_EXISTS",
+    "Người thuê đã tồn tại"
+);
+
+const reservationDepositBlockError = (
+    reason: ReservationDepositBlockReason
+) => {
+    if (reason === "ACTIVE_CONTRACT") {
+        return tenantActiveContractExists();
+    }
+
+    if (reason === "ACTIVE_RESERVATION") {
+        return tenantActiveReservationExists();
+    }
+
+    return tenantExists();
+};
+
 const assertCanManageReservations = (actor: Actor) => {
     if (actor.role !== Role.ADMIN && actor.role !== Role.MANAGER) {
         throw new AppError(
@@ -99,6 +150,43 @@ const reservationSelect = {
     status: true,
     created_at: true
 } satisfies Prisma.ReservationSelect;
+
+const depositTenantSelect = {
+    id: true,
+    user_id: true,
+    full_name: true,
+    phone: true,
+    email: true,
+    date_of_birth: true,
+    citizen_id: true,
+    address: true,
+    is_verified: true,
+    created_at: true,
+    contracts: {
+        where: { status: ContractStatus.ACTIVE },
+        select: { id: true },
+        take: 1
+    },
+    reservations: {
+        where: { status: ReservationStatus.ACTIVE },
+        select: { id: true },
+        take: 1
+    }
+} satisfies Prisma.TenantSelect;
+
+type DepositTenant = Prisma.TenantGetPayload<{
+    select: typeof depositTenantSelect;
+}>;
+
+const normalizeDepositTenant = (tenant: DepositTenant) => {
+    const {
+        contracts: _contracts,
+        reservations: _reservations,
+        ...normalizedTenant
+    } = tenant;
+
+    return normalizedTenant;
+};
 
 const reservationInclude = {
     tenant: {
@@ -177,6 +265,7 @@ const sendReservationExpiredNotice = async (
         // Email lỗi không được làm rollback xử lý bỏ cọc.
     }
 };
+
 export const getReservationsService = async (
     input: ListReservationsInput,
     actor: Actor
@@ -228,14 +317,20 @@ export const getReservationsService = async (
         }
     };
 };
+
 export const createReservationDepositService = async (
     input: CreateReservationInput,
     actor: Actor
 ) => {
     assertCanManageReservations(actor);
 
-    const usernameBase = tenantUsername(input.tenant.citizen_id);
-    const credential = await createInitialCredential();
+    const tenantPayload = "tenant" in input ? input.tenant : undefined;
+    const existingTenantId = "tenant_id" in input
+        ? input.tenant_id
+        : undefined;
+    const usernameBase = tenantPayload
+        ? tenantUsername(tenantPayload.citizen_id)
+        : null;
 
     for (
         let attempt = 1;
@@ -268,6 +363,93 @@ export const createReservationDepositService = async (
                     throw apartmentUnavailable();
                 }
 
+                let tenant = tenantPayload
+                    ? await tx.tenant.findFirst({
+                        where: {
+                            citizen_id: tenantPayload.citizen_id
+                        },
+                        select: depositTenantSelect
+                    })
+                    : await tx.tenant.findFirst({
+                        where: {
+                            id: existingTenantId
+                        },
+                        select: depositTenantSelect
+                    });
+                let user: CreatedTenantUser | null = null;
+                let initialPassword: string | null = null;
+
+                if (tenant) {
+                    const blockReason = getReservationDepositBlockReason({
+                        isNewTenantPayload: tenantPayload !== undefined,
+                        tenantExists: true,
+                        hasActiveContract: tenant.contracts.length > 0,
+                        hasActiveReservation: tenant.reservations.length > 0
+                    });
+
+                    if (blockReason) {
+                        throw reservationDepositBlockError(blockReason);
+                    }
+                }
+
+                if (tenantPayload && tenant) {
+                    throw tenantExists();
+                }
+
+                if (!tenantPayload && !tenant) {
+                    throw tenantNotFound();
+                }
+
+                if (tenantPayload && !tenant) {
+                    if (!usernameBase) {
+                        throw new Error("Tenant username unavailable");
+                    }
+
+                    const credential = await createInitialCredential();
+                    const existingUsers = await tx.user.findMany({
+                        where: {
+                            username: {
+                                startsWith: usernameBase
+                            }
+                        },
+                        select: { username: true }
+                    });
+                    const username = firstAvailableTenantUsername(
+                        usernameBase,
+                        existingUsers
+                    );
+                    user = await tx.user.create({
+                        data: {
+                            username,
+                            password_hash: credential.password_hash,
+                            role: Role.TENANT,
+                            status: UserStatus.INACTIVE
+                        },
+                        select: {
+                            id: true,
+                            username: true,
+                            role: true,
+                            status: true,
+                            created_at: true
+                        }
+                    });
+                    tenant = await tx.tenant.create({
+                        data: {
+                            ...tenantPayload,
+                            is_verified: false,
+                            user: {
+                                connect: { id: user.id }
+                            }
+                        },
+                        select: depositTenantSelect
+                    });
+                    initialPassword = credential.initial_password;
+                }
+
+                if (!tenant) {
+                    throw tenantNotFound();
+                }
+
                 const reservedApartment = await tx.apartment.updateMany({
                     where: {
                         id: apartment.id,
@@ -279,71 +461,7 @@ export const createReservationDepositService = async (
                 if (reservedApartment.count === 0) {
                     throw apartmentUnavailable();
                 }
-                const existingTenant = await tx.tenant.findFirst({
-                    where: {
-                        citizen_id: input.tenant.citizen_id
-                    },
-                    select: {
-                        id: true
-                    }
-                });
 
-                if (existingTenant) {
-                    throw new AppError(
-                        409,
-                        "TENANT_EXISTS",
-                        "Người thuê đã tồn tại"
-                    );
-                }
-
-                const existingUsers = await tx.user.findMany({
-                    where: {
-                        username: {
-                            startsWith: usernameBase
-                        }
-                    },
-                    select: { username: true }
-                });
-                const username = firstAvailableTenantUsername(
-                    usernameBase,
-                    existingUsers
-                );
-                const user = await tx.user.create({
-                    data: {
-                        username,
-                        password_hash: credential.password_hash,
-                        role: Role.TENANT,
-                        status: UserStatus.INACTIVE
-                    },
-                    select: {
-                        id: true,
-                        username: true,
-                        role: true,
-                        status: true,
-                        created_at: true
-                    }
-                });
-                const tenant = await tx.tenant.create({
-                    data: {
-                        ...input.tenant,
-                        is_verified: false,
-                        user: {
-                            connect: { id: user.id }
-                        }
-                    },
-                    select: {
-                        id: true,
-                        user_id: true,
-                        full_name: true,
-                        phone: true,
-                        email: true,
-                        date_of_birth: true,
-                        citizen_id: true,
-                        address: true,
-                        is_verified: true,
-                        created_at: true
-                    }
-                });
                 const now = new Date();
                 const reservation = await tx.reservation.create({
                     data: {
@@ -396,10 +514,10 @@ export const createReservationDepositService = async (
                 return {
                     reservation,
                     invoice,
-                    tenant,
+                    tenant: normalizeDepositTenant(tenant),
                     user,
                     payment,
-                    initial_password: credential.initial_password,
+                    initial_password: initialPassword,
                     apartment
                 };
             }, reservationConcurrentModification);

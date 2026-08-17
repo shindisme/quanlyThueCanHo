@@ -4,20 +4,30 @@ import type { Apartment } from "./apartment";
 
 export type { ReservationStatus };
 
-export interface CreateReservationPayload {
+type CreateReservationPayloadBase = {
   apartment_id: number;
   deposit_amount: number;
   payment_method: "VNPAY" | "CASH";
   move_in_date: string;
-  tenant: {
-    full_name: string;
-    phone?: string | null;
-    email: string;
-    date_of_birth?: string | null;
-    citizen_id: string;
-    address?: string | null;
-  };
-}
+};
+
+export type CreateReservationPayload = CreateReservationPayloadBase & (
+  | {
+      tenant_id: number;
+      tenant?: never;
+    }
+  | {
+      tenant: {
+        full_name: string;
+        phone?: string | null;
+        email: string;
+        date_of_birth?: string | null;
+        citizen_id: string;
+        address?: string | null;
+      };
+      tenant_id?: never;
+    }
+);
 
 export interface Reservation {
   id: number;
