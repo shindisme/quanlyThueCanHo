@@ -3,7 +3,7 @@ import { Eye, Pencil, Trash2 } from "lucide-react";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import type { Tenant } from "../../../../types";
 import { maskPhone, maskCCCD, formatApartmentDisplay } from "../../../../utils/string";
-import { getPreferredContract } from "../../../../utils/contract";
+import { findActiveContract, getPreferredContract } from "../../../../utils/contract";
 import { getTableRowNumber } from "../../../../utils/table";
 
 interface TenantListProps {
@@ -69,14 +69,14 @@ export default function TenantList({
         key: "apartment",
         label: "Căn hộ",
         sortValue: (t) => {
-          const activeContract = getPreferredContract(t.contracts);
+          const activeContract = findActiveContract(t.contracts);
           if (activeContract?.apartment) {
             return `${activeContract.apartment.building?.branch_name || ""} - P.${activeContract.apartment.room_number}`;
           }
           return "";
         },
         render: (t) => {
-          const activeContract = getPreferredContract(t.contracts);
+          const activeContract = findActiveContract(t.contracts);
           if (activeContract && activeContract.apartment) {
             const apt = activeContract.apartment;
             const bld = apt.building;
@@ -91,7 +91,7 @@ export default function TenantList({
             );
           }
 
-          return <span className="text-gray-400 italic text-xs">—</span>;
+          return <span className="text-gray-400 italic text-xs">Trống</span>;
         },
       },
       {
@@ -157,7 +157,7 @@ export default function TenantList({
       {/* Mobile Card View */}
       <div className="grid grid-cols-1 gap-4 md:hidden font-sans">
         {paginatedTenants.map((t) => {
-          const activeContract = getPreferredContract(t.contracts);
+          const activeContract = findActiveContract(t.contracts);
           const apt = activeContract?.apartment ?? null;
           const bld = apt?.building;
           return (

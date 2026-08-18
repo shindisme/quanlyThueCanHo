@@ -66,53 +66,32 @@ export default function NotificationDetailModal({
                     <div>{getNotificationBadge(notification.type)}</div>
                 </div>
 
-                {(notification.apartment || (notification.apartments && notification.apartments.length > 0) || notification.building || (notification.recipients && notification.recipients.length > 0) || notification.tenant) && (
-                    <div className="space-y-2 text-xs">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-gray-700">
-                            {notification.apartment && (
-                                <div>
-                                    <span className="text-gray-500 font-medium block">Căn hộ:</span>
-                                    <span className="font-bold text-gray-900">
-                                        P.{notification.apartment.room_number} (Tầng {notification.apartment.floor})
-                                        {notification.apartment.building?.branch_name ? ` - ${notification.apartment.building.branch_name}` : ""}
-                                    </span>
-                                </div>
-                            )}
-                            {notification.apartments && notification.apartments.length > 1 && (
-                                <div className="sm:col-span-2">
-                                    <span className="text-gray-500 font-medium block">Danh sách các căn hộ ({notification.apartments.length}):</span>
-                                    <div className="flex flex-wrap gap-1 mt-1 max-h-24 overflow-y-auto">
-                                        {notification.apartments.map((a) => (
-                                            <span key={a.id} className="px-2 py-0.5 bg-white border border-blue-200 rounded text-blue-800 font-bold text-[11px]">
-                                                P.{a.room_number} (T.{a.floor})
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                            {notification.building && !notification.apartment && (!notification.apartments || notification.apartments.length === 0) && (
-                                <div>
-                                    <span className="text-gray-500 font-medium block">Tòa nhà / Chi nhánh:</span>
-                                    <span className="font-bold text-gray-900">{notification.building.branch_name}</span>
-                                </div>
-                            )}
-                            {notification.recipient_count && notification.recipient_count > 1 ? (
-                                <div>
-                                    <span className="text-gray-500 font-medium block">Số lượng người nhận:</span>
-                                    <span className="font-bold text-gray-900">{notification.recipient_count} người</span>
-                                </div>
-                            ) : null}
-                            {notification.tenant && (
-                                <div>
-                                    <span className="text-gray-500 font-medium block">Khách thuê:</span>
-                                    <span className="font-bold text-gray-900">
-                                        {notification.tenant.full_name} {notification.tenant.phone ? `(${notification.tenant.phone})` : ""}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
+
+                {(notification.apartment || (notification.apartments && notification.apartments.length > 0) || notification.building || notification.recipient_count || notification.tenant) && (
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                        {notification.apartment && (
+                            <span className="inline-flex items-center gap-1 font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200/70">
+                                P.{notification.apartment.room_number}{notification.apartment.building?.branch_name ? ` – ${notification.apartment.building.branch_name}` : ""}
+                            </span>
+                        )}
+                        {!notification.apartment && notification.apartments && notification.apartments.length > 1 && (
+                            <span className="inline-flex items-center gap-1 font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200/70">
+                                {notification.apartments.length} căn hộ
+                            </span>
+                        )}
+                        {notification.building && !notification.apartment && (!notification.apartments || notification.apartments.length === 0) && (
+                            <span className="inline-flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/70">
+                                Tòa {notification.building.branch_name}
+                            </span>
+                        )}
+                        {notification.tenant && (!notification.recipient_count || notification.recipient_count === 1) && (
+                            <span className="inline-flex items-center gap-1 font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">
+                                {notification.tenant.full_name}
+                            </span>
+                        )}
                     </div>
                 )}
+
 
                 <div className="border border-gray-200 p-3.5 text-gray-600 font-medium leading-relaxed whitespace-pre-wrap py-2 text-sm max-h-62.5 overflow-y-auto">
                     Nội dung: {notification.content}

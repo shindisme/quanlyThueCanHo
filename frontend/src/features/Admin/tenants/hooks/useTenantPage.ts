@@ -14,7 +14,7 @@ import { useSort } from "../../../../hooks/useSort";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import { useDeleteTenant } from "./useDeleteTenant";
 import { queryKeys } from "../../../../constants/queryKeys";
-import { getPreferredContract } from "../../../../utils/contract";
+import { findActiveContract, getPreferredContract } from "../../../../utils/contract";
 
 export function useTenantPage() {
   const { role, managedBuildingId } = useUserRole();
@@ -203,7 +203,7 @@ export function useTenantPage() {
   const { items: sorted, requestSort, sortConfig } = useSort(filtered, null, {
     name: (tenant) => tenant.full_name,
     apartment: (tenant) => {
-      const apartment = getPreferredContract(tenant.contracts)?.apartment;
+      const apartment = findActiveContract(tenant.contracts)?.apartment;
       return apartment
         ? `${apartment.building?.branch_name || ""}-${apartment.floor}-${apartment.room_number}`
         : "";

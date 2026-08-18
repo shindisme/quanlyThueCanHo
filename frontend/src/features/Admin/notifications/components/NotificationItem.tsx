@@ -51,12 +51,12 @@ export default function NotificationItem({
         <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
           {notification.apartment && (
             <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200/70">
-              {notification.apartment.building?.branch_name ? `${notification.apartment.building.branch_name} - ` : ""}P.{notification.apartment.room_number} (Tầng {notification.apartment.floor})
+              P.{notification.apartment.room_number}{notification.apartment.building?.branch_name ? ` – ${notification.apartment.building.branch_name}` : ""}
             </span>
           )}
-          {notification.apartments && notification.apartments.length > 1 && (
+          {!notification.apartment && notification.apartments && notification.apartments.length > 1 && (
             <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200/70">
-              {notification.apartments.length} căn hộ ({notification.apartments.map((a) => `P.${a.room_number}`).join(", ")})
+              {notification.apartments.length} căn hộ
             </span>
           )}
           {notification.building && !notification.apartment && (!notification.apartments || notification.apartments.length === 0) && (
@@ -64,11 +64,6 @@ export default function NotificationItem({
               Tòa {notification.building.branch_name}
             </span>
           )}
-          {notification.recipient_count && notification.recipient_count > 1 ? (
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-700 bg-gray-100 px-2 py-0.5 rounded border border-gray-200/60">
-              {notification.recipient_count} người nhận
-            </span>
-          ) : null}
           {notification.tenant && (!notification.recipient_count || notification.recipient_count === 1) && (
             <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">
               {notification.tenant.full_name}
