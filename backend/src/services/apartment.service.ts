@@ -1,6 +1,7 @@
 import {
     ApartmentStatus,
     ContractStatus,
+    ContractTerminationStatus,
     Prisma,
     Role
 } from "@prisma/client";
@@ -28,6 +29,34 @@ const apartmentBuildingSelect = {
     total_floors: true
 } satisfies Prisma.BuildingSelect;
 
+const activeContractForApartmentSelect = {
+    where: { status: ContractStatus.ACTIVE },
+    orderBy: { start_date: "desc" },
+    take: 1,
+    select: {
+        id: true,
+        end_date: true,
+        terminations: {
+            where: {
+                status: {
+                    in: [
+                        ContractTerminationStatus.PENDING,
+                        ContractTerminationStatus.APPROVED,
+                        ContractTerminationStatus.INSPECTION,
+                        ContractTerminationStatus.SETTLING
+                    ]
+                }
+            },
+            orderBy: { requested_at: "desc" },
+            take: 1,
+            select: {
+                effective_end_date: true,
+                requested_end_date: true
+            }
+        }
+    }
+} satisfies Prisma.RentalContractFindManyArgs;
+
 const apartmentSelect = {
     id: true,
     building_id: true,
@@ -48,7 +77,8 @@ const apartmentSelect = {
             { is_thumbnail: "desc" },
             { id: "asc" }
         ]
-    }
+    },
+    contracts: activeContractForApartmentSelect
 } satisfies Prisma.ApartmentSelect;
 
 const apartmentDetailSelect = {
@@ -69,6 +99,24 @@ const apartmentDetailSelect = {
             contract_file: true,
             signed_at: true,
             created_at: true,
+            terminations: {
+                where: {
+                    status: {
+                        in: [
+                            ContractTerminationStatus.PENDING,
+                            ContractTerminationStatus.APPROVED,
+                            ContractTerminationStatus.INSPECTION,
+                            ContractTerminationStatus.SETTLING
+                        ]
+                    }
+                },
+                orderBy: { requested_at: "desc" },
+                take: 1,
+                select: {
+                    effective_end_date: true,
+                    requested_end_date: true
+                }
+            },
             tenant: {
                 select: {
                     id: true,
@@ -107,6 +155,42 @@ const apartmentDetailSelect = {
         }
     }
 } satisfies Prisma.ApartmentSelect;
+
+const computeAvailableFrom = (
+    status: ApartmentStatus,
+    contracts?: Array<{
+        end_date: Date;
+        terminations?: Array<{
+            effective_end_date: Date | null;
+            requested_end_date: Date | null;
+        }>;
+    }>
+) => {
+    if (status !== ApartmentStatus.VACATING_SOON) return null;
+    const activeContract = contracts?.[0];
+    if (!activeContract) return null;
+    const termination = activeContract.terminations?.[0];
+    return termination?.effective_end_date
+        ?? termination?.requested_end_date
+        ?? activeContract.end_date;
+};
+
+const normalizeApartment = <T extends {
+    status: ApartmentStatus;
+    contracts?: Array<{
+        end_date: Date;
+        terminations?: Array<{
+            effective_end_date: Date | null;
+            requested_end_date: Date | null;
+        }>;
+    }>;
+}>(apartment: T) => {
+    const available_from = computeAvailableFrom(apartment.status, apartment.contracts);
+    return {
+        ...apartment,
+        available_from
+    };
+};
 
 const notFound = () => new AppError(
     404,
@@ -294,7 +378,7 @@ export const getAllApartmentsService = async (filters: {
     ]);
 
     return {
-        data: apartments,
+        data: apartments.map(normalizeApartment),
         pagination: {
             total,
             page,
@@ -306,10 +390,12 @@ export const getAllApartmentsService = async (filters: {
 
 export const getApartmentByIdService = async (id: number) => {
     await autoExpireReservations();
-    return prisma.apartment.findUnique({
+    const apartment = await prisma.apartment.findUnique({
         where: { id },
         select: apartmentDetailSelect
     });
+
+    return apartment ? normalizeApartment(apartment) : null;
 };
 
 export const updateApartmentService = async (

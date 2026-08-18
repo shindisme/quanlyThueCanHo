@@ -64,13 +64,25 @@ const depositCommonSchema = depositFormSchema.pick({
   deposit_amount: true,
 });
 
-export const validateDepositForm = (form: DepositForm, fixedApartment?: Apartment): string | null => {
+export const validateDepositForm = (form: DepositForm, fixedApartment?: Apartment, availableApartments?: Apartment[]): string | null => {
   const targetAptId = fixedApartment ? String(fixedApartment.id) : form.apartment_id;
   const commonPayload = {
     apartment_id: targetAptId,
     move_in_date: form.move_in_date,
     deposit_amount: Number(form.deposit_amount),
   };
+
+  const apt = fixedApartment || availableApartments?.find((a) => String(a.id) === targetAptId);
+  if (apt && apt.status === "VACATING_SOON" && apt.available_from && form.move_in_date) {
+    const moveInDateObj = new Date(form.move_in_date);
+    const availableFromObj = new Date(apt.available_from);
+    const moveInTime = new Date(moveInDateObj.getFullYear(), moveInDateObj.getMonth(), moveInDateObj.getDate()).getTime();
+    const leaveTime = new Date(availableFromObj.getFullYear(), availableFromObj.getMonth(), availableFromObj.getDate()).getTime();
+    if (moveInTime < leaveTime) {
+      const formattedLeave = `${String(availableFromObj.getDate()).padStart(2, "0")}/${String(availableFromObj.getMonth() + 1).padStart(2, "0")}/${availableFromObj.getFullYear()}`;
+      return `Ngày dọn vào phải từ ngày ${formattedLeave} trở đi (sau khi khách cũ rời đi)`;
+    }
+  }
 
   if (form.tenant_mode === "existing") {
     const commonResult = depositCommonSchema.safeParse(commonPayload);
@@ -130,7 +142,7 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
     queryKey: availableApartmentKeys.list(role, managedBuildingId),
     queryFn: () =>
       apartmentService.getAllPage({
-        status: "AVAILABLE",
+        status: "AVAILABLE,VACATING_SOON",
         building_id: role === "MANAGER" ? managedBuildingId || undefined : undefined,
       }),
     select: (res) => res.data,
@@ -148,6 +160,13 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
     enabled: isOpen,
   });
 
+  const targetBuildingId = useMemo(() => {
+    if (fixedApartment?.building_id) return fixedApartment.building_id;
+    if (form.building_id) return Number(form.building_id);
+    if (role === "MANAGER" && managedBuildingId) return managedBuildingId;
+    return undefined;
+  }, [fixedApartment?.building_id, form.building_id, role, managedBuildingId]);
+
   const selectedApartment = useMemo(() => {
     if (fixedApartment) return fixedApartment;
     return availableApartments.find((apt) => String(apt.id) === form.apartment_id) || null;
@@ -155,29 +174,43 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
 
   const eligibleTenants = useMemo(() => {
     return tenants.filter((tenant) => {
-      const hasActiveContract =
-        tenant.contracts?.some((c) => c.status === "ACTIVE") ||
-        (tenant.contracts && tenant.contracts.length > 0);
+      // Chưa có căn hộ
+      const hasActiveContract = tenant.contracts?.some((c) => c.status === "ACTIVE");
       if (hasActiveContract) return false;
 
-      // hiển thị khách thuê đã từng có hợp đồng ended
-      const hasEndedContract =
+      // Phải là khách từng thuê
+      const hasPreviousContract =
+        (tenant.contracts && tenant.contracts.length > 0) ||
         (tenant._count?.contracts && tenant._count.contracts > 0) ||
-        tenant.contracts?.some((c) => c.status === "ENDED");
+        Boolean(tenant.onboarding_building_id);
+      if (!hasPreviousContract) return false;
 
-      return Boolean(hasEndedContract);
+      // Đã từng thuê tại chi nhánh
+      if (targetBuildingId) {
+        const rentedInThisBuilding =
+          tenant.contracts?.some(
+            (c) =>
+              c.apartment?.building_id === targetBuildingId ||
+              c.apartment?.building?.id === targetBuildingId
+          ) || tenant.onboarding_building_id === targetBuildingId;
+
+        if (!rentedInThisBuilding) return false;
+      }
+
+      return true;
     });
-  }, [tenants]);
+  }, [tenants, targetBuildingId]);
 
   const selectedTenant = useMemo(() => {
-    return eligibleTenants.find((tenant) => String(tenant.id) === form.tenant_id) || null;
-  }, [eligibleTenants, form.tenant_id]);
+    return tenants.find((tenant) => String(tenant.id) === form.tenant_id) || null;
+  }, [tenants, form.tenant_id]);
 
   const tenantOptions = useMemo(() => {
     return eligibleTenants
       .map((tenant) => ({
         value: String(tenant.id),
-        label: `${tenant.full_name} (${tenant.citizen_id})`,
+        label: `${tenant.full_name} (${tenant.citizen_id})${tenant.phone ? ` - ${tenant.phone}` : ""}`,
+        searchKeywords: [tenant.full_name, tenant.citizen_id, tenant.phone || "", tenant.email || ""],
       }))
       .sort((a, b) => a.label.localeCompare(b.label, "vi"));
   }, [eligibleTenants]);
@@ -212,10 +245,18 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
     return availableApartments
       .filter((apartment) => String(apartment.building_id) === form.building_id)
       .filter((apartment) => String(apartment.floor) === form.floor)
-      .map((apartment) => ({
-        value: String(apartment.id),
-        label: `P.${apartment.room_number}`,
-      }));
+      .map((apartment) => {
+        const isVacating = apartment.status === "VACATING_SOON";
+        const dateStr = apartment.available_from
+          ? ` - Trống từ ${new Date(apartment.available_from).toLocaleDateString("vi-VN")}`
+          : "";
+        return {
+          value: String(apartment.id),
+          label: isVacating
+            ? `P.${apartment.room_number} (Sắp trống${dateStr})`
+            : `P.${apartment.room_number}`,
+        };
+      });
   }, [availableApartments, form.building_id, form.floor]);
 
   const depositMutation = useMutation({
@@ -304,6 +345,7 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
       floor: "",
       apartment_id: "",
       deposit_amount: 0,
+      tenant_id: "",
     }));
   }, []);
 
@@ -327,13 +369,13 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    const error = validateDepositForm(form, fixedApartment);
+    const error = validateDepositForm(form, fixedApartment, availableApartments);
     if (error) {
       toast.error(error);
       return;
     }
     depositMutation.mutate();
-  }, [form, fixedApartment, depositMutation]);
+  }, [form, fixedApartment, availableApartments, depositMutation]);
 
   return {
     isOpen,
@@ -341,6 +383,7 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
     closeModal,
     form,
     setForm,
+    targetBuildingId,
     availableApartments,
     isLoadingAvailableApartments,
     tenants,

@@ -8,7 +8,7 @@ export function selectAvailableApartmentsByBuilding(
 
   const byBuilding = new Map<number, ApartmentData[]>();
   for (const apartment of apartments) {
-    if (apartment.status !== "AVAILABLE") continue;
+    if (apartment.status !== "AVAILABLE" && apartment.status !== "VACATING_SOON") continue;
 
     const group = byBuilding.get(apartment.building_id);
     if (group) {

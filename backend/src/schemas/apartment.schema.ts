@@ -32,10 +32,15 @@ export const listApartmentsRequestSchema = z.object({
         search: z.string().trim().min(1).max(200).optional(),
         page: z.coerce.number().int().positive().default(1),
         limit: z.coerce.number().int().positive().max(100).default(10),
-        status: z.union([
+        status: z.preprocess((val) => {
+            if (typeof val === "string" && val.includes(",")) {
+                return val.split(",").map((s) => s.trim());
+            }
+            return val;
+        }, z.union([
             z.nativeEnum(ApartmentStatus),
-            z.array(z.nativeEnum(ApartmentStatus)).min(1).max(4)
-        ]).optional()
+            z.array(z.nativeEnum(ApartmentStatus)).min(1).max(10)
+        ])).optional()
     }).strict(),
     body: optionalEmptyBodySchema
 }).strict();

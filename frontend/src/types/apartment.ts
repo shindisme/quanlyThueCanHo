@@ -13,6 +13,7 @@ export interface Apartment {
   rental_price: number;
   description: string | null;
   status: ApartmentStatus;
+  available_from?: string | null;
   created_at: string;
   building?: Building;
   images?: ApartmentImage[];

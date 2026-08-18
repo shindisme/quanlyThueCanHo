@@ -1,6 +1,7 @@
 import {
     ApartmentStatus,
     ContractStatus,
+    ContractTerminationStatus,
     InvoiceStatus,
     InvoiceType,
     PaymentStatus,
@@ -297,12 +298,22 @@ export const autoExpireReservations = async () => {
                 },
                 data: { status: ReservationStatus.FORFEITED }
             });
+            const activeContract = await prisma.rentalContract.findFirst({
+                where: {
+                    apartment_id: res.apartment_id,
+                    status: ContractStatus.ACTIVE
+                }
+            });
             await prisma.apartment.updateMany({
                 where: {
                     id: res.apartment_id,
                     status: ApartmentStatus.RESERVED
                 },
-                data: { status: ApartmentStatus.AVAILABLE }
+                data: {
+                    status: activeContract
+                        ? ApartmentStatus.VACATING_SOON
+                        : ApartmentStatus.AVAILABLE
+                }
             });
             sendReservationExpiredNotice(res).catch(() => { });
         }
@@ -452,7 +463,12 @@ export const createReservationDepositService = async (
                 const apartment = await tx.apartment.findFirst({
                     where: {
                         id: input.apartment_id,
-                        status: ApartmentStatus.AVAILABLE
+                        status: {
+                            in: [
+                                ApartmentStatus.AVAILABLE,
+                                ApartmentStatus.VACATING_SOON
+                            ]
+                        }
                     },
                     select: {
                         id: true,
@@ -471,6 +487,78 @@ export const createReservationDepositService = async (
 
                 if (!apartment) {
                     throw apartmentUnavailable();
+                }
+
+                const existingActiveReservation = await tx.reservation.findFirst({
+                    where: {
+                        apartment_id: apartment.id,
+                        status: ReservationStatus.ACTIVE
+                    }
+                });
+
+                if (existingActiveReservation) {
+                    throw new AppError(
+                        409,
+                        "APARTMENT_ALREADY_RESERVED",
+                        "Căn hộ này đã có người đặt cọc giữ chỗ"
+                    );
+                }
+
+                if (apartment.status === ApartmentStatus.VACATING_SOON) {
+                    const activeContract = await tx.rentalContract.findFirst({
+                        where: {
+                            apartment_id: apartment.id,
+                            status: ContractStatus.ACTIVE
+                        },
+                        include: {
+                            terminations: {
+                                where: {
+                                    status: {
+                                        in: [
+                                            ContractTerminationStatus.PENDING,
+                                            ContractTerminationStatus.APPROVED,
+                                            ContractTerminationStatus.INSPECTION,
+                                            ContractTerminationStatus.SETTLING
+                                        ]
+                                    }
+                                },
+                                orderBy: { requested_at: "desc" },
+                                take: 1
+                            }
+                        }
+                    });
+
+                    if (activeContract) {
+                        const termination = activeContract.terminations?.[0];
+                        const leaveDate = termination?.effective_end_date
+                            ?? termination?.requested_end_date
+                            ?? activeContract.end_date;
+
+                        if (leaveDate) {
+                            const moveInDateObj = new Date(input.move_in_date);
+                            const leaveDateObj = new Date(leaveDate);
+                            const moveInTime = new Date(
+                                moveInDateObj.getFullYear(),
+                                moveInDateObj.getMonth(),
+                                moveInDateObj.getDate()
+                            ).getTime();
+                            const leaveTime = new Date(
+                                leaveDateObj.getFullYear(),
+                                leaveDateObj.getMonth(),
+                                leaveDateObj.getDate()
+                            ).getTime();
+
+                            if (moveInTime < leaveTime) {
+                                const formattedLeaveDate = `${String(leaveDateObj.getDate()).padStart(2, "0")}/${String(leaveDateObj.getMonth() + 1).padStart(2, "0")}/${leaveDateObj.getFullYear()}`;
+                                const formattedMoveInDate = `${String(moveInDateObj.getDate()).padStart(2, "0")}/${String(moveInDateObj.getMonth() + 1).padStart(2, "0")}/${moveInDateObj.getFullYear()}`;
+                                throw new AppError(
+                                    400,
+                                    "INVALID_MOVE_IN_DATE",
+                                    `Ngày dọn vào (${formattedMoveInDate}) phải từ ngày ${formattedLeaveDate} trở đi (sau khi khách cũ rời đi)`
+                                );
+                            }
+                        }
+                    }
                 }
 
                 let tenant: DepositTenant | null = null;
@@ -615,7 +703,12 @@ export const createReservationDepositService = async (
                 const reservedApartment = await tx.apartment.updateMany({
                     where: {
                         id: apartment.id,
-                        status: ApartmentStatus.AVAILABLE
+                        status: {
+                            in: [
+                                ApartmentStatus.AVAILABLE,
+                                ApartmentStatus.VACATING_SOON
+                            ]
+                        }
                     },
                     data: { status: ApartmentStatus.RESERVED }
                 });
@@ -785,12 +878,22 @@ export const expireReservationsService = async (actor: Actor) => {
             }
 
             expiredCount += result.count;
+            const activeContract = await tx.rentalContract.findFirst({
+                where: {
+                    apartment_id: reservation.apartment_id,
+                    status: ContractStatus.ACTIVE
+                }
+            });
             await tx.apartment.updateMany({
                 where: {
                     id: reservation.apartment_id,
                     status: ApartmentStatus.RESERVED
                 },
-                data: { status: ApartmentStatus.AVAILABLE }
+                data: {
+                    status: activeContract
+                        ? ApartmentStatus.VACATING_SOON
+                        : ApartmentStatus.AVAILABLE
+                }
             });
             expiredNotices.push(reservation);
         }

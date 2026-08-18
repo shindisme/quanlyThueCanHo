@@ -116,6 +116,7 @@ export default function GuestApartmentListing() {
           <Combobox
             options={[
               { value: "AVAILABLE", label: "Còn trống" },
+              { value: "VACATING_SOON", label: "Sắp trống" },
               { value: "RENTED", label: "Đang thuê" }
             ]}
             value={statusFilter}
@@ -171,15 +172,29 @@ export default function GuestApartmentListing() {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           alt="Ảnh căn hộ"
                         />
+                        {apt.status === "VACATING_SOON" && (
+                          <div className="absolute left-3 top-3 flex flex-col gap-1 items-start">
+                            <span className="rounded-full bg-amber-500 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
+                              Sắp trống
+                            </span>
+                            {apt.available_from && (
+                              <span className="rounded-md bg-black/70 backdrop-blur-xs px-2 py-0.5 text-[10px] font-medium text-white shadow-sm">
+                                Trống từ: {new Date(apt.available_from).toLocaleDateString("vi-VN")}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="p-5">
                         <div className="flex items-start justify-between mb-2">
                           <h3 className="font-semibold text-gray-800 group-hover:text-primary-600 transition-colors">
                             {formatApartmentDisplay(apt.room_number, apt.floor, "ADMIN", building?.branch_name)}
                           </h3>
-                          <Badge variant={APARTMENT_STATUS_COLORS[apt.status as keyof typeof APARTMENT_STATUS_COLORS] as "success" | "info" | "warning"}>
-                            {APARTMENT_STATUS_LABELS[apt.status as keyof typeof APARTMENT_STATUS_LABELS]}
-                          </Badge>
+                          {apt.status !== "VACATING_SOON" && (
+                            <Badge variant={APARTMENT_STATUS_COLORS[apt.status as keyof typeof APARTMENT_STATUS_COLORS] as "success" | "info" | "warning"}>
+                              {APARTMENT_STATUS_LABELS[apt.status as keyof typeof APARTMENT_STATUS_LABELS]}
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-xs text-gray-400 mt-1">{building?.address}</p>
                         <p className="text-sm text-gray-500 line-clamp-2 mt-2">{apt.description}</p>

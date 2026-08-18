@@ -23,6 +23,7 @@ export interface Tenant {
   date_of_birth: string | null;
   address: string | null;
   is_verified: boolean;
+  onboarding_building_id?: number | null;
   created_at: string;
 
   user?: User | null;
@@ -66,7 +67,8 @@ export interface TenantQuery {
 export interface OccupantForm {
   name: string;
   cccd: string;
-  dob?: string | null;
-  phone?: string | null;
+  dob: string;
+  phone: string;
 }
 
+export type TenantData = Tenant;

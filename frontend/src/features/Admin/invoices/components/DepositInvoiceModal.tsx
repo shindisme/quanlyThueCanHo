@@ -140,6 +140,11 @@ export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
                 <p>{formatApartmentDisplay(targetApartment.room_number, targetApartment.floor, targetApartment.building?.branch_name || targetApartment.building?.name)}</p>
                 <p>Giá thuê: {formatCurrency(targetApartment.rental_price)}/tháng</p>
                 {targetApartment.building?.address && <p>Địa chỉ: {targetApartment.building.address}</p>}
+                {targetApartment.status === "VACATING_SOON" && (
+                  <div className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-800">
+                    <span className="font-semibold">Lưu ý:</span> Căn hộ sắp trống{targetApartment.available_from ? ` (dự kiến từ ngày ${new Date(targetApartment.available_from).toLocaleDateString("vi-VN")})` : ""}. Ngày dọn vào không được trước ngày khách cũ rời đi.
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -172,12 +177,27 @@ export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
                 options={tenantOptions}
                 value={form?.tenant_id || ""}
                 onChange={(val) => onTenantChange && onTenantChange(val)}
-                placeholder={isLoadingTenants ? "Đang tải..." : "Chọn khách thuê từng thuê"}
+                placeholder={
+                  isLoadingTenants
+                    ? "Đang tải..."
+                    : !form?.building_id && !fixedApartment && !isManager
+                      ? "Vui lòng chọn chi nhánh trước..."
+                      : tenantOptions.length === 0
+                        ? "Không có khách từng thuê tại chi nhánh này"
+                        : "Chọn khách thuê từng ở chi nhánh này"
+                }
                 searchPlaceholder="Tìm theo tên hoặc CCCD"
-                disabled={isLoadingTenants || isPending}
+                emptyText="Không có khách từng thuê tại chi nhánh này (và hiện chưa có căn hộ)"
+                disabled={isLoadingTenants || isPending || (!form?.building_id && !fixedApartment && !isManager)}
                 triggerClassName="h-11 rounded-xl border-gray-300 px-3.5"
                 clearable={true}
               />
+
+              {!form?.building_id && !fixedApartment && !isManager && (
+                <p className="text-xs text-amber-600">
+                  * Vui lòng chọn chi nhánh trước để tìm khách thuê từng ở chi nhánh đó.
+                </p>
+              )}
 
               {selectedTenant && (
                 <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
@@ -264,6 +284,11 @@ export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
               placeholder="Chọn ngày dọn vào"
               disabled={isPending}
             />
+            {targetApartment?.status === "VACATING_SOON" && targetApartment.available_from && (
+              <p className="text-xs text-amber-600 mt-1">
+                Phòng trống từ: {new Date(targetApartment.available_from).toLocaleDateString("vi-VN")}
+              </p>
+            )}
           </div>
           <CurrencyInput
             label="Số tiền đặt cọc (VND) *"

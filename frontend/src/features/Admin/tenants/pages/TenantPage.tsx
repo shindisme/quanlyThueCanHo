@@ -71,8 +71,8 @@ export default function TenantPage() {
                 setSearch(v);
                 setCurrentPage(1);
               }}
-              placeholder="Tìm kiếm..."
-              className="w-full sm:w-80"
+              placeholder="Tìm theo tên, SĐT, CCCD, phòng..."
+              className="w-full sm:w-96"
             />
             {role !== "STAFF" && (
               <Button onClick={createModal.onOpen}>
@@ -167,7 +167,7 @@ export default function TenantPage() {
       <TenantCreateModal
         isOpen={createModal.isOpen}
         onClose={createModal.onClose}
-        onSuccess={() => {}}
+        onSuccess={() => { }}
       />
 
       <TenantModifyModal

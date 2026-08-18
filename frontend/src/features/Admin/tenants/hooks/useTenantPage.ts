@@ -163,11 +163,41 @@ export function useTenantPage() {
       if (selectedStatus === "INACTIVE" && hasActiveContract) return false;
     }
 
-    const term = removeVietnameseTones(debouncedSearch);
+    const rawSearch = debouncedSearch.trim();
+    const term = removeVietnameseTones(rawSearch).toLowerCase();
     if (!term) return true;
-    const nameNorm = removeVietnameseTones(t.full_name);
-    const citizenNorm = removeVietnameseTones(t.citizen_id);
-    return nameNorm.includes(term) || citizenNorm.includes(term);
+    const cleanRoomTerm = term.replace(/^(phong|p\.|p\s*)/i, "").trim();
+
+    const nameNorm = removeVietnameseTones(t.full_name || "").toLowerCase();
+    const citizenNorm = removeVietnameseTones(t.citizen_id || "").toLowerCase();
+    const phoneNorm = (t.phone || "").toLowerCase();
+    const emailNorm = (t.email || "").toLowerCase();
+
+    // Tìm theo phòng căn hộ đang thuê hoặc từng thuê
+    const matchApartment = t.contracts?.some((c) => {
+      const roomNum = (c.apartment?.room_number || "").toLowerCase();
+      const roomNorm = removeVietnameseTones(roomNum);
+      const branchNorm = removeVietnameseTones(
+        c.apartment?.building?.branch_name || c.apartment?.building?.name || ""
+      ).toLowerCase();
+      const addressNorm = removeVietnameseTones(c.apartment?.building?.address || "").toLowerCase();
+
+      return (
+        roomNum.includes(term) ||
+        roomNorm.includes(term) ||
+        (cleanRoomTerm !== "" && (roomNum.includes(cleanRoomTerm) || roomNorm.includes(cleanRoomTerm))) ||
+        branchNorm.includes(term) ||
+        addressNorm.includes(term)
+      );
+    });
+
+    return (
+      nameNorm.includes(term) ||
+      citizenNorm.includes(term) ||
+      phoneNorm.includes(term) ||
+      emailNorm.includes(term) ||
+      Boolean(matchApartment)
+    );
   });
 
   const { items: sorted, requestSort, sortConfig } = useSort(filtered, null, {

@@ -372,22 +372,64 @@ export const getTenants = async (
     }
 
     if (search) {
+        const rawSearch = search.trim();
+        const cleanRoom = rawSearch.replace(/^(phòng|phong|p\.|p\s*)/i, "").trim();
+
+        const apartmentOrFilters: Prisma.ApartmentWhereInput[] = [
+            { room_number: { contains: rawSearch, mode: Prisma.QueryMode.insensitive } },
+            { building: { branch_name: { contains: rawSearch, mode: Prisma.QueryMode.insensitive } } }
+        ];
+
+        if (cleanRoom && cleanRoom !== rawSearch) {
+            apartmentOrFilters.push({
+                room_number: { contains: cleanRoom, mode: Prisma.QueryMode.insensitive }
+            });
+        }
+
+        const reservationApartmentOrFilters: Prisma.ApartmentWhereInput[] = [
+            { room_number: { contains: rawSearch, mode: Prisma.QueryMode.insensitive } }
+        ];
+
+        if (cleanRoom && cleanRoom !== rawSearch) {
+            reservationApartmentOrFilters.push({
+                room_number: { contains: cleanRoom, mode: Prisma.QueryMode.insensitive }
+            });
+        }
+
         filters.push({
             OR: [
                 {
                     full_name: {
-                        contains: search,
-                        mode: "insensitive"
+                        contains: rawSearch,
+                        mode: Prisma.QueryMode.insensitive
                     }
                 },
-                { phone: { contains: search } },
+                { phone: { contains: rawSearch } },
                 {
                     email: {
-                        contains: search,
-                        mode: "insensitive"
+                        contains: rawSearch,
+                        mode: Prisma.QueryMode.insensitive
                     }
                 },
-                { citizen_id: { contains: search } }
+                { citizen_id: { contains: rawSearch } },
+                {
+                    contracts: {
+                        some: {
+                            apartment: {
+                                OR: apartmentOrFilters
+                            }
+                        }
+                    }
+                },
+                {
+                    reservations: {
+                        some: {
+                            apartment: {
+                                OR: reservationApartmentOrFilters
+                            }
+                        }
+                    }
+                }
             ]
         });
     }

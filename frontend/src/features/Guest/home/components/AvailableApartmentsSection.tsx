@@ -52,7 +52,22 @@ export default function AvailableApartmentsSection({ apartments, buildings, load
                 >
                   <div className="relative h-48 overflow-hidden bg-gray-100">
                     <img src={getThumbnail(apartment)} className="h-full w-full object-cover transition-transform group-hover:scale-105" alt="Ảnh căn hộ" />
-                    <span className="absolute left-3 top-3 rounded-full bg-success-500 px-2.5 py-1 text-xs font-semibold text-white">Còn trống</span>
+                    {apartment.status === "VACATING_SOON" ? (
+                      <div className="absolute left-3 top-3 flex flex-col gap-1 items-start">
+                        <span className="rounded-full bg-amber-500 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
+                          Sắp trống
+                        </span>
+                        {apartment.available_from && (
+                          <span className="rounded-md bg-black/70 backdrop-blur-xs px-2 py-0.5 text-[10px] font-medium text-white shadow-sm">
+                            Trống từ: {new Date(apartment.available_from).toLocaleDateString("vi-VN")}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="absolute left-3 top-3 rounded-full bg-success-500 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
+                        Còn trống
+                      </span>
+                    )}
                   </div>
                   <div className="p-5">
                     <h3 className="font-semibold text-gray-800 group-hover:text-primary-600">

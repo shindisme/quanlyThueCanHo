@@ -58,7 +58,7 @@ export function useGuestApartmentListing() {
   const [priceFilter, setPriceFilter] = useState("");
   const [buildingFilter, setBuildingFilter] = useState("");
   const [floorFilter, setFloorFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("AVAILABLE");
+  const [statusFilter, setStatusFilter] = useState("");
   const [locationSuggestion, setLocationSuggestion] = useState<LocationSuggestion | null>(null);
   const [locationSearching, setLocationSearching] = useState(false);
 

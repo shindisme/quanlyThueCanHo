@@ -37,8 +37,8 @@ export function useHomePage() {
   });
 
   const { data: apartments = [], isLoading: loadingApartments } = useQuery({
-    queryKey: queryKeys.apartments.list({ scope: "landing", status: "AVAILABLE" }),
-    queryFn: () => apartmentService.getAllPage({ status: "AVAILABLE" }),
+    queryKey: queryKeys.apartments.list({ scope: "landing", status: "AVAILABLE,VACATING_SOON" }),
+    queryFn: () => apartmentService.getAllPage({ status: "AVAILABLE,VACATING_SOON" }),
     select: (res) => res.data,
   });
 

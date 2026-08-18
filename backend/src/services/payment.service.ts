@@ -673,7 +673,12 @@ const applyPaidInvoiceSideEffects = async (
     await transaction.apartment.updateMany({
         where: {
             id: invoice.reservation.apartment_id,
-            status: ApartmentStatus.AVAILABLE
+            status: {
+                in: [
+                    ApartmentStatus.AVAILABLE,
+                    ApartmentStatus.VACATING_SOON
+                ]
+            }
         },
         data: { status: ApartmentStatus.RESERVED }
     });

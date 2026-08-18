@@ -95,7 +95,7 @@ export default function GuestApartmentDetail() {
           console.error("Error loading reviews:", e);
         }
 
-        if (searchParams.get("book") === "true" && apt.status === "AVAILABLE") {
+        if (searchParams.get("book") === "true" && (apt.status === "AVAILABLE" || apt.status === "VACATING_SOON")) {
           setShowScheduleForm(true);
         }
       } catch (error) {
@@ -143,7 +143,7 @@ export default function GuestApartmentDetail() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left */}
-          <div className={`${apartment.status === "RENTED" ? "lg:col-span-3" : "lg:col-span-2"} space-y-6`}>
+          <div className={`${apartment.status !== "AVAILABLE" && apartment.status !== "VACATING_SOON" ? "lg:col-span-3" : "lg:col-span-2"} space-y-6`}>
             {images.length > 0 ? (
               <div className="flex flex-col gap-2">
                 <div
@@ -208,6 +208,15 @@ export default function GuestApartmentDetail() {
                   </Badge>
                 </div>
               </div>
+
+              {apartment.status === "VACATING_SOON" && (
+                <div className="mt-3 p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2.5 text-amber-800 text-sm">
+                  <span className="font-semibold">Lưu ý:</span>
+                  <span>
+                    Căn hộ sắp trống{apartment.available_from ? ` - Dự kiến có thể dọn vào từ ngày ${new Date(apartment.available_from).toLocaleDateString("vi-VN")}` : ""}. Bạn có thể đặt cọc giữ chỗ trước ngay hôm nay!
+                  </span>
+                </div>
+              )}
 
               <p className="text-2xl font-bold text-primary-600 mt-4">
                 {formatCurrency(apartment.rental_price)}<span className="text-sm text-gray-400 font-normal">/tháng</span>
@@ -325,10 +334,17 @@ export default function GuestApartmentDetail() {
           </div>
 
           {/*Right */}
-          {apartment.status === "AVAILABLE" && (
+          {(apartment.status === "AVAILABLE" || apartment.status === "VACATING_SOON") && (
             <div className="lg:col-span-1">
-              <Card className="sticky top-24">
-                <h3 className="font-semibold text-gray-800 mb-4">Đặt lịch xem phòng</h3>
+              <Card className="sticky top-24 space-y-4">
+                <div>
+                  <h3 className="font-semibold text-gray-800 mb-1">Đặt lịch xem phòng</h3>
+                  <p className="text-xs text-gray-500">
+                    {apartment.status === "VACATING_SOON"
+                      ? "Căn hộ sắp trống. Hãy đặt lịch trước để được hỗ trợ tham quan."
+                      : "Chọn ngày và điền thông tin để đặt lịch xem phòng trực tiếp."}
+                  </p>
+                </div>
                 <Button className="w-full" onClick={() => setShowScheduleForm(true)}>
                   Đặt lịch ngay
                 </Button>

@@ -33,6 +33,7 @@ export function Combobox({
   onChange,
   placeholder = "Chọn...",
   searchPlaceholder = "Tìm kiếm...",
+  emptyText = "Không tìm thấy kết quả",
   label,
   error,
   className,
@@ -47,24 +48,41 @@ export function Combobox({
   const containerRef = useRef<HTMLDivElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const [dropdownCoords, setDropdownCoords] = useState({ top: 0, left: 0, width: 0 })
+  const [dropdownCoords, setDropdownCoords] = useState<{
+    top?: number
+    bottom?: number
+    left: number
+    width: number
+    maxHeight: number
+    placement: "bottom" | "top"
+  }>({ left: 0, width: 0, maxHeight: 240, placement: "bottom" })
 
   const safeOptions = Array.isArray(options) ? options.filter(Boolean) : []
 
   const updateDropdownPosition = useCallback(() => {
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect()
-      const dropdownHeight = 260
       const spaceBelow = window.innerHeight - rect.bottom
-      let top = rect.bottom + 4 + window.scrollY
-      if (spaceBelow < dropdownHeight && rect.top > dropdownHeight) {
-        top = Math.max(10, rect.top - dropdownHeight - 4 + window.scrollY)
+      const spaceAbove = rect.top
+      const openUpwards = spaceBelow < 220 && spaceAbove > spaceBelow
+
+      if (openUpwards) {
+        setDropdownCoords({
+          bottom: Math.max(10, window.innerHeight - rect.top + 4),
+          left: rect.left,
+          width: rect.width,
+          maxHeight: Math.min(240, Math.max(120, spaceAbove - 16)),
+          placement: "top",
+        })
+      } else {
+        setDropdownCoords({
+          top: rect.bottom + 4,
+          left: rect.left,
+          width: rect.width,
+          maxHeight: Math.min(240, Math.max(120, spaceBelow - 16)),
+          placement: "bottom",
+        })
       }
-      setDropdownCoords({
-        top,
-        left: rect.left + window.scrollX,
-        width: rect.width,
-      })
     }
   }, [])
 
@@ -189,7 +207,17 @@ export function Combobox({
       )}
 
       {/* Trigger: Ô tìm kiếm */}
-      <div className="relative w-full">
+      <div
+        className="relative w-full cursor-pointer"
+        onClick={() => {
+          if (!disabled) {
+            if (!isOpen) {
+              setIsOpen(true)
+              inputRef.current?.focus()
+            }
+          }
+        }}
+      >
         <input
           ref={inputRef}
           type="text"
@@ -200,7 +228,7 @@ export function Combobox({
             setSearchQuery(e.target.value)
           }}
           onFocus={() => {
-            if (!disabled) setIsOpen(true)
+            if (!disabled && !isOpen) setIsOpen(true)
           }}
           placeholder={dynamicPlaceholder}
           className={cn(
@@ -222,7 +250,20 @@ export function Combobox({
               <X size={14} />
             </button>
           ) : (
-            <ChevronDown size={16} className="text-gray-400 pointer-events-none" />
+            <button
+              type="button"
+              tabIndex={-1}
+              onClick={(e) => {
+                e.stopPropagation()
+                if (!disabled) {
+                  setIsOpen((prev) => !prev)
+                  if (!isOpen) inputRef.current?.focus()
+                }
+              }}
+              className="p-0.5 rounded text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+            >
+              <ChevronDown size={16} className={cn("transition-transform duration-200", isOpen && "rotate-180")} />
+            </button>
           )}
         </div>
       </div>
@@ -233,16 +274,22 @@ export function Combobox({
           <div
             ref={dropdownRef}
             style={{
-              position: "absolute",
-              top: `${dropdownCoords.top}px`,
+              position: "fixed",
+              ...(dropdownCoords.placement === "top"
+                ? { bottom: `${dropdownCoords.bottom}px`, top: "auto" }
+                : { top: `${dropdownCoords.top}px`, bottom: "auto" }),
               left: `${dropdownCoords.left}px`,
               width: `${dropdownCoords.width}px`,
+              maxHeight: `${dropdownCoords.maxHeight}px`,
               zIndex: 99999,
             }}
-            className="z-99999 rounded-xl border border-primary-500 bg-white shadow-2xl overflow-hidden font-sans"
+            className="z-99999 rounded-xl border border-primary-500 bg-white shadow-2xl overflow-hidden font-sans flex flex-col"
           >
             {/* Options List */}
-            <div className="max-h-60 overflow-y-auto p-1.5 space-y-0.5">
+            <div
+              className="overflow-y-auto p-1.5 space-y-0.5 scrollbar-thin"
+              style={{ maxHeight: `${dropdownCoords.maxHeight - 8}px` }}
+            >
               {/* options reset mặc định */}
               {clearable && (
                 <div
@@ -266,7 +313,7 @@ export function Combobox({
                       onClick={() => handleSelect(optValStr, opt.disabled)}
                       className={cn(
                         "flex items-center justify-between px-2.5 py-2 text-sm text-gray-750 cursor-pointer rounded-lg hover:bg-gray-200 hover:text-gray-800 transition-colors",
-                        isSelected && "bg-gray-200 text-primary-500 font-semibold",
+                        isSelected && "bg-gray-200 text-primary-600 font-semibold",
                         opt.disabled && "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-gray-400"
                       )}
                     >
@@ -277,7 +324,7 @@ export function Combobox({
                 })
               ) : (
                 <div className="px-3 py-6 text-sm text-gray-400 text-center select-none">
-                  Không tìm thấy kết quả
+                  {emptyText}
                 </div>
               )}
             </div>

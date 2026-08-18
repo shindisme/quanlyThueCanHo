@@ -137,22 +137,39 @@ export const getAllStaffService = async (
     }
 
     if (filters.search !== undefined) {
+        const rawSearch = filters.search.trim();
         conditions.push({
             OR: [
                 {
                     full_name: {
-                        contains: filters.search,
+                        contains: rawSearch,
                         mode: "insensitive"
                     }
                 },
-                { phone: { contains: filters.search } },
+                { phone: { contains: rawSearch } },
+                {
+                    position: {
+                        contains: rawSearch,
+                        mode: "insensitive"
+                    }
+                },
                 {
                     user: {
                         is: {
                             username: {
-                                contains: filters.search,
+                                contains: rawSearch,
                                 mode: "insensitive"
                             }
+                        }
+                    }
+                },
+                {
+                    building: {
+                        is: {
+                            OR: [
+                                { branch_name: { contains: rawSearch, mode: "insensitive" } },
+                                { address: { contains: rawSearch, mode: "insensitive" } }
+                            ]
                         }
                     }
                 }

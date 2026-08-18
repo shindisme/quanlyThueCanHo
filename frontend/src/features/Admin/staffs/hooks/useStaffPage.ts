@@ -54,10 +54,25 @@ export function useStaffPage() {
   })();
 
   const filtered = displayStaff.filter((s) => {
-    const term = removeVietnameseTones(debouncedSearch);
-    const nameNorm = removeVietnameseTones(s.full_name);
-    const phoneNorm = removeVietnameseTones(s.phone || "");
-    const matchSearch = nameNorm.includes(term) || phoneNorm.includes(term);
+    const rawSearch = debouncedSearch.trim();
+    const term = removeVietnameseTones(rawSearch).toLowerCase();
+    const nameNorm = removeVietnameseTones(s.full_name || "").toLowerCase();
+    const phoneNorm = (s.phone || "").toLowerCase();
+    const positionNorm = removeVietnameseTones(s.position || "").toLowerCase();
+    const usernameNorm = removeVietnameseTones(s.user?.username || "").toLowerCase();
+
+    const building = buildings.find((b) => b.id === s.building_id);
+    const branchNameNorm = removeVietnameseTones(building?.branch_name || building?.name || "").toLowerCase();
+    const addressNorm = removeVietnameseTones(building?.address || "").toLowerCase();
+
+    const matchSearch =
+      !term ||
+      nameNorm.includes(term) ||
+      phoneNorm.includes(term) ||
+      positionNorm.includes(term) ||
+      usernameNorm.includes(term) ||
+      branchNameNorm.includes(term) ||
+      addressNorm.includes(term);
 
     const matchPosition = !positionFilter || s.position === positionFilter;
     const matchBuilding =
