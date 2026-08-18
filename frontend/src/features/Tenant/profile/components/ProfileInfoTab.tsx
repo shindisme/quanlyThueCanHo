@@ -23,7 +23,7 @@ export default function ProfileInfoTab(props: ProfileInfoTabProps) {
 
       <div className="space-y-6">
         {props.role === "TENANT" && !props.hasActiveContract && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-800">
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
             Bạn cần có hợp đồng thuê đang kích hoạt để chỉnh sửa thông tin tài khoản và khai báo người ở cùng.
           </div>
         )}

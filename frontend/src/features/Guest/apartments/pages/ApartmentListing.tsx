@@ -116,7 +116,6 @@ export default function GuestApartmentListing() {
           <Combobox
             options={[
               { value: "AVAILABLE", label: "Còn trống" },
-              { value: "VACATING_SOON", label: "Sắp trống" },
               { value: "RENTED", label: "Đang thuê" }
             ]}
             value={statusFilter}

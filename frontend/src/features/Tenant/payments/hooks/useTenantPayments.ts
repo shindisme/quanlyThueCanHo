@@ -41,6 +41,7 @@ export function useTenantPayments() {
   });
   const unpaidInvoices = useMemo(() => {
     return hideInvoicesCoveredByFinalSettlement(invoicesQuery.data?.data || [])
+      .filter((invoice) => invoice.type !== "REFUND")
       .filter((invoice) => getInvoiceStatus(invoice) !== "PAID")
       .filter((invoice) => Number(invoice.remaining_amount ?? invoice.total_amount) > 0)
       .sort((a, b) => {

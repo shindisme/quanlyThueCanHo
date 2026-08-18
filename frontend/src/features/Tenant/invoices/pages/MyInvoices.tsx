@@ -106,7 +106,7 @@ export default function MyInvoices() {
             onSort={(key) => { requestSort(key); setCurrentPage(1); }}
           />
 
-          {invoices.some((inv) => inv.status === "UNPAID") && (
+          {invoices.some((inv) => inv.status === "UNPAID" && inv.type !== "REFUND") && (
             <div className="bg-amber-50 border border-amber-200 p-4 shadow-sm rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <Wallet className="text-amber-600 shrink-0" size={24} />

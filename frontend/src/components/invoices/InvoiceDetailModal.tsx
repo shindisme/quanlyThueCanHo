@@ -8,6 +8,7 @@ import { formatApartmentDisplay } from "../../utils/string";
 import { getInvoicePeriod } from "../../utils/invoicePeriod";
 import { getDisplayItemAmount, getDisplayTierDetails } from "../../utils/feeSettings";
 import { getInvoiceApartment, getInvoiceStatus, getInvoiceTenant, getInvoiceType, isRefundInvoice } from "../../utils/invoiceDisplay";
+import { useUserRole } from "../../hooks/useUserRole";
 import {
   INVOICE_STATUS_CONFIG,
   INVOICE_TYPE_CONFIG,
@@ -45,9 +46,14 @@ interface InvoiceDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   invoice: Invoice | null;
+  role?: string | null;
 }
 
-export default function InvoiceDetailModal({ isOpen, onClose, invoice }: InvoiceDetailModalProps) {
+export default function InvoiceDetailModal({ isOpen, onClose, invoice, role: propRole }: InvoiceDetailModalProps) {
+  const { role: authRole } = useUserRole();
+  const activeRole = propRole ?? authRole;
+  const isTenant = activeRole === "TENANT";
+
   if (!invoice) return null;
 
   const apartment = getInvoiceApartment(invoice);
@@ -120,7 +126,7 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
         {/* Invoice Items Table */}
         <div className="space-y-2">
           <h5 className="font-bold text-gray-800 border-b border-gray-100 pb-1">Chi tiết chứng từ</h5>
-          <div className="border border-gray-200 rounded-xl overflow-x-auto shadow-sm bg-white">
+          <div className="border border-gray-200 overflow-x-auto shadow-sm bg-white">
             <table className="w-full text-left border-collapse min-w-125">
               <thead>
                 <tr className="bg-gray-50 text-gray-600 font-bold border-b border-gray-200 text-xs">
@@ -143,10 +149,14 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
                           <td className="p-3 font-medium text-gray-800">{item.item_name}</td>
                           <td className="p-3 text-center">{formatNumber(Number(item.quantity))}</td>
                           <td className="p-3 text-right">
-                            {hasTierDetails ? "Theo bậc" : formatCurrency(Number(item.unit_price))}
+                            {hasTierDetails ? "Theo bậc" : formatCurrency(isRefund ? Math.abs(Number(item.unit_price)) : Number(item.unit_price))}
                           </td>
                           <td className="p-3 text-right font-semibold text-gray-900">
-                            {formatCurrency(getDisplayItemAmount(item, occupantCount))}
+                            {isRefund
+                              ? (isTenant
+                                ? `+${formatCurrency(Math.abs(getDisplayItemAmount(item, occupantCount)))}`
+                                : `-${formatCurrency(Math.abs(getDisplayItemAmount(item, occupantCount)))}`)
+                              : formatCurrency(getDisplayItemAmount(item, occupantCount))}
                           </td>
                         </tr>
                         {tierDetails.map((detail) => (
@@ -171,10 +181,14 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
                 )}
                 <tr className="bg-gray-50/50 font-bold text-gray-900 border-t border-gray-250">
                   <td colSpan={3} className="p-3 text-right text-sm">
-                    TỔNG CỘNG:
+                    {isRefund ? (isTenant ? "TỔNG TIỀN HOÀN:" : "TỔNG TIỀN HOÀN TRẢ:") : "TỔNG CỘNG:"}
                   </td>
-                  <td className="p-3 text-right text-base text-primary-600">
-                    {formatCurrency(displayTotalAmount)}
+                  <td className={`p-3 text-right text-base ${isRefund ? (isTenant ? "text-emerald-600" : "text-red-600") : "text-primary-600"}`}>
+                    {isRefund
+                      ? (isTenant
+                        ? `+${formatCurrency(Math.abs(displayTotalAmount))}`
+                        : `-${formatCurrency(Math.abs(displayTotalAmount))}`)
+                      : formatCurrency(displayTotalAmount)}
                   </td>
                 </tr>
               </tbody>

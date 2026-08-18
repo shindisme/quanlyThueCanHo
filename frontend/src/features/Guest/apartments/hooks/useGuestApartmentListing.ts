@@ -58,7 +58,7 @@ export function useGuestApartmentListing() {
   const [priceFilter, setPriceFilter] = useState("");
   const [buildingFilter, setBuildingFilter] = useState("");
   const [floorFilter, setFloorFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState(searchParams.get("status") ?? "AVAILABLE");
   const [locationSuggestion, setLocationSuggestion] = useState<LocationSuggestion | null>(null);
   const [locationSearching, setLocationSearching] = useState(false);
 
@@ -101,7 +101,11 @@ export function useGuestApartmentListing() {
     }
 
     const matchFloor = !floorFilter || a.floor === Number(floorFilter);
-    const matchStatus = !statusFilter || a.status === statusFilter;
+    const matchStatus = !statusFilter
+      ? true
+      : statusFilter === "AVAILABLE"
+        ? (a.status === "AVAILABLE" || a.status === "VACATING_SOON")
+        : (a.status === "RENTED" || a.status === "RESERVED");
 
     return matchPrice && matchFloor && matchStatus;
   }), [apartments, buildingFilter, floorFilter, priceFilter, statusFilter]);

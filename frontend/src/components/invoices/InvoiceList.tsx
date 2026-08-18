@@ -153,7 +153,17 @@ export default function InvoiceList({
         label: "Tổng tiền",
         sortable: false,
         sortValue: (inv) => Number(inv.total_amount),
-        render: (inv) => <span className="font-bold text-gray-900">{formatCurrency(inv.total_amount)}</span>,
+        render: (inv) => {
+          const isRefund = isRefundInvoice(inv);
+          if (isRefund) {
+            const absVal = Math.abs(Number(inv.total_amount));
+            if (role === "TENANT") {
+              return <span className="font-bold text-emerald-600">+{formatCurrency(absVal)}</span>;
+            }
+            return <span className="font-bold text-red-600">-{formatCurrency(absVal)}</span>;
+          }
+          return <span className="font-bold text-gray-900">{formatCurrency(inv.total_amount)}</span>;
+        },
       },
       {
         key: "status",

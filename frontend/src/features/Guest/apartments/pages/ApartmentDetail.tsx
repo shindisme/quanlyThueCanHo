@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { ArrowLeft, MapPin, Maximize2, Star, X, ChevronLeft, ChevronRight, ImageOff, Layers, BedDouble, Bath } from "lucide-react";
+import { ArrowLeft, MapPin, Maximize2, Star, X, ChevronLeft, ChevronRight, ImageOff, Layers, BedDouble, Bath, Info } from "lucide-react";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import Card from "../../../../components/ui/Card";
 import Button from "../../../../components/ui/Button";
 import Badge from "../../../../components/ui/Badge";
-import RefreshButton from "../../../../components/ui/RefreshButton";
 import { APARTMENT_STATUS_LABELS, APARTMENT_STATUS_COLORS } from "../../../../constants";
 import { formatCurrency } from "../../../../utils/currency";
 import { formatApartmentDisplay } from "../../../../utils/string";
@@ -191,36 +190,37 @@ export default function GuestApartmentDetail() {
 
             {/* Thong tin co ban */}
             <div>
-              <div className="flex items-start justify-between mb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {formatApartmentDisplay(apartment.room_number, apartment.floor, "ADMIN", building?.branch_name)}
                   </h1>
                   <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
-                    <MapPin size={14} />
+                    <MapPin size={14} className="shrink-0 text-gray-400" />
                     <span>{building?.name} - {building?.address}</span>
                   </div>
                 </div>
-                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                  <RefreshButton />
+                <div className="flex sm:flex-col items-start sm:items-end justify-between sm:justify-center gap-2">
                   <Badge variant={APARTMENT_STATUS_COLORS[apartment.status as keyof typeof APARTMENT_STATUS_COLORS] as "success" | "info" | "warning"}>
                     {APARTMENT_STATUS_LABELS[apartment.status as keyof typeof APARTMENT_STATUS_LABELS]}
                   </Badge>
+                  <p className="text-2xl font-bold text-primary-600">
+                    {formatCurrency(apartment.rental_price)}<span className="text-sm text-gray-400 font-normal">/tháng</span>
+                  </p>
                 </div>
               </div>
 
               {apartment.status === "VACATING_SOON" && (
-                <div className="mt-3 p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2.5 text-amber-800 text-sm">
-                  <span className="font-semibold">Lưu ý:</span>
-                  <span>
-                    Căn hộ sắp trống{apartment.available_from ? ` - Dự kiến có thể dọn vào từ ngày ${new Date(apartment.available_from).toLocaleDateString("vi-VN")}` : ""}. Bạn có thể đặt cọc giữ chỗ trước ngay hôm nay!
-                  </span>
+                <div className="mt-3 mb-2 p-3.5 bg-amber-50/90 border border-amber-200 rounded-xl flex items-start gap-2.5 text-amber-800 text-sm">
+                  <Info size={18} className="shrink-0 mt-0.5 text-amber-600" />
+                  <div className="leading-relaxed">
+                    <span className="font-semibold mr-1">Lưu ý:</span>
+                    <span>
+                      Căn hộ sắp trống{apartment.available_from ? ` - Dự kiến có thể dọn vào từ ngày ${new Date(apartment.available_from).toLocaleDateString("vi-VN")}` : ""}. Bạn có thể đặt cọc giữ chỗ trước ngay hôm nay!
+                    </span>
+                  </div>
                 </div>
               )}
-
-              <p className="text-2xl font-bold text-primary-600 mt-4">
-                {formatCurrency(apartment.rental_price)}<span className="text-sm text-gray-400 font-normal">/tháng</span>
-              </p>
             </div>
 
             <Card>
@@ -336,16 +336,16 @@ export default function GuestApartmentDetail() {
           {/*Right */}
           {(apartment.status === "AVAILABLE" || apartment.status === "VACATING_SOON") && (
             <div className="lg:col-span-1">
-              <Card className="sticky top-24 space-y-4">
-                <div>
-                  <h3 className="font-semibold text-gray-800 mb-1">Đặt lịch xem phòng</h3>
-                  <p className="text-xs text-gray-500">
+              <Card className="sticky top-24 p-6 space-y-5 border border-gray-200 shadow-md">
+                <div className="space-y-2">
+                  <h3 className="font-bold text-gray-900 text-base">Đặt lịch xem phòng</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">
                     {apartment.status === "VACATING_SOON"
                       ? "Căn hộ sắp trống. Hãy đặt lịch trước để được hỗ trợ tham quan."
                       : "Chọn ngày và điền thông tin để đặt lịch xem phòng trực tiếp."}
                   </p>
                 </div>
-                <Button className="w-full" onClick={() => setShowScheduleForm(true)}>
+                <Button className="w-full py-2.5 text-sm font-semibold rounded-xl" onClick={() => setShowScheduleForm(true)}>
                   Đặt lịch ngay
                 </Button>
               </Card>

@@ -123,15 +123,15 @@ export default function InvoicePage() {
         subtitle="Theo dõi công nợ, tính tiền dịch vụ hằng tháng và kiểm soát trạng thái thanh toán"
         count={rawInvoicesCount}
         actions={
-          <div className="flex flex-col gap-2.5 w-full sm:w-auto items-stretch sm:items-end">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
             <SearchInput
               value={search}
-              onChange={setSearch}
+              onChange={(v) => { setSearch(v); setCurrentPage(1); }}
               placeholder="Tìm theo mã HD, số phòng, tên người thuê..."
-              className="w-full sm:w-80"
+              className="w-full sm:w-80 flex-1 min-w-0"
             />
             {canManageDeposits && (
-              <div className="flex flex-wrap items-center justify-end gap-2">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <Button
                   type="button"
                   variant="outline"
