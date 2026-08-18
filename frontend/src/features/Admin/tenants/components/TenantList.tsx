@@ -19,6 +19,22 @@ interface TenantListProps {
   setDeleteItem: (item: Tenant | null) => void;
 }
 
+const isTenantDeletable = (tenant: Tenant) => {
+  const activeContract = getPreferredContract(tenant.contracts);
+  if (activeContract) return false;
+  const count = tenant._count;
+  if (!count) {
+    return !tenant.contracts || tenant.contracts.length === 0;
+  }
+  const totalRelations =
+    (count.contracts || 0) +
+    (count.invoices || 0) +
+    (count.reservations || 0) +
+    (count.maintenance || 0) +
+    (count.reviews || 0);
+  return totalRelations === 0;
+};
+
 export default function TenantList({
   paginatedTenants,
   role,
@@ -93,7 +109,6 @@ export default function TenantList({
         key: "actions",
         label: "Chức năng",
         render: (t) => {
-          const activeContract = getPreferredContract(t.contracts);
           return (
             <div className="flex items-center gap-1">
               <button
@@ -115,7 +130,7 @@ export default function TenantList({
                   >
                     <Pencil size={16} />
                   </button>
-                  {!activeContract && (
+                  {isTenantDeletable(t) && (
                     <button
                       onClick={() => setDeleteItem(t)}
                       className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
@@ -192,7 +207,7 @@ export default function TenantList({
                     >
                       <Pencil size={14} /> Sửa
                     </button>
-                    {!activeContract && (
+                    {isTenantDeletable(t) && (
                       <button
                         onClick={() => setDeleteItem(t)}
                         className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 flex items-center gap-1 text-xs cursor-pointer"

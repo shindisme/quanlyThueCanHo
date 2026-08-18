@@ -20,12 +20,18 @@ export default function MyOccupants() {
         actions={
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <SearchInput value={occupants.search} onChange={occupants.setSearch} placeholder="Tên, CCCD, số điện thoại..." className="w-full sm:w-64" />
-            <Button onClick={() => occupants.handleOpenOccupantForm(null)} disabled={occupants.isLimitReached} className="shadow-md">
+            <Button onClick={() => occupants.handleOpenOccupantForm(null)} disabled={!occupants.hasActiveContract || occupants.isLimitReached} className="shadow-md">
               <Plus size={18} /> Khai báo người ở cùng
             </Button>
           </div>
         }
       />
+
+      {!occupants.hasActiveContract && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+          Bạn cần có hợp đồng thuê đang hoạt động để khai báo người ở cùng.
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Stat icon={UserCheck} label="Đã khai báo" value={`${occupants.occupantCount} người`} color="sky" />

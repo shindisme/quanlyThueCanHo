@@ -50,26 +50,46 @@ export const createReviewService = async (
 ) => {
     const tenantId = requireTenantId(actor);
 
+    // Kiểm tra xem người thuê đã từng gửi đánh giá cho phòng này chưa
+    const existingReview = await prisma.review.findUnique({
+        where: {
+            apartment_id_tenant_id: {
+                apartment_id: input.apartment_id,
+                tenant_id: tenantId
+            }
+        }
+    });
+
+    if (existingReview) {
+        throw new AppError(
+            409,
+            "REVIEW_ALREADY_EXISTS",
+            "Bạn đã gửi đánh giá cho căn hộ này rồi. Mỗi căn hộ chỉ được đánh giá 1 lần."
+        );
+    }
+
+    // Kiểm tra xem người thuê có hợp đồng không
+    const contract = await prisma.rentalContract.findFirst({
+        where: {
+            tenant_id: tenantId,
+            apartment_id: input.apartment_id,
+            status: { in: [ContractStatus.ACTIVE, ContractStatus.ENDED] }
+        }
+    });
+
+    if (!contract) {
+        throw new AppError(
+            403,
+            "FORBIDDEN",
+            "Bạn chỉ có thể gửi đánh giá cho những căn hộ mà bạn đã hoặc đang thuê."
+        );
+    }
+
     try {
         return await prisma.review.create({
             data: {
-                apartment: {
-                    connect: {
-                        id: input.apartment_id,
-                        contracts: {
-                            some: {
-                                tenant_id: tenantId,
-                                status: ContractStatus.ENDED
-                            }
-                        }
-                    }
-                },
-                tenant: {
-                    connect: {
-                        id: tenantId,
-                        user_id: actor.userId
-                    }
-                },
+                apartment_id: input.apartment_id,
+                tenant_id: tenantId,
                 rating: input.rating,
                 comment: input.comment
             }
@@ -82,18 +102,7 @@ export const createReviewService = async (
             throw new AppError(
                 409,
                 "REVIEW_ALREADY_EXISTS",
-                "Căn hộ này đã được đánh giá rồi"
-            );
-        }
-
-        if (
-            error instanceof Prisma.PrismaClientKnownRequestError
-            && error.code === "P2025"
-        ) {
-            throw new AppError(
-                404,
-                "NOT_FOUND",
-                "Không tìm thấy hợp đồng đã kết thúc cho căn hộ này"
+                "Bạn đã gửi đánh giá cho căn hộ này rồi. Mỗi căn hộ chỉ được đánh giá 1 lần."
             );
         }
 

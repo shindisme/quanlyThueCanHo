@@ -159,6 +159,8 @@ export function useMyOccupants() {
     isLoading: occupantsQuery.isLoading || contractsQuery.isLoading,
     error: occupantsQuery.error,
     refetch: occupantsQuery.refetch,
+    activeContract: userContract || null,
+    hasActiveContract: Boolean(userContract),
     maxTotalOccupants,
     maxCompanions,
     isLimitReached: occupants.length >= maxCompanions,

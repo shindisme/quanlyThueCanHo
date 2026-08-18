@@ -295,7 +295,7 @@ export function useCheckout({ contract, termination, isOpen, onClose }: UseCheck
     setDamageItems((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, description } : item));
   }, []);
 
-  const setDamageAmount = useCallback((index: number, amount: string) => {
+  const setDamageAmount = useCallback((index: number, amount: number | string) => {
     const value = Math.max(Number(amount || 0), 0);
     setDamageItems((prev) => prev.map((item, itemIndex) => itemIndex === index ? { ...item, amount: value } : item));
   }, []);

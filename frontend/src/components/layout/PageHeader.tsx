@@ -31,9 +31,13 @@ export function PageHeader({
           )}
         </div>
 
-        <div className="flex w-full min-w-0 flex-wrap items-center gap-3 sm:w-auto">
-          <RefreshButton />
-          {actions}
+        <div className="flex w-full min-w-0 items-start gap-2.5 sm:w-auto">
+          <div className="pt-0.5 shrink-0">
+            <RefreshButton />
+          </div>
+          <div className="min-w-0 flex-1 sm:flex-initial flex items-center flex-wrap gap-2.5">
+            {actions}
+          </div>
         </div>
       </div>
 

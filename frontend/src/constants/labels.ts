@@ -35,7 +35,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   ADMIN: "Quản trị viên",
   MANAGER: "Quản lý",
   STAFF: "Nhân viên",
-  TENANT: "Khách thuê",
+  TENANT: "Người thuê",
 };
 
 export const USER_STATUS_LABELS: Record<UserStatus, string> = {

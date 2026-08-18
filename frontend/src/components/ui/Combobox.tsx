@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
+import { createPortal } from "react-dom"
 import { Check, ChevronDown, X } from "lucide-react"
 import { cn } from "../../lib/utils"
 import { removeVietnameseTones } from "../../utils/string"
@@ -43,14 +44,51 @@ export function Combobox({
   const [searchQuery, setSearchQuery] = useState("")
 
   const containerRef = useRef<HTMLDivElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [dropdownCoords, setDropdownCoords] = useState({ top: 0, left: 0, width: 0 })
 
   const safeOptions = Array.isArray(options) ? options.filter(Boolean) : []
+
+  const updateDropdownPosition = useCallback(() => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      const dropdownHeight = 260
+      const spaceBelow = window.innerHeight - rect.bottom
+      let top = rect.bottom + 4 + window.scrollY
+      if (spaceBelow < dropdownHeight && rect.top > dropdownHeight) {
+        top = Math.max(10, rect.top - dropdownHeight - 4 + window.scrollY)
+      }
+      setDropdownCoords({
+        top,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      })
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isOpen) {
+      updateDropdownPosition()
+      window.addEventListener("scroll", updateDropdownPosition, true)
+      window.addEventListener("resize", updateDropdownPosition)
+    }
+    return () => {
+      window.removeEventListener("scroll", updateDropdownPosition, true)
+      window.removeEventListener("resize", updateDropdownPosition)
+    }
+  }, [isOpen, updateDropdownPosition])
 
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target)
+      ) {
         setIsOpen(false)
       }
     }
@@ -140,67 +178,79 @@ export function Combobox({
         </div>
       </div>
 
-      {/* Dropdown Overlay */}
-      {isOpen && (
-        <div className="absolute z-50 mt-2 w-full rounded-xl border border-primary-500 bg-white shadow-xl shadow-gray-100/70 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-200">
-          {/* Ô tìm kiếm */}
-          {searchable && safeOptions.length > 5 && (
-            <div className="p-2 border-b border-gray-100 bg-gray-50/50">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={searchPlaceholder || "Tìm kiếm..."}
-                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
-                  autoFocus
-                />
-                <ChevronDown size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 rotate-180" />
+      {/* Dropdown */}
+      {isOpen &&
+        createPortal(
+          <div
+            ref={dropdownRef}
+            style={{
+              position: "absolute",
+              top: `${dropdownCoords.top}px`,
+              left: `${dropdownCoords.left}px`,
+              width: `${dropdownCoords.width}px`,
+              zIndex: 99999,
+            }}
+            className="z-99999 rounded-xl border border-primary-500 bg-white shadow-2xl overflow-hidden font-sans"
+          >
+            {/* Ô tìm kiếm */}
+            {searchable && safeOptions.length > 5 && (
+              <div className="p-2 border-b border-gray-100 bg-gray-50/50">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder={searchPlaceholder || "Tìm kiếm..."}
+                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
+                    autoFocus
+                  />
+                  <ChevronDown size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 rotate-180" />
+                </div>
               </div>
+            )}
+            {/* Options List */}
+            <div className="max-h-60 overflow-y-auto p-1.5 space-y-0.5">
+              {/* options reset mặc định */}
+              {clearable && (
+                <div
+                  onClick={() => handleSelect("", false)}
+                  className={cn(
+                    "flex items-center justify-between px-2.5 py-2 text-sm text-gray-850 cursor-pointer rounded-lg hover:bg-gray-200 hover:text-gray-900 transition-colors",
+                    value === "" && "bg-gray-200 font-semibold"
+                  )}
+                >
+                  <span className="truncate">{placeholder}</span>
+                  {value === "" && <Check size={14} className="text-primary-600 shrink-0 ml-2" />}
+                </div>
+              )}
+              {filteredOptions.length > 0 ? (
+                filteredOptions.map((opt) => {
+                  const optValStr = String(opt?.value ?? "")
+                  const isSelected = optValStr === String(value ?? "")
+                  return (
+                    <div
+                      key={optValStr}
+                      onClick={() => handleSelect(optValStr, opt.disabled)}
+                      className={cn(
+                        "flex items-center justify-between px-2.5 py-2 text-sm text-gray-750 cursor-pointer rounded-lg hover:bg-gray-200 hover:text-gray-800 transition-colors",
+                        isSelected && "bg-gray-200 text-primary-500 font-semibold",
+                        opt.disabled && "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-gray-400"
+                      )}
+                    >
+                      <span className="truncate">{opt.label}</span>
+                      {isSelected && <Check size={14} className="text-primary-600 shrink-0 ml-2" />}
+                    </div>
+                  )
+                })
+              ) : (
+                <div className="px-3 py-6 text-sm text-gray-400 text-center select-none">
+                  Không tìm thấy kết quả
+                </div>
+              )}
             </div>
-          )}
-          {/* Options List */}
-          <div className="max-h-60 overflow-y-auto p-1.5 space-y-0.5">
-            {/* options reset mặc định */}
-            {clearable && (
-              <div
-                onClick={() => handleSelect("", false)}
-                className={cn(
-                  "flex items-center justify-between px-2.5 py-2 text-sm text-gray-850 cursor-pointer rounded-lg hover:bg-gray-200 hover:text-gray-900 transition-colors",
-                  value === "" && "bg-gray-200 font-semibold"
-                )}
-              >
-                <span className="truncate">{placeholder}</span>
-                {value === "" && <Check size={14} className="text-primary-600 shrink-0 ml-2" />}
-              </div>
-            )}
-            {filteredOptions.length > 0 ? (
-              filteredOptions.map((opt) => {
-                const optValStr = String(opt?.value ?? "")
-                const isSelected = optValStr === String(value ?? "")
-                return (
-                  <div
-                    key={optValStr}
-                    onClick={() => handleSelect(optValStr, opt.disabled)}
-                    className={cn(
-                      "flex items-center justify-between px-2.5 py-2 text-sm text-gray-750 cursor-pointer rounded-lg hover:bg-gray-200 hover:text-gray-800 transition-colors",
-                      isSelected && "bg-gray-200 text-primary-500 font-semibold",
-                      opt.disabled && "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-gray-400"
-                    )}
-                  >
-                    <span className="truncate">{opt.label}</span>
-                    {isSelected && <Check size={14} className="text-primary-600 shrink-0 ml-2" />}
-                  </div>
-                )
-              })
-            ) : (
-              <div className="px-3 py-6 text-sm text-gray-400 text-center select-none">
-                Không tìm thấy kết quả
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       {error && <p className="mt-1 text-xs text-danger-500 select-none">{error}</p>}
     </div>

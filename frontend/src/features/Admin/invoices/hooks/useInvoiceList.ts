@@ -15,6 +15,7 @@ import type { InvoicePersistedStatus, InvoiceType } from "../../../../constants"
 import { getInvoiceRoomDisplay, getInvoiceStatus, getInvoiceTenant, getInvoiceType } from "../../../../utils/invoiceDisplay";
 import { getInvoicePeriodSortValue } from "../../../../utils/invoicePeriod";
 import { queryKeys } from "../../../../constants/queryKeys";
+import { getApiErrorMessage } from "../../../../utils/apiError";
 
 type VnpayQrPayment = paymentService.CreateVnpayPaymentResult & {
   invoice: Invoice;
@@ -199,8 +200,7 @@ export function useInvoiceList() {
       generateModal.onClose();
     },
     onError: (error: unknown) => {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || "Tạo hóa đơn thất bại");
+      toast.error(getApiErrorMessage(error, "Tạo hóa đơn thất bại"));
     },
   });
 

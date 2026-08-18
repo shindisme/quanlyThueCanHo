@@ -37,25 +37,23 @@ export default function MyContracts() {
 
   const debouncedSearch = useDebounce(search, 300);
 
-  const endedContracts = useMemo(
-    () => contracts.filter((c) => c.status === "ENDED"),
-    [contracts]
-  );
-
-  const endedApartmentIds = useMemo(() => {
+  const reviewableApartmentIds = useMemo(() => {
     const ids = new Set<number>();
-    endedContracts.forEach((c) => {
+    contracts.forEach((c) => {
       if (c.apartment_id) ids.add(c.apartment_id);
     });
+    myReviews.forEach((r) => {
+      if (r.apartment_id) ids.add(r.apartment_id);
+    });
     return Array.from(ids);
-  }, [endedContracts]);
+  }, [contracts, myReviews]);
 
   const hasUnreviewedApartment = useMemo(() => {
-    if (endedApartmentIds.length === 0) return false;
-    return endedApartmentIds.some(
+    if (reviewableApartmentIds.length === 0) return false;
+    return reviewableApartmentIds.some(
       (aptId) => !myReviews.some((r) => r.apartment_id === aptId)
     );
-  }, [endedApartmentIds, myReviews]);
+  }, [reviewableApartmentIds, myReviews]);
 
   const filteredContracts = useMemo(() => {
     return contracts.filter((c) => {
@@ -122,7 +120,7 @@ export default function MyContracts() {
         count={contracts.length}
         actions={
           <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
-            {endedContracts.length > 0 && (
+            {(reviewableApartmentIds.length > 0 || myReviews.length > 0) && (
               <Button
                 type="button"
                 variant={hasUnreviewedApartment ? "primary" : "outline"}
@@ -153,7 +151,7 @@ export default function MyContracts() {
       />
 
       {hasUnreviewedApartment && (
-        <div className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-gradient-to-r from-amber-50/90 to-orange-50/90 border border-amber-200/80 shadow-xs">
+        <div className="flex items-center justify-between gap-3 p-4 rounded-2xl bg-linear-to-r from-amber-50/90 to-orange-50/90 border border-amber-200/80 shadow-xs">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
               <Sparkles size={20} />
@@ -232,7 +230,7 @@ export default function MyContracts() {
       <ContractReviewModal
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
-        endedContracts={endedContracts}
+        contracts={contracts}
         myReviews={myReviews}
       />
 

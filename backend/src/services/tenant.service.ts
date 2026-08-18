@@ -36,7 +36,14 @@ const tenantSelect = {
     is_verified: true,
     created_at: true,
     _count: {
-        select: { occupants: true }
+        select: {
+            occupants: true,
+            contracts: true,
+            invoices: true,
+            reservations: true,
+            maintenance: true,
+            reviews: true
+        }
     },
     user: {
         select: {
@@ -649,6 +656,45 @@ export const deleteTenant = async (
         id,
         actor
     );
+
+    const tenantWithRelations = await transaction.tenant.findUnique({
+        where,
+        select: {
+            id: true,
+            full_name: true,
+            user_id: true,
+            _count: {
+                select: {
+                    contracts: true,
+                    invoices: true,
+                    reservations: true,
+                    maintenance: true,
+                    reviews: true,
+                    occupants: true
+                }
+            }
+        }
+    });
+
+    if (!tenantWithRelations) {
+        throw notFound();
+    }
+
+    const { contracts, invoices, reservations, maintenance, reviews } = tenantWithRelations._count;
+    if (contracts > 0 || invoices > 0 || reservations > 0 || maintenance > 0 || reviews > 0) {
+        throw new AppError(
+            400,
+            "TENANT_HAS_RELATED_DATA",
+            `Không thể xóa người thuê "${tenantWithRelations.full_name}" vì đã phát sinh dữ liệu liên quan.`
+        );
+    }
+
+    if (tenantWithRelations._count.occupants > 0) {
+        await transaction.occupant.deleteMany({
+            where: { tenant_id: id }
+        });
+    }
+
     const tenant = await transaction.tenant.delete({
         where,
         select: { user_id: true }

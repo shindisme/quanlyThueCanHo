@@ -129,9 +129,9 @@ export function DatePicker({
       const rect = containerRef.current.getBoundingClientRect();
       const popoverHeight = showTime ? 360 : 310;
       const spaceBelow = window.innerHeight - rect.bottom;
-      let top = rect.bottom + window.scrollY;
+      let top = rect.bottom + 4 + window.scrollY;
       if (spaceBelow < popoverHeight && rect.top > popoverHeight) {
-        top = rect.top - popoverHeight + window.scrollY;
+        top = Math.max(10, rect.top - popoverHeight - 4 + window.scrollY);
       }
       setPopoverCoords({
         top,
@@ -143,11 +143,11 @@ export function DatePicker({
   useEffect(() => {
     if (isOpen) {
       updatePopoverPosition();
-      window.addEventListener("scroll", updatePopoverPosition);
+      window.addEventListener("scroll", updatePopoverPosition, true);
       window.addEventListener("resize", updatePopoverPosition);
     }
     return () => {
-      window.removeEventListener("scroll", updatePopoverPosition);
+      window.removeEventListener("scroll", updatePopoverPosition, true);
       window.removeEventListener("resize", updatePopoverPosition);
     };
   }, [isOpen, updatePopoverPosition]);
@@ -363,8 +363,9 @@ export function DatePicker({
             position: "absolute",
             top: `${popoverCoords.top}px`,
             left: `${popoverCoords.left}px`,
+            zIndex: 99999,
           }}
-          className="z-9999 bg-white border border-gray-200 rounded-xl shadow-xl flex font-sans overflow-visible"
+          className="z-99999 bg-white border border-gray-200 rounded-xl shadow-2xl flex font-sans overflow-visible"
         >
           {/* Day Grid Panel */}
           <div className="p-3 w-65 flex flex-col justify-between">

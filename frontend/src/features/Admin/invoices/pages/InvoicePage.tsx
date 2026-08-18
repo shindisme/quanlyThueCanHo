@@ -1,4 +1,4 @@
-import { ClipboardList, ExternalLink } from "lucide-react";
+import { ClipboardList, ExternalLink, Plus } from "lucide-react";
 import PageHeader from "../../../../components/layout/PageHeader";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Combobox from "../../../../components/ui/Combobox";
@@ -114,27 +114,33 @@ export default function InvoicePage() {
         subtitle="Theo dõi công nợ, tính tiền dịch vụ hằng tháng và kiểm soát trạng thái thanh toán"
         count={rawInvoicesCount}
         actions={
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
-            <div className="w-full sm:w-72 lg:w-80">
-              <SearchInput
-                value={search}
-                onChange={setSearch}
-                placeholder="Tìm theo mã HD, số phòng, tên người thuê..."
-                className="w-full"
-              />
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {canManageDeposits && (
+          <div className="flex flex-col gap-2.5 w-full sm:w-auto items-stretch sm:items-end">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Tìm theo mã HD, số phòng, tên người thuê..."
+              className="w-full sm:w-80"
+            />
+            {canManageDeposits && (
+              <div className="flex flex-wrap items-center justify-end gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => depositModal.openModal()}
-                  className="rounded-xl justify-center shrink-0 shadow-md font-semibold text-xs sm:text-sm px-3.5 whitespace-nowrap"
+                  className="h-9 rounded-xl justify-center shadow-xs font-semibold text-xs sm:text-sm px-3.5 whitespace-nowrap"
                 >
                   <span>Lập hóa đơn cọc</span>
                 </Button>
-              )}
-            </div>
+                <Button
+                  type="button"
+                  onClick={generateModal.onOpen}
+                  className="h-9 rounded-xl justify-center shadow-xs font-semibold text-xs sm:text-sm px-3.5 whitespace-nowrap"
+                >
+                  <Plus size={15} className="mr-1" />
+                  <span>Tạo hóa đơn hàng tháng</span>
+                </Button>
+              </div>
+            )}
           </div>
         }
       />

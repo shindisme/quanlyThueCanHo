@@ -111,7 +111,7 @@ export default function PaymentList({
       sortable: false,
       render: (payment) => {
         const config = PAYMENT_STATUS_CONFIG[payment.status];
-        return <Badge variant={config.badge}>{config.label}</Badge>;
+        return <Badge style={{ fontSize: '11px' }} variant={config.badge}>{config.label}</Badge>;
       },
     },
     {

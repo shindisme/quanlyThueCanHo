@@ -10,7 +10,8 @@ import type { MyReviewData, RentalContract } from "../../../../types";
 interface ContractReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  endedContracts: RentalContract[];
+  contracts?: RentalContract[];
+  endedContracts?: RentalContract[];
   myReviews: MyReviewData[];
   initialApartmentId?: number | null;
 }
@@ -26,10 +27,13 @@ const RATING_LABELS: Record<number, string> = {
 export default function ContractReviewModal({
   isOpen,
   onClose,
-  endedContracts,
+  contracts = [],
+  endedContracts = [],
   myReviews,
   initialApartmentId,
 }: ContractReviewModalProps) {
+  const allContracts = contracts.length > 0 ? contracts : endedContracts;
+
   const endedApartments = useMemo(() => {
     const map = new Map<number, {
       apartmentId: number;
@@ -39,7 +43,7 @@ export default function ContractReviewModal({
       address?: string;
     }>();
 
-    endedContracts.forEach((c) => {
+    allContracts.forEach((c) => {
       if (c.apartment_id && !map.has(c.apartment_id)) {
         map.set(c.apartment_id, {
           apartmentId: c.apartment_id,
@@ -51,8 +55,20 @@ export default function ContractReviewModal({
       }
     });
 
+    myReviews.forEach((r) => {
+      if (r.apartment_id && !map.has(r.apartment_id)) {
+        map.set(r.apartment_id, {
+          apartmentId: r.apartment_id,
+          roomNumber: r.apartment?.room_number || `P.${r.apartment_id}`,
+          floor: r.apartment?.floor || 1,
+          branchName: r.apartment?.building?.branch_name || "Tòa nhà",
+          address: r.apartment?.building?.address,
+        });
+      }
+    });
+
     return Array.from(map.values());
-  }, [endedContracts]);
+  }, [allContracts, myReviews]);
 
   const [selectedApartmentId, setSelectedApartmentId] = useState<number | null>(null);
   const [rating, setRating] = useState<number>(5);

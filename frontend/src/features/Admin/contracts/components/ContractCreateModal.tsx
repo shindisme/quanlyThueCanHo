@@ -170,7 +170,7 @@ export default function ContractCreateModal({
               options={formApartments.map((a) => ({ value: String(a.id), label: `P.${a.room_number} (${a.area}m²)` }))}
               value={apartmentIdValue ? String(apartmentIdValue) : ""}
               onChange={(val) => setValue("apartment_id", val ? Number(val) : undefined)}
-              disabled={isApartmentLocked || !floorValue || loadingApartments}
+              disabled={isApartmentLocked || (floorValue === undefined && floorValue !== 0) || loadingApartments}
               placeholder={loadingApartments ? "Đang tải căn hộ..." : "Chọn căn hộ"}
               searchPlaceholder="Tìm căn hộ..."
               triggerClassName="rounded-md"

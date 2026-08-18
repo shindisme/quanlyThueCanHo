@@ -1,6 +1,7 @@
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
+import CurrencyInput from "../../../../components/ui/CurrencyInput";
 import LoadingSpinner from "../../../../components/ui/LoadingSpinner";
 import ConfirmDialog from "../../../../components/ui/ConfirmDialog";
 import type { ContractTermination, RentalContract } from "../../../../types";
@@ -402,12 +403,9 @@ export default function CheckoutModal({
                                                         placeholder="Tên cơ sở vật chất"
                                                         disabled={isProcessing}
                                                     />
-                                                    <Input
-                                                        type="number"
-                                                        min={0}
-                                                        value={item.amount || ""}
-                                                        onChange={(e) => setDamageAmount(index, e.target.value)}
-                                                        placeholder="Số tiền đền bù"
+                                                    <CurrencyInput
+                                                        value={item.amount || 0}
+                                                        onChange={(val) => setDamageAmount(index, val)}
                                                         disabled={isProcessing}
                                                     />
                                                     <button

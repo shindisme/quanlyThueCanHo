@@ -109,21 +109,24 @@ export function useContractCreate({
   // Danh sách tầng thuộc tòa nhà
   const formFloors = useMemo(() => {
     const apts = buildingIdValue ? buildingApartments : apartments;
-    const reservedApts = apts.filter((a: Apartment) => a.status === "RESERVED");
+    const reservedApts = apts.filter((a: Apartment) => a.status === "RESERVED" || a.id === initialApartmentId);
     const targetApts = reservedApts.length > 0 ? reservedApts : apts;
     return Array.from(new Set(targetApts.map((a: Apartment) => a.floor))).sort(
       (a: number, b: number) => a - b
     );
-  }, [buildingApartments, apartments, buildingIdValue]);
+  }, [buildingApartments, apartments, buildingIdValue, initialApartmentId]);
 
   // Danh sách căn hộ đã đặt cọc theo tầng
   const formApartments = useMemo(() => {
     const apts = buildingIdValue ? buildingApartments : apartments;
-    if (!floorValue && floorValue !== 0) return apts.filter((a: Apartment) => a.status === "RESERVED");
-    return apts.filter(
-      (a: Apartment) => Number(a.floor) === Number(floorValue) && a.status === "RESERVED"
+    const reservedApts = apts.filter((a: Apartment) => a.status === "RESERVED" || a.id === initialApartmentId);
+    if (floorValue === undefined || floorValue === null) {
+      return reservedApts;
+    }
+    return reservedApts.filter(
+      (a: Apartment) => Number(a.floor) === Number(floorValue)
     );
-  }, [buildingApartments, apartments, buildingIdValue, floorValue]);
+  }, [buildingApartments, apartments, buildingIdValue, floorValue, initialApartmentId]);
 
   // Số người ở tối đa tính theo căn hộ được chọn
   const maxOccupants = useMemo(() => {

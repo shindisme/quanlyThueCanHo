@@ -30,7 +30,14 @@ export interface Tenant {
   invoices?: Invoice[];
   maintenance_requests?: MaintenanceRequest[];
   occupants?: TenantOccupant[];
-  _count?: { occupants: number };
+  _count?: {
+    occupants?: number;
+    contracts?: number;
+    invoices?: number;
+    reservations?: number;
+    maintenance?: number;
+    reviews?: number;
+  };
 }
 
 export interface Occupant {
