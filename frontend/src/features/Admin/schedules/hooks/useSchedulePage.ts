@@ -112,11 +112,14 @@ export function useSchedulePage() {
   const absentMutation = useMarkAbsentSchedule();
 
   function handleConfirm(id: number) {
+    const toastId = toast.loading("Đang xác nhận lịch hẹn...");
     confirmMutation.mutate(id, {
       onSuccess: () => {
+        toast.dismiss(toastId);
         toast.success("Đã xác nhận lịch xem phòng");
       },
       onError: (error: unknown) => {
+        toast.dismiss(toastId);
         toast.error(getApiErrorMessage(error, "Xác nhận thất bại"));
       },
     });

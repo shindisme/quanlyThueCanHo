@@ -10,7 +10,6 @@ export const broadcastNotificationSchema = z
     content: z
       .string()
       .trim()
-      .min(10, "Nội dung thông báo phải có ít nhất 10 ký tự")
       .max(2000, "Nội dung không được vượt quá 2000 ký tự"),
     type: z.enum(["GENERAL", "INVOICE", "MAINTENANCE", "SYSTEM"]).default("GENERAL"),
     target_type: z.enum(["BUILDING", "APARTMENTS"]),

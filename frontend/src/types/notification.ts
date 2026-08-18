@@ -1,5 +1,24 @@
 import type { NotificationType } from "../constants/enums";
 
+export interface NotificationApartment {
+  id: number;
+  room_number: string;
+  floor: number;
+  building?: {
+    id: number;
+    branch_name: string;
+    address?: string;
+  };
+}
+
+export interface NotificationRecipient {
+  id: number;
+  username: string;
+  full_name?: string;
+  role?: string;
+  apartment?: NotificationApartment | null;
+}
+
 export interface Notification {
   id: number;
   user_id: number;
@@ -8,6 +27,20 @@ export interface Notification {
   type: NotificationType;
   is_read: boolean;
   created_at: string;
+  recipient_count?: number;
+  recipients?: NotificationRecipient[];
+  apartment?: NotificationApartment | null;
+  apartments?: NotificationApartment[];
+  building?: {
+    id: number;
+    branch_name: string;
+  } | null;
+  tenant?: {
+    id: number;
+    full_name: string;
+    phone?: string | null;
+    email?: string | null;
+  } | null;
 }
 
 export interface NotificationFilters {

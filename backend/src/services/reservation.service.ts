@@ -221,6 +221,7 @@ const reservationInclude = {
             building_id: true,
             floor: true,
             room_number: true,
+            rental_price: true,
             status: true,
             building: {
                 select: {
@@ -472,6 +473,7 @@ export const createReservationDepositService = async (
                     },
                     select: {
                         id: true,
+                        building_id: true,
                         rental_price: true,
                         status: true,
                         floor: true,
@@ -659,16 +661,19 @@ export const createReservationDepositService = async (
                             created_at: true
                         }
                     });
-                    tenant = await tx.tenant.create({
+                    const createdTenant = await tx.tenant.create({
                         data: {
                             ...tenantPayload,
-                            is_verified: false,
-                            user: {
-                                connect: { id: user.id }
-                            }
-                        },
-                        select: depositTenantSelect
+                            user_id: user.id,
+                            onboarding_building_id: apartment.building_id,
+                            is_verified: false
+                        }
                     });
+                    tenant = {
+                        ...createdTenant,
+                        contracts: [],
+                        reservations: []
+                    };
                     initialPassword = credential.initial_password;
                 } else if (existingTenantId) {
                     tenant = await tx.tenant.findFirst({

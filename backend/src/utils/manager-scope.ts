@@ -1,4 +1,4 @@
-﻿import {
+import {
     Prisma,
     Role,
     UserStatus
@@ -73,6 +73,16 @@ export const getManagerTenantScope = (actor: Actor) => {
             },
             {
                 contracts: {
+                    some: {
+                        apartment: {
+                            building_id: buildingId,
+                            building: assignmentWhere
+                        }
+                    }
+                }
+            },
+            {
+                reservations: {
                     some: {
                         apartment: {
                             building_id: buildingId,

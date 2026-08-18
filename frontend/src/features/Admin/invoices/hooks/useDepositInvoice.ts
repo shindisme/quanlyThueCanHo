@@ -174,32 +174,17 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
 
   const eligibleTenants = useMemo(() => {
     return tenants.filter((tenant) => {
-      // Chưa có căn hộ
+      // Chưa có hợp đồng đang thuê
       const hasActiveContract = tenant.contracts?.some((c) => c.status === "ACTIVE");
       if (hasActiveContract) return false;
 
-      // Phải là khách từng thuê
-      const hasPreviousContract =
-        (tenant.contracts && tenant.contracts.length > 0) ||
-        (tenant._count?.contracts && tenant._count.contracts > 0) ||
-        Boolean(tenant.onboarding_building_id);
-      if (!hasPreviousContract) return false;
-
-      // Đã từng thuê tại chi nhánh
-      if (targetBuildingId) {
-        const rentedInThisBuilding =
-          tenant.contracts?.some(
-            (c) =>
-              c.apartment?.building_id === targetBuildingId ||
-              c.apartment?.building?.id === targetBuildingId
-          ) || tenant.onboarding_building_id === targetBuildingId;
-
-        if (!rentedInThisBuilding) return false;
-      }
+      // Chưa có phiếu cọc đang hoạt động
+      const hasActiveReservation = (tenant as any).reservations?.some((r: any) => r.status === "ACTIVE");
+      if (hasActiveReservation) return false;
 
       return true;
     });
-  }, [tenants, targetBuildingId]);
+  }, [tenants]);
 
   const selectedTenant = useMemo(() => {
     return tenants.find((tenant) => String(tenant.id) === form.tenant_id) || null;
@@ -293,7 +278,9 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all }),
         queryClient.invalidateQueries({ queryKey: availableApartmentKeys.all }),
-        queryClient.invalidateQueries({ queryKey: ["reservations"] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.reservations.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tenants.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.apartments.all }),
       ]);
       if (onSuccessCallback) onSuccessCallback();
     },

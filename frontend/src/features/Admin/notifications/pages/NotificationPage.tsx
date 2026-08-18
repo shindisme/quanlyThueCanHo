@@ -93,7 +93,7 @@ export default function NotificationPage() {
           <span className="text-sm text-gray-400 mt-2">Đang tải hộp thư thông báo...</span>
         </div>
       ) : notifications.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 bg-white border border-gray-100 shadow-sm rounded-2xl">
+        <div className="text-center py-16 text-gray-500 bg-white border border-gray-100 shadow-sm ">
           <Mail size={48} className="mx-auto mb-3 text-gray-300" />
           <p className="font-medium">Hộp thư thông báo trống</p>
         </div>

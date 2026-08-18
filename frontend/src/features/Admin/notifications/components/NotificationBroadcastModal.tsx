@@ -171,11 +171,11 @@ export default function NotificationBroadcastModal({
                       key={apt.id}
                       onClick={() => handleToggleApartment(apt.id)}
                       className={`py-1.5 text-center font-bold text-xs select-none border transition-all cursor-pointer rounded-lg ${isSelected
-                          ? "bg-primary-600 text-white border-primary-600 shadow-sm"
-                          : "bg-white text-gray-700 border-gray-200 hover:bg-gray-100"
+                        ? "bg-primary-600 text-white border-primary-600 shadow-sm"
+                        : "bg-white text-gray-700 border-gray-200 hover:bg-gray-100"
                         }`}
                     >
-                      P.{apt.room_number}
+                      P.{apt.floor}{apt.room_number}
                     </button>
                   );
                 })}

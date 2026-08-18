@@ -440,9 +440,6 @@ export default function ApartmentDetailPage() {
                               <Eye size={13} className="mr-1" /> Xem chi tiết người cọc
                             </Button>
                           )}
-                          <span className="text-xs text-amber-800 italic">
-                            * Tiền cọc sẽ tự động chuyển sang tiền cọc hợp đồng khi tạo hợp đồng.
-                          </span>
                         </div>
                         <Link
                           to={role === "ADMIN" ? "/admin/contracts" : "/manager/contracts"}
@@ -463,25 +460,11 @@ export default function ApartmentDetailPage() {
                 ) : (
                   <div className="text-center py-6">
                     <p className="text-sm text-gray-400 mb-4 font-sans">Căn hộ hiện đang trống</p>
-                    {role !== "TENANT" && (apartment.status === "AVAILABLE" || (apartment.status as string) === "RESERVED") && (
+                    {role !== "TENANT" && apartment.status === "AVAILABLE" && (
                       <div className="flex flex-wrap justify-center gap-2">
-                        {apartment.status === "AVAILABLE" && (
-                          <Button type="button" size="sm" variant="outline" onClick={() => depositModal.openModal(apartment)}>
-                            <span>Lập hóa đơn cọc</span>
-                          </Button>
-                        )}
-                        <Link
-                          to={role === "ADMIN" ? "/admin/contracts" : "/manager/contracts"}
-                          state={{
-                            openCreateModal: true,
-                            apartmentId: apartment.id,
-                            buildingId: apartment.building_id,
-                            floor: apartment.floor,
-                          }}
-                          className="inline-flex items-center gap-1.5 px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer"
-                        >
-                          <Plus size={14} /> Tạo hợp đồng thuê mới
-                        </Link>
+                        <Button type="button" size="sm" variant="primary" onClick={() => depositModal.openModal(apartment)}>
+                          <span>Lập hóa đơn cọc</span>
+                        </Button>
                       </div>
                     )}
                   </div>

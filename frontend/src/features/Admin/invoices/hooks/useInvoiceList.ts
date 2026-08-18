@@ -268,7 +268,12 @@ export function useInvoiceList() {
 
   const handleConfirmCashPaymentClick = useCallback((invoice: Invoice) => {
     if (invoice.status === "PAID") return;
-    handleConfirmCashPayment.mutate(invoice);
+    const toastId = toast.loading(
+      isRefundInvoice(invoice) ? "Đang xác nhận hoàn cọc..." : "Đang xác nhận thanh toán tiền mặt..."
+    );
+    handleConfirmCashPayment.mutate(invoice, {
+      onSettled: () => toast.dismiss(toastId),
+    });
   }, [handleConfirmCashPayment]);
 
   return {

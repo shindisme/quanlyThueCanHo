@@ -1,5 +1,7 @@
 import {
+    ContractStatus,
     Prisma,
+    ReservationStatus,
     Role
 } from "@prisma/client";
 import { prisma } from "../config/database.js";
@@ -31,7 +33,66 @@ const notificationInclude = {
                     id: true,
                     full_name: true,
                     phone: true,
-                    email: true
+                    email: true,
+                    contracts: {
+                        where: {
+                            status: ContractStatus.ACTIVE
+                        },
+                        select: {
+                            id: true,
+                            apartment: {
+                                select: {
+                                    id: true,
+                                    room_number: true,
+                                    floor: true,
+                                    building: {
+                                        select: {
+                                            id: true,
+                                            branch_name: true,
+                                            address: true
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        take: 1
+                    },
+                    reservations: {
+                        where: {
+                            status: ReservationStatus.ACTIVE
+                        },
+                        select: {
+                            id: true,
+                            apartment: {
+                                select: {
+                                    id: true,
+                                    room_number: true,
+                                    floor: true,
+                                    building: {
+                                        select: {
+                                            id: true,
+                                            branch_name: true,
+                                            address: true
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        take: 1
+                    }
+                }
+            },
+            staff: {
+                select: {
+                    id: true,
+                    full_name: true,
+                    building: {
+                        select: {
+                            id: true,
+                            branch_name: true,
+                            address: true
+                        }
+                    }
                 }
             }
         }
@@ -307,8 +368,8 @@ export const getNotificationsService = async (
     filters: NotificationFilters,
     actor: NotificationActor
 ) => {
-    const page = filters.page;
-    const limit = filters.limit;
+    const page = filters.page || 1;
+    const limit = filters.limit || 20;
     const scope = getNotificationScope(actor);
     const andFilters: Prisma.NotificationWhereInput[] =
         actor.role === Role.ADMIN ? [] : [scope];
@@ -393,15 +454,98 @@ export const getNotificationsService = async (
         andFilters.length === 0
             ? {}
             : { AND: andFilters };
-    const unreadWhere: Prisma.NotificationWhereInput =
-        actor.role === Role.ADMIN
-            ? { is_read: false }
-            : {
-                AND: [
-                    scope,
-                    { is_read: false }
-                ]
+
+    if (actor.role === Role.ADMIN || actor.role === Role.MANAGER) {
+        const rawNotifications = await prisma.notification.findMany({
+            where,
+            orderBy: { created_at: "desc" },
+            include: notificationInclude
+        });
+
+        const groups = new Map<string, typeof rawNotifications>();
+        for (const notif of rawNotifications) {
+            const timeKey = Math.floor(new Date(notif.created_at).getTime() / (60 * 1000));
+            const key = `${notif.title}:::${notif.content}:::${notif.type}:::${timeKey}`;
+            const existing = groups.get(key);
+            if (existing) {
+                existing.push(notif);
+            } else {
+                groups.set(key, [notif]);
+            }
+        }
+
+        const formattedList = Array.from(groups.values()).map((group) => {
+            const primary = group[0];
+            const isAllRead = group.every((n) => n.is_read);
+            const recipients = group.map((n) => {
+                const apt = n.user.tenant?.contracts[0]?.apartment
+                    || n.user.tenant?.reservations[0]?.apartment
+                    || null;
+                return {
+                    id: n.user.id,
+                    username: n.user.username,
+                    full_name: n.user.tenant?.full_name || n.user.staff?.full_name || n.user.username,
+                    role: n.user.role,
+                    apartment: apt
+                };
+            });
+
+            const aptMap = new Map<number, NonNullable<(typeof recipients)[0]["apartment"]>>();
+            for (const r of recipients) {
+                if (r.apartment) {
+                    aptMap.set(r.apartment.id, r.apartment);
+                }
+            }
+            const uniqueApts = Array.from(aptMap.values());
+            const primaryBuilding = uniqueApts[0]?.building
+                || group[0].user.staff?.building
+                || null;
+
+            return {
+                id: primary.id,
+                user_id: primary.user_id,
+                title: primary.title,
+                content: primary.content,
+                type: primary.type,
+                is_read: isAllRead,
+                created_at: primary.created_at,
+                recipient_count: group.length,
+                recipients,
+                apartment: uniqueApts.length === 1 ? uniqueApts[0] : null,
+                apartments: uniqueApts.length > 1 ? uniqueApts : undefined,
+                building: primaryBuilding ? { id: primaryBuilding.id, branch_name: primaryBuilding.branch_name } : null,
+                tenant: group.length === 1 && group[0].user.tenant ? {
+                    id: group[0].user.tenant.id,
+                    full_name: group[0].user.tenant.full_name,
+                    phone: group[0].user.tenant.phone,
+                    email: group[0].user.tenant.email
+                } : null
             };
+        });
+
+        const unreadCount = formattedList.filter((n) => !n.is_read).length;
+        const total = formattedList.length;
+        const skip = (page - 1) * limit;
+        const paginated = formattedList.slice(skip, skip + limit);
+
+        return {
+            data: paginated,
+            unread_count: unreadCount,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        };
+    }
+
+    const unreadWhere: Prisma.NotificationWhereInput = {
+        AND: [
+            scope,
+            { is_read: false }
+        ]
+    };
     const skip = (page - 1) * limit;
     const [notifications, total, unreadCount] =
         await prisma.$transaction([
@@ -418,8 +562,25 @@ export const getNotificationsService = async (
             })
         ]);
 
+    const formattedData = notifications.map((notif) => {
+        const apt = notif.user.tenant?.contracts[0]?.apartment
+            || notif.user.tenant?.reservations[0]?.apartment
+            || null;
+        return {
+            id: notif.id,
+            user_id: notif.user_id,
+            title: notif.title,
+            content: notif.content,
+            type: notif.type,
+            is_read: notif.is_read,
+            created_at: notif.created_at,
+            apartment: apt,
+            building: apt?.building ? { id: apt.building.id, branch_name: apt.building.branch_name } : null
+        };
+    });
+
     return {
-        data: notifications,
+        data: formattedData,
         unread_count: unreadCount,
         pagination: {
             total,
@@ -497,11 +658,25 @@ export const sendBuildingNotificationService = async (
         orderBy: { id: "asc" }
     });
 
+    let finalContent = input.content;
+    if (input.apartment_ids && input.apartment_ids.length > 0) {
+        const targetApartments = await transaction.apartment.findMany({
+            where: { id: { in: input.apartment_ids } },
+            select: { room_number: true, floor: true }
+        });
+        if (targetApartments.length > 0) {
+            const aptListStr = targetApartments.map((a) => `P.${a.room_number}`).join(", ");
+            if (!finalContent.startsWith("[Căn hộ:")) {
+                finalContent = `[Căn hộ: ${aptListStr}]\n${finalContent}`;
+            }
+        }
+    }
+
     for (const recipient of recipients) {
         await transaction.notification.create({
             data: {
                 title: input.title,
-                content: input.content,
+                content: finalContent,
                 type: input.type,
                 user: {
                     connect: {
@@ -690,12 +865,37 @@ export const markNotificationReadService = async (
     isRead = true
 ) => {
     const scope = getNotificationScope(actor);
-
-    return prisma.notification.update({
+    const target = await prisma.notification.findFirst({
         where: {
             id: notificationId,
-            AND: [scope]
-        },
+            ...(actor.role === Role.ADMIN ? {} : { AND: [scope] })
+        }
+    });
+
+    if (!target) {
+        throw notFound();
+    }
+
+    if (actor.role === Role.ADMIN || actor.role === Role.MANAGER) {
+        const timeStart = new Date(new Date(target.created_at).getTime() - 120000);
+        const timeEnd = new Date(new Date(target.created_at).getTime() + 120000);
+        await prisma.notification.updateMany({
+            where: {
+                title: target.title,
+                content: target.content,
+                type: target.type,
+                created_at: {
+                    gte: timeStart,
+                    lte: timeEnd
+                }
+            },
+            data: { is_read: isRead }
+        });
+        return { ...target, is_read: isRead };
+    }
+
+    return prisma.notification.update({
+        where: { id: notificationId },
         data: { is_read: isRead },
         include: notificationInclude
     });
@@ -725,10 +925,30 @@ export const deleteNotificationService = async (
     actor: NotificationActor
 ) => {
     const scope = getNotificationScope(actor);
+    const target = await prisma.notification.findFirst({
+        where: {
+            id: notificationId,
+            ...(actor.role === Role.ADMIN ? {} : { AND: [scope] })
+        }
+    });
 
-    if (actor.role === Role.ADMIN) {
-        await prisma.notification.delete({
-            where: { id: notificationId }
+    if (!target) {
+        throw notFound();
+    }
+
+    if (actor.role === Role.ADMIN || actor.role === Role.MANAGER) {
+        const timeStart = new Date(new Date(target.created_at).getTime() - 120000);
+        const timeEnd = new Date(new Date(target.created_at).getTime() + 120000);
+        await prisma.notification.deleteMany({
+            where: {
+                title: target.title,
+                content: target.content,
+                type: target.type,
+                created_at: {
+                    gte: timeStart,
+                    lte: timeEnd
+                }
+            }
         });
         return;
     }

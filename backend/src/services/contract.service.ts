@@ -24,8 +24,7 @@ import {
     isPositiveDecimal12_2Amount
 } from "../utils/money.js";
 import {
-    getCurrentManagerAssignment,
-    getManagerTenantScope
+    getCurrentManagerAssignment
 } from "../utils/manager-scope.js";
 import {
     buildFirstRentalInvoiceItems,
@@ -459,10 +458,7 @@ export const createContractService = async (
                     : {})
             };
             const tenantScope: Prisma.TenantWhereInput = {
-                id: input.tenant_id,
-                ...(managerAssignment
-                    ? getManagerTenantScope(actor)
-                    : {})
+                id: input.tenant_id
             };
             const [apartment, tenant] = await Promise.all([
                 transaction.apartment.findFirst({
@@ -558,9 +554,6 @@ export const createContractService = async (
                     : {})
             };
             const tenantConnect: Prisma.TenantWhereUniqueInput = {
-                ...(managerAssignment
-                    ? getManagerTenantScope(actor)
-                    : {}),
                 id: tenant.id
             };
             const contract = await transaction.rentalContract.create({

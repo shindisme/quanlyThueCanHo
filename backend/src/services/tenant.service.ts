@@ -197,17 +197,12 @@ const firstAvailableTenantUsername = (
 
 
 
-const getTenantWhere = (id: number, actor: Actor) => actor.role === Role.MANAGER
+const getTenantWhere = (id: number, actor: Actor) => actor.role === Role.TENANT
     ? {
-        ...getManagerTenantScope(actor),
-        id
+        id,
+        user_id: actor.userId
     }
-    : actor.role === Role.TENANT
-        ? {
-            id,
-            user_id: actor.userId
-        }
-        : { id };
+    : { id };
 
 const getMyOccupantWhere = (id: number, tenantId: number) => ({
     id,
@@ -367,10 +362,6 @@ export const getTenants = async (
 ) => {
     const filters: Prisma.TenantWhereInput[] = [];
 
-    if (actor.role === Role.MANAGER) {
-        filters.push(getManagerTenantScope(actor));
-    }
-
     if (search) {
         const rawSearch = search.trim();
         const cleanRoom = rawSearch.replace(/^(phòng|phong|p\.|p\s*)/i, "").trim();
@@ -486,14 +477,6 @@ export const getTenantById = async (
             where: {
                 id,
                 user_id: actor.userId
-            }
-        });
-    } else if (actor.role === Role.MANAGER) {
-        tenant = await prisma.tenant.findFirst({
-            ...query,
-            where: {
-                id,
-                ...getManagerTenantScope(actor)
             }
         });
     } else {

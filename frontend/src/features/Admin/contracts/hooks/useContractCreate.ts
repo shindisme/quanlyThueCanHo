@@ -71,12 +71,30 @@ export function useContractCreate({
   const monthlyRentValue = formValues.monthly_rent;
 
   // Lấy danh sách phiếu đặt cọc đang hoạt động
-  const { data: activeReservations = [] } = useQuery({
+  const { data: activeReservations = [], isLoading: loadingReservations } = useQuery({
     queryKey: queryKeys.reservations.list({ status: "ACTIVE" }),
     queryFn: () => reservationService.getReservations({ status: "ACTIVE" }),
     select: (res) => res.data || [],
     enabled: isOpen,
   });
+
+  // Danh sách người thuê đang có cọc giữ chỗ
+  const depositingTenants = useMemo(() => {
+    const list: Array<{ id: number; full_name: string; citizen_id?: string | null; phone?: string | null }> = [];
+    const seen = new Set<number>();
+    for (const r of activeReservations) {
+      if (r.tenant && !seen.has(r.tenant.id)) {
+        seen.add(r.tenant.id);
+        list.push({
+          id: r.tenant.id,
+          full_name: r.tenant.full_name,
+          citizen_id: r.tenant.citizen_id,
+          phone: r.tenant.phone,
+        });
+      }
+    }
+    return list;
+  }, [activeReservations]);
 
   // Lấy danh sách căn hộ theo chi nhánh được chọn
   const { data: buildingApartments = [], isLoading: loadingApartments } = useQuery({
@@ -106,27 +124,43 @@ export function useContractCreate({
     );
   }, [activeReservations, apartmentIdValue]);
 
-  // Danh sách tầng thuộc tòa nhà
+
+  const reservedApartmentIds = useMemo(() => {
+    return new Set(activeReservations.map((r) => r.apartment_id));
+  }, [activeReservations]);
+
+  // Danh sách tầng thuộc tòa nhà đã cọc
   const formFloors = useMemo(() => {
     const apts = buildingIdValue ? buildingApartments : apartments;
-    const reservedApts = apts.filter((a: Apartment) => a.status === "RESERVED" || a.id === initialApartmentId);
-    const targetApts = reservedApts.length > 0 ? reservedApts : apts;
+    const reservedApts = apts.filter((a: Apartment) =>
+      reservedApartmentIds.has(a.id) || a.status === "RESERVED" || a.id === initialApartmentId
+    );
+    const targetApts = reservedApts.length > 0 ? reservedApts : [];
     return Array.from(new Set(targetApts.map((a: Apartment) => a.floor))).sort(
       (a: number, b: number) => a - b
     );
-  }, [buildingApartments, apartments, buildingIdValue, initialApartmentId]);
+  }, [buildingApartments, apartments, buildingIdValue, reservedApartmentIds, initialApartmentId]);
 
   // Danh sách căn hộ đã đặt cọc theo tầng
   const formApartments = useMemo(() => {
     const apts = buildingIdValue ? buildingApartments : apartments;
-    const reservedApts = apts.filter((a: Apartment) => a.status === "RESERVED" || a.id === initialApartmentId);
+    let reservedApts = apts.filter((a: Apartment) =>
+      reservedApartmentIds.has(a.id) || a.status === "RESERVED" || a.id === initialApartmentId
+    );
+    if (tenantIdValue) {
+      const tenantRes = activeReservations.filter((r) => r.tenant_id === tenantIdValue);
+      const tenantAptIds = new Set(tenantRes.map((r) => r.apartment_id));
+      if (tenantAptIds.size > 0) {
+        reservedApts = reservedApts.filter((a) => tenantAptIds.has(a.id));
+      }
+    }
     if (floorValue === undefined || floorValue === null) {
       return reservedApts;
     }
     return reservedApts.filter(
       (a: Apartment) => Number(a.floor) === Number(floorValue)
     );
-  }, [buildingApartments, apartments, buildingIdValue, floorValue, initialApartmentId]);
+  }, [buildingApartments, apartments, buildingIdValue, floorValue, reservedApartmentIds, initialApartmentId, tenantIdValue, activeReservations]);
 
   // Số người ở tối đa tính theo căn hộ được chọn
   const maxOccupants = useMemo(() => {
@@ -137,30 +171,96 @@ export function useContractCreate({
   // Reset form khi mở modal
   useEffect(() => {
     if (isOpen) {
+      let resolvedBuildingId = role === "MANAGER" ? managerBuildingId : initialBuildingId;
+      let resolvedFloor = initialFloor;
+      let resolvedApartmentId = initialApartmentId;
+      let resolvedRent = 0;
+
+      if (initialTenantId) {
+        const matchRes = activeReservations.find((r) => r.tenant_id === initialTenantId);
+        if (matchRes) {
+          resolvedApartmentId = matchRes.apartment_id;
+          if (matchRes.apartment) {
+            resolvedBuildingId = matchRes.apartment.building_id;
+            resolvedFloor = matchRes.apartment.floor;
+          }
+          const apt = buildingApartments.find((a: Apartment) => a.id === matchRes.apartment_id) || apartments.find((a: Apartment) => a.id === matchRes.apartment_id);
+          if (apt?.rental_price) {
+            resolvedRent = Number(apt.rental_price);
+          } else if (matchRes.apartment?.rental_price) {
+            resolvedRent = Number(matchRes.apartment.rental_price);
+          }
+        }
+      } else if (initialApartmentId) {
+        const apt = buildingApartments.find((a: Apartment) => a.id === initialApartmentId) || apartments.find((a: Apartment) => a.id === initialApartmentId);
+        if (apt?.rental_price) {
+          resolvedRent = Number(apt.rental_price);
+        }
+      }
+
       reset({
         ...DEFAULT_CONTRACT_FORM,
         tenant_id: initialTenantId || null,
-        building_id: role === "MANAGER" ? managerBuildingId : initialBuildingId,
-        floor: initialFloor,
-        apartment_id: initialApartmentId,
+        building_id: resolvedBuildingId,
+        floor: resolvedFloor,
+        apartment_id: resolvedApartmentId,
+        monthly_rent: resolvedRent,
       });
     }
-  }, [isOpen, initialTenantId, initialBuildingId, initialApartmentId, initialFloor, role, managerBuildingId, reset]);
+  }, [isOpen, initialTenantId, initialBuildingId, initialApartmentId, initialFloor, role, managerBuildingId, activeReservations, buildingApartments, apartments, reset]);
+
+  // Xử lý khi chọn người thuê
+  const handleSelectTenant = (val: string) => {
+    const tId = val ? Number(val) : null;
+    setValue("tenant_id", tId);
+    if (!tId) return;
+
+    const matchingReservation = activeReservations.find((r) => r.tenant_id === tId);
+    if (matchingReservation) {
+      if (matchingReservation.apartment) {
+        setValue("building_id", matchingReservation.apartment.building_id);
+        setValue("floor", matchingReservation.apartment.floor);
+      }
+      setValue("apartment_id", matchingReservation.apartment_id);
+      const apt = buildingApartments.find((a: Apartment) => a.id === matchingReservation.apartment_id) || apartments.find((a: Apartment) => a.id === matchingReservation.apartment_id);
+      if (apt?.rental_price) {
+        setValue("monthly_rent", Number(apt.rental_price));
+      } else if (matchingReservation.apartment?.rental_price) {
+        setValue("monthly_rent", Number(matchingReservation.apartment.rental_price));
+      }
+    }
+  };
+
+  // Xử lý khi chọn căn hộ
+  const handleSelectApartment = (val: string) => {
+    const aptId = val ? Number(val) : undefined;
+    setValue("apartment_id", aptId);
+    if (!aptId) return;
+
+    const matchingReservation = activeReservations.find((r) => r.apartment_id === aptId);
+    if (matchingReservation?.tenant_id) {
+      setValue("tenant_id", matchingReservation.tenant_id);
+    }
+    const apt = buildingApartments.find((a: Apartment) => a.id === aptId) || apartments.find((a: Apartment) => a.id === aptId);
+    if (apt?.rental_price) {
+      setValue("monthly_rent", Number(apt.rental_price));
+    }
+  };
 
   useEffect(() => {
-    if (activeReservationForApartment?.tenant_id && !initialTenantId) {
+    if (activeReservationForApartment?.tenant_id && !tenantIdValue) {
       setValue("tenant_id", activeReservationForApartment.tenant_id);
     }
-  }, [activeReservationForApartment, initialTenantId, setValue]);
+  }, [activeReservationForApartment, tenantIdValue, setValue]);
 
   useEffect(() => {
-    if (selectedApartment?.rental_price) {
+    if (selectedApartment?.rental_price && !monthlyRentValue) {
       setValue("monthly_rent", Number(selectedApartment.rental_price));
     }
-  }, [selectedApartment, setValue]);
+  }, [selectedApartment, monthlyRentValue, setValue]);
 
   const isTenantLocked = Boolean(
-    initialTenantId || activeReservationForApartment?.tenant_id
+    initialTenantId || (activeReservationForApartment?.tenant_id && initialApartmentId)
   );
   const isBuildingLocked = Boolean(
     role === "MANAGER" || initialBuildingId
@@ -215,10 +315,14 @@ export function useContractCreate({
   return {
     register,
     handleFormSubmit,
+    handleSelectTenant,
+    handleSelectApartment,
     setValue,
     errors,
     saving: createMutation.isPending,
     loadingApartments,
+    loadingReservations,
+    depositingTenants,
     tenantIdValue,
     buildingIdValue,
     floorValue,

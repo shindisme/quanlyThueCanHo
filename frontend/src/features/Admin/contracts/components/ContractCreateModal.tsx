@@ -1,3 +1,4 @@
+import { AlertCircle } from "lucide-react";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
@@ -38,7 +39,7 @@ export default function ContractCreateModal({
   onSuccess,
   buildings,
   apartments,
-  tenants,
+  tenants: _tenants,
   role,
   managerBuildingId,
   initialData,
@@ -55,10 +56,14 @@ export default function ContractCreateModal({
   const {
     register,
     handleFormSubmit,
+    handleSelectTenant,
+    handleSelectApartment,
     setValue,
     errors,
     saving,
     loadingApartments,
+    loadingReservations,
+    depositingTenants,
     tenantIdValue,
     buildingIdValue,
     floorValue,
@@ -97,22 +102,45 @@ export default function ContractCreateModal({
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={saving}>Hủy</Button>
-          <Button onClick={handleFormSubmit} isLoading={saving}>Tạo hợp đồng</Button>
+          <Button
+            onClick={handleFormSubmit}
+            isLoading={saving}
+            disabled={saving || (depositingTenants.length === 0 && !isTenantLocked)}
+          >
+            Tạo hợp đồng
+          </Button>
         </>
       }
     >
       <div className="space-y-4 font-sans text-sm">
+        {depositingTenants.length === 0 && !loadingReservations && !isTenantLocked && (
+          <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-xs flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+            <div>
+              <span className="font-semibold block mb-0.5">Không có khách thuê nào đang đặt cọc</span>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-12 gap-4 sm:gap-6">
           <div className="col-span-12">
             <Combobox
-              label="Người thuê *"
-              options={tenants.map((t) => ({ value: String(t.id), label: `${t.full_name} (${t.citizen_id})` }))}
+              label="Người thuê (Đang đặt cọc) *"
+              options={depositingTenants.map((t) => ({
+                value: String(t.id),
+                label: `${t.full_name} (${t.citizen_id || t.phone || `Mã: ${t.id}`})`,
+              }))}
               value={tenantIdValue ? String(tenantIdValue) : ""}
-              onChange={(val) => setValue("tenant_id", val ? Number(val) : null)}
-              disabled={isTenantLocked}
-              placeholder="Chọn người thuê"
-              searchPlaceholder="Tìm kiếm người thuê..."
+              onChange={handleSelectTenant}
+              disabled={isTenantLocked || (depositingTenants.length === 0 && !isTenantLocked)}
+              placeholder={
+                loadingReservations
+                  ? "Đang tải danh sách..."
+                  : depositingTenants.length === 0
+                    ? "Không có khách cọc"
+                    : "Chọn người thuê đang cọc"
+              }
+              searchPlaceholder="Tìm kiếm người thuê đang cọc..."
               triggerClassName="rounded-md"
               error={errors.tenant_id?.message}
             />
@@ -159,7 +187,7 @@ export default function ContractCreateModal({
               label="Căn hộ *"
               options={formApartments.map((a) => ({ value: String(a.id), label: `P.${a.room_number} (${a.area}m²)` }))}
               value={apartmentIdValue ? String(apartmentIdValue) : ""}
-              onChange={(val) => setValue("apartment_id", val ? Number(val) : undefined)}
+              onChange={handleSelectApartment}
               disabled={isApartmentLocked || (floorValue === undefined && floorValue !== 0) || loadingApartments}
               placeholder={loadingApartments ? "Đang tải căn hộ..." : "Chọn căn hộ"}
               searchPlaceholder="Tìm căn hộ..."

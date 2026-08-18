@@ -73,11 +73,7 @@ export default function TenantList({
           if (activeContract?.apartment) {
             return `${activeContract.apartment.building?.branch_name || ""} - P.${activeContract.apartment.room_number}`;
           }
-          const endedContract = t.contracts?.find((c) => c.status === "ENDED" && c.apartment);
-          if (endedContract?.apartment) {
-            return `${endedContract.apartment.building?.branch_name || ""} - P.${endedContract.apartment.room_number}`;
-          }
-          return "Chưa thuê";
+          return "";
         },
         render: (t) => {
           const activeContract = getPreferredContract(t.contracts);
@@ -95,22 +91,7 @@ export default function TenantList({
             );
           }
 
-          const endedContract = t.contracts?.find((c) => c.status === "ENDED" && c.apartment);
-          if (endedContract && endedContract.apartment) {
-            const apt = endedContract.apartment;
-            const bld = apt.building;
-            const roomNum = formatApartmentDisplay(apt.room_number, apt.floor);
-            return (
-              <div className="flex flex-col">
-                <span className="font-medium text-gray-700 text-xs">
-                  {roomNum} {bld?.branch_name ? `(${bld.branch_name})` : ""}
-                </span>
-                <span className="text-[10px] text-amber-600 font-medium">Đã từng thuê</span>
-              </div>
-            );
-          }
-
-          return <span className="text-gray-450 italic text-xs">Chưa thuê</span>;
+          return <span className="text-gray-400 italic text-xs">—</span>;
         },
       },
       {
@@ -177,7 +158,7 @@ export default function TenantList({
       <div className="grid grid-cols-1 gap-4 md:hidden font-sans">
         {paginatedTenants.map((t) => {
           const activeContract = getPreferredContract(t.contracts);
-          const apt = activeContract?.apartment;
+          const apt = activeContract?.apartment ?? null;
           const bld = apt?.building;
           return (
             <div key={t.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-3">

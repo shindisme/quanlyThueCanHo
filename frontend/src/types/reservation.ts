@@ -49,6 +49,7 @@ export interface Reservation {
     } | null;
   };
   apartment?: Pick<Apartment, "id" | "building_id" | "floor" | "room_number" | "status"> & {
+    rental_price?: number | string;
     building?: {
       id: number;
       branch_name: string;

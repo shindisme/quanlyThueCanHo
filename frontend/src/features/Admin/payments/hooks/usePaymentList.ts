@@ -142,11 +142,17 @@ export function usePaymentList() {
   });
 
   const handleApprove = (id: number) => {
-    handleUpdateStatusPayment.mutate({ id, status: "SUCCESS" });
+    const toastId = toast.loading("Đang xác nhận thanh toán tiền mặt...");
+    handleUpdateStatusPayment.mutate({ id, status: "SUCCESS" }, {
+      onSettled: () => toast.dismiss(toastId),
+    });
   };
 
   const handleReject = (id: number) => {
-    handleUpdateStatusPayment.mutate({ id, status: "FAILED" });
+    const toastId = toast.loading("Đang xử lý từ chối...");
+    handleUpdateStatusPayment.mutate({ id, status: "FAILED" }, {
+      onSettled: () => toast.dismiss(toastId),
+    });
   };
 
   return {

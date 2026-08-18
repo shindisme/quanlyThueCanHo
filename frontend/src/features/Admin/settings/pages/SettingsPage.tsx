@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Lock } from "lucide-react";
 import PageHeader from "../../../../components/layout/PageHeader";
 import Button from "../../../../components/ui/Button";
 import { toast } from "sonner";
@@ -20,14 +21,6 @@ export default function SettingsPage() {
     setFees((prev) => ({
       ...prev,
       [key]: num,
-    }));
-  };
-
-  const handleRateChange = (key: "electricityRates" | "waterRates", index: number, value: string) => {
-    const num = parseMoneyInput(value);
-    setFees((prev) => ({
-      ...prev,
-      [key]: prev[key].map((rate, rateIndex) => (rateIndex === index ? num : rate)),
     }));
   };
 
@@ -71,9 +64,12 @@ export default function SettingsPage() {
             <div className="space-y-3 sm:col-span-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm text-amber-500">Biểu giá điện lũy tiến 6 bậc</span>
-                  <span className="text-[11px] text-gray-500">Ngưỡng bậc cố định, chỉ thay đổi đơn giá</span>
+                  <span className="font-bold text-sm text-amber-600">Biểu giá điện lũy tiến 6 bậc</span>
+                  <span className="text-[11px] text-gray-500">Ngưỡng bậc cố định theo quy định nhà nước</span>
                 </div>
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200/80 px-2.5 py-0.5 rounded-full select-none">
+                  <Lock size={11} /> Mặc định cố định
+                </span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {fees.electricityRates.map((rate, index) => (
@@ -83,8 +79,9 @@ export default function SettingsPage() {
                       <input
                         type="text"
                         value={formatCurrencyInput(rate)}
-                        onChange={(e) => handleRateChange("electricityRates", index, e.target.value)}
-                        className="w-full rounded-xl border border-gray-300 p-3 pr-14 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                        disabled
+                        readOnly
+                        className="w-full rounded-xl border border-gray-200 bg-gray-100 p-3 pr-14 text-sm font-semibold text-gray-500 cursor-not-allowed select-none focus:outline-none"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">đ/kWh</span>
                     </div>
@@ -97,9 +94,12 @@ export default function SettingsPage() {
             <div className="space-y-3 sm:col-span-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-blue-600">
-                  <span className="font-bold text-sm text-blue-500">Biểu giá nước sạch sinh hoạt 3 bậc</span>
-                  <span className="text-[11px] text-gray-500">Ngưỡng bậc cố định theo số người, chỉ thay đổi đơn giá</span>
+                  <span className="font-bold text-sm text-blue-600">Biểu giá nước sạch sinh hoạt 3 bậc</span>
+                  <span className="text-[11px] text-gray-500">Ngưỡng bậc cố định theo định mức người</span>
                 </div>
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200/80 px-2.5 py-0.5 rounded-full select-none">
+                  <Lock size={11} /> Mặc định cố định
+                </span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {fees.waterRates.map((rate, index) => (
@@ -109,8 +109,9 @@ export default function SettingsPage() {
                       <input
                         type="text"
                         value={formatCurrencyInput(rate)}
-                        onChange={(e) => handleRateChange("waterRates", index, e.target.value)}
-                        className="w-full rounded-xl border border-gray-300 p-3 pr-14 text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        disabled
+                        readOnly
+                        className="w-full rounded-xl border border-gray-200 bg-gray-100 p-3 pr-14 text-sm font-semibold text-gray-500 cursor-not-allowed select-none focus:outline-none"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">đ/m³</span>
                     </div>
