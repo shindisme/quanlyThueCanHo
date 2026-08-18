@@ -393,15 +393,32 @@ export const sumBillingItems = (
     ZERO
 ));
 
+export const getFirstMonthRentRate = (startDate: Date): number => {
+    const day = startDate.getUTCDate();
+
+    if (day <= 10) {
+        return 1;
+    }
+
+    if (day <= 20) {
+        return 0.5;
+    }
+
+    return 0.3;
+};
+
 export const buildFirstRentalInvoiceItems = (input: {
     depositAmount: MoneyInput;
     monthlyRent: MoneyInput;
     area: MoneyInput;
+    startDate: Date;
 } & Pick<
     BillingFeeSettings,
     "managementFee" | "managementFeePerM2" | "serviceFee"
 >): BillingInvoiceItem[] => {
-    const rentAmount = moneyNumber(input.monthlyRent);
+    const rentAmount = moneyNumber(
+        toDecimal(input.monthlyRent).mul(getFirstMonthRentRate(input.startDate))
+    );
     const area = moneyNumber(input.area);
     const managementFee = moneyNumber(input.managementFee ?? 0);
     const managementFeePerM2 = moneyNumber(

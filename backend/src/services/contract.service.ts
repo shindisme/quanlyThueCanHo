@@ -618,7 +618,8 @@ export const createContractService = async (
             const firstInvoiceItems = buildFirstRentalInvoiceItems({
                 depositAmount,
                 monthlyRent: input.monthly_rent,
-                area: apartment.area
+                area: apartment.area,
+                startDate: input.start_date,
             });
             const firstInvoiceTotal = sumBillingItems(firstInvoiceItems);
             assertInvoiceMoney(firstInvoiceTotal);

@@ -932,6 +932,7 @@ export const generateMonthlyInvoicesService = async (
                 depositAmount: contract.deposit_amount,
                 monthlyRent: contract.monthly_rent,
                 area: contract.apartment.area,
+                startDate: contract.start_date,
                 managementFee: feeSettings.managementFee,
                 managementFeePerM2: feeSettings.managementFeePerM2,
                 serviceFee: feeSettings.serviceFee
