@@ -1,4 +1,4 @@
-﻿import { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import type {
     ErrorRequestHandler,
     RequestHandler,
@@ -108,6 +108,64 @@ const getRelationConflictMessage = (
 
     return "Không thể thực hiện thao tác vì còn dữ liệu liên quan";
 };
+
+const getUniqueConflictMessage = (
+    error: Prisma.PrismaClientKnownRequestError
+) => {
+    const metaText = getPrismaMetaText(error);
+
+    if (metaText.includes("phone")) {
+        return "Số điện thoại đã tồn tại trong hệ thống";
+    }
+
+    if (metaText.includes("email")) {
+        return "Email đã tồn tại trong hệ thống";
+    }
+
+    if (
+        metaText.includes("citizen_id")
+        || metaText.includes("cccd")
+        || metaText.includes("cmnd")
+    ) {
+        return "Số CCCD/CMND đã tồn tại trong hệ thống";
+    }
+
+    if (metaText.includes("username")) {
+        return "Tên đăng nhập đã tồn tại trong hệ thống";
+    }
+
+    if (
+        metaText.includes("room_number")
+        || (metaText.includes("building_id") && metaText.includes("room"))
+    ) {
+        return "Số phòng đã tồn tại trong tòa nhà này";
+    }
+
+    if (metaText.includes("branch_name")) {
+        return "Tên tòa nhà/chi nhánh đã tồn tại trong hệ thống";
+    }
+
+    if (
+        metaText.includes("utility_readings")
+        || (metaText.includes("apartment_id") && metaText.includes("month") && metaText.includes("year"))
+    ) {
+        return "Chỉ số điện nước của phòng này trong kỳ đã được ghi nhận trước đó";
+    }
+
+    if (metaText.includes("contract")) {
+        return "Hợp đồng đã tồn tại trong hệ thống";
+    }
+
+    if (metaText.includes("invoice")) {
+        return "Hóa đơn đã tồn tại trong hệ thống";
+    }
+
+    if (metaText.includes("reservation")) {
+        return "Thông tin đặt cọc đã tồn tại trong hệ thống";
+    }
+
+    return "Dữ liệu đã tồn tại trong hệ thống, vui lòng kiểm tra lại thông tin duy nhất";
+};
 export const notFound: RequestHandler = (request, _response, next) => {
     next(new AppError(
         404,
@@ -206,7 +264,10 @@ export const errorHandler: ErrorRequestHandler = (
                 response,
                 409,
                 "UNIQUE_CONFLICT",
-                "Dữ liệu đã tồn tại, vui lòng kiểm tra lại thông tin duy nhất"
+                getUniqueConflictMessage(error),
+                {
+                    target: error.meta?.target
+                }
             );
             return;
         }

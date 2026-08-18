@@ -309,16 +309,26 @@ export function DatePicker({
 
   const [isMonthOpen, setIsMonthOpen] = useState(false);
   const [isYearOpen, setIsYearOpen] = useState(false);
+  const monthListRef = useRef<HTMLDivElement>(null);
   const yearListRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isYearOpen && yearListRef.current) {
       const selectedEl = yearListRef.current.querySelector("[data-selected='true']");
       if (selectedEl) {
-        selectedEl.scrollIntoView({ block: "center" });
+        selectedEl.scrollIntoView({ block: "center", behavior: "auto" });
       }
     }
   }, [isYearOpen]);
+
+  useEffect(() => {
+    if (isMonthOpen && monthListRef.current) {
+      const selectedEl = monthListRef.current.querySelector("[data-selected='true']");
+      if (selectedEl) {
+        selectedEl.scrollIntoView({ block: "center", behavior: "auto" });
+      }
+    }
+  }, [isMonthOpen]);
 
   return (
     <div ref={containerRef} className="relative w-full">
@@ -370,24 +380,28 @@ export function DatePicker({
                         setIsMonthOpen((prev) => !prev);
                         setIsYearOpen(false);
                       }}
-                      className="flex items-center gap-0.5 font-bold text-xs text-gray-800 hover:bg-gray-100 px-1.5 py-1 rounded cursor-pointer transition-colors"
+                      className="flex items-center gap-0.5 font-bold text-xs text-gray-800 hover:bg-gray-100 px-1.5 py-1 rounded cursor-pointer"
                     >
                       <span>Tháng {monthWordNames[month]}</span>
                       <ChevronDown size={12} className="text-gray-500" />
                     </button>
 
                     {isMonthOpen && (
-                      <div className="absolute top-full left-0 mt-1 w-28 max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-xl z-30 py-1 text-xs divide-y divide-gray-50">
+                      <div
+                        ref={monthListRef}
+                        className="absolute top-full left-0 mt-1 w-28 max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-xl z-30 py-1 text-xs divide-y divide-gray-50"
+                      >
                         {monthWordNames.map((name, idx) => (
                           <button
                             key={idx}
                             type="button"
+                            data-selected={idx === month}
                             onClick={() => {
                               handleMonthYearChange(year, idx);
                               setIsMonthOpen(false);
                             }}
                             className={cn(
-                              "w-full text-left px-3 py-1.5 hover:bg-primary-50 hover:text-primary-600 transition-colors font-medium cursor-pointer",
+                              "w-full text-left px-3 py-1.5 hover:bg-primary-50 hover:text-primary-600 font-medium cursor-pointer",
                               idx === month && "bg-primary-50 font-bold text-primary-600"
                             )}
                           >
@@ -406,7 +420,7 @@ export function DatePicker({
                         setIsYearOpen((prev) => !prev);
                         setIsMonthOpen(false);
                       }}
-                      className="flex items-center gap-0.5 font-bold text-xs text-gray-800 hover:bg-gray-100 px-1.5 py-1 rounded cursor-pointer transition-colors"
+                      className="flex items-center gap-0.5 font-bold text-xs text-gray-800 hover:bg-gray-100 px-1.5 py-1 rounded cursor-pointer"
                     >
                       <span>{year}</span>
                       <ChevronDown size={12} className="text-gray-500" />
@@ -415,7 +429,7 @@ export function DatePicker({
                     {isYearOpen && (
                       <div
                         ref={yearListRef}
-                        className="absolute top-full left-0 mt-1 w-24 max-h-40 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-xl z-30 py-1 text-xs scroll-smooth"
+                        className="absolute top-full left-0 mt-1 w-24 max-h-40 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-xl z-30 py-1 text-xs"
                       >
                         {yearsList.map((y) => (
                           <button
@@ -427,7 +441,7 @@ export function DatePicker({
                               setIsYearOpen(false);
                             }}
                             className={cn(
-                              "w-full text-left px-3 py-1.5 hover:bg-primary-50 hover:text-primary-600 transition-colors font-medium cursor-pointer",
+                              "w-full text-left px-3 py-1.5 hover:bg-primary-50 hover:text-primary-600 font-medium cursor-pointer",
                               y === year && "bg-primary-600 text-white font-bold hover:bg-primary-700 hover:text-white"
                             )}
                           >

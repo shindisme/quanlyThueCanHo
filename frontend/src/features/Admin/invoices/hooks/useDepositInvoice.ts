@@ -7,6 +7,7 @@ import * as tenantService from "../../../../services/tenantService";
 import type { Apartment } from "../../../../types";
 import { depositFormSchema } from "../../../../schemas/invoice.schema";
 import { queryKeys } from "../../../../constants/queryKeys";
+import { getApiErrorMessage } from "../../../../utils/apiError";
 
 export type DepositTenantMode = "existing" | "new";
 
@@ -242,8 +243,7 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
       if (onSuccessCallback) onSuccessCallback();
     },
     onError: (error: unknown) => {
-      const err = error as { response?: { data?: { message?: string; error?: string } } };
-      toast.error(err.response?.data?.message || err.response?.data?.error || "Không thể lập hóa đơn cọc");
+      toast.error(getApiErrorMessage(error, "Không thể lập hóa đơn cọc"));
     },
   });
 

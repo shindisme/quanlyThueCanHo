@@ -61,33 +61,38 @@ const tenantNotFound = () => new AppError(
     "Người thuê không tồn tại"
 );
 
-const tenantActiveContractExists = () => new AppError(
+const tenantActiveContractExists = (tenantName?: string) => new AppError(
     409,
     "TENANT_ACTIVE_CONTRACT_EXISTS",
-    "Người thuê đang có hợp đồng hoạt động"
+    tenantName
+        ? `Người thuê "${tenantName}" đang có hợp đồng thuê phòng khác còn hiệu lực`
+        : "Người thuê đang có hợp đồng hoạt động"
 );
 
-const tenantActiveReservationExists = () => new AppError(
+const tenantActiveReservationExists = (tenantName?: string) => new AppError(
     409,
     "TENANT_ACTIVE_RESERVATION_EXISTS",
-    "Người thuê đang có đặt cọc hoạt động"
+    tenantName
+        ? `Người thuê "${tenantName}" đang có đơn đặt cọc phòng khác đang chờ nhận phòng`
+        : "Người thuê đang có đặt cọc hoạt động"
 );
 
-const tenantExists = () => new AppError(
+const tenantExists = (message?: string) => new AppError(
     409,
     "TENANT_EXISTS",
-    "Người thuê đã tồn tại"
+    message || "Thông tin người thuê đã tồn tại trong hệ thống"
 );
 
 const reservationDepositBlockError = (
-    reason: ReservationDepositBlockReason
+    reason: ReservationDepositBlockReason,
+    tenantName?: string
 ) => {
     if (reason === "ACTIVE_CONTRACT") {
-        return tenantActiveContractExists();
+        return tenantActiveContractExists(tenantName);
     }
 
     if (reason === "ACTIVE_RESERVATION") {
-        return tenantActiveReservationExists();
+        return tenantActiveReservationExists(tenantName);
     }
 
     return tenantExists();
@@ -468,44 +473,72 @@ export const createReservationDepositService = async (
                     throw apartmentUnavailable();
                 }
 
-                let tenant = tenantPayload
-                    ? await tx.tenant.findFirst({
-                        where: {
-                            citizen_id: tenantPayload.citizen_id
-                        },
-                        select: depositTenantSelect
-                    })
-                    : await tx.tenant.findFirst({
-                        where: {
-                            id: existingTenantId
-                        },
-                        select: depositTenantSelect
-                    });
+                let tenant: DepositTenant | null = null;
                 let user: CreatedTenantUser | null = null;
                 let initialPassword: string | null = null;
 
-                if (tenant) {
-                    const blockReason = getReservationDepositBlockReason({
-                        isNewTenantPayload: tenantPayload !== undefined,
-                        tenantExists: true,
-                        hasActiveContract: tenant.contracts.length > 0,
-                        hasActiveReservation: tenant.reservations.length > 0
+                if (tenantPayload) {
+                    const existingByCitizenId = await tx.tenant.findFirst({
+                        where: {
+                            citizen_id: tenantPayload.citizen_id
+                        },
+                        select: {
+                            id: true,
+                            full_name: true,
+                            citizen_id: true
+                        }
                     });
 
-                    if (blockReason) {
-                        throw reservationDepositBlockError(blockReason);
+                    if (existingByCitizenId) {
+                        throw new AppError(
+                            409,
+                            "TENANT_CITIZEN_ID_EXISTS",
+                            `Số CCCD/CMND "${tenantPayload.citizen_id}" đã tồn tại trong hệ thống.`
+                        );
                     }
-                }
 
-                if (tenantPayload && tenant) {
-                    throw tenantExists();
-                }
+                    if (tenantPayload.phone) {
+                        const existingByPhone = await tx.tenant.findFirst({
+                            where: {
+                                phone: tenantPayload.phone
+                            },
+                            select: {
+                                id: true,
+                                full_name: true,
+                                phone: true
+                            }
+                        });
 
-                if (!tenantPayload && !tenant) {
-                    throw tenantNotFound();
-                }
+                        if (existingByPhone) {
+                            throw new AppError(
+                                409,
+                                "TENANT_PHONE_EXISTS",
+                                `Số điện thoại "${tenantPayload.phone}" đã tồn tại trong hệ thống.`
+                            );
+                        }
+                    }
 
-                if (tenantPayload && !tenant) {
+                    if (tenantPayload.email) {
+                        const existingByEmail = await tx.tenant.findFirst({
+                            where: {
+                                email: tenantPayload.email
+                            },
+                            select: {
+                                id: true,
+                                full_name: true,
+                                email: true
+                            }
+                        });
+
+                        if (existingByEmail) {
+                            throw new AppError(
+                                409,
+                                "TENANT_EMAIL_EXISTS",
+                                `Email "${tenantPayload.email}" đã tồn tại trong hệ thống.`
+                            );
+                        }
+                    }
+
                     if (!usernameBase) {
                         throw new Error("Tenant username unavailable");
                     }
@@ -549,6 +582,30 @@ export const createReservationDepositService = async (
                         select: depositTenantSelect
                     });
                     initialPassword = credential.initial_password;
+                } else if (existingTenantId) {
+                    tenant = await tx.tenant.findFirst({
+                        where: {
+                            id: existingTenantId
+                        },
+                        select: depositTenantSelect
+                    });
+
+                    if (!tenant) {
+                        throw tenantNotFound();
+                    }
+
+                    const blockReason = getReservationDepositBlockReason({
+                        isNewTenantPayload: false,
+                        tenantExists: true,
+                        hasActiveContract: tenant.contracts.length > 0,
+                        hasActiveReservation: tenant.reservations.length > 0
+                    });
+
+                    if (blockReason) {
+                        throw reservationDepositBlockError(blockReason, tenant.full_name);
+                    }
+                } else {
+                    throw tenantNotFound();
                 }
 
                 if (!tenant) {
