@@ -97,7 +97,6 @@ export default function CheckoutModal({
     const finalServiceFeeAmount = Number(settlementPreview?.final_service_fee ?? 0);
     const otherChargesAmount = Number(settlementPreview?.other_charges ?? 0);
     const damageAmount = Number(settlementPreview?.damage_amount ?? 0);
-    const depositAppliedAmount = Number(settlementPreview?.deposit_applied ?? 0);
 
     const renderMoneyRow = (
         label: string,
@@ -491,8 +490,10 @@ export default function CheckoutModal({
                                         <span>Chi tiết phép tính tài chính đối trừ</span>
                                         <span>Số tiền (VNĐ)</span>
                                     </div>
-                                    {renderMoneyRow("Tiền đặt cọc ban đầu", deposit, "neutral")}
-                                    {depositPolicy === "FORFEITED" && renderMoneyRow("Tiền cọc bị giữ, không đối trừ công nợ", deposit, "held")}
+                                    {depositPolicy === "REFUNDABLE"
+                                        ? renderMoneyRow("Tiền đặt cọc hoàn lại", deposit, "credit")
+                                        : renderMoneyRow("Tiền đặt cọc ban đầu", deposit, "neutral")}
+                                    {depositPolicy === "FORFEITED" && renderMoneyRow("Tiền cọc bị giữ, không hoàn lại", deposit, "held")}
                                     {unpaidAmount > 0 && renderMoneyRow(`Tổng hóa đơn chưa thanh toán (${unpaidInvoices.length} HĐ)`, unpaidAmount)}
                                     {finalElectricityAmount > 0 && renderMoneyRow(`Tiền điện chốt (${electricConsumption} kWh)`, finalElectricityAmount)}
                                     {finalWaterAmount > 0 && renderMoneyRow(`Tiền nước chốt (${waterConsumption} m³)`, finalWaterAmount)}
@@ -500,10 +501,9 @@ export default function CheckoutModal({
                                     {finalServiceFeeAmount > 0 && renderMoneyRow("Phí dịch vụ", finalServiceFeeAmount)}
                                     {otherChargesAmount > 0 && renderMoneyRow("Khoản khác", otherChargesAmount)}
                                     {damageAmount > 0 && renderMoneyRow("Cơ sở vật chất hư hại", damageAmount)}
-                                    {depositPolicy === "REFUNDABLE" && depositAppliedAmount > 0 && renderMoneyRow("Tiền cọc dùng đối trừ công nợ", depositAppliedAmount, "credit")}
                                     <div className={`p-4 flex justify-between items-center font-bold text-sm ${netRefund >= 0 ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800"}`}>
-                                        <span>{netRefund >= 0 ? "Tiền cọc hoàn trả cho khách" : "Khách cần thanh toán thêm"}</span>
-                                        <span className="text-lg font-extrabold">{formatCurrency(Math.abs(netRefund))}</span>
+                                        <span>Thành tiền</span>
+                                        <span className="text-lg font-extrabold">{netRefund >= 0 ? "+" : "-"}{formatCurrency(Math.abs(netRefund))}</span>
                                     </div>
                                 </div>
                             </div>
@@ -576,17 +576,12 @@ export default function CheckoutModal({
                                     )}
                                     <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                                         <span className="text-slate-600 font-medium">Kết quả đối trừ cuối cùng:</span>
-                                        {netRefund >= 0 ? (
-                                            <div className="text-left sm:text-right">
-                                                <span className="text-xs text-slate-500 block">Hoàn cọc lại cho khách:</span>
-                                                <span className="text-base font-extrabold text-emerald-600">{formatCurrency(netRefund)}</span>
-                                            </div>
-                                        ) : (
-                                            <div className="text-left sm:text-right">
-                                                <span className="text-xs text-slate-500 block">Khách cần thanh toán:</span>
-                                                <span className="text-base font-extrabold text-red-600">{formatCurrency(Math.abs(netRefund))}</span>
-                                            </div>
-                                        )}
+                                        <div className="text-left sm:text-right">
+                                            <span className="text-xs text-slate-500 block">Thành tiền:</span>
+                                            <span className={`text-base font-extrabold ${netRefund >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                                                {netRefund >= 0 ? "+" : "-"}{formatCurrency(Math.abs(netRefund))}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

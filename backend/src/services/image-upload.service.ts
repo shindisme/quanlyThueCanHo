@@ -8,7 +8,7 @@ type UploadedImage = {
 
 export const withCompensatedImageUploads = async <T>(
     files: Express.Multer.File[],
-    folder: "/buildings" | "/apartments",
+    folder: "/buildings" | "/apartments" | "/maintenance",
     operation: (images: UploadedImage[]) => Promise<T>
 ) => {
     const uploadedImages: UploadedImage[] = [];

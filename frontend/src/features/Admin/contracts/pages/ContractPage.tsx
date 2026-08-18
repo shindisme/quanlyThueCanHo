@@ -91,6 +91,8 @@ export default function Contract() {
         handleCloseTerminationCheckout,
         cancelContractItem,
         setCancelContractItem,
+        cancelContractReason,
+        setCancelContractReason,
         handleConfirmCancelContract,
         terminating,
         fetchContracts,
@@ -524,17 +526,58 @@ export default function Contract() {
                 isLoading={deletingTenant}
             />
 
-            <ConfirmDialog
+            <Modal
                 isOpen={cancelContractItem !== null}
-                onClose={() => setCancelContractItem(null)}
-                onConfirm={handleConfirmCancelContract}
-                title="Xác nhận Hủy hợp đồng (Chưa nhận phòng)"
-                message={`Hợp đồng HD-${String(cancelContractItem?.id || 0).padStart(5, "0")} chưa đến ngày nhận phòng. Bạn có chắc chắn muốn HỦY hợp đồng này không? Căn hộ sẽ lập tức được trả về trạng thái sẵn sàng cho thuê.`}
-                variant="danger"
-                confirmText="Hủy hợp đồng"
-                cancelText="Quay lại"
-                isLoading={terminating}
-            />
+                onClose={() => {
+                    if (terminating) return;
+                    setCancelContractItem(null);
+                    setCancelContractReason("");
+                }}
+                title={`Hủy hợp đồng: HD-${String(cancelContractItem?.id || 0).padStart(5, "0")}`}
+                size="md"
+            >
+                <div className="space-y-4">
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                        Sau khi xác nhận, hệ thống sẽ mở ngay quy trình thanh lý gồm chốt điện nước, quyết toán, đối trừ cọc và hoàn tất bàn giao.
+                    </div>
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-gray-700">
+                            Lý do hủy hợp đồng <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                            value={cancelContractReason}
+                            onChange={(event) => setCancelContractReason(event.target.value)}
+                            maxLength={5000}
+                            rows={4}
+                            autoFocus
+                            disabled={terminating}
+                            placeholder="Nhập lý do hủy hợp đồng..."
+                            className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:bg-gray-100"
+                        />
+                        <p className="text-right text-xs text-gray-400">{cancelContractReason.length}/5000</p>
+                    </div>
+                    <div className="flex justify-end gap-2 border-t border-gray-100 pt-3">
+                        <Button
+                            variant="outline"
+                            disabled={terminating}
+                            onClick={() => {
+                                setCancelContractItem(null);
+                                setCancelContractReason("");
+                            }}
+                        >
+                            Hủy bỏ
+                        </Button>
+                        <Button
+                            variant="danger"
+                            isLoading={terminating}
+                            disabled={!cancelContractReason.trim() || terminating}
+                            onClick={handleConfirmCancelContract}
+                        >
+                            Tiến hành thanh lý
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
         </div>
     );
 }

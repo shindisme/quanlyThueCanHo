@@ -6,6 +6,7 @@ import * as apartmentService from "../../../../services/apartmentService";
 import * as contractService from "../../../../services/contractService";
 import * as invoiceService from "../../../../services/invoiceService";
 import { queryKeys } from "../../../../constants/queryKeys";
+import { getInvoiceType } from "../../../../utils/invoiceDisplay";
 
 export function useDashboardAdmin() {
   const { email } = useAuthStore();
@@ -84,7 +85,22 @@ export function useDashboardAdmin() {
   const monthlyRevenue = currentMonthPaidInvoices.reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
 
   // Tiền chưa thu vs số hóa đơn chưa thanh toán
-  const unpaidInvoices = filteredInvoices.filter((inv) => inv.status === "UNPAID");
+  const settledContractIds = new Set(
+    filteredInvoices
+      .filter((inv) => getInvoiceType(inv) === "FINAL_SETTLEMENT" && inv.contract_id !== null)
+      .map((inv) => inv.contract_id)
+  );
+  const unpaidInvoices = filteredInvoices.filter((inv) => {
+    const invoiceType = getInvoiceType(inv);
+    const isCoveredBySettlement = inv.contract_id !== null
+      && invoiceType !== "FINAL_SETTLEMENT"
+      && invoiceType !== "REFUND"
+      && settledContractIds.has(inv.contract_id);
+
+    return inv.status === "UNPAID"
+      && invoiceType !== "REFUND"
+      && !isCoveredBySettlement;
+  });
   const unpaidRevenue = unpaidInvoices.reduce((sum: number, inv) => sum + Number(inv.total_amount), 0);
   const unpaidInvoicesCount = unpaidInvoices.length;
 

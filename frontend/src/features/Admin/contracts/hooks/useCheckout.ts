@@ -319,7 +319,9 @@ export function useCheckout({ contract, termination, isOpen, onClose }: UseCheck
   const unpaidAmount = Number(settlementPreview?.outstanding_debt ?? initialData?.unpaidAmount ?? 0);
   const unpaidInvoices = initialData?.unpaidInvoices ?? [];
   const netRefund = settlementPreview
-    ? Number(settlementPreview.refund_amount) - Number(settlementPreview.additional_amount_due)
+    ? Number(settlementPreview.refund_amount) > 0
+      ? Number(settlementPreview.refund_amount)
+      : -Number(settlementPreview.additional_amount_due)
     : deposit - unpaidAmount;
   const totalDeductions = settlementPreview ? Math.max(deposit - netRefund, 0) : unpaidAmount;
 

@@ -1,7 +1,9 @@
 import {
     ApartmentStatus,
     ContractStatus,
+    InvoiceStatus,
     InvoiceType,
+    PaymentStatus,
     Prisma,
     ReservationStatus,
     Role,
@@ -225,6 +227,20 @@ const startOfDay = (date: Date) => {
     const result = new Date(date);
     result.setUTCHours(0, 0, 0, 0);
     return result;
+};
+
+const getVietnamCalendarDay = (date: Date) => {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Ho_Chi_Minh",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+    }).formatToParts(date);
+    const year = Number(parts.find((part) => part.type === "year")?.value);
+    const month = Number(parts.find((part) => part.type === "month")?.value);
+    const day = Number(parts.find((part) => part.type === "day")?.value);
+
+    return new Date(Date.UTC(year, month - 1, day));
 };
 
 const ensureNewEndDate = (
@@ -744,13 +760,165 @@ export const extendContractService = async (
 }, concurrentModification);
 
 export const endContractService = async (
-    _id: number,
-    _actor: Actor,
-    _requestedEndDate?: Date
-): Promise<never> => {
-    throw new AppError(
-        410,
-        "TERMINATION_WORKFLOW_REQUIRED",
-        "Endpoint kết thúc hợp đồng trực tiếp đã ngừng dùng. Vui lòng sử dụng quy trình thanh lý hợp đồng."
-    );
-};
+    id: number,
+    actor: Actor,
+    _requestedEndDate?: Date,
+    now = new Date()
+) => runSerializableTransaction(async (transaction) => {
+    if (actor.role !== Role.ADMIN && actor.role !== Role.MANAGER) {
+        throw new AppError(
+            403,
+            "FORBIDDEN",
+            "Chỉ ADMIN hoặc MANAGER được hủy hợp đồng trước ngày bắt đầu"
+        );
+    }
+
+    const scope = getContractScope(actor);
+    const existing = await transaction.rentalContract.findFirst({
+        where: {
+            id,
+            ...scope
+        },
+        include: contractInclude
+    });
+
+    if (!existing) {
+        throw notFound();
+    }
+
+    if (existing.status !== ContractStatus.ACTIVE) {
+        throw contractNotActive();
+    }
+
+    if (startOfDay(existing.start_date) <= getVietnamCalendarDay(now)) {
+        throw new AppError(
+            410,
+            "TERMINATION_WORKFLOW_REQUIRED",
+            "Hợp đồng đã đến ngày bắt đầu. Vui lòng sử dụng quy trình thanh lý hợp đồng."
+        );
+    }
+
+    const firstRentInvoice = await transaction.invoice.findFirst({
+        where: {
+            contract_id: id,
+            type: InvoiceType.FIRST_RENT
+        },
+        select: {
+            id: true,
+            status: true,
+            payments: {
+                select: { status: true }
+            }
+        }
+    });
+
+    if (
+        firstRentInvoice?.status === InvoiceStatus.PAID
+        || firstRentInvoice?.payments.some(
+            (payment) => payment.status === PaymentStatus.SUCCESS
+        )
+    ) {
+        throw new AppError(
+            409,
+            "FIRST_INVOICE_ALREADY_PAID",
+            "Hóa đơn đầu kỳ đã được thanh toán. Không thể hủy hợp đồng trực tiếp."
+        );
+    }
+
+    if (firstRentInvoice) {
+        await transaction.payment.deleteMany({
+            where: { invoice_id: firstRentInvoice.id }
+        });
+        await transaction.invoiceItem.deleteMany({
+            where: { invoice_id: firstRentInvoice.id }
+        });
+        await transaction.invoice.delete({
+            where: { id: firstRentInvoice.id }
+        });
+    }
+
+    const ended = await transaction.rentalContract.updateMany({
+        where: {
+            id,
+            ...scope,
+            status: ContractStatus.ACTIVE,
+            start_date: existing.start_date
+        },
+        data: {
+            status: ContractStatus.ENDED
+        }
+    });
+
+    if (ended.count === 0) {
+        await throwContractMutationConflict(transaction, id, scope);
+    }
+
+    const remainingActiveContracts = await transaction.rentalContract.count({
+        where: {
+            apartment_id: existing.apartment_id,
+            status: ContractStatus.ACTIVE,
+            id: { not: id }
+        }
+    });
+    let apartmentStatus = existing.apartment.status;
+
+    if (
+        remainingActiveContracts === 0
+        && apartmentStatus === ApartmentStatus.RENTED
+    ) {
+        const managerAssignment = actor.role === Role.MANAGER
+            ? getCurrentManagerAssignment(actor)
+            : undefined;
+        const apartmentScope: Prisma.ApartmentWhereInput = {
+            id: existing.apartment_id,
+            ...(managerAssignment
+                ? {
+                    building_id: managerAssignment.buildingId,
+                    building: managerAssignment.assignmentWhere
+                }
+                : {})
+        };
+        const released = await transaction.apartment.updateMany({
+            where: {
+                ...apartmentScope,
+                status: ApartmentStatus.RENTED
+            },
+            data: { status: ApartmentStatus.AVAILABLE }
+        });
+
+        if (released.count === 1) {
+            apartmentStatus = ApartmentStatus.AVAILABLE;
+        } else {
+            const apartment = await transaction.apartment.findFirst({
+                where: apartmentScope,
+                select: { status: true }
+            });
+
+            if (!apartment) {
+                throw notFound();
+            }
+
+            apartmentStatus = apartment.status;
+        }
+    }
+
+    const contract = await transaction.rentalContract.findFirst({
+        where: {
+            id,
+            ...scope
+        },
+        include: contractInclude
+    });
+
+    if (!contract) {
+        throw notFound();
+    }
+
+    return {
+        contract: normalizeContract(contract),
+        old_status: existing.status,
+        new_status: ContractStatus.ENDED,
+        cancelled_at: now,
+        apartment_status: apartmentStatus
+    };
+}, concurrentModification);

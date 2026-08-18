@@ -50,6 +50,7 @@ export function useContractPage() {
   const [checkoutDraftTerminationId, setCheckoutDraftTerminationId] = useState<number | null>(null);
   const [selectedTerminationDetail, setSelectedTerminationDetail] = useState<ContractTermination | null>(null);
   const [cancelContractItem, setCancelContractItem] = useState<RentalContract | null>(null);
+  const [cancelContractReason, setCancelContractReason] = useState("");
   const [extendEndDate, setExtendEndDate] = useState("");
   const [initialTenantId, setInitialTenantId] = useState<number | undefined>();
   const [initialApartmentId, setInitialApartmentId] = useState<number | undefined>();
@@ -377,6 +378,32 @@ export function useContractPage() {
     },
   });
 
+  const createManagerTerminationMutation = useMutation({
+    mutationFn: ({ contract, reason }: { contract: RentalContract; reason: string }) =>
+      contractTerminationService.createManagerRequest({
+        contract_id: contract.id,
+        reason,
+      }),
+    onSuccess: async (termination, variables) => {
+      toast.success("Đã tạo hồ sơ thanh lý. Tiến hành chốt điện nước.");
+      setCancelContractItem(null);
+      setCancelContractReason("");
+      setCheckoutDraftTerminationId(termination.id);
+      setTerminationItem(termination);
+      setTerminateItem(variables.contract);
+      await invalidateTerminationFlow();
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
+      toast.error(
+        err.response?.data?.error
+        || err.response?.data?.message
+        || err.message
+        || "Không thể bắt đầu thanh lý hợp đồng."
+      );
+    },
+  });
+
 
   function handleApproveTermination(termination: ContractTermination) {
     approveTerminationMutation.mutate(termination.id);
@@ -426,8 +453,17 @@ export function useContractPage() {
   }
 
   function handleConfirmCancelContract() {
-    toast.error("Không thể kết thúc hợp đồng trực tiếp. Vui lòng dùng quy trình thanh lý hợp đồng.");
-    setCancelContractItem(null);
+    if (!cancelContractItem) return;
+    const reason = cancelContractReason.trim();
+    if (!reason) {
+      toast.error("Vui lòng nhập lý do hủy hợp đồng.");
+      return;
+    }
+
+    createManagerTerminationMutation.mutate({
+      contract: cancelContractItem,
+      reason,
+    });
   }
 
   return {
@@ -493,9 +529,15 @@ export function useContractPage() {
     handleOpenTerminationCheckout,
     cancelContractItem,
     setCancelContractItem,
+    cancelContractReason,
+    setCancelContractReason,
     handleConfirmCancelContract,
     handleCloseTerminationCheckout,
-    terminating: approveTerminationMutation.isPending || rejectTerminationMutation.isPending || cancelTerminationMutation.isPending || createOverdueTerminationMutation.isPending,
+    terminating: approveTerminationMutation.isPending
+      || rejectTerminationMutation.isPending
+      || cancelTerminationMutation.isPending
+      || createOverdueTerminationMutation.isPending
+      || createManagerTerminationMutation.isPending,
     fetchContracts,
     isNewTenantFromNavigation,
     setIsNewTenantFromNavigation,

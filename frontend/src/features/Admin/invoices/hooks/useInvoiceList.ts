@@ -12,7 +12,7 @@ import { useUserRole } from "../../../../hooks/useUserRole";
 import { useSort } from "../../../../hooks/useSort";
 import type { Invoice } from "../../../../types";
 import type { InvoicePersistedStatus, InvoiceType } from "../../../../constants";
-import { getInvoiceRoomDisplay, getInvoiceStatus, getInvoiceTenant, getInvoiceType } from "../../../../utils/invoiceDisplay";
+import { getInvoiceRoomDisplay, getInvoiceStatus, getInvoiceTenant, getInvoiceType, isRefundInvoice } from "../../../../utils/invoiceDisplay";
 import { getInvoicePeriodSortValue } from "../../../../utils/invoicePeriod";
 import { queryKeys } from "../../../../constants/queryKeys";
 import { getApiErrorMessage } from "../../../../utils/apiError";
@@ -224,21 +224,26 @@ export function useInvoiceList() {
     },
   });
 
-  // Mutation xác nhận thanh toán tiền mặt
+  // Mutation xác nhận thanh toán tiền mặt hoặc hoàn cọc
   const handleConfirmCashPayment = useMutation({
-    mutationFn: async (invoice: Invoice) =>
-      paymentService.create({
+    mutationFn: async (invoice: Invoice) => {
+      if (isRefundInvoice(invoice)) {
+        return invoiceService.updateStatus(invoice.id, "PAID");
+      }
+
+      return paymentService.create({
         invoice_id: invoice.id,
         payment_method: "CASH",
         status: "SUCCESS",
-      }),
-    onSuccess: async () => {
+      });
+    },
+    onSuccess: async (_result, invoice) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.payments.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.reservations.all }),
       ]);
-      toast.success("Đã xác nhận thanh toán tiền mặt!");
+      toast.success(isRefundInvoice(invoice) ? "Đã xác nhận hoàn cọc!" : "Đã xác nhận thanh toán tiền mặt!");
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string } } };

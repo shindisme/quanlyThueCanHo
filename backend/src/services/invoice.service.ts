@@ -25,6 +25,9 @@ import {
     type BillingInvoiceItem,
     type UtilityReadingBillingInput
 } from "../utils/invoice-billing.js";
+import {
+    syncMissingDepositRefundInvoicesForActor
+} from "./contract-termination.service.js";
 
 export type InvoiceActor = Actor;
 export type InvoiceFilters = ListInvoicesRequest["query"];
@@ -668,6 +671,8 @@ const createInvoiceNotification = async (
 };
 
 export const getInvoicesService = async (filters: InvoiceFilters, actor: InvoiceActor) => {
+    await syncMissingDepositRefundInvoicesForActor(actor);
+
     const page = filters.page;
     const limit = filters.limit;
     const skip = (page - 1) * limit;
@@ -686,6 +691,7 @@ export const getInvoicesService = async (filters: InvoiceFilters, actor: Invoice
                 { type: filters.type },
                 ...(filters.type === "MAINTENANCE" ? [{ invoice_code: { startsWith: "MNT-" } }] : []),
                 ...(filters.type === "FINAL_SETTLEMENT" ? [{ invoice_code: { startsWith: "SETTLEMENT-" } }] : []),
+                ...(filters.type === "REFUND" ? [{ invoice_code: { startsWith: "REFUND-" } }] : []),
                 ...(filters.type === "DEPOSIT" ? [{ invoice_code: { startsWith: "DEP-" } }] : [])
             ]
         });
@@ -1178,12 +1184,16 @@ export const updateInvoiceStatusService = async (
         }
 
         if (status === InvoiceStatus.PAID) {
+            const isRefund = updated.type === InvoiceType.REFUND
+                || updated.invoice_code.startsWith("REFUND-");
             await createInvoiceNotification(
                 tx,
                 updated,
-                "Hóa đơn đã thanh toán",
-                `Hóa đơn ${updated.invoice_code} đã được ghi nhận thanh toán.`,
-                "INVOICE_PAID"
+                isRefund ? "Phiếu hoàn cọc đã hoàn" : "Hóa đơn đã thanh toán",
+                isRefund
+                    ? `Phiếu ${updated.invoice_code} đã được ghi nhận hoàn cọc.`
+                    : `Hóa đơn ${updated.invoice_code} đã được ghi nhận thanh toán.`,
+                isRefund ? "DEPOSIT_REFUNDED" : "INVOICE_PAID"
             );
         }
 

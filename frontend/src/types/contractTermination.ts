@@ -33,8 +33,10 @@ export interface TerminationSettlementPreview {
   deposit_applied: number;
   refund_amount: number;
   additional_amount_due: number;
+  invoice_total_amount?: number;
   financial_status: SettlementFinancialStatus;
   final_invoice?: Invoice | null;
+  refund_invoice?: Invoice | null;
 }
 
 export interface ContractTermination {
@@ -62,6 +64,7 @@ export interface ContractTermination {
   requires_maintenance: boolean;
   contract?: RentalContract;
   final_invoice?: Invoice | null;
+  refund_invoice?: Invoice | null;
 }
 
 export interface ContractTerminationQuery {

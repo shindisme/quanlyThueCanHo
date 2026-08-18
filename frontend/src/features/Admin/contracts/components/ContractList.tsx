@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from "react";
-import { Eye, FileText, Calendar as CalendarIcon, XCircle, CheckCircle, ClipboardCheck, Info } from "lucide-react";
+import { Eye, FileText, Calendar as CalendarIcon, XCircle, CheckCircle, ClipboardCheck, Info, Ban } from "lucide-react";
 import Badge from "../../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import {
@@ -64,6 +64,7 @@ export default function ContractList({
   setSelectedDocContract,
   setSelectedExtendContract,
   setExtendEndDate,
+  setCancelContractItem,
   openTerminationsByContractId,
   overdueCandidateIds,
   onApproveTermination,
@@ -280,6 +281,29 @@ export default function ContractList({
                 <CalendarIcon size={16} />
               </button>
             )}
+            {c.status === "ACTIVE"
+              && (role === "ADMIN" || role === "MANAGER")
+              && setCancelContractItem && (
+                <button
+                  disabled={isTerminationActionPending}
+                  onClick={() => {
+                    const existingTermination = openTerminationsByContractId.get(c.id);
+                    if (existingTermination) {
+                      if (existingTermination.status === "PENDING") {
+                        onViewTermination(existingTermination);
+                      } else {
+                        onOpenTerminationCheckout(c, existingTermination);
+                      }
+                      return;
+                    }
+                    setCancelContractItem(c);
+                  }}
+                  className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer disabled:opacity-60"
+                  title="Hủy hợp đồng / Tiến hành thanh lý"
+                >
+                  <Ban size={16} />
+                </button>
+              )}
             {(() => {
               const termination = openTerminationsByContractId.get(c.id);
               return termination ? (
@@ -312,6 +336,9 @@ export default function ContractList({
       setSelectedDetailContract,
       setSelectedDocContract,
       setSelectedExtendContract,
+      setCancelContractItem,
+      isTerminationActionPending,
+      onOpenTerminationCheckout,
       onViewTermination,
       tenantName,
     ]

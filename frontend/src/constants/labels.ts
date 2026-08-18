@@ -74,6 +74,7 @@ export const INVOICE_TYPE_LABELS: Record<InvoiceType, string> = {
   MONTHLY: "Hàng tháng",
   MAINTENANCE: "Phí sửa chữa",
   FINAL_SETTLEMENT: "Thanh lý hợp đồng",
+  REFUND: "Hoàn cọc",
 };
 
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
@@ -122,7 +123,8 @@ export const ATTENDANCE_STATUS_LABELS: Record<AttendanceStatus, string> = {
 
 export const CONTRACT_TERMINATION_TYPE_LABELS: Record<ContractTerminationType, string> = {
   TENANT_REQUEST: "Khách yêu cầu trả phòng",
-  OVERDUE: "Quản lý chủ động thanh lý",
+  MANAGER_REQUEST: "Quản lý thanh lý hợp đồng",
+  OVERDUE: "Thanh lý do nợ quá hạn",
 };
 
 export const CONTRACT_TERMINATION_STATUS_LABELS: Record<ContractTerminationStatus, string> = {
