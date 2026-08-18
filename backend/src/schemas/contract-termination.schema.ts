@@ -75,6 +75,15 @@ export const createTenantTerminationRequestSchema = z.object({
     }).strict()
 }).strict();
 
+export const createManagerTerminationRequestSchema = z.object({
+    params: emptyObjectSchema,
+    query: emptyObjectSchema,
+    body: z.object({
+        contract_id: positiveIdSchema,
+        reason: z.string().trim().min(1).max(5000)
+    }).strict()
+}).strict();
+
 export const createOverdueTerminationRequestSchema = z.object({
     params: emptyObjectSchema,
     query: emptyObjectSchema,
@@ -138,6 +147,9 @@ export type ListContractTerminationsRequest = z.infer<
 export type CreateTenantTerminationRequest = z.infer<
     typeof createTenantTerminationRequestSchema
 >;
+export type CreateManagerTerminationRequest = z.infer<
+    typeof createManagerTerminationRequestSchema
+>;
 export type CreateOverdueTerminationRequest = z.infer<
     typeof createOverdueTerminationRequestSchema
 >;
@@ -162,4 +174,3 @@ export type PreviewSettlementRequest = z.infer<
 export type CompleteHandoverRequest = z.infer<
     typeof completeHandoverRequestSchema
 >;
-

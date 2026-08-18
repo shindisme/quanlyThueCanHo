@@ -50,14 +50,6 @@ function getTerminationStatusPrefix(termination: ContractTermination) {
   return termination.type === "TENANT_REQUEST" ? "Trả phòng" : "Thanh lý";
 }
 
-function isBeforeContractStart(startDate: string) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const contractStart = new Date(`${startDate}T00:00:00`);
-
-  return contractStart > today;
-}
-
 export default function ContractList({
   paginatedContracts,
   startIdx,
@@ -291,14 +283,23 @@ export default function ContractList({
             )}
             {c.status === "ACTIVE"
               && (role === "ADMIN" || role === "MANAGER")
-              && setCancelContractItem
-              && !openTerminationsByContractId.has(c.id)
-              && isBeforeContractStart(c.start_date) && (
+              && setCancelContractItem && (
                 <button
                   disabled={isTerminationActionPending}
-                  onClick={() => setCancelContractItem(c)}
+                  onClick={() => {
+                    const existingTermination = openTerminationsByContractId.get(c.id);
+                    if (existingTermination) {
+                      if (existingTermination.status === "PENDING") {
+                        onViewTermination(existingTermination);
+                      } else {
+                        onOpenTerminationCheckout(c, existingTermination);
+                      }
+                      return;
+                    }
+                    setCancelContractItem(c);
+                  }}
                   className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer disabled:opacity-60"
-                  title="Hủy hợp đồng (Chưa nhận phòng)"
+                  title="Hủy hợp đồng / Tiến hành thanh lý"
                 >
                   <Ban size={16} />
                 </button>
@@ -337,6 +338,7 @@ export default function ContractList({
       setSelectedExtendContract,
       setCancelContractItem,
       isTerminationActionPending,
+      onOpenTerminationCheckout,
       onViewTermination,
       tenantName,
     ]

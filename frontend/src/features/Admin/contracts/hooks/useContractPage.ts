@@ -50,6 +50,7 @@ export function useContractPage() {
   const [checkoutDraftTerminationId, setCheckoutDraftTerminationId] = useState<number | null>(null);
   const [selectedTerminationDetail, setSelectedTerminationDetail] = useState<ContractTermination | null>(null);
   const [cancelContractItem, setCancelContractItem] = useState<RentalContract | null>(null);
+  const [cancelContractReason, setCancelContractReason] = useState("");
   const [extendEndDate, setExtendEndDate] = useState("");
   const [initialTenantId, setInitialTenantId] = useState<number | undefined>();
   const [initialApartmentId, setInitialApartmentId] = useState<number | undefined>();
@@ -377,16 +378,20 @@ export function useContractPage() {
     },
   });
 
-  const cancelContractMutation = useMutation({
-    mutationFn: (id: number) => contractService.cancelBeforeStart(id),
-    onSuccess: async () => {
-      toast.success("Hủy hợp đồng chưa nhận phòng thành công!");
+  const createManagerTerminationMutation = useMutation({
+    mutationFn: ({ contract, reason }: { contract: RentalContract; reason: string }) =>
+      contractTerminationService.createManagerRequest({
+        contract_id: contract.id,
+        reason,
+      }),
+    onSuccess: async (termination, variables) => {
+      toast.success("Đã tạo hồ sơ thanh lý. Tiến hành chốt điện nước.");
       setCancelContractItem(null);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.contracts.all }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.apartments.all }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all }),
-      ]);
+      setCancelContractReason("");
+      setCheckoutDraftTerminationId(termination.id);
+      setTerminationItem(termination);
+      setTerminateItem(variables.contract);
+      await invalidateTerminationFlow();
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
@@ -394,7 +399,7 @@ export function useContractPage() {
         err.response?.data?.error
         || err.response?.data?.message
         || err.message
-        || "Hủy hợp đồng thất bại!"
+        || "Không thể bắt đầu thanh lý hợp đồng."
       );
     },
   });
@@ -449,7 +454,16 @@ export function useContractPage() {
 
   function handleConfirmCancelContract() {
     if (!cancelContractItem) return;
-    cancelContractMutation.mutate(cancelContractItem.id);
+    const reason = cancelContractReason.trim();
+    if (!reason) {
+      toast.error("Vui lòng nhập lý do hủy hợp đồng.");
+      return;
+    }
+
+    createManagerTerminationMutation.mutate({
+      contract: cancelContractItem,
+      reason,
+    });
   }
 
   return {
@@ -515,13 +529,15 @@ export function useContractPage() {
     handleOpenTerminationCheckout,
     cancelContractItem,
     setCancelContractItem,
+    cancelContractReason,
+    setCancelContractReason,
     handleConfirmCancelContract,
     handleCloseTerminationCheckout,
     terminating: approveTerminationMutation.isPending
       || rejectTerminationMutation.isPending
       || cancelTerminationMutation.isPending
       || createOverdueTerminationMutation.isPending
-      || cancelContractMutation.isPending,
+      || createManagerTerminationMutation.isPending,
     fetchContracts,
     isNewTenantFromNavigation,
     setIsNewTenantFromNavigation,

@@ -417,6 +417,7 @@ enum InvoiceType {
 enum ContractTerminationType {
   TENANT_REQUEST
   OVERDUE
+  MANAGER_REQUEST
 }
 
 enum ContractTerminationStatus {

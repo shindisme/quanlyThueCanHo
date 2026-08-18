@@ -6,6 +6,7 @@ import { getValidated } from "../middleware/validate.middleware.js";
 import type {
     ApproveTerminationRequest,
     CompleteHandoverRequest,
+    CreateManagerTerminationRequest,
     CreateOverdueTerminationRequest,
     CreateTenantTerminationRequest,
     ListContractTerminationsRequest,
@@ -103,6 +104,21 @@ export const getOverdueCandidates = async (
         );
 
     return sendSuccess(response, candidates);
+};
+
+export const createManager = async (
+    request: Request,
+    response: Response
+) => {
+    const { body } =
+        getValidated<CreateManagerTerminationRequest>(request);
+    const termination =
+        await terminationService.createManagerTerminationService(
+            body,
+            request.actor!
+        );
+
+    return sendSuccess(response, termination, 201);
 };
 
 export const createOverdue = async (

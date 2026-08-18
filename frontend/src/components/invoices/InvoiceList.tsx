@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Eye, Printer, CheckCircle, QrCode } from "lucide-react";
 import Badge from "../ui/Badge";
 import DataTable, { type Column } from "../ui/DataTable";
+import { getInvoiceLateDays } from "../../utils/invoiceDisplay";
 import {
   INVOICE_STATUS_CONFIG,
   INVOICE_TYPE_CONFIG,

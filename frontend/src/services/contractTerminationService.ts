@@ -65,6 +65,14 @@ export async function getOverdueCandidates(): Promise<OverdueTerminationCandidat
   return res.data.data || [];
 }
 
+export async function createManagerRequest(payload: {
+  contract_id: number;
+  reason: string;
+}): Promise<ContractTermination> {
+  const res = await api.post<{ data: ContractTermination }>(`${API}/manager`, payload);
+  return res.data.data;
+}
+
 export async function createOverdue(payload: {
   contract_id: number;
   reason: string;
@@ -112,12 +120,12 @@ export const contractTerminationService = {
   reject,
   cancel,
   getOverdueCandidates,
+  createManagerRequest,
   createOverdue,
   startInspection,
   updateInspection,
   previewSettlement,
   completeHandover,
 };
-
 
 

@@ -52,7 +52,7 @@ export type ScheduleStatus = (typeof SCHEDULE_STATUS_VALUES)[number];
 export const ATTENDANCE_STATUS_VALUES = ["NOT_YET", "ATTENDED", "ABSENT"] as const;
 export type AttendanceStatus = (typeof ATTENDANCE_STATUS_VALUES)[number];
 
-export const CONTRACT_TERMINATION_TYPE_VALUES = ["TENANT_REQUEST", "OVERDUE"] as const;
+export const CONTRACT_TERMINATION_TYPE_VALUES = ["TENANT_REQUEST", "MANAGER_REQUEST", "OVERDUE"] as const;
 export type ContractTerminationType = (typeof CONTRACT_TERMINATION_TYPE_VALUES)[number];
 
 export const CONTRACT_TERMINATION_STATUS_VALUES = [

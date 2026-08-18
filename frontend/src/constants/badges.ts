@@ -95,7 +95,7 @@ export const ATTENDANCE_STATUS_COLORS: Record<AttendanceStatus, BadgeVariant> = 
   NOT_YET: "gray", ATTENDED: "success", ABSENT: "danger",
 };
 export const CONTRACT_TERMINATION_TYPE_COLORS: Record<ContractTerminationType, BadgeVariant> = {
-  TENANT_REQUEST: "info", OVERDUE: "danger",
+  TENANT_REQUEST: "info", MANAGER_REQUEST: "warning", OVERDUE: "danger",
 };
 export const CONTRACT_TERMINATION_STATUS_COLORS: Record<ContractTerminationStatus, BadgeVariant> = {
   PENDING: "warning", APPROVED: "info", REJECTED: "danger", INSPECTION: "warning", SETTLING: "info", COMPLETED: "success", CANCELLED: "gray",

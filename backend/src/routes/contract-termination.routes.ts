@@ -9,6 +9,7 @@ import { validate } from "../middleware/validate.middleware.js";
 import {
     approveTerminationRequestSchema,
     completeHandoverRequestSchema,
+    createManagerTerminationRequestSchema,
     createOverdueTerminationRequestSchema,
     createTenantTerminationRequestSchema,
     listContractTerminationsRequestSchema,
@@ -35,6 +36,12 @@ router.post(
     authorizeRole([Role.TENANT]),
     validate(createTenantTerminationRequestSchema),
     controller.createTenantRequest
+);
+router.post(
+    "/manager",
+    authorizeRole(managerRoles),
+    validate(createManagerTerminationRequestSchema),
+    controller.createManager
 );
 router.get(
     "/overdue-candidates",

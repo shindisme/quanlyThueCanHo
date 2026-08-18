@@ -14,6 +14,7 @@ import { prisma } from "../config/database.js";
 import { AppError } from "../errors/app-error.js";
 import type {
     CompleteHandoverRequest,
+    CreateManagerTerminationRequest,
     CreateOverdueTerminationRequest,
     CreateTenantTerminationRequest,
     ListContractTerminationsRequest,
@@ -1354,6 +1355,69 @@ export const cancelTerminationService = async (
 
     return normalizeTermination(updated);
 }, concurrentModification);
+
+export const createManagerTerminationService = async (
+    input: CreateManagerTerminationRequest["body"],
+    actor: Actor,
+    now = new Date()
+) => {
+    assertManagerOrAdmin(actor);
+
+    try {
+        return await runSerializableTransaction(async (transaction) => {
+            const contract = await transaction.rentalContract.findFirst({
+                where: {
+                    id: input.contract_id,
+                    ...getManagedContractScope(actor)
+                },
+                include: contractInclude
+            });
+
+            if (!contract) {
+                throw new AppError(404, "NOT_FOUND", "Hợp đồng không tồn tại");
+            }
+
+            if (contract.status !== ContractStatus.ACTIVE) {
+                throw contractNotActive();
+            }
+
+            await assertNoOpenTermination(transaction, contract.id);
+
+            const today = startOfUtcDay(now);
+            const created = await transaction.contractTermination.create({
+                data: {
+                    contract_id: contract.id,
+                    type: ContractTerminationType.MANAGER_REQUEST,
+                    status: ContractTerminationStatus.APPROVED,
+                    requested_end_date: today,
+                    effective_end_date: today,
+                    reason: input.reason,
+                    notice_days: 0,
+                    deposit_policy: DepositPolicy.REFUNDABLE,
+                    refund_rate: 100,
+                    requested_by: actor.userId,
+                    approved_by: actor.userId,
+                    approved_at: now
+                },
+                include: terminationInclude
+            });
+
+            await transaction.apartment.updateMany({
+                where: {
+                    id: contract.apartment_id,
+                    status: ApartmentStatus.RENTED
+                },
+                data: { status: ApartmentStatus.VACATING_SOON }
+            });
+
+            await notifyTenantProactiveTermination(transaction, created);
+
+            return normalizeTermination(created);
+        }, concurrentModification);
+    } catch (error) {
+        return mapTerminationWriteError(error);
+    }
+};
 
 export const getOverdueCandidatesService = async (
     actor: Actor,

@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 export const FULL_DEPOSIT_REFUND_NOTICE_DAYS = 60;
 export const OVERDUE_TERMINATION_GRACE_DAYS = 7;
 
-type TerminationType = "TENANT_REQUEST" | "OVERDUE";
+type TerminationType = "TENANT_REQUEST" | "MANAGER_REQUEST" | "OVERDUE";
 
 type SettlementInput = {
     terminationType: TerminationType;
