@@ -116,7 +116,7 @@ export default function TenantDetailModal({
               {pastApartmentDisplay}
             </span>
           </div>
-        )}s
+        )}
       </div>
     </Modal>
   );
