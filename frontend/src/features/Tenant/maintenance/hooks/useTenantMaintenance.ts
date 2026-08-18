@@ -11,7 +11,7 @@ import * as contractService from "../../../../services/contractService";
 import * as maintenanceService from "../../../../services/maintenanceService";
 import * as uploadService from "../../../../services/uploadService";
 import { useAuthStore } from "../../../../stores/auth.store";
-import type { MaintenanceRequest, Priority } from "../../../../types";
+import type { MaintenanceRequest } from "../../../../types";
 import { getApiErrorMessage } from "../../../../utils/apiError";
 import { formatApartmentDisplay, removeVietnameseTones } from "../../../../utils/string";
 
@@ -27,7 +27,6 @@ export function useTenantMaintenance() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState<Priority>("MEDIUM");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState("");
   const debouncedSearch = useDebounce(search, 300);
@@ -94,7 +93,6 @@ export function useTenantMaintenance() {
   const resetForm = () => {
     setTitle("");
     setDescription("");
-    setPriority("MEDIUM");
     setImageFile(null);
     setImagePreviewUrl("");
   };
@@ -109,7 +107,6 @@ export function useTenantMaintenance() {
       apartment_id: number;
       title: string;
       description: string;
-      priority: Priority;
       imageFile?: File | null;
     }) => {
       const { imageFile: selectedImage, ...payload } = data;
@@ -169,7 +166,6 @@ export function useTenantMaintenance() {
       apartment_id: activeContract.apartment_id,
       title: title.trim(),
       description: description.trim(),
-      priority,
       imageFile,
     };
     const validation = createMaintenanceSchema.safeParse(payload);
@@ -196,8 +192,6 @@ export function useTenantMaintenance() {
     setTitle,
     description,
     setDescription,
-    priority,
-    setPriority,
     imageFile,
     imagePreviewUrl,
     handleImageChange,

@@ -1,23 +1,19 @@
 import type { FormEvent } from "react";
 import { Camera, Image as ImageIcon, Upload, X } from "lucide-react";
 import Button from "../../../../components/ui/Button";
-import Combobox from "../../../../components/ui/Combobox";
 import Input from "../../../../components/ui/Input";
 import Modal from "../../../../components/ui/Modal";
-import { PRIORITY_OPTIONS, type Priority } from "../../../../constants";
 
 interface MaintenanceCreateModalProps {
   isOpen: boolean;
   saving: boolean;
   title: string;
   description: string;
-  priority: Priority;
   imageFile: File | null;
   imagePreviewUrl: string;
   onClose: () => void;
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
-  onPriorityChange: (value: Priority) => void;
   onImageChange: (file: File | null) => void;
   onSubmit: (event: FormEvent) => void;
 }
@@ -48,15 +44,6 @@ export default function MaintenanceCreateModal(props: MaintenanceCreateModalProp
             disabled={props.saving}
           />
         </div>
-        <Combobox
-          label="Độ ưu tiên *"
-          options={PRIORITY_OPTIONS}
-          value={props.priority}
-          onChange={(value) => props.onPriorityChange(value as Priority)}
-          searchable={false}
-          clearable={false}
-          disabled={props.saving}
-        />
         <div className="space-y-2">
           <label className="text-xs font-semibold text-gray-600">Ảnh chỗ hư hại</label>
           <div className="flex flex-col gap-3 rounded-lg border border-dashed border-gray-300 bg-gray-50/50 p-3">

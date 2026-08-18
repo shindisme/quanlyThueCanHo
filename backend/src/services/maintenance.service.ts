@@ -2,6 +2,7 @@ import {
     ContractStatus,
     InvoiceStatus,
     InvoiceType,
+    Priority,
     Prisma,
     RequestStatus,
     Role,
@@ -235,7 +236,7 @@ export const createMaintenanceRequestService = async (
             data: {
                 title: input.title,
                 description: input.description,
-                priority: input.priority,
+                priority: Priority.MEDIUM,
                 image_url: input.image_url,
                 tenant: {
                     connect: {

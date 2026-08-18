@@ -288,9 +288,7 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
       });
     },
     onSuccess: async () => {
-      toast.success(form.payment_method === "CASH"
-        ? "Đã lập hóa đơn và ghi nhận tiền cọc tiền mặt"
-        : "Đã lập hóa đơn và gửi email thanh toán VNPay");
+      toast.success("Đã lập hóa đơn đặt cọc thành công!");
       setIsOpen(false);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all }),

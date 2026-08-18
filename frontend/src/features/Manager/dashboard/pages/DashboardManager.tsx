@@ -312,7 +312,7 @@ export default function DashboardManager() {
               </div>
             ) : (
               <div className="overflow-x-auto min-h-60">
-                <table className="min-w-[620px] divide-y divide-gray-200 text-xs font-sans sm:text-sm">
+                <table className="min-w-155 divide-y divide-gray-200 text-xs font-sans sm:text-sm">
                   <thead>
                     <tr className="text-left text-gray-500 font-bold uppercase tracking-wider text-[11px]">
                       <th className="pb-3 pt-2">Khách hàng</th>
@@ -377,7 +377,7 @@ export default function DashboardManager() {
               </div>
             ) : (
               <div className="overflow-x-auto min-h-60">
-                <table className="min-w-[560px] divide-y divide-gray-200 text-xs font-sans sm:text-sm">
+                <table className="min-w-140 divide-y divide-gray-200 text-xs font-sans sm:text-sm">
                   <thead>
                     <tr className="text-left text-gray-500 font-bold uppercase tracking-wider text-[11px]">
                       <th className="pb-3 pt-2">Căn hộ</th>

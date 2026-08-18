@@ -113,13 +113,11 @@ export default function MyMaintenance() {
         saving={maintenance.saving}
         title={maintenance.title}
         description={maintenance.description}
-        priority={maintenance.priority}
         imageFile={maintenance.imageFile}
         imagePreviewUrl={maintenance.imagePreviewUrl}
         onClose={maintenance.closeCreateModal}
         onTitleChange={maintenance.setTitle}
         onDescriptionChange={maintenance.setDescription}
-        onPriorityChange={maintenance.setPriority}
         onImageChange={maintenance.handleImageChange}
         onSubmit={maintenance.handleCreateMaintenanceRequest}
       />

@@ -42,7 +42,7 @@ export interface CreateMaintenanceRequestPayload {
   apartment_id: number;
   title: string;
   description: string;
-  priority: string;
+  priority?: Priority | string;
   image_url?: string;
 }
 
@@ -55,4 +55,3 @@ export interface ConfirmMaintenanceRequestPayload {
 export interface UnableMaintenanceRequestPayload {
   reason: string;
 }
-

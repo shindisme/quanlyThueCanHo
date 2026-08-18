@@ -36,7 +36,7 @@ export const createMaintenanceRequestSchema = z.object({
         apartment_id: z.number().int().positive(),
         title: z.string().trim().min(1).max(200),
         description: z.string().trim().min(1).max(10_000),
-        priority: z.nativeEnum(Priority).default(Priority.MEDIUM),
+        priority: z.nativeEnum(Priority).optional().default(Priority.MEDIUM),
         image_url: z.url().max(2048).optional()
     }).strict()
 }).strict();

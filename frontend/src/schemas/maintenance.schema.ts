@@ -18,6 +18,7 @@ export const createMaintenanceSchema = z.object({
     .max(10000, { message: "Mô tả tối đa 10000 ký tự" }),
   priority: z
     .enum(PRIORITY_VALUES)
+    .optional()
     .default("MEDIUM"),
   image_url: z
     .string()
