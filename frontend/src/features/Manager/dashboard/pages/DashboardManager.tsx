@@ -104,12 +104,12 @@ export default function DashboardManager() {
         <RefreshButton />
       </div>
 
-      {/* Cảnh báo và nhắc nhở nghiệp vụ */}
+      {/* Cảnh báo  */}
       {hasAlerts && (
         <div className="p-4 bg-amber-50/80 border border-amber-200/80 shadow-sm space-y-2">
           <div className="flex items-center gap-2 text-amber-800 font-bold text-xs uppercase tracking-wider">
             <ShieldAlert size={16} className="text-amber-600" />
-            <span>Chú ý & Cảnh báo nghiệp vụ</span>
+            <span>Chú ý</span>
           </div>
           <div className="flex flex-wrap items-center gap-3 text-xs font-medium text-amber-900 pt-1">
             {pendingSchedulesCount > 0 && (

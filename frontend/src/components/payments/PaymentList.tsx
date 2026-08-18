@@ -52,9 +52,13 @@ export default function PaymentList({
       key: "transaction_code",
       label: "Mã giao dịch",
       sortable: false,
-      sortValue: (payment) => payment.transaction_code || "",
+      sortValue: (payment) => payment.transaction_code || (payment.payment_method === "CASH" ? `CASH-${payment.invoice_id}-${payment.paid_at ? new Date(payment.paid_at).getTime() : payment.id}` : ""),
       isTitle: true,
-      render: (payment) => <span className="font-mono font-semibold text-gray-805">{payment.transaction_code || "-"}</span>,
+      render: (payment) => {
+        const time = payment.paid_at ? new Date(payment.paid_at).getTime() : payment.id;
+        const code = payment.transaction_code || (payment.payment_method === "CASH" ? `CASH-${payment.invoice_id}-${time}` : "-");
+        return <span className="font-mono font-semibold text-gray-805">{code}</span>;
+      },
     },
     ...(role !== "TENANT" ? [{
       key: "room",
@@ -90,7 +94,9 @@ export default function PaymentList({
       key: "payment_method",
       label: "Phương thức",
       sortable: false,
-      render: (payment) => PAYMENT_METHOD_CONFIG[payment.payment_method]?.label ?? "Phương thức cũ",
+      render: (payment) =>
+        PAYMENT_METHOD_CONFIG[payment.payment_method]?.label ??
+        (payment.payment_method === "CASH" ? "Tiền mặt" : "VNPay"),
     },
     {
       key: "amount",

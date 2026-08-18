@@ -9,6 +9,7 @@ import * as authService from "../../../../services/authService";
 import * as reservationService from "../../../../services/reservationService";
 import { getApartmentReviews } from "../../../../services/reviewService";
 import type { ApartmentImage, Tenant, TenantOccupant } from "../../../../types";
+import type { TenantModalData } from "../../tenants/components/TenantDetailModal";
 import { queryKeys } from "../../../../constants/queryKeys";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import { getApiErrorMessage } from "../../../../utils/apiError";
@@ -77,8 +78,12 @@ export function useApartmentDetailPage() {
 
   // Danh sách hợp đồng của căn hộ hiện tại
   const { data: contracts = [], isLoading: loadingContracts } = useQuery({
-    queryKey: queryKeys.contracts.list({ apartmentId: id }),
-    queryFn: () => contractService.getAllPage({ apartment_id: Number(id) }),
+    queryKey: queryKeys.contracts.list({ apartmentId: id, buildingId: apartment?.building_id }),
+    queryFn: () =>
+      contractService.getAllPage({
+        apartment_id: Number(id),
+        building_id: apartment?.building_id,
+      }),
     select: (res) => res.data,
     enabled: Boolean(id) && !isNaN(Number(id)),
   });
@@ -188,24 +193,35 @@ export function useApartmentDetailPage() {
     return (activeTenant || reservedTenant || null) as Tenant | null;
   }, [activeTenant, reservedTenant]);
 
-  // Lấy toàn bộ lịch sử hợp đồng của người thuê hoặc khách cọc hiện tại
-  const { data: tenantContractsData = [] } = useQuery({
-    queryKey: queryKeys.contracts.list({ tenantId: targetTenant?.id }),
-    queryFn: () => contractService.getAllPage({ tenant_id: targetTenant!.id }),
-    select: (res) => res.data,
-    enabled: Boolean(targetTenant?.id),
-  });
-
+  const buildingId = apartment?.building_id;
   const tenantContracts = useMemo(() => {
-    if (!targetTenant) return [];
-    if (tenantContractsData && tenantContractsData.length > 0) {
-      return tenantContractsData;
-    }
     const all = contracts.length > 0 ? contracts : apartmentContracts;
-    return all.filter((c) => c.tenant_id === targetTenant.id);
-  }, [targetTenant, tenantContractsData, contracts, apartmentContracts]);
+    return all
+      .filter((c) => {
+        const matchApartment = Number(c.apartment_id) === Number(id);
+        const contractBuildingId = c.apartment?.building_id;
+        const matchBuilding = buildingId
+          ? (!contractBuildingId || contractBuildingId === buildingId)
+          : true;
+        return matchApartment && matchBuilding;
+      })
+      .map((c) => {
+        const tenant = c.tenant || tenants.find((t) => t.id === c.tenant_id);
+        return {
+          ...c,
+          tenant: tenant || c.tenant,
+        };
+      })
+      .sort((a, b) => (b.id || 0) - (a.id || 0));
+  }, [contracts, apartmentContracts, id, buildingId, tenants]);
 
   const [showTenantDetailModal, setShowTenantDetailModal] = useState(false);
+  const [selectedTenantModal, setSelectedTenantModal] = useState<TenantModalData>(null);
+
+  const handleOpenTenantDetail = (tenantToView?: TenantModalData) => {
+    setSelectedTenantModal(tenantToView || targetTenant || null);
+    setShowTenantDetailModal(true);
+  };
 
   const fetchData = async () => {
     await fetchApartment();
@@ -314,6 +330,9 @@ export function useApartmentDetailPage() {
     tenantContracts,
     showTenantDetailModal,
     setShowTenantDetailModal,
+    selectedTenantModal,
+    setSelectedTenantModal,
+    handleOpenTenantDetail,
     fetchData,
     handleImageUpload,
     handleSetThumbnail,

@@ -31,9 +31,7 @@ export function formatApartmentDisplay(
     targetBranch = role;
   }
 
-  // Hiển thị cho admin
-  const isAdmin = !role || role === "ADMIN";
-  if (targetBranch && isAdmin) {
+  if (targetBranch) {
     return `${baseName} - ${targetBranch}`;
   }
   return baseName;

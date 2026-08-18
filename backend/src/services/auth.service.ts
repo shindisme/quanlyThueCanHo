@@ -91,10 +91,10 @@ const userSummarySelect = {
             phone: true,
             email: true,
             citizen_id: true,
+            date_of_birth: true,
+            address: true,
             contracts: {
-                where: { status: ContractStatus.ACTIVE },
-                orderBy: { start_date: "desc" },
-                take: 1,
+                orderBy: { created_at: "desc" },
                 select: {
                     id: true,
                     apartment_id: true,

@@ -211,11 +211,19 @@ const startOfUtcDay = (date: Date) => new Date(Date.UTC(
 
 const toNumber = (value: Prisma.Decimal | number) => Number(value);
 
-const moneyNumber = (value: number | Prisma.Decimal) =>
-    new Prisma.Decimal(value).toDecimalPlaces(
+const moneyNumber = (value: number | Prisma.Decimal | null | undefined) => {
+    if (value === null || value === undefined) {
+        return 0;
+    }
+    const num = Number(value);
+    if (Number.isNaN(num)) {
+        return 0;
+    }
+    return new Prisma.Decimal(num).toDecimalPlaces(
         2,
         Prisma.Decimal.ROUND_HALF_UP
     ).toNumber();
+};
 
 const TERMINATION_NOTIFICATION_TYPE = "SYSTEM";
 
@@ -248,12 +256,19 @@ const createTerminationNotifications = async (
     title: string,
     content: string
 ) => {
-    const ids = [
+    const rawIds = [
         ...new Set(userIds.filter((userId): userId is number =>
             typeof userId === "number"
         ))
     ];
 
+    if (rawIds.length === 0) return;
+
+    const existingUsers = await transaction.user.findMany({
+        where: { id: { in: rawIds } },
+        select: { id: true }
+    });
+    const ids = existingUsers.map((user) => user.id);
     if (ids.length === 0) return;
 
     if (ids.length === 1) {
@@ -650,10 +665,10 @@ const calculateSettlementForTermination = async (
                 occupantCount
             )
         );
-    const damageAmount = input.damage_items?.reduce(
-        (sum, damage) => moneyNumber(sum + damage.amount),
+    const damageAmount = (input.damage_items ?? []).reduce(
+        (sum, damage) => sum + Number(damage.amount || 0),
         0
-    ) ?? 0;
+    );
     const depositPolicyValues = getDepositPolicyValues(
         termination,
         input.deposit_policy
@@ -1046,11 +1061,13 @@ export const syncMissingDepositRefundInvoicesForActor = async (
 const sumFinalInvoiceItems = (
     invoice: FinalSettlementInvoice | null | undefined,
     match: (itemName: string) => boolean
-) => (invoice?.items ?? []).reduce(
-    (sum, item) => match(item.item_name)
-        ? moneyNumber(sum + toNumber(item.amount))
-        : sum,
-    0
+) => moneyNumber(
+    (invoice?.items ?? []).reduce(
+        (sum, item) => match(item.item_name)
+            ? sum + toNumber(item.amount)
+            : sum,
+        0
+    )
 );
 
 const buildSettlementSummaryFromFinalInvoice = (
@@ -1249,8 +1266,7 @@ export const approveTerminationService = async (
             input.effective_end_date ?? termination.requested_end_date;
         const updated = await transaction.contractTermination.update({
             where: {
-                id: termination.id,
-                status: ContractTerminationStatus.PENDING
+                id: termination.id
             },
             data: {
                 status: ContractTerminationStatus.APPROVED,
@@ -1299,8 +1315,7 @@ export const rejectTerminationService = async (
 
         const updated = await transaction.contractTermination.update({
             where: {
-                id: termination.id,
-                status: ContractTerminationStatus.PENDING
+                id: termination.id
             },
             data: {
                 status: ContractTerminationStatus.REJECTED,
@@ -1554,8 +1569,7 @@ export const startInspectionService = async (
 
         const updated = await transaction.contractTermination.update({
             where: {
-                id: termination.id,
-                status: ContractTerminationStatus.APPROVED
+                id: termination.id
             },
             data: { status: ContractTerminationStatus.INSPECTION },
             include: terminationInclude
@@ -1633,142 +1647,157 @@ export const completeHandoverService = async (
 ) => {
     assertManagerOrAdmin(actor);
 
-    return runSerializableTransaction(async (transaction) => {
-        const termination = await findTerminationInScope(
-            transaction,
-            id,
-            actor
-        );
+    try {
+        return await runSerializableTransaction(async (transaction) => {
+            const termination = await findTerminationInScope(
+                transaction,
+                id,
+                actor
+            );
 
-        if (termination.status === ContractTerminationStatus.COMPLETED) {
-            const finalInvoice = (
-                termination.contract as TerminationWithRelations["contract"] & {
-                    invoices?: FinalSettlementInvoice[];
-                }
-            ).invoices?.[0] ?? null;
+            if (termination.status === ContractTerminationStatus.COMPLETED) {
+                const finalInvoice = (
+                    termination.contract as TerminationWithRelations["contract"] & {
+                        invoices?: FinalSettlementInvoice[];
+                    }
+                ).invoices?.[0] ?? null;
 
-            const refundInvoice = await transaction.invoice.findFirst({
-                where: {
-                    invoice_code: buildDepositRefundInvoiceCode(termination.id)
-                },
-                include: finalInvoiceInclude
-            });
-            const settlement = buildSettlementSummaryFromFinalInvoice(
+                const refundInvoice = await transaction.invoice.findFirst({
+                    where: {
+                        invoice_code: buildDepositRefundInvoiceCode(termination.id)
+                    },
+                    include: finalInvoiceInclude
+                });
+                const settlement = buildSettlementSummaryFromFinalInvoice(
+                    termination,
+                    finalInvoice
+                );
+
+                return {
+                    termination: {
+                        ...normalizeTermination(termination),
+                        refund_invoice: normalizeFinalInvoice(refundInvoice)
+                    },
+                    settlement: {
+                        ...settlement,
+                        refund_invoice: normalizeFinalInvoice(refundInvoice)
+                    }
+                };
+            }
+
+            if (
+                !handoverCompletionStatuses.includes(
+                    termination.status as typeof handoverCompletionStatuses[number]
+                )
+            ) {
+                throw invalidState("Chỉ có thể hoàn tất sau khi yêu cầu đã được duyệt");
+            }
+
+            const settlementData = await calculateSettlementForTermination(
+                transaction,
                 termination,
+                input
+            );
+            const finalInvoice = await saveFinalSettlementInvoice(
+                transaction,
+                termination,
+                settlementData,
+                input
+            );
+            const refundInvoice = await saveDepositRefundInvoice(
+                transaction,
+                termination,
+                settlementData
+            );
+
+            const ended = await transaction.rentalContract.updateMany({
+                where: {
+                    id: termination.contract.id,
+                    status: ContractStatus.ACTIVE
+                },
+                data: {
+                    status: ContractStatus.ENDED,
+                    end_date:
+                        termination.effective_end_date
+                        ?? termination.requested_end_date
+                }
+            });
+
+            if (ended.count === 0) {
+                const currentContract = await transaction.rentalContract.findUnique({
+                    where: { id: termination.contract.id },
+                    select: { status: true }
+                });
+                if (currentContract?.status !== ContractStatus.ENDED) {
+                    throw contractNotActive();
+                }
+            }
+
+            await transaction.apartment.updateMany({
+                where: {
+                    id: termination.contract.apartment_id,
+                    status: {
+                        in: [
+                            ApartmentStatus.VACATING_SOON,
+                            ApartmentStatus.RENTED
+                        ]
+                    }
+                },
+                data: {
+                    status: input.requires_maintenance
+                        ? ApartmentStatus.MAINTENANCE
+                        : ApartmentStatus.AVAILABLE
+                }
+            });
+
+            const completedAt = new Date();
+            const completedTerminationData = {
+                status: ContractTerminationStatus.COMPLETED,
+                completed_at: completedAt,
+                completed_by: actor.userId,
+                inspection_note: input.inspection_note,
+                final_electricity_old: input.final_electricity_old,
+                final_electricity_new: input.final_electricity_new,
+                final_water_old: input.final_water_old,
+                final_water_new: input.final_water_new,
+                requires_maintenance: input.requires_maintenance ?? false,
+                ...buildDepositPolicyUpdate(input.deposit_policy, termination.type)
+            };
+
+            await transaction.contractTermination.updateMany({
+                where: {
+                    id: termination.id,
+                    status: { in: [...handoverCompletionStatuses] }
+                },
+                data: completedTerminationData
+            });
+
+            await notifyTenantTerminationCompleted(
+                transaction,
+                termination,
+                settlementData,
                 finalInvoice
             );
 
             return {
                 termination: {
                     ...normalizeTermination(termination),
+                    ...completedTerminationData,
+                    final_invoice: normalizeFinalInvoice(finalInvoice),
                     refund_invoice: normalizeFinalInvoice(refundInvoice)
                 },
                 settlement: {
-                    ...settlement,
+                    ...settlementData,
+                    financial_status: getRuntimeFinancialStatus(
+                        settlementData.additional_amount_due,
+                        finalInvoice
+                    ),
+                    final_invoice: normalizeFinalInvoice(finalInvoice),
                     refund_invoice: normalizeFinalInvoice(refundInvoice)
                 }
             };
-        }
-
-        if (
-            !handoverCompletionStatuses.includes(
-                termination.status as typeof handoverCompletionStatuses[number]
-            )
-        ) {
-            throw invalidState("Chỉ có thể hoàn tất sau khi yêu cầu đã được duyệt");
-        }
-
-        const settlementData = await calculateSettlementForTermination(
-            transaction,
-            termination,
-            input
-        );
-        const finalInvoice = await saveFinalSettlementInvoice(
-            transaction,
-            termination,
-            settlementData,
-            input
-        );
-        const refundInvoice = await saveDepositRefundInvoice(
-            transaction,
-            termination,
-            settlementData
-        );
-
-        const ended = await transaction.rentalContract.updateMany({
-            where: {
-                id: termination.contract.id,
-                status: ContractStatus.ACTIVE
-            },
-            data: {
-                status: ContractStatus.ENDED,
-                end_date:
-                    termination.effective_end_date
-                    ?? termination.requested_end_date
-            }
-        });
-
-        if (ended.count === 0) {
-            throw contractNotActive();
-        }
-
-        await transaction.apartment.updateMany({
-            where: {
-                id: termination.contract.apartment_id,
-                status: ApartmentStatus.VACATING_SOON
-            },
-            data: {
-                status: input.requires_maintenance
-                    ? ApartmentStatus.MAINTENANCE
-                    : ApartmentStatus.AVAILABLE
-            }
-        });
-
-        const completedAt = new Date();
-        const completedTerminationData = {
-            status: ContractTerminationStatus.COMPLETED,
-            completed_at: completedAt,
-            completed_by: actor.userId,
-            inspection_note: input.inspection_note,
-            final_electricity_old: input.final_electricity_old,
-            final_electricity_new: input.final_electricity_new,
-            final_water_old: input.final_water_old,
-            final_water_new: input.final_water_new,
-            requires_maintenance: input.requires_maintenance ?? false,
-            ...buildDepositPolicyUpdate(input.deposit_policy, termination.type)
-        };
-
-        await transaction.contractTermination.updateMany({
-            where: {
-                id: termination.id,
-                status: { in: [...handoverCompletionStatuses] }
-            },
-            data: completedTerminationData
-        });
-
-        await notifyTenantTerminationCompleted(
-            transaction,
-            termination,
-            settlementData,
-            finalInvoice
-        );
-
-        return {
-            termination: {
-                ...normalizeTermination(termination),
-                ...completedTerminationData,
-                final_invoice: normalizeFinalInvoice(finalInvoice),
-                refund_invoice: normalizeFinalInvoice(refundInvoice)
-            },
-            settlement: {
-                ...settlementData,
-                financial_status: getRuntimeFinancialStatus(
-                    settlementData.additional_amount_due,
-                    finalInvoice
-                ),
-                final_invoice: normalizeFinalInvoice(finalInvoice),
-                refund_invoice: normalizeFinalInvoice(refundInvoice)
-            }
-        };
-    }, concurrentModification);
+        }, concurrentModification);
+    } catch (error) {
+        return mapTerminationWriteError(error);
+    }
 };

@@ -43,11 +43,14 @@ const tenantModeOptions: Array<{
   label: string;
   icon: React.ElementType;
 }> = [
-  { value: "existing", label: "Chọn khách thuê đã tồn tại", icon: Users },
+  { value: "existing", label: "Chọn khách đã từng thuê", icon: Users },
   { value: "new", label: "Thêm khách thuê mới", icon: UserPlus },
 ];
 
-const tenantFieldValue = (value?: string | null) => value || "Chưa cập nhật";
+const tenantFieldValue = (value?: string | null) => {
+  if (!value) return "Chưa cập nhật";
+  return value;
+};
 
 export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
   const modalIsOpen = props.controller ? props.controller.isOpen : (props.isOpen ?? false);
@@ -165,11 +168,11 @@ export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
           {isExistingTenantMode ? (
             <div className="space-y-3">
               <Combobox
-                label="Khách thuê đã tồn tại"
+                label="Khách thuê đã từng thuê"
                 options={tenantOptions}
                 value={form?.tenant_id || ""}
                 onChange={(val) => onTenantChange && onTenantChange(val)}
-                placeholder={isLoadingTenants ? "Đang tải..." : "Chọn khách thuê"}
+                placeholder={isLoadingTenants ? "Đang tải..." : "Chọn khách thuê từng thuê"}
                 searchPlaceholder="Tìm theo tên hoặc CCCD"
                 disabled={isLoadingTenants || isPending}
                 triggerClassName="h-11 rounded-xl border-gray-300 px-3.5"

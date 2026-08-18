@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from "react";
-import { Eye, FileText, Calendar as CalendarIcon, XCircle, CheckCircle, ClipboardCheck, Info, Ban } from "lucide-react";
+import { Eye, FileText, Calendar as CalendarIcon, XCircle, CheckCircle, ClipboardCheck, Ban } from "lucide-react";
 import Badge from "../../../../components/ui/Badge";
 import DataTable, { type Column } from "../../../../components/ui/DataTable";
 import {
@@ -29,15 +29,13 @@ interface ContractListProps {
   setSelectedDocContract: (c: RentalContract) => void;
   setSelectedExtendContract: (c: RentalContract) => void;
   setExtendEndDate: (date: string) => void;
-  setTerminateItem: (c: RentalContract) => void;
   setCancelContractItem?: (c: RentalContract) => void;
+  setCancelContractReason?: (reason: string) => void;
   openTerminationsByContractId: Map<number, ContractTermination>;
   overdueCandidateIds: Set<number>;
   onApproveTermination: (termination: ContractTermination) => void;
   onRejectTermination: (termination: ContractTermination) => void;
-  onCreateOverdueTermination: (contract: RentalContract) => void;
   onOpenTerminationCheckout: (contract: RentalContract, termination: ContractTermination) => void;
-  onViewTermination: (termination: ContractTermination) => void;
   isTerminationActionPending: boolean;
 }
 
@@ -65,13 +63,12 @@ export default function ContractList({
   setSelectedExtendContract,
   setExtendEndDate,
   setCancelContractItem,
+  setCancelContractReason,
   openTerminationsByContractId,
   overdueCandidateIds,
   onApproveTermination,
   onRejectTermination,
-  onCreateOverdueTermination,
   onOpenTerminationCheckout,
-  onViewTermination,
   isTerminationActionPending,
 }: ContractListProps) {
   const tenantMap = useMemo(() => new Map(tenants.map((t) => [t.id, t])), [tenants]);
@@ -101,73 +98,7 @@ export default function ContractList({
     [contractApartment, buildingMap]
   );
 
-  const renderTerminationActions = useCallback(
-    (contract: RentalContract) => {
-      if (contract.status !== "ACTIVE" || (role !== "ADMIN" && role !== "MANAGER")) return null;
-      const termination = openTerminationsByContractId.get(contract.id);
 
-      if (termination?.status === "PENDING") {
-        return (
-          <>
-            <button
-              disabled={isTerminationActionPending}
-              onClick={() => onApproveTermination(termination)}
-              className="p-2 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 cursor-pointer disabled:opacity-60"
-              title="Duyệt yêu cầu trả phòng"
-            >
-              <CheckCircle size={16} />
-            </button>
-            <button
-              disabled={isTerminationActionPending}
-              onClick={() => onRejectTermination(termination)}
-              className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer disabled:opacity-60"
-              title="Từ chối yêu cầu trả phòng"
-            >
-              <XCircle size={16} />
-            </button>
-          </>
-        );
-      }
-
-      if (termination) {
-        return (
-          <button
-            disabled={isTerminationActionPending}
-            onClick={() => onOpenTerminationCheckout(contract, termination)}
-            className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer disabled:opacity-60"
-            title="Kiểm tra và hoàn tất bàn giao"
-          >
-            <ClipboardCheck size={16} />
-          </button>
-        );
-      }
-
-      if (overdueCandidateIds.has(contract.id)) {
-        return (
-          <button
-            disabled={isTerminationActionPending}
-            onClick={() => onCreateOverdueTermination(contract)}
-            className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer disabled:opacity-60"
-            title="Thanh lý do nợ quá hạn trên 7 ngày"
-          >
-            <XCircle size={16} />
-          </button>
-        );
-      }
-
-      return null;
-    },
-    [
-      role,
-      openTerminationsByContractId,
-      overdueCandidateIds,
-      isTerminationActionPending,
-      onApproveTermination,
-      onRejectTermination,
-      onCreateOverdueTermination,
-      onOpenTerminationCheckout,
-    ]
-  );
 
   const columns: Column<RentalContract>[] = useMemo(
     () => [
@@ -253,72 +184,96 @@ export default function ContractList({
         key: "actions",
         label: "Chức năng",
         className: "text-right",
-        render: (c) => (
-          <div className="flex items-center justify-start gap-1">
-            <button
-              onClick={() => setSelectedDetailContract(c)}
-              className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
-              title="Xem chi tiết"
-            >
-              <Eye size={16} />
-            </button>
-            <button
-              onClick={() => setSelectedDocContract(c)}
-              className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
-              title="Biên bản bàn giao"
-            >
-              <FileText size={16} />
-            </button>
-            {c.status === "ACTIVE" && (
+        render: (c) => {
+          const termination = openTerminationsByContractId.get(c.id);
+          const isPendingTermination = termination?.status === "PENDING";
+          const isApprovedTermination = Boolean(termination && termination.status !== "PENDING");
+          const isAdminOrManager = role === "ADMIN" || role === "MANAGER";
+
+          return (
+            <div className="flex items-center justify-start gap-1">
               <button
-                onClick={() => {
-                  setSelectedExtendContract(c);
-                  setExtendEndDate("");
-                }}
-                className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer"
-                title="Gia hạn hợp đồng"
+                onClick={() => setSelectedDetailContract(c)}
+                className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
+                title="Xem chi tiết"
               >
-                <CalendarIcon size={16} />
+                <Eye size={16} />
               </button>
-            )}
-            {c.status === "ACTIVE"
-              && (role === "ADMIN" || role === "MANAGER")
-              && setCancelContractItem && (
+              <button
+                onClick={() => setSelectedDocContract(c)}
+                className="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 cursor-pointer"
+                title="Biên bản bàn giao"
+              >
+                <FileText size={16} />
+              </button>
+              {c.status === "ACTIVE" && !termination && (
                 <button
-                  disabled={isTerminationActionPending}
                   onClick={() => {
-                    const existingTermination = openTerminationsByContractId.get(c.id);
-                    if (existingTermination) {
-                      if (existingTermination.status === "PENDING") {
-                        onViewTermination(existingTermination);
-                      } else {
-                        onOpenTerminationCheckout(c, existingTermination);
-                      }
-                      return;
-                    }
-                    setCancelContractItem(c);
+                    setSelectedExtendContract(c);
+                    setExtendEndDate("");
                   }}
-                  className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer disabled:opacity-60"
-                  title="Hủy hợp đồng / Tiến hành thanh lý"
+                  className="p-2 rounded-lg text-gray-400 hover:text-green-600 hover:bg-green-50 cursor-pointer"
+                  title="Gia hạn hợp đồng"
                 >
-                  <Ban size={16} />
+                  <CalendarIcon size={16} />
                 </button>
               )}
-            {(() => {
-              const termination = openTerminationsByContractId.get(c.id);
-              return termination ? (
-                <button
-                  onClick={() => onViewTermination(termination)}
-                  className="p-2 rounded-lg text-gray-400 hover:text-info-600 hover:bg-info-50 cursor-pointer"
-                  title="Xem chi tiết yêu cầu thanh lý"
-                >
-                  <Info size={16} />
-                </button>
-              ) : null;
-            })()}
-            {renderTerminationActions(c)}
-          </div>
-        ),
+              {c.status === "ACTIVE" && isAdminOrManager && (
+                <>
+                  {isPendingTermination && (
+                    <>
+                      <button
+                        disabled={isTerminationActionPending}
+                        onClick={() => onApproveTermination(termination)}
+                        className="p-2 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 cursor-pointer disabled:opacity-60"
+                        title="Duyệt yêu cầu trả phòng"
+                      >
+                        <CheckCircle size={16} />
+                      </button>
+                      <button
+                        disabled={isTerminationActionPending}
+                        onClick={() => onRejectTermination(termination)}
+                        className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer disabled:opacity-60"
+                        title="Từ chối yêu cầu trả phòng"
+                      >
+                        <XCircle size={16} />
+                      </button>
+                    </>
+                  )}
+                  {isApprovedTermination && termination && (
+                    <button
+                      disabled={isTerminationActionPending}
+                      onClick={() => onOpenTerminationCheckout(c, termination)}
+                      className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer disabled:opacity-60"
+                      title="Kiểm tra và hoàn tất bàn giao"
+                    >
+                      <ClipboardCheck size={16} />
+                    </button>
+                  )}
+                  {!termination && (
+                    <button
+                      disabled={isTerminationActionPending}
+                      onClick={() => {
+                        if (setCancelContractItem) {
+                          if (overdueCandidateIds.has(c.id)) {
+                            setCancelContractReason?.("Thanh lý do nợ quá hạn trên 7 ngày");
+                          } else {
+                            setCancelContractReason?.("");
+                          }
+                          setCancelContractItem(c);
+                        }
+                      }}
+                      className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 cursor-pointer disabled:opacity-60"
+                      title={overdueCandidateIds.has(c.id) ? "Thanh lý do nợ quá hạn trên 7 ngày" : "Hủy hợp đồng / Tiến hành thanh lý"}
+                    >
+                      <Ban size={16} />
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        },
       },
     ],
     [
@@ -327,7 +282,6 @@ export default function ContractList({
       getStatusBadge,
       overdueCandidateIds,
       openTerminationsByContractId,
-      renderTerminationActions,
       role,
       startIdx,
       totalItems,
@@ -337,9 +291,11 @@ export default function ContractList({
       setSelectedDocContract,
       setSelectedExtendContract,
       setCancelContractItem,
+      setCancelContractReason,
       isTerminationActionPending,
+      onApproveTermination,
+      onRejectTermination,
       onOpenTerminationCheckout,
-      onViewTermination,
       tenantName,
     ]
   );

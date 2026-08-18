@@ -23,7 +23,7 @@ import {
     sendReservationDepositPaymentEmail,
     sendReservationExpiredEmail
 } from "./mail.service.js";
-import { buildDepositPaymentUrl } from "./payment.service.js";
+import { buildDepositPaymentUrl, generateCashTransactionCode } from "./payment.service.js";
 import { runSerializableTransaction } from "../utils/prisma-transaction.js";
 import {
     getReservationDepositBlockReason,
@@ -666,6 +666,10 @@ export const createReservationDepositService = async (
                         data: {
                             invoice_id: invoice.id,
                             payment_method: "CASH",
+                            transaction_code: generateCashTransactionCode(
+                                invoice.id,
+                                now
+                            ),
                             amount: input.deposit_amount,
                             status: PaymentStatus.SUCCESS,
                             paid_at: now

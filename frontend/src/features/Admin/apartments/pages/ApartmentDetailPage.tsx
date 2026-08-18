@@ -46,8 +46,12 @@ export default function ApartmentDetailPage() {
     reservedTenant,
     targetTenant,
     tenantContracts,
+    tenants,
     showTenantDetailModal,
     setShowTenantDetailModal,
+    selectedTenantModal,
+    setSelectedTenantModal,
+    handleOpenTenantDetail,
     fetchData,
     handleImageUpload,
     handleSetThumbnail,
@@ -303,7 +307,7 @@ export default function ApartmentDetailPage() {
               : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50/30"
               }`}
           >
-            Lịch sử hợp đồng ({targetTenant ? tenantContracts.length : 0})
+            Lịch sử hợp đồng ({tenantContracts.length})
           </button>
           <button
             onClick={() => setActiveTab("reviews")}
@@ -350,7 +354,7 @@ export default function ApartmentDetailPage() {
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => setShowTenantDetailModal(true)}
+                          onClick={() => handleOpenTenantDetail(activeTenant)}
                           className="h-8 text-xs font-semibold rounded-lg bg-white border-primary-200 text-primary-700 hover:bg-primary-50"
                         >
                           <Eye size={13} className="mr-1" /> Xem chi tiết người thuê
@@ -430,7 +434,7 @@ export default function ApartmentDetailPage() {
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => setShowTenantDetailModal(true)}
+                              onClick={() => handleOpenTenantDetail(reservedTenant || targetTenant)}
                               className="h-8 text-xs font-semibold rounded-lg bg-white border-amber-300 text-amber-900 hover:bg-amber-100"
                             >
                               <Eye size={13} className="mr-1" /> Xem chi tiết người cọc
@@ -521,33 +525,47 @@ export default function ApartmentDetailPage() {
             </div>
           )}
 
-          {/* Tab 2: Lịch sử */}
+          {/* Tab 2: Lịch sử hợp đồng của căn hộ */}
           {activeTab === "tenantHistory" && (
             <div className="space-y-4">
               <h3 className="font-semibold text-gray-800 text-base mb-2">
-                Lịch sử hợp đồng thuê của {targetTenant ? targetTenant.full_name : "người thuê hiện tại"}
+                Lịch sử hợp đồng thuê của căn hộ {apartment ? formatApartmentDisplay(apartment.room_number, apartment.floor, apartment.building?.branch_name) : ""}
               </h3>
-              {targetTenant ? (
-                tenantContracts.length > 0 ? (
-                  <div className="overflow-x-auto shadow-md">
-                    <table className="min-w-full divide-y divide-gray-150 text-xs">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-3 py-2.5 text-left font-semibold text-gray-650">Mã HĐ</th>
-                          <th className="px-3 py-2.5 text-left font-semibold text-gray-650">Căn hộ</th>
-                          <th className="px-3 py-2.5 text-left font-semibold text-gray-650">Thời hạn</th>
-                          <th className="px-3 py-2.5 text-left font-semibold text-gray-650">Tiền thuê/tháng</th>
-                          <th className="px-3 py-2.5 text-right font-semibold text-gray-650">Trạng thái</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 bg-white">
-                        {tenantContracts.map((c) => (
+              {tenantContracts.length > 0 ? (
+                <div className="overflow-x-auto shadow-md">
+                  <table className="min-w-full divide-y divide-gray-150 text-xs">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2.5 text-left font-semibold text-gray-650">Mã HĐ</th>
+                        <th className="px-3 py-2.5 text-left font-semibold text-gray-650">Người thuê</th>
+                        <th className="px-3 py-2.5 text-left font-semibold text-gray-650">Số CCCD</th>
+                        <th className="px-3 py-2.5 text-left font-semibold text-gray-650">Thời hạn</th>
+                        <th className="px-3 py-2.5 text-left font-semibold text-gray-650">Tiền thuê/tháng</th>
+                        <th className="px-3 py-2.5 text-right font-semibold text-gray-650">Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 bg-white">
+                      {tenantContracts.map((c) => {
+                        const contractTenant = c.tenant || tenants.find((t) => t.id === c.tenant_id);
+                        return (
                           <tr key={c.id} className="hover:bg-gray-50">
                             <td className="px-3 py-2.5 font-medium text-gray-700">HD-{String(c.id).padStart(5, "0")}</td>
                             <td className="px-3 py-2.5 text-gray-800 font-semibold">
-                              {c.apartment
-                                ? formatApartmentDisplay(c.apartment.room_number, c.apartment.floor, c.apartment.building?.branch_name)
-                                : formatApartmentDisplay(apartment.room_number, apartment.floor)}
+                              {contractTenant ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenTenantDetail(contractTenant)}
+                                  className="text-left font-semibold text-primary-600 hover:text-primary-700 hover:underline cursor-pointer"
+                                  title="Xem chi tiết người thuê"
+                                >
+                                  {contractTenant.full_name || "Chưa cập nhật"}
+                                </button>
+                              ) : (
+                                <span className="text-gray-400">Chưa cập nhật</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2.5 text-gray-600">
+                              {contractTenant?.citizen_id ? maskCCCD(contractTenant.citizen_id) : "-"}
                             </td>
                             <td className="px-3 py-2.5 text-gray-600">
                               {formatDate(c.start_date)} - {formatDate(c.end_date)}
@@ -566,15 +584,13 @@ export default function ApartmentDetailPage() {
                               })()}
                             </td>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-400 py-6 text-center">Không có lịch sử hợp đồng nào khác của người này</p>
-                )
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
-                <p className="text-sm text-gray-400 py-6 text-center">Chưa có người thuê hoặc khách đặt cọc hiện tại</p>
+                <p className="text-sm text-gray-400 py-6 text-center">Chưa có lịch sử hợp đồng nào cho căn hộ này</p>
               )}
             </div>
           )}
@@ -664,8 +680,11 @@ export default function ApartmentDetailPage() {
       />
       <TenantDetailModal
         isOpen={showTenantDetailModal}
-        onClose={() => setShowTenantDetailModal(false)}
-        tenant={targetTenant}
+        onClose={() => {
+          setShowTenantDetailModal(false);
+          setSelectedTenantModal(null);
+        }}
+        tenant={selectedTenantModal || targetTenant}
       />
     </div>
   );

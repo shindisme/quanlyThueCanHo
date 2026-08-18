@@ -116,6 +116,10 @@ export function useProfile() {
   });
 
   const handleOpenEditProfile = () => {
+    if (role === "TENANT" && (!userContract || userContract.status !== "ACTIVE")) {
+      toast.error("Bạn cần có hợp đồng thuê đang kích hoạt để chỉnh sửa thông tin.");
+      return;
+    }
     setEditFullName(fullName);
     setEditPhone(phone);
     setShowEditProfileModal(true);
@@ -165,7 +169,7 @@ export function useProfile() {
       }
     },
     canEditProfile: role === "TENANT"
-      ? Boolean(tenantProfileQuery.data)
+      ? Boolean(tenantProfileQuery.data && userContract && userContract.status === "ACTIVE")
       : role === "MANAGER" || role === "STAFF"
         ? Boolean(currentStaff)
         : false,

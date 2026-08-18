@@ -95,29 +95,33 @@ export function useTenantPage() {
     const tenantContracts = t.contracts?.length
       ? t.contracts
       : contracts.filter((c) => c.tenant_id === t.id);
-    const activeContract = tenantContracts.find((c) => c.status === "ACTIVE");
 
-    if (activeContract) {
+    const mappedContracts = tenantContracts.map((c) => {
       const apt =
-        activeContract.apartment ?? apartments.find((a) => a.id === activeContract.apartment_id);
+        c.apartment ?? apartments.find((a) => a.id === c.apartment_id);
       const bld =
         apt?.building ?? (apt ? buildings.find((b) => b.id === apt.building_id) : null);
       return {
-        ...t,
-        contracts: [
-          {
-            ...activeContract,
-            apartment: apt
-              ? {
-                ...apt,
-                building: bld ?? undefined,
-              }
-              : undefined,
-          },
-        ],
+        ...c,
+        apartment: apt
+          ? {
+              ...apt,
+              building: bld ?? undefined,
+            }
+          : undefined,
       };
-    }
-    return { ...t, contracts: [] };
+    });
+
+    mappedContracts.sort((a, b) => {
+      if (a.status === "ACTIVE" && b.status !== "ACTIVE") return -1;
+      if (b.status === "ACTIVE" && a.status !== "ACTIVE") return 1;
+      return (b.id || 0) - (a.id || 0);
+    });
+
+    return {
+      ...t,
+      contracts: mappedContracts,
+    };
   });
 
   const availableFloors = useMemo(() => {
@@ -135,18 +139,19 @@ export function useTenantPage() {
   }, [apartments, selectedBuilding, role, managedBuildingId]);
 
   const filtered = displayTenantsWithContracts.filter((t) => {
-    const activeContract = t.contracts?.[0];
+    const activeContract = t.contracts?.find((c) => c.status === "ACTIVE");
+    const preferredContract = getPreferredContract(t.contracts);
 
     // Lọc theo tòa nhà
     if (role === "ADMIN" && selectedBuilding) {
-      if (!activeContract || activeContract.apartment?.building_id !== Number(selectedBuilding)) {
+      if (!preferredContract || preferredContract.apartment?.building_id !== Number(selectedBuilding)) {
         return false;
       }
     }
 
     // Lọc theo tầng
     if (selectedFloor) {
-      if (!activeContract || activeContract.apartment?.floor !== Number(selectedFloor)) {
+      if (!preferredContract || preferredContract.apartment?.floor !== Number(selectedFloor)) {
         return false;
       }
     }

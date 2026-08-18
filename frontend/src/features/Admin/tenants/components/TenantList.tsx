@@ -70,25 +70,47 @@ export default function TenantList({
         label: "Căn hộ",
         sortValue: (t) => {
           const activeContract = getPreferredContract(t.contracts);
-          if (!activeContract || !activeContract.apartment) return "Chưa thuê";
-          return `${activeContract.apartment.building?.branch_name || ""} - P.${activeContract.apartment.room_number}`;
+          if (activeContract?.apartment) {
+            return `${activeContract.apartment.building?.branch_name || ""} - P.${activeContract.apartment.room_number}`;
+          }
+          const endedContract = t.contracts?.find((c) => c.status === "ENDED" && c.apartment);
+          if (endedContract?.apartment) {
+            return `${endedContract.apartment.building?.branch_name || ""} - P.${endedContract.apartment.room_number}`;
+          }
+          return "Chưa thuê";
         },
         render: (t) => {
           const activeContract = getPreferredContract(t.contracts);
-          if (!activeContract || !activeContract.apartment) {
-            return <span className="text-gray-450 italic text-xs">Chưa thuê</span>;
+          if (activeContract && activeContract.apartment) {
+            const apt = activeContract.apartment;
+            const bld = apt.building;
+            const roomNum = formatApartmentDisplay(apt.room_number, apt.floor);
+            return (
+              <div className="flex flex-col">
+                <span className="font-semibold text-gray-800">{roomNum}</span>
+                {role === "ADMIN" && bld?.branch_name && (
+                  <span className="text-[10px] font-semibold text-primary-600">{bld.branch_name}</span>
+                )}
+              </div>
+            );
           }
-          const apt = activeContract.apartment;
-          const bld = apt.building;
-          const roomNum = formatApartmentDisplay(apt.room_number, apt.floor);
-          return (
-            <div className="flex flex-col">
-              <span className="font-semibold text-gray-800">{roomNum}</span>
-              {role === "ADMIN" && bld?.branch_name && (
-                <span className="text-[10px] font-semibold text-primary-600">{bld.branch_name}</span>
-              )}
-            </div>
-          );
+
+          const endedContract = t.contracts?.find((c) => c.status === "ENDED" && c.apartment);
+          if (endedContract && endedContract.apartment) {
+            const apt = endedContract.apartment;
+            const bld = apt.building;
+            const roomNum = formatApartmentDisplay(apt.room_number, apt.floor);
+            return (
+              <div className="flex flex-col">
+                <span className="font-medium text-gray-700 text-xs">
+                  {roomNum} {bld?.branch_name ? `(${bld.branch_name})` : ""}
+                </span>
+                <span className="text-[10px] text-amber-600 font-medium">Đã từng thuê</span>
+              </div>
+            );
+          }
+
+          return <span className="text-gray-450 italic text-xs">Chưa thuê</span>;
         },
       },
       {

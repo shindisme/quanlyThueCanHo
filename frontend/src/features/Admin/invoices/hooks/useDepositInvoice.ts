@@ -153,18 +153,34 @@ export function useDepositInvoice(options?: UseDepositInvoiceOptions) {
     return availableApartments.find((apt) => String(apt.id) === form.apartment_id) || null;
   }, [fixedApartment, availableApartments, form.apartment_id]);
 
+  const eligibleTenants = useMemo(() => {
+    return tenants.filter((tenant) => {
+      const hasActiveContract =
+        tenant.contracts?.some((c) => c.status === "ACTIVE") ||
+        (tenant.contracts && tenant.contracts.length > 0);
+      if (hasActiveContract) return false;
+
+      // hiển thị khách thuê đã từng có hợp đồng ended
+      const hasEndedContract =
+        (tenant._count?.contracts && tenant._count.contracts > 0) ||
+        tenant.contracts?.some((c) => c.status === "ENDED");
+
+      return Boolean(hasEndedContract);
+    });
+  }, [tenants]);
+
   const selectedTenant = useMemo(() => {
-    return tenants.find((tenant) => String(tenant.id) === form.tenant_id) || null;
-  }, [tenants, form.tenant_id]);
+    return eligibleTenants.find((tenant) => String(tenant.id) === form.tenant_id) || null;
+  }, [eligibleTenants, form.tenant_id]);
 
   const tenantOptions = useMemo(() => {
-    return tenants
+    return eligibleTenants
       .map((tenant) => ({
         value: String(tenant.id),
         label: `${tenant.full_name} (${tenant.citizen_id})`,
       }))
       .sort((a, b) => a.label.localeCompare(b.label, "vi"));
-  }, [tenants]);
+  }, [eligibleTenants]);
 
   const buildingOptions = useMemo(() => {
     return Array.from(

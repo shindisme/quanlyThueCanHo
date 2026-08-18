@@ -17,6 +17,7 @@ import { removeVietnameseTones } from "../../../../utils/string";
 import { useExtendContract } from "./useExtendContract";
 import { queryKeys } from "../../../../constants/queryKeys";
 import { isOpenContractTerminationStatus } from "../../../../constants/enums";
+import { getApiErrorMessage } from "../../../../utils/apiError";
 
 interface LocationState {
   openCreateModal?: boolean;
@@ -51,6 +52,8 @@ export function useContractPage() {
   const [selectedTerminationDetail, setSelectedTerminationDetail] = useState<ContractTermination | null>(null);
   const [cancelContractItem, setCancelContractItem] = useState<RentalContract | null>(null);
   const [cancelContractReason, setCancelContractReason] = useState("");
+  const [rejectTerminationItem, setRejectTerminationItem] = useState<ContractTermination | null>(null);
+  const [rejectTerminationReason, setRejectTerminationReason] = useState("");
   const [extendEndDate, setExtendEndDate] = useState("");
   const [initialTenantId, setInitialTenantId] = useState<number | undefined>();
   const [initialApartmentId, setInitialApartmentId] = useState<number | undefined>();
@@ -329,8 +332,7 @@ export function useContractPage() {
       await invalidateTerminationFlow();
     },
     onError: (error: unknown) => {
-      const err = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
-      toast.error(err.response?.data?.error || err.response?.data?.message || err.message || "Không thể duyệt yêu cầu thanh lý.");
+      toast.error(getApiErrorMessage(error, "Không thể duyệt yêu cầu thanh lý."));
     },
   });
 
@@ -338,11 +340,12 @@ export function useContractPage() {
     mutationFn: ({ id, reason }: { id: number; reason: string }) => contractTerminationService.reject(id, reason),
     onSuccess: async () => {
       toast.success("Đã từ chối yêu cầu thanh lý.");
+      setRejectTerminationItem(null);
+      setRejectTerminationReason("");
       await invalidateTerminationFlow();
     },
     onError: (error: unknown) => {
-      const err = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
-      toast.error(err.response?.data?.error || err.response?.data?.message || err.message || "Không thể từ chối yêu cầu thanh lý.");
+      toast.error(getApiErrorMessage(error, "Không thể từ chối yêu cầu thanh lý."));
     },
   });
   const cancelTerminationMutation = useMutation({
@@ -355,8 +358,7 @@ export function useContractPage() {
       await invalidateTerminationFlow();
     },
     onError: (error: unknown) => {
-      const err = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
-      toast.error(err.response?.data?.error || err.response?.data?.message || err.message || "Không thể hủy thanh lý hợp đồng.");
+      toast.error(getApiErrorMessage(error, "Không thể hủy thanh lý hợp đồng."));
     },
   });
 
@@ -373,8 +375,7 @@ export function useContractPage() {
       setTerminateItem(contract);
     },
     onError: (error: unknown) => {
-      const err = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
-      toast.error(err.response?.data?.error || err.response?.data?.message || err.message || "Không thể tạo thanh lý hợp đồng.");
+      toast.error(getApiErrorMessage(error, "Không thể tạo thanh lý hợp đồng."));
     },
   });
 
@@ -394,13 +395,7 @@ export function useContractPage() {
       await invalidateTerminationFlow();
     },
     onError: (error: unknown) => {
-      const err = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
-      toast.error(
-        err.response?.data?.error
-        || err.response?.data?.message
-        || err.message
-        || "Không thể bắt đầu thanh lý hợp đồng."
-      );
+      toast.error(getApiErrorMessage(error, "Không thể bắt đầu thanh lý hợp đồng."));
     },
   });
 
@@ -410,10 +405,20 @@ export function useContractPage() {
   }
 
   function handleRejectTermination(termination: ContractTermination) {
-    const reason = window.prompt("Nhập lý do từ chối yêu cầu thanh lý:");
-    if (!reason?.trim()) return;
-    rejectTerminationMutation.mutate({ id: termination.id, reason: reason.trim() });
+    setRejectTerminationItem(termination);
+    setRejectTerminationReason("");
   }
+
+  function handleConfirmRejectTermination() {
+    if (!rejectTerminationItem) return;
+    const reason = rejectTerminationReason.trim();
+    if (!reason) {
+      toast.error("Vui lòng nhập lý do từ chối yêu cầu thanh lý.");
+      return;
+    }
+    rejectTerminationMutation.mutate({ id: rejectTerminationItem.id, reason });
+  }
+
   function handleCancelTermination(termination: ContractTermination) {
     const ok = window.confirm("Bạn có chắc chắn muốn hủy thanh lý hợp đồng này không?");
     if (!ok) return;
@@ -421,9 +426,10 @@ export function useContractPage() {
   }
 
   function handleCreateOverdueTermination(contract: RentalContract) {
-    const reason = window.prompt("Nhập lý do quản lý chủ động thanh lý hợp đồng:");
-    if (!reason?.trim()) return;
-    createOverdueTerminationMutation.mutate({ contractId: contract.id, reason: reason.trim() });
+    if (setCancelContractItem) {
+      setCancelContractReason("Thanh lý do nợ quá hạn trên 7 ngày");
+      setCancelContractItem(contract);
+    }
   }
 
   function handleOpenTerminationCheckout(contract: RentalContract, termination: ContractTermination) {
@@ -524,6 +530,11 @@ export function useContractPage() {
     overdueCandidateIds,
     handleApproveTermination,
     handleRejectTermination,
+    rejectTerminationItem,
+    setRejectTerminationItem,
+    rejectTerminationReason,
+    setRejectTerminationReason,
+    handleConfirmRejectTermination,
     handleCancelTermination,
     handleCreateOverdueTermination,
     handleOpenTerminationCheckout,

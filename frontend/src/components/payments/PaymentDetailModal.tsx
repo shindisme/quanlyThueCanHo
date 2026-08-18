@@ -31,13 +31,16 @@ export default function PaymentDetailModal({ isOpen, onClose, payment, showPayer
   const invoiceType = invoice ? INVOICE_TYPE_CONFIG[getInvoiceType(invoice)] : null;
   const lateDays = invoice ? getInvoiceLateDays(invoice) : 0;
 
+  const time = payment.paid_at ? new Date(payment.paid_at).getTime() : payment.id;
+  const displayCode = payment.transaction_code || (payment.payment_method === "CASH" ? `CASH-${payment.invoice_id}-${time}` : "-");
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Chi tiết giao dịch" size="lg">
       <div className="space-y-6 text-sm">
         <div className="flex flex-col justify-between gap-4 border-b border-gray-100 pb-4 md:flex-row">
           <div>
-            <h4 className="text-base font-bold text-gray-900">Mã giao dịch: <span className="font-mono text-primary-600">{payment.transaction_code || "-"}</span></h4>
-            <p className="mt-1 text-xs text-gray-400">Phương thức: {PAYMENT_METHOD_CONFIG[payment.payment_method]?.label ?? "Phương thức cũ"}</p>
+            <h4 className="text-base font-bold text-gray-900">Mã giao dịch: <span className="font-mono text-primary-600">{displayCode}</span></h4>
+            <p className="mt-1 text-xs text-gray-400">Phương thức: {PAYMENT_METHOD_CONFIG[payment.payment_method]?.label ?? (payment.payment_method === "CASH" ? "Tiền mặt" : "VNPay")}</p>
             <p className="text-xs text-gray-400">Thời gian: {formatDate(payment.paid_at)}</p>
           </div>
           <div className="flex flex-col items-start gap-1.5 md:items-end">

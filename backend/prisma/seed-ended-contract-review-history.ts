@@ -162,7 +162,24 @@ const buildPlans = (apartments: Apartment[]) =>
                         stableKey % 12,
                         1 + (stableKey % 27)
                     )),
-                    address: `Đã thuê căn P.${apartment.room_number}, ${apartment.building.branch_name}`
+                    address: [
+                        "123 Nguyễn Thị Minh Khai, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh",
+                        "45/2 Lê Lợi, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
+                        "88 Nam Kỳ Khởi Nghĩa, Phường Võ Thị Sáu, Quận 3, TP. Hồ Chí Minh",
+                        "12 Trương Định, Phường 6, Quận 3, TP. Hồ Chí Minh",
+                        "254 Nguyễn Văn Trỗi, Phường 8, Quận Phú Nhuận, TP. Hồ Chí Minh",
+                        "76 Phan Xích Long, Phường 2, Quận Phú Nhuận, TP. Hồ Chí Minh",
+                        "312 Điện Biên Phủ, Phường 15, Quận Bình Thạnh, TP. Hồ Chí Minh",
+                        "19 Bạch Đằng, Phường 24, Quận Bình Thạnh, TP. Hồ Chí Minh",
+                        "105 Hoàng Diệu, Phường 12, Quận 4, TP. Hồ Chí Minh",
+                        "68 Trần Hưng Đạo, Phường Cầu Ông Lãnh, Quận 1, TP. Hồ Chí Minh",
+                        "142 Võ Văn Tần, Phường 5, Quận 3, TP. Hồ Chí Minh",
+                        "50 Cách Mạng Tháng 8, Phường 6, Quận 3, TP. Hồ Chí Minh",
+                        "89 Nguyễn Trãi, Phường Bến Thành, Quận 1, TP. Hồ Chí Minh",
+                        "230 Lê Văn Sỹ, Phường 14, Quận 3, TP. Hồ Chí Minh",
+                        "175 Hai Bà Trưng, Phường Đa Kao, Quận 1, TP. Hồ Chí Minh",
+                        "60 Đinh Tiên Hoàng, Phường Đa Kao, Quận 1, TP. Hồ Chí Minh"
+                    ][stableKey % 16]
                 },
                 contract: {
                     startDate: period.startDate,

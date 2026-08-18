@@ -41,6 +41,8 @@ const contractInclude = {
             phone: true,
             email: true,
             citizen_id: true,
+            date_of_birth: true,
+            address: true,
             user_id: true
         }
     },
@@ -538,11 +540,6 @@ export const createContractService = async (
             }
 
             const depositAmount = Number(reservation.deposit_amount);
-            await transaction.reservation.update({
-                where: { id: reservation.id },
-                data: { status: ReservationStatus.CONVERTED }
-            });
-
             assertPositiveMoney(depositAmount, "deposit_amount");
 
             const apartmentConnect:
@@ -593,6 +590,13 @@ export const createContractService = async (
                         : {})
                 },
                 data: { status: ApartmentStatus.RENTED }
+            });
+
+            await transaction.tenant.update({
+                where: { id: tenant.id },
+                data: {
+                    onboarding_building_id: apartment.building_id
+                }
             });
 
             if (reservation) {

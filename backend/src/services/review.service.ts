@@ -68,12 +68,12 @@ export const createReviewService = async (
         );
     }
 
-    // Kiểm tra xem người thuê có hợp đồng không
+    // Kiểm tra xem người thuê có hợp đồng đã kết thúc không
     const contract = await prisma.rentalContract.findFirst({
         where: {
             tenant_id: tenantId,
             apartment_id: input.apartment_id,
-            status: { in: [ContractStatus.ACTIVE, ContractStatus.ENDED] }
+            status: ContractStatus.ENDED
         }
     });
 
@@ -81,7 +81,7 @@ export const createReviewService = async (
         throw new AppError(
             403,
             "FORBIDDEN",
-            "Bạn chỉ có thể gửi đánh giá cho những căn hộ mà bạn đã hoặc đang thuê."
+            "Bạn chỉ có thể gửi đánh giá cho những căn hộ mà bạn đã kết thúc hợp đồng thuê."
         );
     }
 

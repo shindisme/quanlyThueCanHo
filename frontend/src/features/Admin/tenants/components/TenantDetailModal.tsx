@@ -1,14 +1,22 @@
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import type { Tenant } from "../../../../types";
-import { getPreferredContract } from "../../../../utils/contract";
+import { findActiveContract } from "../../../../utils/contract";
 import { formatDate } from "../../../../utils/date";
 import { formatApartmentDisplay } from "../../../../utils/string";
+
+export type TenantModalData =
+  | Tenant
+  | Partial<Tenant>
+  | (Partial<Omit<Tenant, "user">> & {
+      user?: { id?: number; username?: string; role?: string; status?: string; created_at?: string } | null;
+    })
+  | null;
 
 interface TenantDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  tenant: Tenant | null;
+  tenant: TenantModalData;
 }
 
 export default function TenantDetailModal({
@@ -32,12 +40,23 @@ export default function TenantDetailModal({
     );
   }
 
-  // Destructure thuộc tính người thuê để rút gọn code
   const { full_name, phone, email, citizen_id, date_of_birth, address, contracts } = tenant;
 
-  // Tìm hợp đồng đang ACTIVE, ko thì lấy cái đầu tiên 
-  const activeContract = getPreferredContract(contracts);
-  const apartment = activeContract?.apartment;
+  // Tìm hợp đồng đang ACTIVE hoặc ENDED
+  const activeContract = findActiveContract(contracts);
+  const currentApartment = activeContract?.apartment;
+
+  const endedContract = !currentApartment
+    ? contracts?.find((c) => c.status === "ENDED" && c.apartment)
+    : null;
+  const pastApartmentDisplay = endedContract?.apartment
+    ? formatApartmentDisplay(
+        endedContract.apartment.room_number,
+        endedContract.apartment.floor,
+        endedContract.apartment.building?.branch_name || endedContract.apartment.building?.name
+      )
+    : null;
+  const displayAddress = address || "-";
 
   return (
     <Modal
@@ -72,20 +91,27 @@ export default function TenantDetailModal({
         </div>
         <div className="flex justify-between items-start gap-4 border-b pb-2 border-gray-100">
           <span className="text-gray-500 font-medium shrink-0">Địa chỉ:</span>
-          <span className="font-semibold text-gray-800 text-right wrap-break-word max-w-[65%]">{address || "-"}</span>
+          <span className="font-semibold text-gray-800 text-right wrap-break-word max-w-[65%]">{displayAddress}</span>
         </div>
-        {apartment && (
+        {currentApartment ? (
           <div className="flex justify-between items-start gap-4 border-b pb-2 border-gray-100">
             <span className="text-gray-500 font-medium shrink-0">Căn hộ đang thuê:</span>
             <span className="font-semibold text-gray-800 text-right wrap-break-word max-w-[65%]">
               {formatApartmentDisplay(
-                apartment.room_number,
-                apartment.floor,
-                apartment.building?.branch_name
+                currentApartment.room_number,
+                currentApartment.floor,
+                currentApartment.building?.branch_name || currentApartment.building?.name
               )}
             </span>
           </div>
-        )}
+        ) : pastApartmentDisplay ? (
+          <div className="flex justify-between items-start gap-4 border-b pb-2 border-gray-100">
+            <span className="text-gray-500 font-medium shrink-0">Căn hộ đã từng thuê:</span>
+            <span className="font-semibold text-gray-800 text-right wrap-break-word max-w-[65%]">
+              {pastApartmentDisplay}
+            </span>
+          </div>
+        ) : null}
       </div>
     </Modal>
   );

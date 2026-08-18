@@ -55,9 +55,7 @@ const tenantSelect = {
         }
     },
     contracts: {
-        where: { status: ContractStatus.ACTIVE },
-        orderBy: { start_date: "desc" },
-        take: 1,
+        orderBy: { created_at: "desc" },
         select: {
             id: true,
             apartment_id: true,

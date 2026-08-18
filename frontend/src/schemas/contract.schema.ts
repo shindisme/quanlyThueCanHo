@@ -19,7 +19,7 @@ export const contractSchema = z.object({
   start_date: z.string().min(1, { message: "Ngày bắt đầu không được để trống" }),
   end_date: z.string().min(1, { message: "Ngày kết thúc không được để trống" }),
   actual_occupants: z.number({ message: "Số người ở phải là một số" }).min(1, { message: "Số người ở phải ít nhất là 1" }).optional(),
-  monthly_rent: z.number().positive({ message: "Tiền thuê phải lớn hơn 0" }),
+  monthly_rent: z.number({ message: "Tiền thuê phải lớn hơn 0" }).positive({ message: "Tiền thuê phải lớn hơn 0" }),
 }).superRefine((data, ctx) => {
   const requiredNumberFields = [
     ["building_id", data.building_id, "Vui lòng chọn chi nhánh"],

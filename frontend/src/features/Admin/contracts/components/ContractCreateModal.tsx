@@ -1,4 +1,3 @@
-import { Info } from "lucide-react";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
@@ -76,7 +75,6 @@ export default function ContractCreateModal({
     isBuildingLocked,
     isFloorLocked,
     isApartmentLocked,
-    hasReservationContext,
   } = useContractCreate({
     isOpen,
     onSuccess,
@@ -104,14 +102,6 @@ export default function ContractCreateModal({
       }
     >
       <div className="space-y-4 font-sans text-sm">
-        {hasReservationContext && (
-          <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
-            <Info size={16} className="text-amber-600 shrink-0" />
-            <span>
-              Thông tin khách thuê và căn hộ đã được tự động khóa theo phiếu đặt cọc giữ chỗ.
-            </span>
-          </div>
-        )}
 
         <div className="grid grid-cols-12 gap-4 sm:gap-6">
           <div className="col-span-12">
@@ -242,7 +232,7 @@ export default function ContractCreateModal({
 
           <div className="col-span-12 sm:col-span-6">
             <Input
-              label={`Số lượng người ở thực tế ${apartmentIdValue ? `(Tối đa: ${maxOccupants} người)` : ""} *`}
+              label={`Số lượng người ở thực tế ${apartmentIdValue ? `(Tối đa: ${maxOccupants} người)` : ""}`}
               type="number"
               min={1}
               value={actualOccupantsValue || ""}

@@ -8,6 +8,7 @@ export interface ComboboxOption {
   value: string
   label: string
   disabled?: boolean
+  searchKeywords?: string | string[]
 }
 
 export interface ComboboxProps {
@@ -111,6 +112,7 @@ export function Combobox({
     if (disabledOption) return
     onChange(val)
     setIsOpen(false)
+    setSearchQuery("")
   }
 
   const handleClear = (e: React.MouseEvent) => {
@@ -119,14 +121,61 @@ export function Combobox({
     setSearchQuery("")
   }
 
-  const filteredOptions = safeOptions.filter((opt) => {
-    const term = removeVietnameseTones((searchQuery || "").toLowerCase())
-    const labelNorm = removeVietnameseTones((opt?.label || "").toLowerCase())
-    return labelNorm.includes(term)
-  })
+  const calculateRelevanceScore = (opt: ComboboxOption, rawQuery: string): number => {
+    const query = rawQuery.trim().toLowerCase()
+    if (!query) return 1
+
+    const queryNoTone = removeVietnameseTones(query)
+    const labelRaw = (opt.label || "").toLowerCase()
+    const labelNoTone = removeVietnameseTones(opt.label || "")
+    const valueRaw = String(opt.value || "").toLowerCase()
+
+    if (labelRaw === query) return 10000
+    if (labelRaw.startsWith(query)) return 8000
+    if (labelRaw.includes(query)) return 5000
+
+    if (opt.searchKeywords) {
+      const kws = Array.isArray(opt.searchKeywords) ? opt.searchKeywords : [opt.searchKeywords]
+      for (const kw of kws) {
+        const kwRaw = String(kw || "").toLowerCase()
+        const kwNoTone = removeVietnameseTones(kwRaw)
+        if (kwRaw === query) return 9000
+        if (kwRaw.startsWith(query)) return 7000
+        if (kwRaw.includes(query)) return 4500
+        if (kwNoTone === queryNoTone) return 4000
+        if (kwNoTone.startsWith(queryNoTone)) return 3500
+        if (kwNoTone.includes(queryNoTone)) return 2500
+      }
+    }
+
+    if (labelNoTone === queryNoTone) return 4000
+    if (labelNoTone.startsWith(queryNoTone)) return 3500
+
+    const words = labelNoTone.split(/[\s,()\-]+/).filter(Boolean)
+    const queryWords = queryNoTone.split(/[\s,()\-]+/).filter(Boolean)
+    const isExactWordMatch = queryWords.every((qw) => words.includes(qw))
+    if (isExactWordMatch) return 3000
+
+    const isAllWordsPrefix = queryWords.every((qw) => words.some((w) => w.startsWith(qw)))
+    if (isAllWordsPrefix) return 2000
+
+    if (labelNoTone.includes(queryNoTone)) return 500
+
+    if (valueRaw === query || valueRaw.includes(query)) return 400
+
+    return 0
+  }
+
+  const filteredOptions = safeOptions
+    .map((opt) => ({ opt, score: calculateRelevanceScore(opt, searchQuery) }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((item) => item.opt)
 
   // Nhãn hiển thị tạm thời khi đang tìm kiếm
-  const dynamicPlaceholder = isOpen && selectedOption ? selectedOption.label : placeholder
+  const dynamicPlaceholder = isOpen
+    ? (selectedOption ? `${selectedOption.label} - ${searchPlaceholder || "Tìm kiếm..."}` : (searchPlaceholder || placeholder))
+    : (selectedOption ? selectedOption.label : placeholder)
 
   // Giá trị trong ô input
   const dynamicValue = isOpen ? searchQuery : (selectedOption ? selectedOption.label : "")
@@ -192,22 +241,6 @@ export function Combobox({
             }}
             className="z-99999 rounded-xl border border-primary-500 bg-white shadow-2xl overflow-hidden font-sans"
           >
-            {/* Ô tìm kiếm */}
-            {searchable && safeOptions.length > 5 && (
-              <div className="p-2 border-b border-gray-100 bg-gray-50/50">
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={searchPlaceholder || "Tìm kiếm..."}
-                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500"
-                    autoFocus
-                  />
-                  <ChevronDown size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 rotate-180" />
-                </div>
-              </div>
-            )}
             {/* Options List */}
             <div className="max-h-60 overflow-y-auto p-1.5 space-y-0.5">
               {/* options reset mặc định */}

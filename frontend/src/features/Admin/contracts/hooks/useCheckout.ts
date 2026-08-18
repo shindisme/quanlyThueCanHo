@@ -11,6 +11,7 @@ import type {
 } from "../../../../types";
 import { contractTerminationService, invoiceService, utilityService } from "../../../../services";
 import { queryKeys } from "../../../../constants/queryKeys";
+import { getApiErrorMessage } from "../../../../utils/apiError";
 
 const MAX_METER_VALUE = 100000;
 const MAX_INPUT_METER = 99999;
@@ -250,8 +251,7 @@ export function useCheckout({ contract, termination, isOpen, onClose }: UseCheck
       setStep(CheckoutStep.DEPOSIT);
     },
     onError: (err: unknown) => {
-      const error = err as { response?: { data?: { message?: string; error?: string } }; message?: string };
-      toast.error(error.response?.data?.message || error.response?.data?.error || error.message || "Không thể tính quyết toán.");
+      toast.error(getApiErrorMessage(err, "Không thể tính quyết toán."));
     },
   });
 
@@ -271,8 +271,7 @@ export function useCheckout({ contract, termination, isOpen, onClose }: UseCheck
       onClose({ completed: true });
     },
     onError: (err: unknown) => {
-      const error = err as { response?: { data?: { message?: string; error?: string } }; message?: string };
-      toast.error(error.response?.data?.message || error.response?.data?.error || error.message || "Không thể hoàn tất bàn giao.");
+      toast.error(getApiErrorMessage(err, "Không thể hoàn tất bàn giao."));
     },
   });
 
@@ -384,10 +383,10 @@ export function useCheckout({ contract, termination, isOpen, onClose }: UseCheck
     actions: {
       executeSaveUtility: markUtilityDone,
       handleSaveUtility,
-      handleGenerateInvoice: () => previewMutation.mutateAsync(depositPolicy),
+      handleGenerateInvoice: () => previewMutation.mutate(depositPolicy),
       handleSkipInvoice,
       handleDepositPolicyChange,
-      handleCompleteHandover: () => completeMutation.mutateAsync(),
+      handleCompleteHandover: () => completeMutation.mutate(),
     },
     meta: {
       currentMonth,

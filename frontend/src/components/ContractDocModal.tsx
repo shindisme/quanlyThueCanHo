@@ -151,7 +151,7 @@ export default function ContractDocModal({
                   <p>- Địa chỉ căn hộ: {bld?.address || "Chưa xác định"}</p>
                   <p>- Căn hộ số: {apt?.room_number || "..."} - Tầng số: {apt?.floor || "..."}</p>
                   <p>- Tổng diện tích sàn căn hộ là: {apt?.area || "..."} m².</p>
-                  <p>- Đặc điểm: 1 phòng khách, ${apt?.bedrooms || 1} phòng ngủ, ${apt?.bathrooms || 1} WC.</p>
+                  <p>- Đặc điểm: 1 phòng khách, {apt?.bedrooms || 1} phòng ngủ, {apt?.bathrooms || 1} WC.</p>
                   <p>- Trang thiết bị gắn liền với căn hộ: Bàn giao đầy đủ trang thiết bị theo biên bản bàn giao kèm theo hợp đồng.</p>
                   <p>- Những hạn chế về quyền sở hữu căn hộ (nếu có): Không có.</p>
                 </div>

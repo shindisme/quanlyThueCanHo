@@ -1,4 +1,4 @@
-import { ClipboardList, ExternalLink, Plus } from "lucide-react";
+import { ClipboardList, Download, Plus } from "lucide-react";
 import PageHeader from "../../../../components/layout/PageHeader";
 import SearchInput from "../../../../components/ui/SearchInput";
 import Combobox from "../../../../components/ui/Combobox";
@@ -62,9 +62,18 @@ export default function InvoicePage() {
       ? `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(vnpayQrPayment.qrCodeSvg)}`
       : "");
 
-  const openVnpayPaymentPage = () => {
-    if (!vnpayQrPayment?.paymentUrl) return;
-    window.open(vnpayQrPayment.paymentUrl, "_blank", "noopener,noreferrer");
+  const handleDownloadQr = () => {
+    if (!vnpayQrImageSrc) return;
+    const isSvg = !vnpayQrPayment?.qrCodeDataUrl && Boolean(vnpayQrPayment?.qrCodeSvg);
+    const invoiceCode = vnpayQrPayment?.invoice.invoice_code || `HD-${vnpayQrPayment?.invoiceId || "VNPAY"}`;
+    const filename = `QR_VNPAY_${invoiceCode}.${isSvg ? "svg" : "png"}`;
+
+    const link = document.createElement("a");
+    link.href = vnpayQrImageSrc;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
   const depositModal = useDepositInvoice({
     role,
@@ -263,9 +272,9 @@ export default function InvoicePage() {
             <Button type="button" variant="outline" onClick={handleCloseVnpayQr}>
               Đóng
             </Button>
-            <Button type="button" onClick={openVnpayPaymentPage} disabled={!vnpayQrPayment?.paymentUrl}>
-              <ExternalLink size={16} />
-              Mở trang VNPay
+            <Button type="button" onClick={handleDownloadQr} disabled={!vnpayQrImageSrc}>
+              <Download size={16} />
+              Tải về
             </Button>
           </>
         }

@@ -25,7 +25,7 @@ export interface Tenant {
   is_verified: boolean;
   created_at: string;
 
-  user?: User;
+  user?: User | null;
   contracts?: RentalContract[];
   invoices?: Invoice[];
   maintenance_requests?: MaintenanceRequest[];

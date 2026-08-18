@@ -155,7 +155,7 @@ export function useContractCreate({
 
   useEffect(() => {
     if (selectedApartment?.rental_price) {
-      setValue("monthly_rent", selectedApartment.rental_price);
+      setValue("monthly_rent", Number(selectedApartment.rental_price));
     }
   }, [selectedApartment, setValue]);
 
@@ -185,6 +185,8 @@ export function useContractCreate({
       queryClient.invalidateQueries({ queryKey: queryKeys.apartments.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.tenants.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.reservations.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
       toast.success("Tạo hợp đồng thành công!");
       onSuccess();
     },

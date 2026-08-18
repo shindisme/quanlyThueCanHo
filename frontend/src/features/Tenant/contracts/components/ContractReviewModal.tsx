@@ -43,7 +43,8 @@ export default function ContractReviewModal({
       address?: string;
     }>();
 
-    allContracts.forEach((c) => {
+    const endedList = allContracts.filter((c) => c.status === "ENDED");
+    endedList.forEach((c) => {
       if (c.apartment_id && !map.has(c.apartment_id)) {
         map.set(c.apartment_id, {
           apartmentId: c.apartment_id,

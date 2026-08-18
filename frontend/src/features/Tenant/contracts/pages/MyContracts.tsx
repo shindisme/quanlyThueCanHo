@@ -40,7 +40,7 @@ export default function MyContracts() {
   const reviewableApartmentIds = useMemo(() => {
     const ids = new Set<number>();
     contracts.forEach((c) => {
-      if (c.apartment_id) ids.add(c.apartment_id);
+      if (c.status === "ENDED" && c.apartment_id) ids.add(c.apartment_id);
     });
     myReviews.forEach((r) => {
       if (r.apartment_id) ids.add(r.apartment_id);

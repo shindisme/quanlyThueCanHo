@@ -77,7 +77,6 @@ export default function Contract() {
         sortConfig,
         handleExtendContract,
         terminateItem,
-        setTerminateItem,
         terminationItem,
         selectedTerminationDetail,
         setSelectedTerminationDetail,
@@ -85,8 +84,12 @@ export default function Contract() {
         overdueCandidateIds,
         handleApproveTermination,
         handleRejectTermination,
+        rejectTerminationItem,
+        setRejectTerminationItem,
+        rejectTerminationReason,
+        setRejectTerminationReason,
+        handleConfirmRejectTermination,
         handleCancelTermination,
-        handleCreateOverdueTermination,
         handleOpenTerminationCheckout,
         handleCloseTerminationCheckout,
         cancelContractItem,
@@ -262,15 +265,13 @@ export default function Contract() {
                         setSelectedDocContract={setSelectedDocContract}
                         setSelectedExtendContract={setSelectedExtendContract}
                         setExtendEndDate={setExtendEndDate}
-                        setTerminateItem={setTerminateItem}
                         setCancelContractItem={setCancelContractItem}
+                        setCancelContractReason={setCancelContractReason}
                         openTerminationsByContractId={openTerminationsByContractId}
                         overdueCandidateIds={overdueCandidateIds}
                         onApproveTermination={handleApproveTermination}
                         onRejectTermination={handleRejectTermination}
-                        onCreateOverdueTermination={handleCreateOverdueTermination}
                         onOpenTerminationCheckout={handleOpenTerminationCheckout}
-                        onViewTermination={setSelectedTerminationDetail}
                         isTerminationActionPending={terminating}
                     />
                 </div>
@@ -574,6 +575,56 @@ export default function Contract() {
                             onClick={handleConfirmCancelContract}
                         >
                             Tiến hành thanh lý
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal
+                isOpen={rejectTerminationItem !== null}
+                onClose={() => {
+                    if (terminating) return;
+                    setRejectTerminationItem(null);
+                    setRejectTerminationReason("");
+                }}
+                title="Từ chối yêu cầu trả phòng"
+                size="md"
+            >
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <label className="block text-sm font-semibold text-gray-700">
+                            Lý do từ chối <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                            value={rejectTerminationReason}
+                            onChange={(event) => setRejectTerminationReason(event.target.value)}
+                            maxLength={500}
+                            rows={4}
+                            autoFocus
+                            disabled={terminating}
+                            placeholder="Nhập lý do từ chối yêu cầu trả phòng của khách thuê..."
+                            className="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100 disabled:bg-gray-100"
+                        />
+                        <p className="text-right text-xs text-gray-400">{rejectTerminationReason.length}/500</p>
+                    </div>
+                    <div className="flex justify-end gap-2 border-t border-gray-100 pt-3">
+                        <Button
+                            variant="outline"
+                            disabled={terminating}
+                            onClick={() => {
+                                setRejectTerminationItem(null);
+                                setRejectTerminationReason("");
+                            }}
+                        >
+                            Hủy bỏ
+                        </Button>
+                        <Button
+                            variant="danger"
+                            isLoading={terminating}
+                            disabled={!rejectTerminationReason.trim() || terminating}
+                            onClick={handleConfirmRejectTermination}
+                        >
+                            Xác nhận từ chối
                         </Button>
                     </div>
                 </div>
