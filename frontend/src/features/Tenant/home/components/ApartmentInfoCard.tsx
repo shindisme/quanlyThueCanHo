@@ -12,6 +12,7 @@ interface ApartmentInfoCardProps {
   endedBuilding: Building | null;
   daysUntilExpiry: number;
   onOpenReviewModal: () => void;
+  isAlreadyReviewed?: boolean;
 }
 
 export default function ApartmentInfoCard({
@@ -23,6 +24,7 @@ export default function ApartmentInfoCard({
   endedBuilding,
   daysUntilExpiry,
   onOpenReviewModal,
+  isAlreadyReviewed = false,
 }: ApartmentInfoCardProps) {
   return (
     <section className="w-full rounded-none border border-gray-100 bg-white p-4 shadow-sm sm:p-5">
@@ -81,10 +83,21 @@ export default function ApartmentInfoCard({
               <button
                 type="button"
                 onClick={onOpenReviewModal}
-                className="text-xs px-3 py-1 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-bold flex items-center gap-1 cursor-pointer transition-all"
+                className={`text-xs px-3 py-1 rounded-full font-bold flex items-center gap-1 cursor-pointer transition-all ${
+                  isAlreadyReviewed
+                    ? "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200"
+                    : "bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200"
+                }`}
               >
-                <Star size={12} className="fill-amber-500 text-amber-500" />
-                Đánh giá căn hộ
+                <Star
+                  size={12}
+                  className={
+                    isAlreadyReviewed
+                      ? "fill-emerald-500 text-emerald-500"
+                      : "fill-amber-500 text-amber-500"
+                  }
+                />
+                {isAlreadyReviewed ? "Xem lại đánh giá" : "Đánh giá căn hộ"}
               </button>
             </div>
           </div>

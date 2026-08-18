@@ -197,7 +197,16 @@ const reservationInclude = {
             phone: true,
             email: true,
             citizen_id: true,
-            is_verified: true
+            address: true,
+            date_of_birth: true,
+            is_verified: true,
+            user: {
+                select: {
+                    username: true,
+                    role: true,
+                    status: true
+                }
+            }
         }
     },
     apartment: {
@@ -206,7 +215,25 @@ const reservationInclude = {
             building_id: true,
             floor: true,
             room_number: true,
-            status: true
+            status: true,
+            building: {
+                select: {
+                    id: true,
+                    branch_name: true,
+                    address: true
+                }
+            }
+        }
+    },
+    invoices: {
+        select: {
+            id: true,
+            invoice_code: true,
+            total_amount: true,
+            status: true,
+            due_date: true,
+            paid_at: true,
+            type: true
         }
     }
 } satisfies Prisma.ReservationInclude;
@@ -221,6 +248,83 @@ const normalizeReservation = (
     ...reservation,
     deposit_amount: Number(reservation.deposit_amount)
 });
+
+export const autoExpireReservations = async () => {
+    const now = new Date();
+
+    try {
+        const expired = await prisma.reservation.findMany({
+            where: {
+                status: ReservationStatus.ACTIVE,
+                expires_at: { lt: now },
+                contract_id: null
+            },
+            select: {
+                id: true,
+                apartment_id: true,
+                expires_at: true,
+                tenant: {
+                    select: {
+                        full_name: true,
+                        email: true
+                    }
+                },
+                apartment: {
+                    select: {
+                        room_number: true,
+                        floor: true,
+                        building: {
+                            select: {
+                                address: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        for (const res of expired) {
+            await prisma.reservation.updateMany({
+                where: {
+                    id: res.id,
+                    status: ReservationStatus.ACTIVE,
+                    contract_id: null
+                },
+                data: { status: ReservationStatus.FORFEITED }
+            });
+            await prisma.apartment.updateMany({
+                where: {
+                    id: res.apartment_id,
+                    status: ApartmentStatus.RESERVED
+                },
+                data: { status: ApartmentStatus.AVAILABLE }
+            });
+            sendReservationExpiredNotice(res).catch(() => { });
+        }
+
+        const activeReservations = await prisma.reservation.findMany({
+            where: {
+                status: ReservationStatus.ACTIVE,
+                expires_at: { gte: now },
+                contract_id: null
+            },
+            select: { apartment_id: true }
+        });
+        const activeApartmentIds = activeReservations.map((r) => r.apartment_id);
+
+        await prisma.apartment.updateMany({
+            where: {
+                status: ApartmentStatus.RESERVED,
+                ...(activeApartmentIds.length > 0
+                    ? { id: { notIn: activeApartmentIds } }
+                    : {})
+            },
+            data: { status: ApartmentStatus.AVAILABLE }
+        });
+    } catch {
+
+    }
+};
 
 const invoiceInclude = {
     items: true
@@ -271,6 +375,7 @@ export const getReservationsService = async (
     actor: Actor
 ) => {
     assertCanManageReservations(actor);
+    await autoExpireReservations();
 
     const page = input.page ?? 1;
     const limit = input.limit ?? 10;

@@ -3,6 +3,7 @@ import { UserPlus, Users } from "lucide-react";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
+import CurrencyInput from "../../../../components/ui/CurrencyInput";
 import Combobox from "../../../../components/ui/Combobox";
 import DatePicker from "../../../../components/ui/DatePicker";
 import type { Apartment, Tenant } from "../../../../types";
@@ -194,6 +195,7 @@ export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
                 label="Họ tên người thuê"
                 value={form?.full_name || ""}
                 onChange={handleChange("full_name")}
+                placeholder="Nhập họ và tên người thuê"
                 required
                 disabled={isPending}
               />
@@ -203,6 +205,7 @@ export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
                   label="Số điện thoại"
                   value={form?.phone || ""}
                   onChange={handleChange("phone")}
+                  placeholder="Nhập số điện thoại"
                   disabled={isPending}
                 />
                 <Input
@@ -210,6 +213,7 @@ export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
                   type="email"
                   value={form?.email || ""}
                   onChange={handleChange("email")}
+                  placeholder="Nhập địa chỉ email"
                   required
                   disabled={isPending}
                 />
@@ -220,6 +224,7 @@ export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
                   label="CCCD"
                   value={form?.citizen_id || ""}
                   onChange={handleChange("citizen_id")}
+                  placeholder="Nhập số CCCD/CMND"
                   required
                   disabled={isPending}
                 />
@@ -238,6 +243,7 @@ export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
                 label="Địa chỉ thường trú"
                 value={form?.address || ""}
                 onChange={handleChange("address")}
+                placeholder="Nhập địa chỉ thường trú"
                 disabled={isPending}
               />
             </div>
@@ -256,12 +262,10 @@ export default function DepositInvoiceModal(props: DepositInvoiceModalProps) {
               disabled={isPending}
             />
           </div>
-          <Input
+          <CurrencyInput
             label="Số tiền đặt cọc (VND) *"
-            type="number"
             value={form?.deposit_amount || 0}
-            onChange={(e) => setForm((prev) => ({ ...prev, deposit_amount: Number(e.target.value) }))}
-            required
+            onChange={(val) => setForm((prev) => ({ ...prev, deposit_amount: val }))}
             disabled={isPending}
           />
         </div>

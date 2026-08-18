@@ -19,6 +19,31 @@ const requireTenantId = (actor: Actor) => {
     return actor.tenantId;
 };
 
+export const getMyReviewsService = async (actor: Actor) => {
+    const tenantId = requireTenantId(actor);
+
+    return await prisma.review.findMany({
+        where: { tenant_id: tenantId },
+        orderBy: { created_at: "desc" },
+        include: {
+            apartment: {
+                select: {
+                    id: true,
+                    room_number: true,
+                    floor: true,
+                    building: {
+                        select: {
+                            id: true,
+                            branch_name: true,
+                            address: true
+                        }
+                    }
+                }
+            }
+        }
+    });
+};
+
 export const createReviewService = async (
     input: CreateReviewRequest["body"],
     actor: Actor

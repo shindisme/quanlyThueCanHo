@@ -1,4 +1,4 @@
-﻿
+
 type QueryKeyId = string | number | null | undefined;
 
 export const queryKeys = {
@@ -45,6 +45,7 @@ export const queryKeys = {
   reviews: {
     all: ["reviews"] as const,
     apartment: (id: string | number) => ["reviews", "apartment", id] as const,
+    myReviews: () => ["reviews", "my-reviews"] as const,
   },
   invoices: {
     all: ["invoices"] as const,

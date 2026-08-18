@@ -1,6 +1,8 @@
+import { Info } from "lucide-react";
 import Modal from "../../../../components/ui/Modal";
 import Button from "../../../../components/ui/Button";
 import Input from "../../../../components/ui/Input";
+import CurrencyInput from "../../../../components/ui/CurrencyInput";
 import Combobox from "../../../../components/ui/Combobox";
 import { DatePicker } from "../../../../components/ui/DatePicker";
 import type { Apartment } from "../../../../types";
@@ -70,6 +72,11 @@ export default function ContractCreateModal({
     monthlyRentValue,
     maxOccupants,
     buildingApartments,
+    isTenantLocked,
+    isBuildingLocked,
+    isFloorLocked,
+    isApartmentLocked,
+    hasReservationContext,
   } = useContractCreate({
     isOpen,
     onSuccess,
@@ -96,15 +103,24 @@ export default function ContractCreateModal({
         </>
       }
     >
-      <div className="space-y-6 font-sans text-sm">
-        <div className="grid grid-cols-12 gap-6">
+      <div className="space-y-4 font-sans text-sm">
+        {hasReservationContext && (
+          <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+            <Info size={16} className="text-amber-600 shrink-0" />
+            <span>
+              Thông tin khách thuê và căn hộ đã được tự động khóa theo phiếu đặt cọc giữ chỗ.
+            </span>
+          </div>
+        )}
+
+        <div className="grid grid-cols-12 gap-4 sm:gap-6">
           <div className="col-span-12">
             <Combobox
               label="Người thuê *"
               options={tenants.map((t) => ({ value: String(t.id), label: `${t.full_name} (${t.citizen_id})` }))}
               value={tenantIdValue ? String(tenantIdValue) : ""}
               onChange={(val) => setValue("tenant_id", val ? Number(val) : null)}
-              disabled={!!initialTenantId}
+              disabled={isTenantLocked}
               placeholder="Chọn người thuê"
               searchPlaceholder="Tìm kiếm người thuê..."
               triggerClassName="rounded-md"
@@ -122,7 +138,7 @@ export default function ContractCreateModal({
                   setValue("floor", undefined);
                   setValue("apartment_id", undefined);
                 }}
-                disabled={role === "MANAGER"}
+                disabled={isBuildingLocked}
                 placeholder="Chọn chi nhánh"
                 searchPlaceholder="Tìm chi nhánh..."
                 triggerClassName="rounded-md"
@@ -140,7 +156,7 @@ export default function ContractCreateModal({
                 setValue("floor", val !== "" ? Number(val) : undefined);
                 setValue("apartment_id", undefined);
               }}
-              disabled={loadingApartments || !buildingIdValue}
+              disabled={isFloorLocked || loadingApartments || !buildingIdValue}
               placeholder="Chọn tầng"
               searchPlaceholder="Tìm tầng..."
               triggerClassName="rounded-md"
@@ -154,7 +170,7 @@ export default function ContractCreateModal({
               options={formApartments.map((a) => ({ value: String(a.id), label: `P.${a.room_number} (${a.area}m²)` }))}
               value={apartmentIdValue ? String(apartmentIdValue) : ""}
               onChange={(val) => setValue("apartment_id", val ? Number(val) : undefined)}
-              disabled={!floorValue || loadingApartments}
+              disabled={isApartmentLocked || !floorValue || loadingApartments}
               placeholder={loadingApartments ? "Đang tải căn hộ..." : "Chọn căn hộ"}
               searchPlaceholder="Tìm căn hộ..."
               triggerClassName="rounded-md"
@@ -204,24 +220,11 @@ export default function ContractCreateModal({
           </div>
 
           <div className="col-span-12 sm:col-span-6">
-            <Input
-              label={`Số lượng người ở thực tế ${apartmentIdValue ? `(Tối đa: ${maxOccupants} người)` : ""} *`}
-              type="number"
-              min={1}
-              value={actualOccupantsValue || ""}
-              {...register("actual_occupants", { valueAsNumber: true })}
-              error={errors.actual_occupants?.message}
-              className="rounded-md"
-            />
-          </div>
-          <div className="col-span-12 sm:col-span-6">
-            <Input
+            <CurrencyInput
               label="Tiền thuê/tháng (VND) *"
-              type="number"
               value={monthlyRentValue || 0}
-              {...register("monthly_rent", { valueAsNumber: true })}
+              onChange={(val) => setValue("monthly_rent", val)}
               error={errors.monthly_rent?.message}
-              className="rounded-md"
             />
             {apartmentIdValue && (() => {
               const apt = buildingApartments.find((a) => a.id === apartmentIdValue) || apartments.find((a) => a.id === apartmentIdValue);
@@ -235,6 +238,18 @@ export default function ContractCreateModal({
               }
               return null;
             })()}
+          </div>
+
+          <div className="col-span-12 sm:col-span-6">
+            <Input
+              label={`Số lượng người ở thực tế ${apartmentIdValue ? `(Tối đa: ${maxOccupants} người)` : ""} *`}
+              type="number"
+              min={1}
+              value={actualOccupantsValue || ""}
+              {...register("actual_occupants", { valueAsNumber: true })}
+              error={errors.actual_occupants?.message}
+              className="rounded-md"
+            />
           </div>
         </div>
       </div>

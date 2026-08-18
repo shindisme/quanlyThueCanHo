@@ -26,6 +26,14 @@ export const create = async (
     return sendSuccess(response, review, 201);
 };
 
+export const getMyReviews = async (
+    request: Request,
+    response: Response
+) => {
+    const reviews = await reviewService.getMyReviewsService(request.actor!);
+    return sendSuccess(response, reviews);
+};
+
 export const getByApartment = async (
     request: Request,
     response: Response

@@ -1,7 +1,10 @@
+import { Zap, Droplet } from "lucide-react";
 import Modal from "../../../../components/ui/Modal";
+import Button from "../../../../components/ui/Button";
+import Input from "../../../../components/ui/Input";
+import { formatApartmentDisplay } from "../../../../utils/string";
+import { meter } from "../../../../utils/utilityMeter";
 import type { UtilityReadingData } from "../../../../types";
-import { formatDate } from "../../../../utils/date";
-import { meter, meterUsage } from "../../../../utils/utilityMeter";
 
 interface Props {
   reading: UtilityReadingData | null;
@@ -9,30 +12,84 @@ interface Props {
 }
 
 export default function UtilityReadingDetailModal({ reading, onClose }: Props) {
-  return (
-    <Modal isOpen={Boolean(reading)} onClose={onClose} title="Chi tiết chỉ số điện nước" size="md">
-      {reading && (
-        <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-          <Detail label="Kỳ ghi" value={`Tháng ${reading.month}/${reading.year}`} />
-          <Detail label="Ngày ghi" value={formatDate(reading.created_at)} />
-          <Detail label="Điện cũ" value={String(meter(reading.electric_old))} />
-          <Detail label="Điện mới" value={String(meter(reading.electric_new))} />
-          <Detail label="Điện sử dụng" value={`${meterUsage(reading.electric_old, reading.electric_new)} kWh`} />
-          <Detail label="Nước cũ" value={String(meter(reading.water_old))} />
-          <Detail label="Nước mới" value={String(meter(reading.water_new))} />
-          <Detail label="Nước sử dụng" value={`${meterUsage(reading.water_old, reading.water_new)} m³`} />
-          <Detail label="Người ghi" value={reading.staff?.full_name || "Hệ thống"} />
-        </div>
-      )}
-    </Modal>
-  );
-}
+  if (!reading) return null;
 
-function Detail({ label, value }: { label: string; value: string }) {
+  const roomDisplay = reading.apartment
+    ? formatApartmentDisplay(reading.apartment.room_number, reading.apartment.floor)
+    : `Phòng ID #${reading.apartment_id}`;
+  const branchName = reading.apartment?.building?.branch_name;
+
   return (
-    <div className="border border-gray-200 bg-gray-50 p-3">
-      <p className="text-xs font-medium text-gray-500">{label}</p>
-      <p className="mt-1 font-semibold text-gray-800">{value}</p>
-    </div>
+    <Modal
+      isOpen={Boolean(reading)}
+      onClose={onClose}
+      title="Chi tiết chỉ số điện nước"
+      footer={
+        <Button variant="outline" onClick={onClose}>
+          Đóng
+        </Button>
+      }
+    >
+      <div className="space-y-5 font-sans">
+        <div>
+          <label className="block text-sm font-semibold text-gray-800 mb-1.5">Phòng</label>
+          <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-sm font-semibold text-gray-800 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-gray-900">{roomDisplay}</span>
+              {branchName && (
+                <span className="text-xs font-semibold text-primary-600 bg-primary-50 px-2.5 py-1">
+                  {branchName}
+                </span>
+              )}
+            </div>
+            <span className="text-xs font-semibold text-gray-500">
+              Tháng {reading.month}/{reading.year}
+            </span>
+          </div>
+        </div>
+
+        {/* Điện */}
+        <div className="bg-emerald-50/25 p-4 border border-emerald-100 space-y-4 shadow-sm">
+          <h4 className="font-bold text-emerald-800 text-sm flex items-center gap-1.5">
+            <Zap size={16} /> Chỉ số Điện (kWh)
+          </h4>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label="Chỉ số điện cũ"
+              type="number"
+              value={meter(reading.electric_old)}
+              disabled={true}
+            />
+            <Input
+              label="Chỉ số điện mới *"
+              type="number"
+              value={meter(reading.electric_new)}
+              disabled={true}
+            />
+          </div>
+        </div>
+
+        {/* Nước */}
+        <div className="bg-blue-50/25 p-4 border border-blue-100 rounded-xl space-y-4 shadow-sm">
+          <h4 className="font-bold text-blue-800 text-sm flex items-center gap-1.5">
+            <Droplet size={16} /> Chỉ số Nước (m³)
+          </h4>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label="Chỉ số nước cũ"
+              type="number"
+              value={meter(reading.water_old)}
+              disabled={true}
+            />
+            <Input
+              label="Chỉ số nước mới *"
+              type="number"
+              value={meter(reading.water_new)}
+              disabled={true}
+            />
+          </div>
+        </div>
+      </div>
+    </Modal>
   );
 }

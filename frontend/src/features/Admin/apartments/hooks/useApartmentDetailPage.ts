@@ -8,7 +8,7 @@ import * as tenantService from "../../../../services/tenantService";
 import * as authService from "../../../../services/authService";
 import * as reservationService from "../../../../services/reservationService";
 import { getApartmentReviews } from "../../../../services/reviewService";
-import type { ApartmentImage, TenantOccupant } from "../../../../types";
+import type { ApartmentImage, Tenant, TenantOccupant } from "../../../../types";
 import { queryKeys } from "../../../../constants/queryKeys";
 import { useUserRole } from "../../../../hooks/useUserRole";
 import { getApiErrorMessage } from "../../../../utils/apiError";
@@ -57,6 +57,17 @@ export function useApartmentDetailPage() {
     queryFn: () => apartmentService.getById(Number(id)),
     enabled: Boolean(id) && !isNaN(Number(id)),
   });
+
+  // Tự động kiểm tra và giải phóng các khoản cọc giữ phòng hết hạn
+  useEffect(() => {
+    reservationService.expireReservations().then((res) => {
+      if (res && res.count > 0) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.apartments.detail(id ?? "invalid") });
+        queryClient.invalidateQueries({ queryKey: queryKeys.reservations.apartment(id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.apartments.all });
+      }
+    }).catch(() => { });
+  }, [id, queryClient]);
 
   useEffect(() => {
     if (apartment?.images) {
@@ -162,10 +173,39 @@ export function useApartmentDetailPage() {
     loadingReviews ||
     loadingOccupants;
 
-  const historyContracts = contracts.length > 0 ? contracts : apartmentContracts;
-  const tenantContracts = activeTenant
-    ? historyContracts.filter((contract) => contract.tenant_id === activeTenant.id)
-    : [];
+  const reservedTenant = useMemo(() => {
+    if (!activeReservation) return null;
+    return (
+      (activeReservation.tenant_id
+        ? tenants.find((t) => t.id === activeReservation.tenant_id)
+        : null) ||
+      activeReservation.tenant ||
+      null
+    );
+  }, [activeReservation, tenants]);
+
+  const targetTenant = useMemo(() => {
+    return (activeTenant || reservedTenant || null) as Tenant | null;
+  }, [activeTenant, reservedTenant]);
+
+  // Lấy toàn bộ lịch sử hợp đồng của người thuê hoặc khách cọc hiện tại
+  const { data: tenantContractsData = [] } = useQuery({
+    queryKey: queryKeys.contracts.list({ tenantId: targetTenant?.id }),
+    queryFn: () => contractService.getAllPage({ tenant_id: targetTenant!.id }),
+    select: (res) => res.data,
+    enabled: Boolean(targetTenant?.id),
+  });
+
+  const tenantContracts = useMemo(() => {
+    if (!targetTenant) return [];
+    if (tenantContractsData && tenantContractsData.length > 0) {
+      return tenantContractsData;
+    }
+    const all = contracts.length > 0 ? contracts : apartmentContracts;
+    return all.filter((c) => c.tenant_id === targetTenant.id);
+  }, [targetTenant, tenantContractsData, contracts, apartmentContracts]);
+
+  const [showTenantDetailModal, setShowTenantDetailModal] = useState(false);
 
   const fetchData = async () => {
     await fetchApartment();
@@ -241,10 +281,6 @@ export function useApartmentDetailPage() {
     );
   }
 
-  const reservedTenant = activeReservation?.tenant_id
-    ? tenants.find((t) => t.id === activeReservation.tenant_id) || activeReservation.tenant
-    : activeReservation?.tenant;
-
   const { data: buildings = [] } = useQuery({
     queryKey: queryKeys.buildings.all,
     queryFn: () => buildingService.getAllPage(),
@@ -274,7 +310,10 @@ export function useApartmentDetailPage() {
     activeTenantUser,
     activeReservation,
     reservedTenant,
+    targetTenant,
     tenantContracts,
+    showTenantDetailModal,
+    setShowTenantDetailModal,
     fetchData,
     handleImageUpload,
     handleSetThumbnail,

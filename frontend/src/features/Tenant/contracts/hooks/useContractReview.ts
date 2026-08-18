@@ -1,8 +1,19 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { reviewService } from "../../../../services";
 import { queryKeys } from "../../../../constants/queryKeys";
+import { useAuthStore } from "../../../../stores/auth.store";
 import { getApiErrorMessage } from "../../../../utils/apiError";
+import type { MyReviewData } from "../../../../types";
+
+export function useMyReviews() {
+  const { token, role } = useAuthStore();
+  return useQuery<MyReviewData[]>({
+    queryKey: queryKeys.reviews.myReviews(),
+    queryFn: () => reviewService.getMyReviews(),
+    enabled: !!token && role === "TENANT",
+  });
+}
 
 export function useCreateReview() {
   const queryClient = useQueryClient();

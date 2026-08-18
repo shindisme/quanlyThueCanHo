@@ -11,6 +11,25 @@ export interface ReviewData {
   };
 }
 
+export interface MyReviewData {
+  id: number;
+  apartment_id: number;
+  tenant_id: number;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  apartment?: {
+    id: number;
+    room_number: string;
+    floor: number;
+    building?: {
+      id: number;
+      branch_name: string;
+      address: string;
+    };
+  };
+}
+
 export interface ReviewMeta {
   averageRating: number;
   totalReviews: number;

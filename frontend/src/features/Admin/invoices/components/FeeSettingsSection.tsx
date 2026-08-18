@@ -1,4 +1,4 @@
-import Input from "../../../../components/ui/Input";
+import CurrencyInput from "../../../../components/ui/CurrencyInput";
 import { formatCurrency } from "../../../../utils/currency";
 import type { FeeSettings } from "../../../../utils/feeSettings";
 
@@ -53,23 +53,17 @@ export default function FeeSettingsSection({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-200">
         <div>
-          <label className="text-xs font-semibold text-gray-650 block mb-1">Phí dịch vụ & Internet (VND)</label>
-          <Input
-            type="number"
-            value={internetFee}
-            onChange={(e) => setInternetFee(e.target.value)}
-            className="rounded-lg h-10.5 font-semibold bg-white"
-            required
+          <CurrencyInput
+            label="Phí dịch vụ & Internet (VND)"
+            value={Number(internetFee) || 0}
+            onChange={(val) => setInternetFee(String(val))}
           />
         </div>
         <div>
-          <label className="text-xs font-semibold text-gray-650 block mb-1">Phí quản lý theo m² (VND / m²)</label>
-          <Input
-            type="number"
-            value={managementFeePerM2}
-            onChange={(e) => setManagementFeePerM2(e.target.value)}
-            className="rounded-lg h-10.5 font-semibold bg-white"
-            required
+          <CurrencyInput
+            label="Phí quản lý theo m² (VND / m²)"
+            value={Number(managementFeePerM2) || 0}
+            onChange={(val) => setManagementFeePerM2(String(val))}
           />
         </div>
       </div>

@@ -12,6 +12,7 @@ import type {
 } from "../schemas/apartment.schema.js";
 import type { Actor } from "../types/auth.js";
 import { getCurrentManagerAssignment } from "../utils/manager-scope.js";
+import { autoExpireReservations } from "./reservation.service.js";
 
 const apartmentImageSelect = {
     id: true,
@@ -256,6 +257,7 @@ export const getAllApartmentsService = async (filters: {
     limit?: number;
     status?: ApartmentStatus | ApartmentStatus[];
 }) => {
+    await autoExpireReservations();
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 10;
     const where: Prisma.ApartmentWhereInput = {};
@@ -303,6 +305,7 @@ export const getAllApartmentsService = async (filters: {
 };
 
 export const getApartmentByIdService = async (id: number) => {
+    await autoExpireReservations();
     return prisma.apartment.findUnique({
         where: { id },
         select: apartmentDetailSelect

@@ -7,7 +7,7 @@ import {
 import type { Payment } from "../../types";
 import { formatCurrency } from "../../utils/currency";
 import { formatDate } from "../../utils/date";
-import { getInvoiceApartment, getInvoiceRoomDisplay, getInvoiceTenant, getInvoiceType } from "../../utils/invoiceDisplay";
+import { getInvoiceApartment, getInvoiceLateDays, getInvoiceRoomDisplay, getInvoiceTenant, getInvoiceType } from "../../utils/invoiceDisplay";
 import { getInvoicePeriod } from "../../utils/invoicePeriod";
 import Badge from "../ui/Badge";
 import Button from "../ui/Button";
@@ -29,6 +29,7 @@ export default function PaymentDetailModal({ isOpen, onClose, payment, showPayer
   const room = invoice ? getInvoiceRoomDisplay(invoice).room : "Chưa rõ";
   const paymentStatus = PAYMENT_STATUS_CONFIG[payment.status];
   const invoiceType = invoice ? INVOICE_TYPE_CONFIG[getInvoiceType(invoice)] : null;
+  const lateDays = invoice ? getInvoiceLateDays(invoice) : 0;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Chi tiết giao dịch" size="lg">
@@ -68,7 +69,15 @@ export default function PaymentDetailModal({ isOpen, onClose, payment, showPayer
               <p><strong>Loại hóa đơn:</strong> {invoiceType?.label || "-"}</p>
               <p><strong>Kỳ hóa đơn:</strong> {getInvoicePeriod(invoice).label}</p>
               <p><strong>Hạn thanh toán:</strong> {formatDate(invoice.due_date)}</p>
-              <p><strong>Trạng thái:</strong> <Badge variant={INVOICE_STATUS_CONFIG[invoice.status].badge}>{INVOICE_STATUS_CONFIG[invoice.status].label}</Badge></p>
+              <p className="flex items-center gap-1.5">
+                <strong>Trạng thái:</strong>
+                <Badge variant={INVOICE_STATUS_CONFIG[invoice.status].badge}>{INVOICE_STATUS_CONFIG[invoice.status].label}</Badge>
+                {lateDays > 0 && (
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                    Trễ {lateDays} ngày
+                  </span>
+                )}
+              </p>
             </div>
           </div>
         )}
