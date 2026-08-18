@@ -4,7 +4,7 @@ import { formatApartmentDisplay } from "./string";
 import { numberToVietnameseWords } from "./currency";
 import { getInvoicePeriod } from "./invoicePeriod";
 import { getDisplayItemAmount, getDisplayTierDetails, getUtilityUnit } from "./feeSettings";
-import { getInvoiceApartment, getInvoiceTenant } from "./invoiceDisplay";
+import { getInvoiceApartment, getInvoiceTenant, isRefundInvoice } from "./invoiceDisplay";
 import {
   getContractDurationText,
   getContractOccupancyPricing,
@@ -37,6 +37,10 @@ export function printInvoiceHelper(invoice: Invoice) {
     : Number(invoice.total_amount));
   const getTierDetails = (item: NonNullable<Invoice["items"]>[number]) =>
     getDisplayTierDetails(item, occupantCount);
+  const isRefund = isRefundInvoice(invoice);
+  const documentTitle = isRefund ? "Phiếu Hoàn Cọc" : "Hóa Đơn";
+  const headingTitle = isRefund ? "PHIẾU HOÀN CỌC" : "HÓA ĐƠN DỊCH VỤ";
+  const totalLabel = isRefund ? "TỔNG CỘNG HOÀN CỌC:" : "TỔNG CỘNG CẦN THANH TOÁN:";
 
   const itemsRows = invoiceItems
     .map((item) => {
@@ -74,7 +78,7 @@ export function printInvoiceHelper(invoice: Invoice) {
     <html lang="vi">
       <head>
         <meta charset="utf-8" />
-        <title>Hóa Đơn - ${invoice.invoice_code}</title>
+        <title>${documentTitle} - ${invoice.invoice_code}</title>
         <style>
           @page {
             size: A4 portrait;
@@ -249,9 +253,9 @@ export function printInvoiceHelper(invoice: Invoice) {
       </head>
       <body>
         <div class="no-print-bar">
-          <span style="font-weight: 600;">Xem Trước Hóa Đơn - ${invoice.invoice_code}</span>
+          <span style="font-weight: 600;">Xem Trước ${documentTitle} - ${invoice.invoice_code}</span>
           <div>
-            <button type="button" class="btn-print cursor-pointer" style="background-color: #8B5CF6;" onclick="window.print()">In Hóa Đơn</button>
+            <button type="button" class="btn-print cursor-pointer" style="background-color: #8B5CF6;" onclick="window.print()">${isRefund ? "In Phiếu" : "In Hóa Đơn"}</button>
             <button type="button" class="btn-close" onclick="window.close()">Đóng</button>
           </div>
         </div>
@@ -260,8 +264,8 @@ export function printInvoiceHelper(invoice: Invoice) {
           <div class="header">
             <div class="logo" style="color: #8B5CF6;">YuKi House</div>
             <div class="title">
-              <h1>HÓA ĐƠN DỊCH VỤ</h1>
-              <p style="margin: 3px 0 0 0; font-size: 12px; font-weight: bold; color: #475569;">Mã HD: ${invoice.invoice_code}</p>
+              <h1>${headingTitle}</h1>
+              <p style="margin: 3px 0 0 0; font-size: 12px; font-weight: bold; color: #475569;">Mã chứng từ: ${invoice.invoice_code}</p>
             </div>
           </div>
 
@@ -273,7 +277,7 @@ export function printInvoiceHelper(invoice: Invoice) {
               ${address ? `<p><strong>Địa chỉ:</strong> ${address}</p>` : ""}
             </div>
             <div class="info-box">
-              <h3>Khách hàng thanh toán</h3>
+              <h3>${isRefund ? "Khách hàng nhận hoàn" : "Khách hàng thanh toán"}</h3>
               <p><strong>Khách thuê:</strong> ${tenant?.full_name || "Chưa rõ"}</p>
               <p><strong>Số điện thoại:</strong> ${tenant?.phone || "-"}</p>
               <p><strong>Kỳ hóa đơn:</strong> ${billingMonthYear}</p>
@@ -293,15 +297,19 @@ export function printInvoiceHelper(invoice: Invoice) {
             <tbody>
               ${itemsRows}
               <tr class="total-row">
-                <td colspan="3" style="padding: 10px 8px; text-align: right;">TỔNG CỘNG CẦN THANH TOÁN:</td>
+                <td colspan="3" style="padding: 10px 8px; text-align: right;">${totalLabel}</td>
                 <td style="padding: 10px 8px; text-align: right; color: #2563eb;">${totalStr}</td>
               </tr>
             </tbody>
           </table>
 
+          ${isRefund ? `
+          <div class="notice-box">
+            * Phiếu này ghi nhận số tiền hệ thống hoàn lại cho khách thuê sau khi thanh lý hợp đồng.
+          </div>` : `
           <div class="notice-box">
             * Quý khách vui lòng thanh toán trước ngày <strong>${formatDate(invoice.due_date)}</strong> để tránh phát sinh phí quá hạn.
-          </div>
+          </div>`}
 
           <div class="footer">
             <p style="margin: 0; font-weight: 500;">Cảm ơn quý khách đã tin tưởng và đồng hành cùng YuKi House!</p>

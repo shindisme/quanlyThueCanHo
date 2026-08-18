@@ -74,6 +74,7 @@ export const INVOICE_TYPE_LABELS: Record<InvoiceType, string> = {
   MONTHLY: "Hàng tháng",
   MAINTENANCE: "Phí sửa chữa",
   FINAL_SETTLEMENT: "Thanh lý hợp đồng",
+  REFUND: "Hoàn cọc",
 };
 
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {

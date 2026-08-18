@@ -8,6 +8,7 @@ const SUPPORTED_INVOICE_TYPES: readonly InvoiceType[] = [
   "MONTHLY",
   "MAINTENANCE",
   "FINAL_SETTLEMENT",
+  "REFUND",
 ];
 
 export function getInvoiceType(invoice: Pick<Invoice, "type" | "invoice_code">): InvoiceType {
@@ -16,6 +17,9 @@ export function getInvoiceType(invoice: Pick<Invoice, "type" | "invoice_code">):
   }
   if (invoice.invoice_code?.startsWith("SETTLEMENT-")) {
     return "FINAL_SETTLEMENT";
+  }
+  if (invoice.invoice_code?.startsWith("REFUND-")) {
+    return "REFUND";
   }
   if (invoice.invoice_code?.startsWith("DEP-")) {
     return "DEPOSIT";
@@ -26,8 +30,9 @@ export function getInvoiceType(invoice: Pick<Invoice, "type" | "invoice_code">):
 }
 
 export function getInvoiceStatus(
-  invoice: Pick<Invoice, "status" | "due_date">
+  invoice: Pick<Invoice, "status" | "due_date" | "type" | "invoice_code">
 ): InvoiceStatus {
+  if (getInvoiceType(invoice) === "REFUND") return invoice.status;
   if (invoice.status !== "UNPAID") return invoice.status;
 
   const dueDate = new Date(invoice.due_date);
@@ -57,18 +62,24 @@ export function getInvoiceRoomDisplay(invoice: Invoice) {
   };
 }
 
+export function isRefundInvoice(invoice: Pick<Invoice, "type" | "invoice_code">) {
+  return getInvoiceType(invoice) === "REFUND";
+}
+
 export function hideInvoicesCoveredByFinalSettlement(invoices: Invoice[]) {
   const settledContractIds = new Set(
     invoices
-      .filter((invoice) => invoice.type === "FINAL_SETTLEMENT" && invoice.contract_id !== null)
+      .filter((invoice) => getInvoiceType(invoice) === "FINAL_SETTLEMENT" && invoice.contract_id !== null)
       .map((invoice) => invoice.contract_id)
   );
 
   if (settledContractIds.size === 0) return invoices;
 
-  return invoices.filter(
-    (invoice) => invoice.type === "FINAL_SETTLEMENT"
+  return invoices.filter((invoice) => {
+    const type = getInvoiceType(invoice);
+    return type === "FINAL_SETTLEMENT"
+      || type === "REFUND"
       || invoice.contract_id === null
-      || !settledContractIds.has(invoice.contract_id)
-  );
+      || !settledContractIds.has(invoice.contract_id);
+  });
 }

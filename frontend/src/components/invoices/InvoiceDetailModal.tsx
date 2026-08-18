@@ -7,7 +7,7 @@ import { formatCurrency, formatNumber } from "../../utils/currency";
 import { formatApartmentDisplay } from "../../utils/string";
 import { getInvoicePeriod } from "../../utils/invoicePeriod";
 import { getDisplayItemAmount, getDisplayTierDetails } from "../../utils/feeSettings";
-import { getInvoiceApartment, getInvoiceStatus, getInvoiceTenant, getInvoiceType } from "../../utils/invoiceDisplay";
+import { getInvoiceApartment, getInvoiceStatus, getInvoiceTenant, getInvoiceType, isRefundInvoice } from "../../utils/invoiceDisplay";
 import {
   INVOICE_STATUS_CONFIG,
   INVOICE_TYPE_CONFIG,
@@ -15,9 +15,13 @@ import {
 } from "../../constants";
 import type { Invoice } from "../../types";
 
-function getStatusBadge(status: string) {
+function getStatusBadge(invoice: Invoice) {
+  const status = getInvoiceStatus(invoice);
   const config = INVOICE_STATUS_CONFIG[status as InvoiceStatus];
-  return <Badge variant={config?.badge || "gray"}>{config?.label || status}</Badge>;
+  const label = isRefundInvoice(invoice)
+    ? status === "PAID" ? "Đã hoàn" : "Chưa hoàn"
+    : config?.label || status;
+  return <Badge variant={config?.badge || "gray"}>{label}</Badge>;
 }
 
 function getTypeBadge(invoice: Invoice) {
@@ -58,9 +62,10 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
   const displayTotalAmount = invoice.items && invoice.items.length > 0
     ? invoice.items.reduce((sum, item) => sum + getDisplayItemAmount(item, occupantCount), 0)
     : Number(invoice.total_amount);
+  const isRefund = isRefundInvoice(invoice);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Chi Tiết Hóa Đơn" size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={isRefund ? "Chi Tiết Phiếu Hoàn Cọc" : "Chi Tiết Hóa Đơn"} size="lg">
       <div className="space-y-6 text-sm font-sans">
         {/* Upper Info */}
         <div className="flex flex-col md:flex-row justify-between gap-4 pb-4 border-b border-gray-150">
@@ -72,7 +77,7 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
           <div className="flex flex-col items-start md:items-end gap-1.5">
             <div className="flex items-center gap-2">
               {getTypeBadge(invoice)}
-              {getStatusBadge(getInvoiceStatus(invoice))}
+              {getStatusBadge(invoice)}
             </div>
             {invoice.paid_at && (
               <span className="text-[10px] text-gray-400 font-medium">
@@ -114,7 +119,7 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
 
         {/* Invoice Items Table */}
         <div className="space-y-2">
-          <h5 className="font-bold text-gray-800 border-b border-gray-100 pb-1">Chi tiết các dịch vụ</h5>
+          <h5 className="font-bold text-gray-800 border-b border-gray-100 pb-1">Chi tiết chứng từ</h5>
           <div className="border border-gray-200 rounded-xl overflow-x-auto shadow-sm bg-white">
             <table className="w-full text-left border-collapse min-w-125">
               <thead>
@@ -166,7 +171,7 @@ export default function InvoiceDetailModal({ isOpen, onClose, invoice }: Invoice
                 )}
                 <tr className="bg-gray-50/50 font-bold text-gray-900 border-t border-gray-250">
                   <td colSpan={3} className="p-3 text-right text-sm">
-                    TỔNG CỘNG THANH TOÁN:
+                    TỔNG CỘNG:
                   </td>
                   <td className="p-3 text-right text-base text-primary-600">
                     {formatCurrency(displayTotalAmount)}

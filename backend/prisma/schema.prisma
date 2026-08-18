@@ -411,6 +411,7 @@ enum InvoiceType {
   MONTHLY
   MAINTENANCE
   FINAL_SETTLEMENT
+  REFUND
 }
 
 enum ContractTerminationType {

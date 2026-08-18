@@ -91,10 +91,26 @@ export async function extend(id: number, newEndDate: string): Promise<RentalCont
   return mapBackendToFrontend(updatedContract);
 }
 
+export async function cancelBeforeStart(id: number) {
+  const res = await api.patch<{
+    success: boolean;
+    data: {
+      contract: RawContract;
+      old_status: ContractStatus;
+      new_status: ContractStatus;
+      cancelled_at: string;
+      apartment_status: string;
+    };
+  }>(`${CONTRACT_API}/${id}/end`, {});
+
+  return res.data.data;
+}
+
 export const contractService = {
   getAll,
   getAllPage,
   getById,
   create,
   extend,
+  cancelBeforeStart,
 };

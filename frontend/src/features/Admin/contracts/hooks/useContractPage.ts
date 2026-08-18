@@ -377,6 +377,28 @@ export function useContractPage() {
     },
   });
 
+  const cancelContractMutation = useMutation({
+    mutationFn: (id: number) => contractService.cancelBeforeStart(id),
+    onSuccess: async () => {
+      toast.success("Hủy hợp đồng chưa nhận phòng thành công!");
+      setCancelContractItem(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.contracts.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.apartments.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all }),
+      ]);
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { error?: string; message?: string } }; message?: string };
+      toast.error(
+        err.response?.data?.error
+        || err.response?.data?.message
+        || err.message
+        || "Hủy hợp đồng thất bại!"
+      );
+    },
+  });
+
 
   function handleApproveTermination(termination: ContractTermination) {
     approveTerminationMutation.mutate(termination.id);
@@ -426,8 +448,8 @@ export function useContractPage() {
   }
 
   function handleConfirmCancelContract() {
-    toast.error("Không thể kết thúc hợp đồng trực tiếp. Vui lòng dùng quy trình thanh lý hợp đồng.");
-    setCancelContractItem(null);
+    if (!cancelContractItem) return;
+    cancelContractMutation.mutate(cancelContractItem.id);
   }
 
   return {
@@ -495,7 +517,11 @@ export function useContractPage() {
     setCancelContractItem,
     handleConfirmCancelContract,
     handleCloseTerminationCheckout,
-    terminating: approveTerminationMutation.isPending || rejectTerminationMutation.isPending || cancelTerminationMutation.isPending || createOverdueTerminationMutation.isPending,
+    terminating: approveTerminationMutation.isPending
+      || rejectTerminationMutation.isPending
+      || cancelTerminationMutation.isPending
+      || createOverdueTerminationMutation.isPending
+      || cancelContractMutation.isPending,
     fetchContracts,
     isNewTenantFromNavigation,
     setIsNewTenantFromNavigation,

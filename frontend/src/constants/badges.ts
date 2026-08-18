@@ -71,7 +71,7 @@ export const INVOICE_STATUS_COLORS: Record<InvoiceStatus, BadgeVariant> = {
   PAID: "success", UNPAID: "warning", OVERDUE: "danger",
 };
 export const INVOICE_TYPE_COLORS: Record<InvoiceType, BadgeVariant> = {
-  DEPOSIT: "info", FIRST_RENT: "info", MONTHLY: "default", MAINTENANCE: "warning", FINAL_SETTLEMENT: "gray",
+  DEPOSIT: "info", FIRST_RENT: "info", MONTHLY: "default", MAINTENANCE: "warning", FINAL_SETTLEMENT: "gray", REFUND: "success",
 };
 export const PAYMENT_METHOD_COLORS: Record<PaymentMethod, BadgeVariant> = {
   E_WALLET: "success", CASH: "gray",

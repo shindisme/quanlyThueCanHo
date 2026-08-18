@@ -1,4 +1,4 @@
-﻿import type {
+import type {
     Request,
     Response
 } from "express";
@@ -23,7 +23,7 @@ export const uploadMultipleImages = async (
 
     const urls = await withCompensatedImageUploads(
         files,
-        "/buildings",
+        "/maintenance",
         async (images) => images.map(({ url }) => url)
     );
 

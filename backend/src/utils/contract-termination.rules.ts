@@ -28,6 +28,17 @@ const money = (value: number | Prisma.Decimal) =>
 
 const toNumber = (value: Prisma.Decimal) => money(value).toNumber();
 
+export const shouldIncludeInvoiceInFinalSettlementDebt = (
+    invoiceType: string
+) => invoiceType !== "FINAL_SETTLEMENT" && invoiceType !== "REFUND";
+
+export const buildDepositRefundInvoiceTotal = (
+    refundAmount: number | Prisma.Decimal
+) => {
+    const amount = Prisma.Decimal.max(money(refundAmount), ZERO);
+    return amount.equals(0) ? 0 : toNumber(amount.negated());
+};
+
 export const calculateNoticeDays = (from: Date, to: Date) => {
     const start = Date.UTC(
         from.getUTCFullYear(),
@@ -65,7 +76,7 @@ export const calculateSettlement = (input: SettlementInput) => {
     const depositPaid = money(input.depositPaid);
     const refundRate = money(input.refundRate);
     const eligibleDeposit = input.terminationType === "OVERDUE"
-        ? depositPaid
+        ? ZERO
         : money(depositPaid.mul(refundRate).div(100));
     const totalObligation = money(input.outstandingDebt)
         .plus(money(input.finalRent))
@@ -81,10 +92,7 @@ export const calculateSettlement = (input: SettlementInput) => {
     const refundAmount = input.terminationType === "OVERDUE"
         ? ZERO
         : Prisma.Decimal.max(eligibleDeposit.minus(totalObligation), ZERO);
-    const additionalAmountDue = Prisma.Decimal.max(
-        totalObligation.minus(eligibleDeposit),
-        ZERO
-    );
+    const additionalAmountDue = totalObligation;
 
     return {
         depositPaid: toNumber(depositPaid),
@@ -93,6 +101,7 @@ export const calculateSettlement = (input: SettlementInput) => {
         depositApplied: toNumber(depositApplied),
         refundAmount: toNumber(refundAmount),
         additionalAmountDue: toNumber(additionalAmountDue),
+        invoiceTotalAmount: toNumber(totalObligation),
         financialStatus: additionalAmountDue.greaterThan(0)
             ? "AWAITING_PAYMENT" as const
             : "SETTLED" as const

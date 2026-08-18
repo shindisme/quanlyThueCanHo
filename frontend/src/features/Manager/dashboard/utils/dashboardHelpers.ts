@@ -1,4 +1,5 @@
 import type { RentalContract, Invoice } from "../../../../types";
+import { getInvoiceType } from "../../../../utils/invoiceDisplay";
 
 export interface MonthlyRevenueItem {
   name: string;
@@ -54,13 +55,25 @@ export function calculateRevenueStats(
 
   const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
   const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+  const settledContractIds = new Set(
+    invoices
+      .filter((invoice) => getInvoiceType(invoice) === "FINAL_SETTLEMENT" && invoice.contract_id !== null)
+      .map((invoice) => invoice.contract_id)
+  );
 
   for (const invoice of invoices) {
     const amount = Number(invoice.total_amount) || 0;
+    const invoiceType = getInvoiceType(invoice);
+    const isCoveredBySettlement = invoice.contract_id !== null
+      && invoiceType !== "FINAL_SETTLEMENT"
+      && invoiceType !== "REFUND"
+      && settledContractIds.has(invoice.contract_id);
 
     if (invoice.status === "UNPAID") {
-      unpaidRevenue += amount;
-      unpaidInvoicesCount += 1;
+      if (invoiceType !== "REFUND" && !isCoveredBySettlement) {
+        unpaidRevenue += amount;
+        unpaidInvoicesCount += 1;
+      }
       continue;
     }
 

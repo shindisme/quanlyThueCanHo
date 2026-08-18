@@ -23,7 +23,7 @@ export const INVOICE_STATUS_VALUES = [...INVOICE_PERSISTED_STATUS_VALUES, "OVERD
 export type InvoiceStatus = (typeof INVOICE_STATUS_VALUES)[number];
 
 export const INVOICE_TYPE_VALUES = [
-  "DEPOSIT", "FIRST_RENT", "MONTHLY", "MAINTENANCE", "FINAL_SETTLEMENT",
+  "DEPOSIT", "FIRST_RENT", "MONTHLY", "MAINTENANCE", "FINAL_SETTLEMENT", "REFUND",
 ] as const;
 export type InvoiceType = (typeof INVOICE_TYPE_VALUES)[number];
 

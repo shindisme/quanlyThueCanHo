@@ -23,16 +23,20 @@ import type {
 import type { Actor } from "../types/auth.js";
 import {
     calculateElectricAmount,
-    calculateWaterAmount
+    calculateElectricTierDetails,
+    calculateWaterAmount,
+    calculateWaterTierDetails
 } from "../utils/invoice-billing.js";
 import { getManagerApartmentScope } from "../utils/manager-scope.js";
 import { toMoneyCents } from "../utils/money.js";
 import { runSerializableTransaction } from "../utils/prisma-transaction.js";
 import {
+    buildDepositRefundInvoiceTotal,
     calculateNoticeDays,
     calculateNoticePolicy,
     calculateSettlement,
-    isInvoiceOverdueForTermination
+    isInvoiceOverdueForTermination,
+    shouldIncludeInvoiceInFinalSettlementDebt
 } from "../utils/contract-termination.rules.js";
 
 const openStatuses = [
@@ -496,7 +500,11 @@ const getContractInvoicesWithPayments = (
 ) => database.invoice.findMany({
     where: {
         contract_id: contractId,
-        type: { not: InvoiceType.FINAL_SETTLEMENT }
+        type: {
+            in: Object.values(InvoiceType).filter(
+                shouldIncludeInvoiceInFinalSettlementDebt
+            )
+        }
     },
     select: {
         id: true,
@@ -702,10 +710,16 @@ const findTerminationInScope = async (
 
 const buildFinalSettlementInvoiceCode = (terminationId: number) =>
     `SETTLEMENT-${terminationId}`;
+
+const buildDepositRefundInvoiceCode = (terminationId: number) =>
+    `REFUND-${terminationId}`;
+
 const addInvoiceItem = (
     items: Prisma.InvoiceItemCreateWithoutInvoiceInput[],
     itemName: string,
-    amount: number
+    amount: number,
+    quantity = 1,
+    unitPrice = amount
 ) => {
     const roundedAmount = moneyNumber(amount);
 
@@ -713,15 +727,53 @@ const addInvoiceItem = (
 
     items.push({
         item_name: itemName,
-        quantity: 1,
-        unit_price: roundedAmount,
+        quantity: moneyNumber(quantity),
+        unit_price: moneyNumber(unitPrice),
         amount: roundedAmount
     });
 };
 
+const meterConsumption = (
+    newer: number | undefined | null,
+    older: number | undefined | null
+) => newer === undefined
+    || newer === null
+    || older === undefined
+    || older === null
+    ? null
+    : Math.max(newer - older, 0);
+
+const addUtilityTierItems = (
+    items: Prisma.InvoiceItemCreateWithoutInvoiceInput[],
+    itemName: string,
+    amount: number,
+    tierDetails: Array<{
+        label: string;
+        quantity: number;
+        unit_price: number;
+        amount: number;
+    }> | null
+) => {
+    if (!tierDetails || tierDetails.length === 0) {
+        addInvoiceItem(items, itemName, amount);
+        return;
+    }
+
+    for (const detail of tierDetails) {
+        addInvoiceItem(
+            items,
+            `${itemName} - ${detail.label}`,
+            detail.amount,
+            detail.quantity,
+            detail.unit_price
+        );
+    }
+};
+
 const buildFinalSettlementInvoiceItems = (
     settlement: Awaited<ReturnType<typeof calculateSettlementForTermination>>,
-    damageItems: ChargeInput["damage_items"] | undefined
+    input: ChargeInput,
+    occupantCount: number
 ) => {
     const items: Prisma.InvoiceItemCreateWithoutInvoiceInput[] = [];
 
@@ -731,13 +783,38 @@ const buildFinalSettlementInvoiceItems = (
         settlement.outstanding_debt
     );
     addInvoiceItem(items, "Tiền thuê cuối kỳ", settlement.final_rent);
-    addInvoiceItem(items, "Tiền điện cuối kỳ", settlement.final_electricity);
-    addInvoiceItem(items, "Tiền nước cuối kỳ", settlement.final_water);
+
+    const electricConsumption = meterConsumption(
+        input.final_electricity_new,
+        input.final_electricity_old
+    );
+    addUtilityTierItems(
+        items,
+        "Tiền điện chốt",
+        settlement.final_electricity,
+        electricConsumption === null
+            ? null
+            : calculateElectricTierDetails(electricConsumption)
+    );
+
+    const waterConsumption = meterConsumption(
+        input.final_water_new,
+        input.final_water_old
+    );
+    addUtilityTierItems(
+        items,
+        "Tiền nước chốt",
+        settlement.final_water,
+        waterConsumption === null
+            ? null
+            : calculateWaterTierDetails(waterConsumption, occupantCount)
+    );
+
     addInvoiceItem(items, "Phí dịch vụ cuối kỳ", settlement.final_service_fee);
     addInvoiceItem(items, "Khoản phát sinh khác", settlement.other_charges);
 
-    if (damageItems !== undefined && damageItems.length > 0) {
-        for (const damage of damageItems) {
+    if (input.damage_items !== undefined && input.damage_items.length > 0) {
+        for (const damage of input.damage_items) {
             addInvoiceItem(
                 items,
                 `Bồi thường: ${damage.description}`,
@@ -751,8 +828,6 @@ const buildFinalSettlementInvoiceItems = (
             settlement.damage_amount
         );
     }
-
-    addInvoiceItem(items, "Đối trừ tiền cọc", -settlement.deposit_applied);
 
     if (items.length === 0) {
         items.push({
@@ -786,7 +861,7 @@ const saveFinalSettlementInvoice = async (
     transaction: Prisma.TransactionClient,
     termination: TerminationWithRelations,
     settlement: Awaited<ReturnType<typeof calculateSettlementForTermination>>,
-    damageItems: ChargeInput["damage_items"] | undefined
+    input: ChargeInput
 ) => {
     const invoiceCode = buildFinalSettlementInvoiceCode(termination.id);
     const existing = await transaction.invoice.findFirst({
@@ -801,7 +876,11 @@ const saveFinalSettlementInvoice = async (
     const paidAt = status === InvoiceStatus.PAID
         ? existing?.paid_at ?? new Date()
         : null;
-    const items = buildFinalSettlementInvoiceItems(settlement, damageItems);
+    const items = buildFinalSettlementInvoiceItems(
+        settlement,
+        input,
+        getOccupantCount(termination)
+    );
 
     if (existing) {
         await transaction.invoiceItem.deleteMany({
@@ -840,6 +919,129 @@ const saveFinalSettlementInvoice = async (
     });
 };
 
+const saveDepositRefundInvoice = async (
+    transaction: Prisma.TransactionClient,
+    termination: TerminationWithRelations,
+    settlement: { refund_amount: number }
+) => {
+    const invoiceCode = buildDepositRefundInvoiceCode(termination.id);
+    const totalAmount = buildDepositRefundInvoiceTotal(
+        settlement.refund_amount
+    );
+    const existing = await transaction.invoice.findFirst({
+        where: { invoice_code: invoiceCode },
+        include: finalInvoiceInclude
+    });
+
+    if (totalAmount === 0) {
+        if (existing && existing.status === InvoiceStatus.UNPAID) {
+            await transaction.invoiceItem.deleteMany({
+                where: { invoice_id: existing.id }
+            });
+            await transaction.invoice.delete({ where: { id: existing.id } });
+            return null;
+        }
+
+        return existing;
+    }
+
+    const items: Prisma.InvoiceItemCreateWithoutInvoiceInput[] = [{
+        item_name: "Hoàn trả tiền cọc sau thanh lý hợp đồng",
+        quantity: 1,
+        unit_price: totalAmount,
+        amount: totalAmount
+    }];
+
+    if (existing) {
+        await transaction.invoiceItem.deleteMany({
+            where: { invoice_id: existing.id }
+        });
+
+        return transaction.invoice.update({
+            where: { id: existing.id },
+            data: {
+                contract_id: termination.contract.id,
+                tenant_id: termination.contract.tenant_id,
+                due_date: existing.due_date,
+                total_amount: totalAmount,
+                type: InvoiceType.REFUND,
+                items: { create: items }
+            },
+            include: finalInvoiceInclude
+        });
+    }
+
+    return transaction.invoice.create({
+        data: {
+            contract_id: termination.contract.id,
+            tenant_id: termination.contract.tenant_id,
+            invoice_code: invoiceCode,
+            due_date: new Date(),
+            total_amount: totalAmount,
+            status: InvoiceStatus.UNPAID,
+            paid_at: null,
+            type: InvoiceType.REFUND,
+            items: { create: items }
+        },
+        include: finalInvoiceInclude
+    });
+};
+
+export const syncMissingDepositRefundInvoicesForActor = async (
+    actor: Actor
+) => {
+    const terminations = await prisma.contractTermination.findMany({
+        where: {
+            status: ContractTerminationStatus.COMPLETED,
+            ...getTerminationScope(actor)
+        },
+        include: terminationInclude
+    });
+
+    if (terminations.length === 0) return;
+
+    const refundCodes = terminations.map((termination) =>
+        buildDepositRefundInvoiceCode(termination.id)
+    );
+    const existingRefunds = await prisma.invoice.findMany({
+        where: {
+            invoice_code: { in: refundCodes }
+        },
+        select: { invoice_code: true }
+    });
+    const existingCodes = new Set(
+        existingRefunds.map((invoice) => invoice.invoice_code)
+    );
+    const missingTerminations = terminations.filter((termination) =>
+        !existingCodes.has(buildDepositRefundInvoiceCode(termination.id))
+    );
+
+    if (missingTerminations.length === 0) return;
+
+    await prisma.$transaction(async (transaction) => {
+        for (const termination of missingTerminations) {
+            const finalInvoice = (
+                termination.contract as TerminationWithRelations["contract"] & {
+                    invoices?: FinalSettlementInvoice[];
+                }
+            ).invoices?.[0] ?? null;
+
+            if (!finalInvoice) continue;
+
+            const settlement = buildSettlementSummaryFromFinalInvoice(
+                termination,
+                finalInvoice
+            );
+
+            await saveDepositRefundInvoice(
+                transaction,
+                termination,
+                { refund_amount: settlement.refund_amount }
+            );
+        }
+    });
+};
+
 const sumFinalInvoiceItems = (
     invoice: FinalSettlementInvoice | null | undefined,
     match: (itemName: string) => boolean
@@ -857,13 +1059,10 @@ const buildSettlementSummaryFromFinalInvoice = (
     const depositPaid = moneyNumber(termination.contract.deposit_amount);
     const refundRate = toNumber(termination.refund_rate);
     const eligibleDeposit = termination.type === ContractTerminationType.OVERDUE
-        ? depositPaid
+        ? 0
         : moneyNumber(depositPaid * refundRate / 100);
-    const depositApplied = Math.abs(sumFinalInvoiceItems(
-        invoice,
-        (itemName) => itemName === "Đối trừ tiền cọc"
-    ));
     const additionalAmountDue = moneyNumber(invoice?.total_amount ?? 0);
+    const depositApplied = Math.min(eligibleDeposit, additionalAmountDue);
 
     return {
         deposit_paid: depositPaid,
@@ -879,10 +1078,12 @@ const buildSettlementSummaryFromFinalInvoice = (
         final_electricity: sumFinalInvoiceItems(
             invoice,
             (itemName) => itemName === "Tiền điện cuối kỳ"
+                || itemName.startsWith("Tiền điện chốt")
         ),
         final_water: sumFinalInvoiceItems(
             invoice,
             (itemName) => itemName === "Tiền nước cuối kỳ"
+                || itemName.startsWith("Tiền nước chốt")
         ),
         final_service_fee: sumFinalInvoiceItems(
             invoice,
@@ -900,8 +1101,9 @@ const buildSettlementSummaryFromFinalInvoice = (
         deposit_applied: depositApplied,
         refund_amount: termination.type === ContractTerminationType.OVERDUE
             ? 0
-            : Math.max(moneyNumber(eligibleDeposit - depositApplied), 0),
+            : Math.max(moneyNumber(eligibleDeposit - additionalAmountDue), 0),
         additional_amount_due: additionalAmountDue,
+        invoice_total_amount: additionalAmountDue,
         financial_status: getRuntimeFinancialStatus(additionalAmountDue, invoice),
         final_invoice: normalizeFinalInvoice(invoice)
     };
@@ -1381,12 +1583,26 @@ export const completeHandoverService = async (
                 }
             ).invoices?.[0] ?? null;
 
+            const refundInvoice = await transaction.invoice.findFirst({
+                where: {
+                    invoice_code: buildDepositRefundInvoiceCode(termination.id)
+                },
+                include: finalInvoiceInclude
+            });
+            const settlement = buildSettlementSummaryFromFinalInvoice(
+                termination,
+                finalInvoice
+            );
+
             return {
-                termination: normalizeTermination(termination),
-                settlement: buildSettlementSummaryFromFinalInvoice(
-                    termination,
-                    finalInvoice
-                )
+                termination: {
+                    ...normalizeTermination(termination),
+                    refund_invoice: normalizeFinalInvoice(refundInvoice)
+                },
+                settlement: {
+                    ...settlement,
+                    refund_invoice: normalizeFinalInvoice(refundInvoice)
+                }
             };
         }
 
@@ -1407,7 +1623,12 @@ export const completeHandoverService = async (
             transaction,
             termination,
             settlementData,
-            input.damage_items
+            input
+        );
+        const refundInvoice = await saveDepositRefundInvoice(
+            transaction,
+            termination,
+            settlementData
         );
 
         const ended = await transaction.rentalContract.updateMany({
@@ -1472,7 +1693,8 @@ export const completeHandoverService = async (
             termination: {
                 ...normalizeTermination(termination),
                 ...completedTerminationData,
-                final_invoice: normalizeFinalInvoice(finalInvoice)
+                final_invoice: normalizeFinalInvoice(finalInvoice),
+                refund_invoice: normalizeFinalInvoice(refundInvoice)
             },
             settlement: {
                 ...settlementData,
@@ -1480,7 +1702,8 @@ export const completeHandoverService = async (
                     settlementData.additional_amount_due,
                     finalInvoice
                 ),
-                final_invoice: normalizeFinalInvoice(finalInvoice)
+                final_invoice: normalizeFinalInvoice(finalInvoice),
+                refund_invoice: normalizeFinalInvoice(refundInvoice)
             }
         };
     }, concurrentModification);
