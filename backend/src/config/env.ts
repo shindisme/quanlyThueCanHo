@@ -1,4 +1,4 @@
-﻿import { AppError } from "../errors/app-error.js";
+import { AppError } from "../errors/app-error.js";
 
 export type NodeEnv = "development" | "test" | "production";
 
@@ -209,6 +209,10 @@ export const isAllowedCorsOrigin = (
     }
 
     if (config.security.corsAllowedOrigins.includes(origin)) {
+        return true;
+    }
+
+    if (/^https:\/\/.*\.vercel\.app$/.test(origin)) {
         return true;
     }
 

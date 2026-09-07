@@ -348,6 +348,7 @@ export default function ApartmentDetailPage() {
                         <p>SĐT: <span className="font-medium">{activeTenantUser?.phone || activeTenant.phone || "-"}</span></p>
                         <p>Email: <span className="font-medium">{activeTenantUser?.email || activeTenant.email || "-"}</span></p>
                         <p>Thời hạn thuê: <span className="font-medium">{formatDate(activeContract.start_date)} - {formatDate(activeContract.end_date)}</span></p>
+                        <p>Số tiền cọc: <span className="font-medium text-gray-600">{formatCurrency(Number(activeContract.deposit_amount || 0))}</span></p>
                       </div>
                       <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-primary-100">
                         <Button
@@ -403,7 +404,7 @@ export default function ApartmentDetailPage() {
                         </div>
                         <div>
                           <p className="text-gray-500 font-medium">Số tiền cọc:</p>
-                          <p className="font-bold text-emerald-600 text-sm">
+                          <p className="font-bold text-gray-600 text-sm">
                             {formatCurrency(Number(activeReservation.deposit_amount || apartment.rental_price))}
                           </p>
                         </div>

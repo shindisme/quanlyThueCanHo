@@ -32,6 +32,24 @@ import { sendSuccess } from "./utils/api-response.js";
 const app = express();
 const appConfig = getAppConfig();
 
+app.use((req, _res, next) => {
+    if (typeof req.query.__url === "string") {
+        const targetPath = req.query.__url;
+        delete req.query.__url;
+        const host = req.headers.host || "localhost";
+        const parsed = new URL(req.url, `http://${host}`);
+        parsed.searchParams.delete("__url");
+        const remaining = parsed.searchParams.toString();
+        req.url = remaining ? `${targetPath}?${remaining}` : targetPath;
+    } else if (
+        req.url.startsWith("/api/app") &&
+        typeof req.headers["x-matched-path"] === "string"
+    ) {
+        req.url = req.headers["x-matched-path"];
+    }
+    next();
+});
+
 app.set("trust proxy", appConfig.security.trustProxy);
 app.use(cors({
     credentials: true,

@@ -78,7 +78,11 @@ export default function Login() {
                 <p className="mt-1 text-xs text-danger-500">{errors.password.message}</p>
               )}
             </div>
-
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 700 }}>Tài khoản demo:</p>
+              <p style={{ fontSize: 12 }}>Tên đăng nhập: admin</p>
+              <p style={{ fontSize: 12 }}>Mật khẩu: 123123</p>
+            </div>
             <Button
               type="submit"
               isLoading={isPending}
