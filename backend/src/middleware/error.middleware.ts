@@ -293,6 +293,20 @@ export const errorHandler: ErrorRequestHandler = (
         }
     }
 
+    if (error instanceof Prisma.PrismaClientInitializationError) {
+        console.error("Lỗi kết nối cơ sở dữ liệu Prisma:", error.message);
+        sendError(
+            response,
+            500,
+            "DATABASE_CONNECTION_ERROR",
+            "Không thể kết nối tới cơ sở dữ liệu. Vui lòng kiểm tra DATABASE_URL hoặc trạng thái Supabase.",
+            {
+                message: error.message
+            }
+        );
+        return;
+    }
+
     console.error("Lỗi chưa xử lý:", error);
     sendError(
         response,

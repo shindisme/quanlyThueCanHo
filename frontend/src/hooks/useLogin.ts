@@ -29,6 +29,7 @@ export function useLogin() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -54,6 +55,7 @@ export function useLogin() {
   return {
     register,
     handleSubmit,
+    setValue,
     handleLogin,
     errors,
     showPassword,

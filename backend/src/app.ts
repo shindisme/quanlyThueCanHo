@@ -2,6 +2,7 @@ import "dotenv/config";
 import type {} from "./types/express/index.js";
 import cors from "cors";
 import express from "express";
+import { prisma } from "./config/database.js";
 import {
     getAppConfig,
     isAllowedCorsOrigin
@@ -89,6 +90,22 @@ app.get("/", (_request, response) => {
     sendSuccess(response, {
         message: "API is running"
     });
+});
+
+app.get("/health", async (_request, response) => {
+    try {
+        await prisma.$queryRaw`SELECT 1`;
+        sendSuccess(response, {
+            status: "ok",
+            database: "connected"
+        });
+    } catch (err: unknown) {
+        response.status(500).json({
+            status: "error",
+            database: "disconnected",
+            error: err instanceof Error ? err.message : String(err)
+        });
+    }
 });
 
 app.use(notFound);
